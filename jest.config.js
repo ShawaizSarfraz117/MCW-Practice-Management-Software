@@ -7,31 +7,34 @@ const createJestConfig = nextJest({
 
 // Add any custom config to be passed to Jest
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testEnvironment: 'jest-environment-jsdom',
-  testPathIgnorePatterns: [
-    '<rootDir>/node_modules/',
-    '<rootDir>/.next/'
+  testEnvironment: 'node',
+  setupFilesAfterEnv: ['./__tests__/jest.setup.js'],
+  testMatch: ['**/__tests__/**/*.test.(ts|tsx|js|jsx)'],
+  transform: {
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: './__tests__/tsconfig.test.json'
+    }],
+    '^.+\\.(js|jsx)$': 'babel-jest',
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(next|next-auth|@babel|@auth)/)'
   ],
   moduleNameMapper: {
-    // Handle module aliases
-    '^@/components/(.*)$': '<rootDir>/components/$1',
-    '^@/pages/(.*)$': '<rootDir>/pages/$1',
-    '^@/app/(.*)$': '<rootDir>/app/$1',
-    '^@/lib/(.*)$': '<rootDir>/lib/$1'
+    '^@/(.*)$': '<rootDir>/$1',
   },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverageFrom: [
-    'app/**/*.{js,jsx,ts,tsx}',
-    '!app/**/*.d.ts',
-    '!app/**/_*.{js,jsx,ts,tsx}',
-    '!app/**/layout.{js,jsx,ts,tsx}',
-    '!app/**/page.{js,jsx,ts,tsx}',
-    '!app/**/(api)/**/*.{js,jsx,ts,tsx}',
-    '!**/*.{config,types}.{js,jsx,ts,tsx}'
+    '**/*.{js,jsx,ts,tsx}',
+    '!**/*.d.ts',
+    '!**/node_modules/**',
+    '!**/.next/**',
   ],
-  transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]
-  }
+  // Use the Babel config from the tests directory
+  globals: {
+    'ts-jest': {
+      babelConfig: './__tests__/babel.config.js',
+    },
+  },
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
