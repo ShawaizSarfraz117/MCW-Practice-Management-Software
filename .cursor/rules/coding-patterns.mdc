@@ -1,0 +1,17 @@
+---
+description: How we should prefer to code
+globs: 
+alwaysApply: false
+---
+# Coding pattern preferences
+
+– Always prefer simple solutions  
+– Avoid duplication of code whenever possible, which means checking for other areas of the codebase that might already have similar code and functionality  
+– You are careful to only make changes that are requested or you are confident are well understood and related to the change being requested  
+– When fixing an issue or bug, do not introduce a new pattern or technology without first exhausting all options for the existing implementation. And if you finally do this, make sure to remove the old implementation afterwards so we don’t have duplicate logic.  
+– Keep the codebase very clean and organized   
+– Avoid having files over 200–300 lines of code. Refactor at that point.  
+- Try to make methods do one thing and one thing only.
+- Keep nesting low.
+- Methods should get input parameters on which they are working and return output.
+- Follow KISS and YAGNI principles.

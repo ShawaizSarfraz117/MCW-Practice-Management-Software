@@ -1,0 +1,39 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model for Admin and Clinician
+model User {
+  id             String     @id @default(uuid())
+  email          String     @unique
+  password_hash  String    
+  last_login     DateTime?  
+  userRoles      UserRole[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+// Role model (Admin, Clinician)
+model Role {
+  id         String     @id @default(uuid())
+  name       String     @unique
+  userRoles  UserRole[]
+}
+
+// Junction table for many-to-many relationship between User and Role
+model UserRole {
+  user_id    String     
+  role_id    String     
+  user       User       @relation(fields: [user_id], references: [id])
+  role       Role       @relation(fields: [role_id], references: [id])
+
+  @@id([user_id, role_id]) // Composite primary key
+} 
