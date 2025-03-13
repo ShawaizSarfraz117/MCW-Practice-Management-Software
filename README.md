@@ -1,13 +1,14 @@
 # Next.js Application with Role Management
 
-A modern Next.js application with user role management (Admin and Clinician), built with TypeScript, Prisma ORM, and NextAuth.js for authentication.
+A modern Next.js application with user role management (BackOffice and FrontOffice), built with TypeScript, Prisma ORM, and NextAuth.js for authentication.
 
 ## Features
 
 - **Authentication**: Secure login system using NextAuth.js
-- **Role-based Authorization**: Different access levels for Admin and Clinician roles
+- **Role-based Authorization**: Different access levels for BackOffice and FrontOffice roles
 - **Modern UI**: Clean, responsive interface built with Tailwind CSS
 - **Database Integration**: Prisma ORM with SQLite for development/testing and SQL Server for production
+- **Separate Hosting**: BackOffice and FrontOffice can be hosted on separate servers
 
 ## Tech Stack
 
@@ -15,7 +16,7 @@ A modern Next.js application with user role management (Admin and Clinician), bu
 - **Backend**: Next.js API Routes, Prisma ORM
 - **Authentication**: NextAuth.js
 - **Database**: SQLite (development/testing), SQL Server (production)
-- **Testing**: Jest and React Testing Library
+- **Testing**: Jest and React Testing Library for both Integration and Mock tests
 
 ## Getting Started
 
@@ -70,6 +71,13 @@ npm start
 
 The application is configured to use SQLite in-memory database for testing, providing fast and isolated test runs without affecting your development or production databases.
 
+### Testing Approaches
+
+The application uses two main testing approaches:
+
+1. **Integration Tests**: Test the interaction between components and modules in a more realistic environment
+2. **Mock Tests**: Use mock objects to isolate the unit being tested from its dependencies
+
 ### Running Tests
 
 ```bash
@@ -87,11 +95,11 @@ npm test -- auth.test.ts
 
 For testing the application, you can use these pre-seeded accounts:
 
-- **Admin User**
+- **BackOffice User**
   - Email: admin@example.com
   - Password: admin123
 
-- **Clinician User**
+- **BackOffice User (previously Clinician)**
   - Email: clinician@example.com
   - Password: clinician123
 
@@ -99,16 +107,31 @@ For testing the application, you can use these pre-seeded accounts:
 
 ```
 ├── app/                   # Next.js application files
-│   ├── (dashboard)/       # Dashboard routes (Admin/Clinician)
-│   ├── (client)/          # Client portal routes
+│   ├── (backoffice)/      # BackOffice routes
+│   ├── (frontoffice)/     # FrontOffice routes
 │   ├── api/               # API routes
-│   ├── login/             # Login page
+│   │   ├── backoffice/    # BackOffice API routes
+│   │   ├── frontoffice/   # FrontOffice API routes
+│   │   └── auth/          # Authentication API routes
+│   ├── (auth)/            # Authentication pages
 │   └── components/        # Shared components
 ├── prisma/                # Prisma schema and migrations
 ├── __tests__/             # Jest test files
+│   ├── integration/       # Integration tests
+│   └── mocks/             # Mock tests
+├── lib/                   # Shared utilities
 ├── public/                # Static assets
 └── types/                 # TypeScript type definitions
 ```
+
+## Deployment
+
+The application is designed to be deployed in two separate instances:
+
+1. **BackOffice**: Admin interface for managing the application
+2. **FrontOffice**: Client-facing interface
+
+Each can be deployed to its own server with its own domain, allowing for better security and scalability.
 
 ## Database Schema
 

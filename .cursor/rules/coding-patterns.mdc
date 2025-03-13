@@ -15,3 +15,4 @@ alwaysApply: false
 - Keep nesting low.
 - Methods should get input parameters on which they are working and return output.
 - Follow KISS and YAGNI principles.
+- Always try to write simple code; do not overcomplicate things.

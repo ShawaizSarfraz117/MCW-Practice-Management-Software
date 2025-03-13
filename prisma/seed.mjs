@@ -6,27 +6,18 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Create roles if they don't exist
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'ADMIN' },
+  const backOfficeRole = await prisma.role.upsert({
+    where: { name: 'BACKOFFICE' },
     update: {},
     create: {
       id: uuidv4(),
-      name: 'ADMIN',
+      name: 'BACKOFFICE',
     },
   });
 
-  const clinicianRole = await prisma.role.upsert({
-    where: { name: 'CLINICIAN' },
-    update: {},
-    create: {
-      id: uuidv4(),
-      name: 'CLINICIAN',
-    },
-  });
+  console.log('Roles created:', backOfficeRole);
 
-  console.log('Roles created:', adminRole, clinicianRole);
-
-  // Create a test admin user
+  // Create a test backoffice user
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@example.com' },
@@ -39,15 +30,15 @@ async function main() {
       updatedAt: new Date(),
       userRoles: {
         create: {
-          role_id: adminRole.id,
+          role_id: backOfficeRole.id,
         },
       },
     },
   });
 
-  console.log('Admin user created:', admin);
+  console.log('BackOffice user created:', admin);
 
-  // Create a test clinician user
+  // Create another test backoffice user (previously clinician)
   const clinicianPassword = await bcrypt.hash('clinician123', 10);
   const clinician = await prisma.user.upsert({
     where: { email: 'clinician@example.com' },
@@ -60,13 +51,13 @@ async function main() {
       updatedAt: new Date(),
       userRoles: {
         create: {
-          role_id: clinicianRole.id,
+          role_id: backOfficeRole.id,
         },
       },
     },
   });
 
-  console.log('Clinician user created:', clinician);
+  console.log('BackOffice user created:', clinician);
 }
 
 main()

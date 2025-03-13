@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model for Admin and Clinician
+// User model for BackOffice users
 model User {
   id             String     @id @default(uuid())
   email          String     @unique
@@ -21,7 +21,7 @@ model User {
   updatedAt      DateTime   @updatedAt
 }
 
-// Role model (Admin, Clinician)
+// Role model (BackOffice roles)
 model Role {
   id         String     @id @default(uuid())
   name       String     @unique
