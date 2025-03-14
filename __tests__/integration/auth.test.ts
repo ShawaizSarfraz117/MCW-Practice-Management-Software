@@ -4,7 +4,7 @@
 import { seedTestDatabase, cleanupTestDatabase } from '../setup';
 import { NextResponse } from 'next/server';
 import { hash } from 'bcrypt';
-import { authOptions } from '../../app/api/auth/[...nextauth]/auth-options';
+import { backofficeAuthOptions } from '../../app/api/backoffice/auth/[...nextauth]/auth-options';
 
 // Define types for our test database
 type MockUser = {

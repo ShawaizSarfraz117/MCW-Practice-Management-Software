@@ -33,7 +33,7 @@ jest.mock('@prisma/client', () => {
 const mockAuthPostHandler = jest.fn();
 const mockAuthGetHandler = jest.fn();
 
-jest.mock('../../app/api/auth/[...nextauth]/route', () => ({
+jest.mock('../../app/api/backoffice/auth/[...nextauth]/route', () => ({
   POST: mockAuthPostHandler,
   GET: mockAuthGetHandler,
 }));

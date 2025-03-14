@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import  getServerSession  from 'next-auth'; 
-import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { backofficeAuthOptions } from '@/app/api/backoffice/auth/[...nextauth]/auth-options';
 
 // Define a type for the session to help TypeScript
 interface SessionUser {
@@ -12,10 +12,10 @@ interface SessionUser {
 
 export default async function Home() {
   // Use type assertion to help TypeScript understand the structure
-  const session = await getServerSession(authOptions) as SessionUser | null;
+  const session = await getServerSession(backofficeAuthOptions) as SessionUser | null;
 
   if (!session) {
-    redirect('/signin');
+    redirect('/backoffice/signin');
   }
 
   // Check if user has admin or clinician roles

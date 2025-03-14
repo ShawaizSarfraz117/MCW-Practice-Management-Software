@@ -13,6 +13,7 @@ interface FormData {
 
 export function LoginForm() {
   const router = useRouter();
+  
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -36,6 +37,7 @@ export function LoginForm() {
         email: formData.email,
         password: formData.password,
         redirect: false,
+        callbackUrl: '/backoffice/dashboard',
       });
 
       if (result?.error) {
@@ -43,8 +45,8 @@ export function LoginForm() {
         return;
       }
 
-      // Redirect to dashboard on successful login
-      router.push('/dashboard');
+      // Redirect to backoffice dashboard
+      router.push('/backoffice/dashboard');
       router.refresh(); // Refresh to update session data
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -89,7 +91,7 @@ export function LoginForm() {
             Password
           </label>
           <Link 
-            href="/forgot-password" 
+            href="/backoffice/forgot-password" 
             className="text-sm text-blue-600 hover:underline"
           >
             Forgot password?

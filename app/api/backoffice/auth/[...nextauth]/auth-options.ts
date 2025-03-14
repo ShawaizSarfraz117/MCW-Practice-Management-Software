@@ -7,7 +7,7 @@ import { Session } from 'next-auth';
 
 const prisma = new PrismaClient();
 
-export const authOptions: NextAuthConfig = {
+export const backofficeAuthOptions: NextAuthConfig = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -85,8 +85,8 @@ export const authOptions: NextAuthConfig = {
     }
   },
   pages: {
-    signIn: '/signin',
-    error: '/signin',
+    signIn: '/backoffice/signin',
+    error: '/backoffice/signin',
   },
   session: {
     strategy: "jwt",
