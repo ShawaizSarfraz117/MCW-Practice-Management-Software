@@ -26,9 +26,7 @@ async function main() {
       id: uuidv4(),
       email: 'admin@example.com',
       password_hash: adminPassword,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      userRoles: {
+      UserRole: {
         create: {
           role_id: backOfficeRole.id,
         },
@@ -47,9 +45,7 @@ async function main() {
       id: uuidv4(),
       email: 'clinician@example.com',
       password_hash: clinicianPassword,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      userRoles: {
+      UserRole: {
         create: {
           role_id: backOfficeRole.id,
         },
