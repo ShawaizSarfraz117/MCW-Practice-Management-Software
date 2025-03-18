@@ -10,10 +10,13 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy",
-    "seed": "ts-node prisma/seed.mjs"
+    "prisma:migrate:deploy": "prisma migrate deploy --schema=./prisma/schema.sqlserver.prisma",
+    "seed": "ts-node prisma/seed.mjs",
+
+    "generate:sqlserver": "prisma generate --schema=./prisma/schema.sqlserver.prisma",
+    "generate:sqlite": "prisma generate --schema=./prisma/schema.sqlite.prisma",
+    "migrate:sqlserver": "prisma migrate dev --schema=./prisma/schema.sqlserver.prisma",
+    "migrate:sqlite": "prisma migrate dev --schema=./prisma/schema.sqlite.prisma"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.mjs"
