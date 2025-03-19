@@ -13,7 +13,6 @@ model Appointment {
   type                     String           @db.VarChar(50)
   title                    String?          @db.VarChar(255)
   is_all_day               Boolean          @default(false, map: "Appointment_isAllDay_default")
-  Test                      String
   start_date               DateTime
   end_date                 DateTime
   location_id              String?          @db.UniqueIdentifier

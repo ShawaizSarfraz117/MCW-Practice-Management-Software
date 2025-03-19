@@ -12,7 +12,6 @@ model Appointment {
   type                     String           
   title                    String?          
   is_all_day               Boolean          @default(false)
-  Test                      String
   start_date               DateTime
   end_date                 DateTime
   location_id              String?          
