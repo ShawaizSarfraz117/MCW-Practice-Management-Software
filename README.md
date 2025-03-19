@@ -1,6 +1,10 @@
-# Next.js Application with Role Management
+# Development Process
 
-A modern Next.js application with user role management (BackOffice and FrontOffice), built with TypeScript, Prisma ORM, and NextAuth.js for authentication.
+We are developing a HIPAA-compliant application to store medical records—therefore, safety, security, and privacy are paramount. If you notice anything in the project that could impact these aspects, please let us know immediately.
+
+## Our Approach
+
+We leverage AI to generate top-quality production code with maximum speed. Our goal is for **95% of the code** to be AI-generated while maintaining strict quality standards. To achieve this, we enforce a strong testing culture with comprehensive integration tests, particularly for database interactions. We focus on selecting tools and frameworks that integrate seamlessly with AI-assisted development to optimize efficiency and reliability.
 
 ## Features
 
@@ -10,13 +14,39 @@ A modern Next.js application with user role management (BackOffice and FrontOffi
 - **Database Integration**: Prisma ORM with SQLite for development/testing and SQL Server for production
 - **Separate Hosting**: BackOffice and FrontOffice can be hosted on separate servers
 
-## Tech Stack
+## Tools and Frameworks
 
-- **Frontend**: Next.js 14 with App Router, React, Tailwind CSS
-- **Backend**: Next.js API Routes, Prisma ORM
-- **Authentication**: NextAuth.js
-- **Database**: SQLite (development/testing), SQL Server (production)
-- **Testing**: Jest and React Testing Library for both Integration and Mock tests
+- **Framework**: Next.js for scalability and performance. Using v0.dev, we can quickly convert Figma-Wireframes to working, top-quality code.
+- **Component Library**: ShadCN for streamlined UI development.
+- **AI Design-to-Code**: Figma + V0.dev for high-quality code generation.
+- **ORM**: Prisma for structured database access.
+- **Database**: MS SQL Server in production, SQLite for local and test environments.
+- **Cursor.AI**: Used for local development, with actively maintained CursorRules to ensure high code quality.
+- **Authentication**: NextAuth.js for secure login and role-based access.
+
+## Development Flow
+
+1. **Gather Requirements**: Utilize sketches, screenshots, and initial specifications.
+2. **Generate Figma Wireframes**: AI-assisted designs reviewed and annotated by business users.
+3. **Define Data Model**: The **ER diagram** is aligned through review with Figma screens and then converted to a SQL-based Prisma schema.
+4. **Database Integration**:
+   - **Production & QA**: MS SQL Server for cost efficiency, high availability, high security, and point-in-time recovery on Azure.
+   - **Development**: SQLite for quick local setup and faster iteration.
+   - **Testing**: SQLite in-memory for accelerated integration tests.
+5. **Automated Schema Conversion**:
+   - The **SQL Server schema** is manually maintained.
+   - A tool **automatically converts SQL Server schema to SQLite** for local development.
+   - From the SQLite schema, we generate local database migrations.
+6. **Testing Strategy**:
+   - Integration tests validate database interactions.
+   - SQLite in-memory is used to speed up integration tests on developer machines.
+
+## Why This Works
+
+- AI accelerates development while ensuring high code quality.
+- Figma-driven ER modeling ensures database and UI alignment.
+- Clear separation between development, testing, and production environments.
+- Streamlined workflow allows for efficient collaboration between business and development teams.
 
 ## Getting Started
 
@@ -71,13 +101,6 @@ npm start
 
 The application is configured to use SQLite in-memory database for testing, providing fast and isolated test runs without affecting your development or production databases.
 
-### Testing Approaches
-
-The application uses two main testing approaches:
-
-1. **Integration Tests**: Test the interaction between components and modules in a more realistic environment
-2. **Mock Tests**: Use mock objects to isolate the unit being tested from its dependencies
-
 ### Running Tests
 
 ```bash
@@ -90,18 +113,6 @@ npm test -- --coverage
 # Run specific test file
 npm test -- auth.test.ts
 ```
-
-### Test Credentials
-
-For testing the application, you can use these pre-seeded accounts:
-
-- **BackOffice User**
-  - Email: admin@example.com
-  - Password: admin123
-
-- **BackOffice User (previously Clinician)**
-  - Email: clinician@example.com
-  - Password: clinician123
 
 ## Project Structure
 

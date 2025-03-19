@@ -1,0 +1,20 @@
+BEGIN TRY
+
+BEGIN TRAN;
+
+-- AlterTable
+ALTER TABLE [dbo].[Appointment] DROP CONSTRAINT [DF__Appointment__id__388F4914];
+ALTER TABLE [dbo].[Appointment] ADD CONSTRAINT [PK_Appointment_ID] DEFAULT newid() FOR [id];
+
+COMMIT TRAN;
+
+END TRY
+BEGIN CATCH
+
+IF @@TRANCOUNT > 0
+BEGIN
+    ROLLBACK TRAN;
+END;
+THROW
+
+END CATCH

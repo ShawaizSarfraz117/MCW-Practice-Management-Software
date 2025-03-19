@@ -3,16 +3,16 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlserver"
-  url      = env("DATABASE_URL")
+  provider          = "sqlserver"
+  url               = env("DATABASE_URL")
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model Appointment {
-  id                       String           @id @default(dbgenerated("newid()"), map: "DF__Appointment__id__388F4914") @db.UniqueIdentifier
+  id                       String           @id @default(dbgenerated("newid()"), map: "PK_Appointment_ID") @db.UniqueIdentifier
   type                     String           @db.VarChar(50)
   title                    String?          @db.VarChar(255)
-  is_all_day               Boolean          @default(false, map: "DF__Appointme__is_al__39836D4D")
+  is_all_day               Boolean          @default(false, map: "Appointment_isAllDay_default")
   start_date               DateTime
   end_date                 DateTime
   location_id              String?          @db.UniqueIdentifier
@@ -296,7 +296,7 @@ model sysdiagrams {
 
 model Tag {
   id             String           @id(map: "PK__Tag__3213E83FFA70F600") @default(dbgenerated("newid()"), map: "DF__Tag__id__2A0C1F93") @db.UniqueIdentifier
-  name           String           @db.NVarChar(150)
+  name           String           @db.NVarChar(100)
   color          String?          @db.NVarChar(50)
   AppointmentTag AppointmentTag[]
 }
