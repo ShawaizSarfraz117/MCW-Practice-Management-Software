@@ -10,11 +10,13 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:debug": "jest --verbose",
+    "test:api": "jest app/api",
     "prisma:migrate:deploy": "prisma migrate deploy --schema=./prisma/schema.sqlserver.prisma",
     "seed": "ts-node prisma/seed.mjs",
 
     "migrate:name": "node ./prisma/scripts/migrate-with-name.js",
-    "dev:sync": "npm run convert-schema && npm run push:sqlite"
+    "dev:sync": "node ./prisma/scripts/sqlite-converter.js"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.mjs"

@@ -9,7 +9,10 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   testEnvironment: 'node',
   setupFilesAfterEnv: ['./__tests__/jest.setup.js'],
-  testMatch: ['**/__tests__/**/*.test.(ts|tsx|js|jsx)'],
+  testMatch: [
+    '**/__tests__/**/*.test.(ts|tsx|js|jsx)', 
+    '**/app/**/*.test.(ts|tsx|js|jsx)'
+  ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: './__tests__/tsconfig.test.json'
