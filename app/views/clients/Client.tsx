@@ -1,20 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import TopBar from "@/components/layouts/Topbar"
 import { Search, Plus, Share, MessageSquare, ChevronDown, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ClientTable from "./ClientTable"
 import { Card } from "@/components/ui/card"
-
+import { useRouter } from "next/navigation"
 export default function Clients() {
     const [sortBy, setSortBy] = useState("last name")
-
+    const router = useRouter()
+    const handleRedirect = (id: string) => {
+      router.push(`/clients/${id}`)
+    }
   return (
     <div className="flex-1 overflow-auto">
-      {/* Header */}
-      <TopBar />
 
       <main className="p-6">
         {/* Transfer Client Data Card */}
@@ -70,7 +70,7 @@ export default function Clients() {
           </div>
         </div>
       </div>
-        <ClientTable />
+        <ClientTable onRowClick={handleRedirect}/>
       </main>
     </div>
   )
