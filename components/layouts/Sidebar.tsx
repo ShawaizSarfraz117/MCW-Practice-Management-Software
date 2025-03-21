@@ -19,21 +19,24 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface SidebarItemProps {
-  icon: React.ReactNode
-  label: string
-  href: string
-  badge?: React.ReactNode
+// Update the Sidebar component to accept a 'mobile' prop
+interface SidebarProps {
+  mobile?: boolean
 }
 
-export default function Sidebar() {
+export default function Sidebar({ mobile = false }: SidebarProps) {
   const pathname = usePathname()
 
   return (
-    <div className="w-[230px] min-w-[230px] bg-white border-r border-[#e5e7eb]">
+    <div
+      className={cn(
+        "w-[230px] min-w-[230px] bg-white border-r border-[#e5e7eb]",
+        !mobile && "hidden md:block", // Only hide on small screens if not mobile version
+      )}
+    >
       <div className="p-6 border-b border-[#e5e7eb]">
         <Link href="/" className="block">
-          <h1 className="text-2xl font-bold text-[#2d8467] mcw-logo">MCW</h1>
+          <h1 className="text-2xl font-bold text-[#2d8467]">MCW</h1>
         </Link>
       </div>
 
@@ -48,7 +51,7 @@ export default function Sidebar() {
           icon={<Users className="w-5 h-5" />}
           label="Clients"
           href="/clients"
-          active={pathname === "/clients" || pathname === "/"}
+          active={pathname.includes("/clients")}
         />
         <SidebarItem
           icon={<CreditCard className="w-5 h-5" />}
