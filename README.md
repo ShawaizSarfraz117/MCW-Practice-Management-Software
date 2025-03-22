@@ -141,22 +141,79 @@ For testing the application, you can use these pre-seeded accounts:
 ## Project Structure
 
 ```
-├── app/                   # Next.js application files
-│   ├── (backoffice)/      # BackOffice routes
-│   ├── (frontoffice)/     # FrontOffice routes
-│   ├── api/               # API routes
-│   │   ├── backoffice/    # BackOffice API routes
-│   │   ├── frontoffice/   # FrontOffice API routes
-│   │   └── auth/          # Authentication API routes
-│   ├── (auth)/            # Authentication pages
-│   └── components/        # Shared components
-├── prisma/                # Prisma schema and migrations
-├── __tests__/             # Jest test files
-│   ├── integration/       # Integration tests
-│   └── mocks/             # Mock tests
-├── lib/                   # Shared utilities
-├── public/                # Static assets
-└── types/                 # TypeScript type definitions
+MCW/
+├── apps/
+│   ├── front-office/                        # Client-facing website
+│   │   ├── public/                          # Static assets
+│   │   ├── src/
+│   │   │   ├── app/                         # App Router
+│   │   │   │   ├── views                    # App views
+│   │   │   │   ├── components               # App specific components
+│   │   │   │   └── api/                     # API routes for client operations
+│   │   │   └── __tests__/                   # Tests for front-office
+│   │   │       
+│   │   ├── jest.config.js                   # Jest config for front-office
+│   │   ├── next.config.js                   # Next.js configuration
+│   │   ├── tsconfig.json                    # TypeScript config
+│   │   └── package.json                     # Dependencies for front-office
+│   │
+│   └── back-office/                         # Admin/Therapist dashboard
+│       ├── public/
+│       ├── src/
+│       │   ├── app/                         # App Router
+│       │   │   ├── page.tsx
+│       │   │   ├── layout.tsx
+│       │   │   └── api/                     # API routes for admin operations
+│       │   ├── styles/
+│       │   └── __tests__/                   # Tests for back-office
+│       │       ├── unit/
+│       │       └── integration/
+│       ├── jest.config.js
+│       ├── next.config.js
+│       ├── tsconfig.json
+│       └── package.json
+│
+├── packages/
+│   ├── ui/                                  # Shared UI components
+│   │   ├── src/
+│   │   │   ├── components/                  # Reusable UI components
+│   │   │   │   ├── Button/
+│   │   │   │   ├── Card/
+│   │   │   │   └── Form/
+│   │   │   ├── hooks/                       # Shared React hooks
+│   │   │   └── context/                     # Shared context providers
+│   │   ├── tsconfig.json
+│   │   └── package.json
+│   │
+│   ├── database/                            # Database access layer
+│   │   ├── prisma/                          # Prisma configuration
+│   │   │   ├── schema.prisma                # Database schema
+│   │   │   ├── migrations/                  # Database migrations
+│   │   │   └── seed.ts                      # Database seeding
+│   │   ├── tsconfig.json
+│   │   └── package.json
+│   │
+│   ├── utils/                               # Shared utilities
+│   │   ├── src/
+│   │   │   ├── formatting/
+│   │   │   ├── validation/
+│   │   │   └── helpers/
+│   │   ├── tsconfig.json
+│   │   └── package.json
+│   │
+│   └── types/                               # Shared TypeScript types
+│       ├── src/
+│       │   ├── api.ts                       # API request/response types
+│       │   ├── models.ts                    # Shared model types
+│       │   └── index.ts
+│       ├── tsconfig.json
+│       └── package.json
+│
+├── turbo.json                               # Turborepo configuration
+├── jest.config.base.js                      # Base Jest configuration
+├── tsconfig.base.json                       # Base TypeScript configuration
+├── package.json                             # Root package.json with workspaces
+└── README.md                                # Project documentation
 ```
 
 ## Deployment
