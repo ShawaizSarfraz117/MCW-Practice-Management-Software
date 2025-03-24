@@ -1,0 +1,99 @@
+name: Deploy MCW Apps to Azure
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  deploy-front-office:
+    name: Build and Deploy Front Office
+    runs-on: ubuntu-latest
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-front-office.outputs.webapp-url }}
+    permissions:
+      contents: read
+      id-token: write  
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build shared packages
+      run: npm run build --workspace=packages/*
+    
+    - name: Build front-office
+      run: |
+        npm run test --workspace=apps/front-office
+        npm run build --workspace=apps/front-office
+    
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_C1F3F2DEA2944218A8938796501FC283 }}
+        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_FCD020723C21410295138D8A704991E3 }}
+        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C47C2C1A005143B1BDF464E25AB8C551 }}
+    
+    - name: Deploy front-office to Azure Web App
+      id: deploy-front-office
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'mcw-front-office'
+        slot-name: 'Production'
+        package: 'apps/front-office'
+
+  deploy-back-office:
+    name: Build and Deploy Back Office
+    runs-on: ubuntu-latest
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-back-office.outputs.webapp-url }}
+    permissions:
+      contents: read
+      id-token: write  # Required for Azure login with OIDC
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build shared packages
+      run: npm run build --workspace=packages/*
+    
+    - name: Build back-office
+      run: |
+        npm run test --workspace=apps/back-office
+        npm run build --workspace=apps/back-office
+    
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_6203C56905974EABA45FF8FFDA13E851 }}
+        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_71D48D4E46734FA7B9FBF4E8B919CF94}}
+        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_A3EF38FD72594121A218B249A09D38CB }}
+    
+    - name: Deploy back-office to Azure Web App
+      id: deploy-back-office
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'mcw-back-office'
+        slot-name: 'Production'
+        package: 'apps/back-office'
