@@ -4,16 +4,16 @@ import { useState } from "react"
 import { Search, Plus, Share, MessageSquare, ChevronDown, Filter } from "lucide-react"
 import { Button, Input, Card } from "@mcw/ui"
 import ClientTable from "./ClientTable"
+import { useRouter } from "next/navigation"
 
 export default function Clients() {
-  const [sortBy, setSortBy] = useState("last name")
-
+    const [sortBy, setSortBy] = useState("last name")
+    const router = useRouter()
+    const handleRedirect = (id: string) => {
+      router.push(`/clients/${id}`)
+    }
   return (
     <div className="flex-1 overflow-auto">
-      {/* Header */}
-      <header className="bg-white border-b p-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Back Office Portal</h1>
-      </header>
 
       <main className="p-6">
         {/* Transfer Client Data Card */}
@@ -69,7 +69,7 @@ export default function Clients() {
             </div>
           </div>
         </div>
-        <ClientTable />
+        <ClientTable onRowClick={handleRedirect}/>
       </main>
     </div>
   )

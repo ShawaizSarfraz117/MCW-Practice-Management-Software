@@ -2,6 +2,7 @@
 
 import { MoreHorizontal } from "lucide-react"
 import { Button, Badge } from "@mcw/ui"
+import DataTable from "@backOffice/components/table/DataTable"
 
 const rows = [
   {
@@ -45,44 +46,6 @@ const rows = [
     waitlist: "No",
   },
 ]
-
-interface DataTableProps {
-  columns: any[];
-  rows: any[];
-  title?: string;
-}
-
-const DataTable = ({ columns, rows, title }: DataTableProps) => {
-  return (
-    <div className="bg-white rounded-lg border shadow-sm">
-      {title && <h3 className="text-lg font-medium p-4 border-b">{title}</h3>}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 border-b">
-              {columns.map((column) => (
-                <th key={column.key} className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="border-b hover:bg-gray-50">
-                {columns.map((column) => (
-                  <td key={`${row.id}-${column.key}`} className="px-6 py-4 whitespace-nowrap text-sm">
-                    {column.formatter ? column.formatter(row) : row[column.key]}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
 
 const ClientTable = (props: any) => {
   const columns = [

@@ -20,7 +20,10 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "paths": {
+      "@backOffice/*": ["./src/app/*"]
+    }
   },
   "include": [
     "next-env.d.ts",
