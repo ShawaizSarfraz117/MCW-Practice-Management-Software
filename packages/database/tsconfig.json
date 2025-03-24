@@ -1,6 +1,8 @@
 {
     "compilerOptions": {
       "incremental": true,
-      "tsBuildInfoFile": "./dist/.tsbuildinfo"
+      "tsBuildInfoFile": "./dist/.tsbuildinfo",
+      "module": "NodeNext",
+      "moduleResolution": "NodeNext"
     }
   }
