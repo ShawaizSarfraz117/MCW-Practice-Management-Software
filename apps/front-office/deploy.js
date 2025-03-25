@@ -41,27 +41,76 @@ const deployDir = path.join(nextAppDir, 'deploy');
 fs.ensureDirSync(deployDir);
 fs.emptyDirSync(deployDir);
 
-// Copy standalone build - includes server.js and dependencies
+// Copy files directly from standalone to root level
+console.log('Copying standalone build files to root level...');
 if (fs.existsSync(standaloneBuildDir)) {
-  fs.copySync(standaloneBuildDir, deployDir, { overwrite: true });
-  console.log('Copied standalone build.');
+  // Copy files from standalone dir to root of deploy dir
+  const standaloneFiles = fs.readdirSync(standaloneBuildDir);
+  for (const file of standaloneFiles) {
+    const srcPath = path.join(standaloneBuildDir, file);
+    
+    // Skip the packages or apps directory to prevent nesting
+    if (file === 'packages' || file === 'apps') {
+      console.log(`Skipping nested directory: ${file}`);
+      continue;
+    }
+    
+    const destPath = path.join(deployDir, file);
+    fs.copySync(srcPath, destPath, { overwrite: true });
+    console.log(`Copied ${file} to root level`);
+  }
+  
+  // If there's a nested app directory in standalone with our app
+  const appPath = path.join(standaloneBuildDir, 'apps', 'back-office');
+  if (fs.existsSync(appPath)) {
+    const appFiles = fs.readdirSync(appPath);
+    for (const file of appFiles) {
+      const srcPath = path.join(appPath, file);
+      const destPath = path.join(deployDir, file);
+      fs.copySync(srcPath, destPath, { overwrite: true });
+      console.log(`Copied nested app file ${file} to root level`);
+    }
+  }
+  
+  console.log('Copied standalone build to root level.');
 } else {
   console.error('Standalone build directory not found. Make sure your next.config.js includes output: "standalone"');
   process.exit(1);
 }
 
-// Copy .next/static to .next/static in the deployment package
+// Copy static assets to the correct locations
+console.log('Copying static assets to correct locations...');
+
+// 1. Copy to the standard Next.js location
 fs.copySync(
   staticDir,
   path.join(deployDir, '.next/static'),
   { overwrite: true }
 );
-console.log('Copied static assets.');
+
+// 2. Copy to a root level _next/static folder for absolute paths
+fs.copySync(
+  staticDir,
+  path.join(deployDir, '_next/static'),
+  { overwrite: true }
+);
+
+console.log('Copied static assets to multiple locations for better compatibility.');
 
 // Copy public folder to deployment package
 if (fs.existsSync(publicDir)) {
   fs.copySync(publicDir, path.join(deployDir, 'public'), { overwrite: true });
   console.log('Copied public directory.');
+  
+  // Also copy public files to root for absolute path references
+  const files = fs.readdirSync(publicDir);
+  files.forEach(file => {
+    const srcPath = path.join(publicDir, file);
+    const destPath = path.join(deployDir, file);
+    if (fs.lstatSync(srcPath).isFile()) {
+      fs.copySync(srcPath, destPath, { overwrite: true });
+    }
+  });
 }
 
 // Handle native modules if they exist in node_modules
@@ -104,7 +153,7 @@ console.log('Created web.config for Azure.');
 
 // Create a deployment package.json with start script
 const packageJson = {
-  name: "front-office-azure",
+  name: "back-office-azure",
   version: "1.0.0",
   private: true,
   scripts: {
