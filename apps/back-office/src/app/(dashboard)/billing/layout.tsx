@@ -1,19 +1,11 @@
-"use client";
-
 import TopBar from "@/components/layouts/Topbar";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import BillingTabs from "./components/BillingTabs";
 
 export default function BillingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const activeClassNames =
-    "px-4 py-2 text-[#2d8467] font-medium border-b-2 border-[#2d8467]";
-  const inActiveClassNames = "px-4 py-2 text-[#6b7280]";
-
   return (
     <div className="flex h-screen bg-[#ffffff]">
       {/* Sidebar */}
@@ -28,32 +20,7 @@ export default function BillingLayout({
           <h1 className="text-2xl font-semibold text-[#1f2937] mb-6">
             Billing
           </h1>
-
-          {/* Tabs */}
-          <div className="border-b border-[#e5e7eb] mb-6">
-            <div className="flex">
-              <Link
-                className={
-                  pathname === "/billing"
-                    ? activeClassNames
-                    : inActiveClassNames
-                }
-                href="/billing"
-              >
-                Recent Activity
-              </Link>
-              <Link
-                className={
-                  pathname === "/billing/documents"
-                    ? activeClassNames
-                    : inActiveClassNames
-                }
-                href="/billing/documents"
-              >
-                Billing Documents
-              </Link>
-            </div>
-          </div>
+          <BillingTabs />
 
           {children}
         </main>
