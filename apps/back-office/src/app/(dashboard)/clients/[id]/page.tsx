@@ -1,5 +1,5 @@
 import ClientProfile from "./components/ClientProfile"
-import TopBar from "@backOffice/components/layouts/Topbar"
+import TopBar from "@/components/layouts/Topbar"
 
 export default function ClientProfilePage({ params }: { params: { id: string } }) {
   return (

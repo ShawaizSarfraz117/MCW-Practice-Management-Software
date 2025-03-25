@@ -2,12 +2,13 @@
   "name": "back-office",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "PORT=3001 next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "rm -rf .next",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",

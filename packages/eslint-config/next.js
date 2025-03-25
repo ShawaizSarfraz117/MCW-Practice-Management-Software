@@ -1,5 +1,5 @@
 import reactConfig from './react.js';
-import nextPlugin from 'eslint-plugin-next';
+import nextPlugin from '@next/eslint-plugin-next';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [

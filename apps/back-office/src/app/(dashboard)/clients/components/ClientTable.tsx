@@ -2,7 +2,7 @@
 
 import { MoreHorizontal } from "lucide-react"
 import { Button, Badge } from "@mcw/ui"
-import DataTable from "@backOffice/components/table/DataTable"
+import DataTable from "@/components/table/DataTable"
 
 const rows = [
   {
