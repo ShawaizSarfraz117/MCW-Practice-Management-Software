@@ -104,7 +104,7 @@ jobs:
       id: deploy-front-office
       uses: azure/webapps-deploy@v3
       with:
-        app-name: 'mcw-front-office-dev'
+        app-name: 'front-office-mcw-dev'
         slot-name: 'Production'
         package: 'apps/front-office/deploy'  # Use the deploy directory created by your script
 
@@ -206,6 +206,6 @@ jobs:
       id: deploy-back-office
       uses: azure/webapps-deploy@v3
       with:
-        app-name: 'mcw-back-office-dev'
+        app-name: 'back-office-mcw-dev'
         slot-name: 'Production'
         package: 'apps/back-office/deploy'  
