@@ -58,6 +58,12 @@ fs.copySync(
 );
 console.log('Copied static assets.');
 
+fs.copySync(
+  staticDir,
+  path.join(deployDir, 'static'),
+  { overwrite: true }
+);
+
 // Copy public folder to deployment package
 if (fs.existsSync(publicDir)) {
   fs.copySync(publicDir, path.join(deployDir, 'public'), { overwrite: true });

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@mcw/ui", "@mcw/utils", "@mcw/types"],
+  transpilePackages: ["@mcw/ui", "@mcw/utils", "@mcw/types", "@mcw/database", "@mcw/tailwind-config"],
   reactStrictMode: true,
   output: 'standalone', // Add standalone output for Azure deployment
   
