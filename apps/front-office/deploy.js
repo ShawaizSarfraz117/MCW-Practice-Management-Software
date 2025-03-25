@@ -8,11 +8,27 @@ const standaloneBuildDir = path.join(nextAppDir, '.next/standalone');
 const staticDir = path.join(nextAppDir, '.next/static');
 const publicDir = path.join(nextAppDir, 'public');
 
+// Make sure Next.js config has output: 'standalone'
+// Create a backup of the original next.config file
+const configFile = fs.existsSync('next.config.js') ? 'next.config.js' : 'next.config.mjs';
+fs.copyFileSync(configFile, `${configFile}.backup`);
+
+// Update the config to ensure it has standalone output
+const configContent = fs.readFileSync(configFile, 'utf8');
+if (!configContent.includes("output: 'standalone'") && !configContent.includes('output: "standalone"')) {
+  console.log(`Adding 'output: standalone' to ${configFile}`);
+  const updatedConfig = configContent.replace(
+    /const nextConfig = {/,
+    "const nextConfig = {\n  output: 'standalone',"
+  );
+  fs.writeFileSync(configFile, updatedConfig);
+}
+
 // Build the Next.js app with standalone output
 console.log('Building Next.js app in standalone mode...');
 try {
-  // Make sure the output is set to standalone in your next.config.js/mjs
-  execSync('pnpm build', { stdio: 'inherit', cwd: nextAppDir });
+  // Using npm instead of pnpm
+  execSync('npm run build', { stdio: 'inherit', cwd: nextAppDir });
   console.log('Build completed successfully.');
 } catch (error) {
   console.error('Build failed:', error.message);
@@ -30,7 +46,7 @@ if (fs.existsSync(standaloneBuildDir)) {
   fs.copySync(standaloneBuildDir, deployDir, { overwrite: true });
   console.log('Copied standalone build.');
 } else {
-  console.error('Standalone build directory not found. Make sure your next.config.js/mjs includes output: "standalone"');
+  console.error('Standalone build directory not found. Make sure your next.config.js includes output: "standalone"');
   process.exit(1);
 }
 
@@ -79,7 +95,7 @@ const webConfig = `<?xml version="1.0" encoding="utf-8"?>
         </rule>
       </rules>
     </rewrite>
-    <iisnode nodeProcessCommandLine="node.exe" watchedFiles="web.config;*.js"/>
+    <iisnode watchedFiles="web.config;*.js"/>
   </system.webServer>
 </configuration>`;
 
@@ -88,7 +104,7 @@ console.log('Created web.config for Azure.');
 
 // Create a deployment package.json with start script
 const packageJson = {
-  name: "app-azure-deployment",
+  name: "front-office-azure",
   version: "1.0.0",
   private: true,
   scripts: {
@@ -98,10 +114,16 @@ const packageJson = {
     "node": ">=18.0.0"
   },
   // Include dependencies for native modules if needed
-  dependencies: {
-    "bcrypt": "*" // The actual version will be determined by what's copied
-  }
+  dependencies: {}
 };
+
+// Add native module dependencies if they exist
+for (const moduleName of nativeModules) {
+  const modulePath = path.join(nextAppDir, 'node_modules', moduleName);
+  if (fs.existsSync(modulePath)) {
+    packageJson.dependencies[moduleName] = "*";
+  }
+}
 
 fs.writeFileSync(
   path.join(deployDir, 'package.json'), 
@@ -109,12 +131,19 @@ fs.writeFileSync(
 );
 console.log('Created deployment package.json');
 
-// Create a .deployment file for Azure (optional)
+// Create a .deployment file for Azure
 const deploymentConfig = `[config]
 SCM_DO_BUILD_DURING_DEPLOYMENT=false`;
 
 fs.writeFileSync(path.join(deployDir, '.deployment'), deploymentConfig);
 console.log('Created .deployment file to prevent Azure from rebuilding the app.');
+
+// Restore the original next.config if we created a backup
+if (fs.existsSync(`${configFile}.backup`)) {
+  fs.copyFileSync(`${configFile}.backup`, configFile);
+  fs.unlinkSync(`${configFile}.backup`);
+  console.log(`Restored original ${configFile}`);
+}
 
 console.log('Deployment package created at:', deployDir);
 console.log('You can now deploy the contents of this directory to Azure App Service.');

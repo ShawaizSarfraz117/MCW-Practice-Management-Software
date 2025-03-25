@@ -2,7 +2,7 @@ name: Deploy MCW Apps to Azure (Development)
 
 on:
   push:
-    branches: [ main ]  
+    branches: [ workflow-experimenting, main, development ]
   workflow_dispatch:  # Manual trigger
 
 jobs:
@@ -77,12 +77,12 @@ jobs:
           cd ../..
         fi
     
-    - name: Build front-office deployment package
+    - name: Run front-office deployment script
       run: |
         if [ -d "apps/front-office" ]; then
           cd apps/front-office
           
-          # Install fs-extra for the deployment script if needed
+          # Install fs-extra if needed for the deployment script
           npm install --save-dev fs-extra
           
           # Run the existing deployment script
@@ -105,14 +105,15 @@ jobs:
       with:
         app-name: 'mcw-front-office-dev'
         slot-name: 'Production'
-        package: 'apps/front-office/deploy'  
+        package: 'apps/front-office/deploy'  # Use the deploy directory created by your script
 
   deploy-back-office:
     name: Build and Deploy Back Office (Dev)
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write 
+      id-token: write  # Required for Azure login with OIDC
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -177,12 +178,12 @@ jobs:
           cd ../..
         fi
     
-    - name: Build back-office deployment package
+    - name: Run back-office deployment script
       run: |
         if [ -d "apps/back-office" ]; then
           cd apps/back-office
           
-          # Install fs-extra for the deployment script if needed
+          # Install fs-extra if needed for the deployment script
           npm install --save-dev fs-extra
           
           # Run the existing deployment script
@@ -205,4 +206,4 @@ jobs:
       with:
         app-name: 'mcw-back-office-dev'
         slot-name: 'Production'
-        package: 'apps/back-office/deploy'  
+        package: 'apps/back-office/deploy'  # Use the deploy directory created by your script
