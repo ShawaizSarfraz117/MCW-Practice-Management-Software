@@ -42,7 +42,7 @@
     "tailwindcss": "^3.4.17",
     "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
-    "turbo": "^1.10.0",
+    "turbo": "^2.4.4",
     "typescript": "^5.3.3",
     "uuid": "^9.0.1"
   },
