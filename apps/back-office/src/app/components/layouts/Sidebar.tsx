@@ -18,7 +18,6 @@ import {
 	Megaphone,
 } from "lucide-react";
 import { cn } from "@mcw/utils";
-import { useEffect } from "react";
 
 // Update the Sidebar component to accept a 'mobile' prop
 interface SidebarProps {
@@ -27,10 +26,6 @@ interface SidebarProps {
 
 export default function Sidebar({ mobile = false }: SidebarProps) {
 	const pathname = usePathname();
-
-  useEffect(() => {
-    pathname === "/login" && router.push("/");
-  }, []);
 
 	return (
 		<div
@@ -47,10 +42,10 @@ export default function Sidebar({ mobile = false }: SidebarProps) {
 
 			<nav className="py-2">
 				<SidebarItem
+					active={pathname === "/calendar"}
+					href="/calendar"
 					icon={<Calendar className="w-5 h-5" />}
 					label="Calendar"
-					href="/calendar"
-					active={pathname === "/calendar"}
 				/>
 				<SidebarItem
 					icon={<Users className="w-5 h-5" />}
