@@ -2,12 +2,11 @@
   "name": "@mcw/database",
   "version": "0.0.0",
   "private": true,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "clean": "rm -rf dist",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -21,9 +20,8 @@
   "devDependencies": {
     "@mcw/tsconfig-config": "*",
     "@types/node": "^20.11.17",
-    "eslint": "^8.56.0",
+    "eslint": "^9.22.0",
     "prisma": "^6.5.0",
-    "tsup": "^8.0.1",
     "typescript": "^5.3.3"
   }
 }

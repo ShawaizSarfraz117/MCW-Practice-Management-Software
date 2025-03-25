@@ -2,6 +2,9 @@
   "extends": "@mcw/tsconfig-config/node",
   "compilerOptions": {
     "incremental": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"
-  }
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+  },
+  "include": [
+    "src"
+  ]
 }

@@ -12,9 +12,7 @@
   },
   "devDependencies": {
     "@mcw/tsconfig-config": "*",
-    "@types/node": "^20.11.17",
-    "eslint": "^8.56.0",
-    "tsup": "^8.0.1",
+    "eslint": "^9.22.0",
     "typescript": "^5.3.3"
   }
 }

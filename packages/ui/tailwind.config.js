@@ -1,7 +1,6 @@
-const sharedConfig = require("@mcw/tailwind-config");
+import sharedConfig from "@mcw/tailwind-config";
 
-module.exports = {
+export default {
   content: ["./src/**/*.tsx"],
   presets: [sharedConfig],
 };
-
