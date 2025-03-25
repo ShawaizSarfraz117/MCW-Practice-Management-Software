@@ -61,7 +61,7 @@ if (fs.existsSync(standaloneBuildDir)) {
   }
   
   // If there's a nested app directory in standalone with our app
-  const appPath = path.join(standaloneBuildDir, 'apps', 'back-office');
+  const appPath = path.join(standaloneBuildDir, 'apps', 'front-office');
   if (fs.existsSync(appPath)) {
     const appFiles = fs.readdirSync(appPath);
     for (const file of appFiles) {
@@ -131,6 +131,7 @@ for (const moduleName of nativeModules) {
 
 // Create web.config for Azure
 const webConfig = `<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <system.webServer>
     <handlers>
@@ -138,6 +139,13 @@ const webConfig = `<?xml version="1.0" encoding="utf-8"?>
     </handlers>
     <rewrite>
       <rules>
+        <!-- Don't interfere with requests for static files -->
+        <rule name="StaticContent" stopProcessing="true">
+          <match url="(.*\.(css|js|jpg|jpeg|png|gif|ico|wasm|svg|webp|woff|woff2|ttf|eot))" ignoreCase="true" />
+          <action type="None" />
+        </rule>
+        
+        <!-- All other requests go to Next.js -->
         <rule name="NextJS">
           <match url="/*" />
           <action type="Rewrite" url="server.js" />
@@ -145,6 +153,16 @@ const webConfig = `<?xml version="1.0" encoding="utf-8"?>
       </rules>
     </rewrite>
     <iisnode watchedFiles="web.config;*.js"/>
+    
+    <!-- Configure proper MIME types for static files -->
+    <staticContent>
+      <remove fileExtension=".json" />
+      <mimeMap fileExtension=".json" mimeType="application/json" />
+      <remove fileExtension=".wasm" />
+      <mimeMap fileExtension=".wasm" mimeType="application/wasm" />
+      <remove fileExtension=".webp" />
+      <mimeMap fileExtension=".webp" mimeType="image/webp" />
+    </staticContent>
   </system.webServer>
 </configuration>`;
 
@@ -153,7 +171,7 @@ console.log('Created web.config for Azure.');
 
 // Create a deployment package.json with start script
 const packageJson = {
-  name: "back-office-azure",
+  name: "front-office-azure",
   version: "1.0.0",
   private: true,
   scripts: {

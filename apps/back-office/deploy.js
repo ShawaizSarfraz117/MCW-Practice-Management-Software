@@ -131,6 +131,7 @@ for (const moduleName of nativeModules) {
 
 // Create web.config for Azure
 const webConfig = `<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <system.webServer>
     <handlers>
@@ -138,6 +139,13 @@ const webConfig = `<?xml version="1.0" encoding="utf-8"?>
     </handlers>
     <rewrite>
       <rules>
+        <!-- Don't interfere with requests for static files -->
+        <rule name="StaticContent" stopProcessing="true">
+          <match url="(.*\.(css|js|jpg|jpeg|png|gif|ico|wasm|svg|webp|woff|woff2|ttf|eot))" ignoreCase="true" />
+          <action type="None" />
+        </rule>
+        
+        <!-- All other requests go to Next.js -->
         <rule name="NextJS">
           <match url="/*" />
           <action type="Rewrite" url="server.js" />
@@ -145,6 +153,16 @@ const webConfig = `<?xml version="1.0" encoding="utf-8"?>
       </rules>
     </rewrite>
     <iisnode watchedFiles="web.config;*.js"/>
+    
+    <!-- Configure proper MIME types for static files -->
+    <staticContent>
+      <remove fileExtension=".json" />
+      <mimeMap fileExtension=".json" mimeType="application/json" />
+      <remove fileExtension=".wasm" />
+      <mimeMap fileExtension=".wasm" mimeType="application/wasm" />
+      <remove fileExtension=".webp" />
+      <mimeMap fileExtension=".webp" mimeType="image/webp" />
+    </staticContent>
   </system.webServer>
 </configuration>`;
 
