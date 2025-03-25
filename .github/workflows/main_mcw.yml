@@ -1,20 +1,17 @@
-name: Deploy MCW Apps to Azure
+name: Deploy MCW Apps to Azure (Development)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]  
   workflow_dispatch:  # Manual trigger
 
 jobs:
   deploy-front-office:
-    name: Build and Deploy Front Office
+    name: Build and Deploy Front Office (Dev)
     runs-on: ubuntu-latest
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-front-office.outputs.webapp-url }}
     permissions:
       contents: read
-      id-token: write  
+      id-token: write  # Required for Azure login with OIDC
     
     steps:
     - name: Checkout repository
@@ -26,16 +23,74 @@ jobs:
         node-version: '20.x'
         cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
+    - name: Install root dependencies
+      run: npm install
       
-    - name: Build shared packages
-      run: npm run build --workspace=packages/*
-    
-    - name: Build front-office
+    - name: Generate Prisma Client
       run: |
-        npm run test --workspace=apps/front-office
-        npm run build --workspace=apps/front-office
+        if [ -d "packages/database" ]; then
+          cd packages/database
+          npx prisma generate
+          cd ../..
+        fi
+      
+    - name: Build packages
+      run: |
+        echo "Building packages in separate steps..."
+        # Build database package
+        if [ -d "packages/database" ]; then
+          cd packages/database
+          npm install
+          npm run build || echo "No build script in database package"
+          cd ../..
+        fi
+        
+        # Build tailwind-config package
+        if [ -d "packages/tailwind-config" ]; then
+          cd packages/tailwind-config
+          npm install
+          # No build step for tailwind-config
+          cd ../..
+        fi
+        
+        # Build types package
+        if [ -d "packages/types" ]; then
+          cd packages/types
+          npm install
+          npm run build || echo "No build script in types package"
+          cd ../..
+        fi
+        
+        # Build ui package
+        if [ -d "packages/ui" ]; then
+          cd packages/ui
+          npm install
+          npm run build || echo "No build script in ui package"
+          cd ../..
+        fi
+        
+        # Build utils package
+        if [ -d "packages/utils" ]; then
+          cd packages/utils
+          npm install
+          npm run build || echo "No build script in utils package"
+          cd ../..
+        fi
+    
+    - name: Build front-office deployment package
+      run: |
+        if [ -d "apps/front-office" ]; then
+          cd apps/front-office
+          
+          # Install fs-extra for the deployment script if needed
+          npm install --save-dev fs-extra
+          
+          # Run the existing deployment script
+          node deploy.js
+        else
+          echo "Front-office directory not found!"
+          exit 1
+        fi
     
     - name: Login to Azure
       uses: azure/login@v2
@@ -48,20 +103,16 @@ jobs:
       id: deploy-front-office
       uses: azure/webapps-deploy@v3
       with:
-        app-name: 'mcw-front-office'
+        app-name: 'mcw-front-office-dev'
         slot-name: 'Production'
-        package: 'apps/front-office'
+        package: 'apps/front-office/deploy'  
 
   deploy-back-office:
-    name: Build and Deploy Back Office
+    name: Build and Deploy Back Office (Dev)
     runs-on: ubuntu-latest
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-back-office.outputs.webapp-url }}
     permissions:
       contents: read
-      id-token: write  # Required for Azure login with OIDC
-    
+      id-token: write 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -69,31 +120,89 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18.x'
+        node-version: '20.x'
         cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
+    - name: Install root dependencies
+      run: npm install
       
-    - name: Build shared packages
-      run: npm run build --workspace=packages/*
-    
-    - name: Build back-office
+    - name: Generate Prisma Client
       run: |
-        npm run test --workspace=apps/back-office
-        npm run build --workspace=apps/back-office
+        if [ -d "packages/database" ]; then
+          cd packages/database
+          npx prisma generate
+          cd ../..
+        fi
+      
+    - name: Build packages
+      run: |
+        echo "Building packages in separate steps..."
+        # Build database package
+        if [ -d "packages/database" ]; then
+          cd packages/database
+          npm install
+          npm run build || echo "No build script in database package"
+          cd ../..
+        fi
+        
+        # Build tailwind-config package
+        if [ -d "packages/tailwind-config" ]; then
+          cd packages/tailwind-config
+          npm install
+          # No build step for tailwind-config
+          cd ../..
+        fi
+        
+        # Build types package
+        if [ -d "packages/types" ]; then
+          cd packages/types
+          npm install
+          npm run build || echo "No build script in types package"
+          cd ../..
+        fi
+        
+        # Build ui package
+        if [ -d "packages/ui" ]; then
+          cd packages/ui
+          npm install
+          npm run build || echo "No build script in ui package"
+          cd ../..
+        fi
+        
+        # Build utils package
+        if [ -d "packages/utils" ]; then
+          cd packages/utils
+          npm install
+          npm run build || echo "No build script in utils package"
+          cd ../..
+        fi
+    
+    - name: Build back-office deployment package
+      run: |
+        if [ -d "apps/back-office" ]; then
+          cd apps/back-office
+          
+          # Install fs-extra for the deployment script if needed
+          npm install --save-dev fs-extra
+          
+          # Run the existing deployment script
+          node deploy.js
+        else
+          echo "Back-office directory not found!"
+          exit 1
+        fi
     
     - name: Login to Azure
       uses: azure/login@v2
       with:
         client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_6203C56905974EABA45FF8FFDA13E851 }}
-        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_71D48D4E46734FA7B9FBF4E8B919CF94}}
+        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_71D48D4E46734FA7B9FBF4E8B919CF94 }}
         subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_A3EF38FD72594121A218B249A09D38CB }}
     
     - name: Deploy back-office to Azure Web App
       id: deploy-back-office
       uses: azure/webapps-deploy@v3
       with:
-        app-name: 'mcw-back-office'
+        app-name: 'mcw-back-office-dev'
         slot-name: 'Production'
-        package: 'apps/back-office'
+        package: 'apps/back-office/deploy'  

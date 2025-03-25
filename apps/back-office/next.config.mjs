@@ -2,6 +2,8 @@
 const nextConfig = {
   transpilePackages: ["@mcw/ui", "@mcw/utils", "@mcw/types"],
   reactStrictMode: true,
+  output: 'standalone', // Add standalone output for Azure deployment
+  
   // Add webpack configuration to handle node-pre-gyp
   webpack: (config) => {
     // Externalize problematic packages
@@ -21,6 +23,10 @@ const nextConfig = {
 
     return config;
   },
+  
+  // Optional: Enable correct handling of Azure App Service with reverse proxy
+  assetPrefix: process.env.NODE_ENV === 'production' ? undefined : undefined,
+  basePath: '',
 };
 
 export default nextConfig;

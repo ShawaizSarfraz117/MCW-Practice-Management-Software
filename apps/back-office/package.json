@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "PORT=3001 next dev",
+    "dev": "cross-env PORT=3001 next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "cross-env PORT=3001 next start",
     "lint": "next lint",
     "clean": "rm -rf .next",
     "format": "prettier --write ."
