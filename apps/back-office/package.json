@@ -2,6 +2,7 @@
   "name": "back-office",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "PORT=3001 next dev",
     "build": "next build",

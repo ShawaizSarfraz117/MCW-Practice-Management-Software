@@ -1,4 +1,4 @@
-import nextConfig from '@mcw/eslint-config/next.js';
+import nextConfig from '@mcw/eslint-config/next';
 
 export default [
   ...nextConfig,
@@ -7,6 +7,6 @@ export default [
     files: ['app/**/*.{js,jsx,ts,tsx}'],
     rules: {
       // Add any app-specific rule overrides here
-    }
-  }
-]; 
+    },
+  },
+];
