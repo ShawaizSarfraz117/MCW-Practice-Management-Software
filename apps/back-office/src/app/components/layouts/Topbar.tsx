@@ -1,8 +1,8 @@
-import { Search, Plus, Share, MessageSquare, Menu } from "lucide-react"
-import { Button } from '@mcw/ui';
-import { Input } from '@mcw/ui';
-import { Sheet, SheetContent, SheetTrigger } from '@mcw/ui';
-import Sidebar from "./Sidebar"
+import { Search, Plus, Share, MessageSquare, Menu } from "lucide-react";
+import { Button } from "@mcw/ui";
+import { Input } from "@mcw/ui";
+import { Sheet, SheetContent, SheetTrigger } from "@mcw/ui";
+import Sidebar from "./Sidebar";
 
 export default function TopBar() {
   return (
@@ -22,7 +22,10 @@ export default function TopBar() {
 
         <div className="relative w-[180px] sm:w-[230px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Search clients" className="pl-9 px-9 h-10 bg-white border-[#e5e7eb]" />
+          <Input
+            placeholder="Search clients"
+            className="pl-9 px-9 h-10 bg-white border-[#e5e7eb]"
+          />
         </div>
       </div>
 
@@ -40,7 +43,10 @@ export default function TopBar() {
           <Share className="h-5 w-5" />
         </Button>
 
-        <Button variant="default" className="bg-[#2d8467] hover:bg-[#236c53] hidden sm:flex">
+        <Button
+          variant="default"
+          className="bg-[#2d8467] hover:bg-[#236c53] hidden sm:flex"
+        >
           <MessageSquare className="mr-2 h-4 w-4" />
           Messages
         </Button>
@@ -50,6 +56,5 @@ export default function TopBar() {
         </Button>
       </div>
     </header>
-  )
+  );
 }
-

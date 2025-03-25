@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { usePathname } from "next/navigation"
-import Link from "next/link"
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   Calendar,
   Users,
@@ -16,16 +16,16 @@ import {
   Bell,
   Send,
   Megaphone,
-} from "lucide-react"
-import { cn } from "@mcw/utils"
+} from "lucide-react";
+import { cn } from "@mcw/utils";
 
 // Update the Sidebar component to accept a 'mobile' prop
 interface SidebarProps {
-  mobile?: boolean
+  mobile?: boolean;
 }
 
 export default function Sidebar({ mobile = false }: SidebarProps) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <div
@@ -42,10 +42,10 @@ export default function Sidebar({ mobile = false }: SidebarProps) {
 
       <nav className="py-2">
         <SidebarItem
+          active={pathname === "/calendar"}
+          href="/calendar"
           icon={<Calendar className="w-5 h-5" />}
           label="Calendar"
-          href="/calendar"
-          active={pathname === "/calendar"}
         />
         <SidebarItem
           icon={<Users className="w-5 h-5" />}
@@ -114,18 +114,24 @@ export default function Sidebar({ mobile = false }: SidebarProps) {
         />
       </nav>
     </div>
-  )
+  );
 }
 
 interface SidebarItemProps {
-  icon: React.ReactNode
-  label: string
-  href: string
-  active?: boolean
-  badge?: React.ReactNode
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  active?: boolean;
+  badge?: React.ReactNode;
 }
 
-function SidebarItem({ icon, label, href, active = false, badge }: SidebarItemProps) {
+function SidebarItem({
+  icon,
+  label,
+  href,
+  active = false,
+  badge,
+}: SidebarItemProps) {
   return (
     <Link
       href={href}
@@ -142,6 +148,5 @@ function SidebarItem({ icon, label, href, active = false, badge }: SidebarItemPr
       </div>
       {badge && <div>{badge}</div>}
     </Link>
-  )
+  );
 }
-

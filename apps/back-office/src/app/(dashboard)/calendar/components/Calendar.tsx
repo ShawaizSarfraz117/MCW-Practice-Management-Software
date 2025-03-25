@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { ChevronLeft, ChevronDown, Settings } from "lucide-react"
-import { Button } from "@mcw/ui"
-import { Avatar, AvatarFallback } from "@mcw/ui"
+import { ChevronLeft, ChevronDown, Settings } from "lucide-react";
+import { Button } from "@mcw/ui";
+import { Avatar, AvatarFallback } from "@mcw/ui";
 
 export default function Calendar() {
   return (
@@ -58,13 +58,25 @@ export default function Calendar() {
       <div className="flex-1 grid grid-cols-7">
         {/* Time Column */}
         <div className="border-r pt-16">
-          <div className="h-12 px-2 text-right text-sm text-muted-foreground">9 am</div>
-          <div className="h-12 px-2 text-right text-sm text-muted-foreground">10 am</div>
+          <div className="h-12 px-2 text-right text-sm text-muted-foreground">
+            9 am
+          </div>
+          <div className="h-12 px-2 text-right text-sm text-muted-foreground">
+            10 am
+          </div>
           {/* More time slots would go here */}
         </div>
 
         {/* Days */}
-        {["Sun 20", "Mon 21", "Tue 22", "Wed 23", "Thu 24", "Fri 25", "Sat 26"].map((day, i) => (
+        {[
+          "Sun 20",
+          "Mon 21",
+          "Tue 22",
+          "Wed 23",
+          "Thu 24",
+          "Fri 25",
+          "Sat 26",
+        ].map((day, i) => (
           <div key={i} className="border-r">
             <div className="h-16 border-b p-2 text-center">
               <div className="font-medium">{day}</div>
@@ -82,5 +94,5 @@ export default function Calendar() {
         ))}
       </div>
     </div>
-  )
-} 
+  );
+}

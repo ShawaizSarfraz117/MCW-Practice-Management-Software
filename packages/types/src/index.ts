@@ -5,7 +5,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'therapist' | 'client';
+  role: "admin" | "therapist" | "client";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,4 +23,4 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
-} 
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@mcw/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./next": "./next.js",
+    "./react": "./react.js",
+    "./node": "./node.js"
+  },
+  "files": [
+    "index.js",
+    "next.js",
+    "react.js",
+    "node.js"
+  ],
+  "peerDependencies": {
+    "eslint": "^9.22.0",
+    "typescript": ">=5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

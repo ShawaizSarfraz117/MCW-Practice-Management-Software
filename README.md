@@ -131,6 +131,7 @@ npm test -- auth.test.ts
 For testing the application, you can use these pre-seeded accounts:
 
 - **BackOffice User**
+
   - Email: admin@example.com
   - Password: admin123
 
@@ -151,7 +152,7 @@ MCW/
 │   │   │   │   ├── components               # App specific components
 │   │   │   │   └── api/                     # API routes for client operations
 │   │   │   └── __tests__/                   # Tests for front-office
-│   │   │       
+│   │   │
 │   │   ├── jest.config.js                   # Jest config for front-office
 │   │   ├── next.config.js                   # Next.js configuration
 │   │   ├── tsconfig.json                    # TypeScript config
@@ -233,13 +234,13 @@ The application uses a role-based access control system with the following model
 - **Role**: Available roles (ADMIN, CLINICIAN)
 - **UserRole**: Junction table for many-to-many relationship between User and Role
 
-
 ## Open Questions and Decisions
 
 The following questions need to be addressed by the team:
 
 1. **Authentication Strategy**:
-   - Should we split backoffice and frontoffice into two separate apps, especially due their API as in the futures they probably will end up on separate servers. The remaining questions is code reuse 
+
+   - Should we split backoffice and frontoffice into two separate apps, especially due their API as in the futures they probably will end up on separate servers. The remaining questions is code reuse
 
 2. **Testing strategy**:
    - for what shold we write integration tests, and for what should we write , normal mocked tests. Where are our mocking boundries (repository, services, interfaces ?)

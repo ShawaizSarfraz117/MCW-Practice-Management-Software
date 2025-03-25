@@ -1,10 +1,6 @@
-
-// import { clsx, type ClassValue } from "clsx"
-// import { twMerge } from "tailwind-merge"
-export * from './validation';
-export * from './formatting';
-export * from './styles';
-export * from './auth';
+export * from "./formatting";
+export * from "./styles";
+export * from "./auth";
 
 // Example validation utility
 export function validateEmail(email: string): boolean {
@@ -14,10 +10,9 @@ export function validateEmail(email: string): boolean {
 
 // Example formatting utility
 export function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
-} 
-
+}

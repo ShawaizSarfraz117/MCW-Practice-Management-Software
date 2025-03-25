@@ -1,19 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@mcw/ui', '@mcw/utils', '@mcw/types'],
+  transpilePackages: ["@mcw/ui", "@mcw/utils", "@mcw/types"],
   reactStrictMode: true,
   // Add webpack configuration to handle node-pre-gyp
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // Externalize problematic packages
-    if (isServer) {
-      config.externals = [
-        ...(config.externals || []),
-        '@mapbox/node-pre-gyp',
-        'mock-aws-s3',
-        'aws-sdk',
-        'nock'
-      ];
-    }
+    config.externals = [
+      ...(config.externals || []),
+      "bcrypt",
+      "mock-aws-s3",
+      "aws-sdk",
+      "nock",
+    ];
 
     // Add support for native node modules
     config.resolve.alias = {
@@ -25,4 +23,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

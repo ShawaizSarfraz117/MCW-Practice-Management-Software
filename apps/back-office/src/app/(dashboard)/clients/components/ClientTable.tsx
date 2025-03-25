@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { MoreHorizontal } from "lucide-react"
-import { Button, Badge } from "@mcw/ui"
-import DataTable from "@backOffice/components/table/DataTable"
+import { MoreHorizontal } from "lucide-react";
+import { Button, Badge } from "@mcw/ui";
+import DataTable from "@/components/table/DataTable";
 
 const rows = [
   {
@@ -45,47 +45,46 @@ const rows = [
     relationship: "Clinician: Alam Naqvi",
     waitlist: "No",
   },
-]
+];
 
 const ClientTable = (props: any) => {
   const columns = [
     {
-      key: 'name',
-      label: 'Name',
+      key: "name",
+      label: "Name",
     },
     {
-      key: 'type',
-      label: 'Type',
+      key: "type",
+      label: "Type",
     },
     {
-      key: 'status',
-      label: 'Status',
+      key: "status",
+      label: "Status",
       formatter: (row: any) => (
-        <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-50">
+        <Badge
+          variant="outline"
+          className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-50"
+        >
           {row.status}
         </Badge>
-      )
+      ),
     },
     {
-      key: 'phone',
-      label: 'Phone',
+      key: "phone",
+      label: "Phone",
     },
     {
-      key: 'email',
-      label: 'Email',
-      formatter: (row: any) => (
-        <div className="text-gray-500">
-          {row.email}
-        </div>
-      )
+      key: "email",
+      label: "Email",
+      formatter: (row: any) => <div className="text-gray-500">{row.email}</div>,
     },
     {
-      key: 'relationship',
-      label: 'Relationship',
+      key: "relationship",
+      label: "Relationship",
     },
     {
-      key: 'waitlist',
-      label: 'Waitlist',
+      key: "waitlist",
+      label: "Waitlist",
     },
     {
       key: "actions",
@@ -94,13 +93,13 @@ const ClientTable = (props: any) => {
         <Button variant="ghost" size="icon" className="h-8 w-8">
           <MoreHorizontal className="h-5 w-5" />
         </Button>
-      )
+      ),
     },
-  ]
+  ];
 
   return (
     <DataTable columns={columns} rows={rows} title="Clients Data" {...props} />
-  )
-}
+  );
+};
 
-export default ClientTable 
+export default ClientTable;

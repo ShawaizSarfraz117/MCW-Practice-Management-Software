@@ -1,6 +1,7 @@
 {
-    "compilerOptions": {
-      "incremental": true,
-      "tsBuildInfoFile": "./dist/.tsbuildinfo"
-    }
+  "extends": "@mcw/tsconfig-config",
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
   }
+}
