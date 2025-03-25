@@ -1,3 +1,4 @@
+/* eslint-disable */
 // scripts/migrate-with-name.js - Apply migrations to SQL Server and keep SQLite in sync
 const { execSync } = require('child_process');
 const fs = require('fs');

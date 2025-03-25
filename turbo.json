@@ -1,7 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
-    "**/.env*"
+    ".env"
+  ],
+  "globalEnv": [
+    "DATABASE_URL",
+    "NODE_ENV"
   ],
   "tasks": {
     "build": {
@@ -28,6 +32,16 @@
       "dependsOn": [
         "build"
       ]
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:deploy": {
+      "cache": false
     }
   }
 }
