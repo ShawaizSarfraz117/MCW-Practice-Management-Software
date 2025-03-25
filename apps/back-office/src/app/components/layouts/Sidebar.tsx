@@ -57,7 +57,7 @@ export default function Sidebar({ mobile = false }: SidebarProps) {
           icon={<CreditCard className="w-5 h-5" />}
           label="Billing"
           href="/billing"
-          active={pathname === "/billing"}
+          active={pathname.startsWith("/billing")}
         />
         <SidebarItem
           icon={<Heart className="w-5 h-5" />}
