@@ -23,6 +23,7 @@
     "@mcw/tsconfig-config": "*",
     "@mcw/utils": "*",
     "@radix-ui/react-dialog": "^1.1.6",
+    "@radix-ui/react-dropdown-menu": "^2.1.6",
     "@radix-ui/react-menubar": "^1.1.6",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
