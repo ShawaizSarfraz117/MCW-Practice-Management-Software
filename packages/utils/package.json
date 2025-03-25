@@ -1,0 +1,28 @@
+{
+  "name": "@mcw/utils",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --platform=neutral --external=next-auth,@mapbox/node-pre-gyp,mock-aws-s3,aws-sdk,nock,bcrypt,fs,path,crypto,prisma,@prisma/client",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch --clean --platform=neutral --external=next-auth,@mapbox/node-pre-gyp,mock-aws-s3,aws-sdk,nock,bcrypt,fs,path,crypto,prisma,@prisma/client",
+    "clean": "if exist dist rd /s /q dist",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "next-auth": "^4.22.1",
+    "tailwind-merge": "^2.6.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "eslint": "^8.56.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  }
+}
