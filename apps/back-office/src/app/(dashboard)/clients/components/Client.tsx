@@ -51,7 +51,7 @@ export default function Clients() {
         <div className="flex justify-between items-center mb-4">
           <div className="relative w-[230px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input placeholder="Search" className="pl-9 h-10 bg-white border-[#e5e7eb]" />
+            <Input placeholder="Search" className="pl-9 px-9 h-10 bg-white border-[#e5e7eb]" />
           </div>
 
           <div className="flex items-center gap-4">

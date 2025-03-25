@@ -8,8 +8,8 @@
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean --platform=node --external=next-auth,@mapbox/node-pre-gyp,mock-aws-s3,aws-sdk,nock",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --watch --clean --platform=node --external=next-auth,@mapbox/node-pre-gyp,mock-aws-s3,aws-sdk,nock",
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --platform=neutral --external=next-auth,@mapbox/node-pre-gyp,mock-aws-s3,aws-sdk,nock,bcrypt,fs,path,crypto,prisma,@prisma/client",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch --clean --platform=neutral --external=next-auth,@mapbox/node-pre-gyp,mock-aws-s3,aws-sdk,nock,bcrypt,fs,path,crypto,prisma,@prisma/client",
     "clean": "if exist dist rd /s /q dist",
     "lint": "eslint ."
   },

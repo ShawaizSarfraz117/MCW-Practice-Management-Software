@@ -1,24 +1,37 @@
 import { type AuthOptions } from 'next-auth';
 import { PrismaClient } from "@prisma/client";
 
-// Import bcrypt dynamically to avoid issues with Next.js SSR
-let compare;
-try {
-  // Try to import bcrypt dynamically
-  const bcrypt = require('bcrypt');
-  compare = bcrypt.compare;
-} catch (error) {
-  // Fallback implementation for comparison
-  compare = async (data: string, hash: string): Promise<boolean> => {
-    console.warn('Using fallback password comparison - bcrypt not available');
-    // Using the parameters to avoid unused parameter warnings
-    console.log(`Attempted to compare: ${data.length} chars with hash: ${hash.substring(0, 10)}...`);
-    // In a real implementation, you would need a better fallback
-    return false;
-  };
+// Safe compare function that works in both client and server environments
+let compare = async (_data: string, _hash: string): Promise<boolean> => {
+  console.warn('Using fallback password comparison - bcrypt not available');
+  // This fallback should only run on client - actual comparison happens server-side
+  return false;
+};
+
+// Server-side only code
+if (typeof window === 'undefined') {
+  // In a server environment, we can safely use dynamic imports
+  import('bcrypt')
+    .then(bcrypt => {
+      compare = bcrypt.compare;
+    })
+    .catch(error => {
+      console.warn('Failed to load bcrypt, using fallback comparison', error);
+    });
 }
 
-const prisma = new PrismaClient();
+// Use a safe approach for Prisma initialization - server-side only
+let prisma: any = null;
+if (typeof window === 'undefined') {
+  prisma = new PrismaClient();
+} else {
+  // Mock client for client-side
+  prisma = {
+    user: {
+      findUnique: async () => null
+    }
+  };
+}
 
 // Auth configuration for both API routes and Next.js App Router
 export const authConfig: AuthOptions = {
