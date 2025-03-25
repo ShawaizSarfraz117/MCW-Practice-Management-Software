@@ -2,13 +2,14 @@ name: Deploy MCW Apps to Azure (Development)
 
 on:
   push:
-    branches: [ workflow-experimenting, main, development ]
+    branches: [  main ]
   workflow_dispatch:  # Manual trigger
 
 jobs:
   deploy-front-office:
     name: Build and Deploy Front Office (Dev)
     runs-on: ubuntu-latest
+    environment: development  # Specify the environment
     permissions:
       contents: read
       id-token: write  # Required for Azure login with OIDC
@@ -95,9 +96,9 @@ jobs:
     - name: Login to Azure
       uses: azure/login@v2
       with:
-        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_C1F3F2DEA2944218A8938796501FC283 }}
-        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_FCD020723C21410295138D8A704991E3 }}
-        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C47C2C1A005143B1BDF464E25AB8C551 }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     
     - name: Deploy front-office to Azure Web App
       id: deploy-front-office
@@ -110,6 +111,7 @@ jobs:
   deploy-back-office:
     name: Build and Deploy Back Office (Dev)
     runs-on: ubuntu-latest
+    environment: development  # Use the same environment
     permissions:
       contents: read
       id-token: write  # Required for Azure login with OIDC
@@ -196,9 +198,9 @@ jobs:
     - name: Login to Azure
       uses: azure/login@v2
       with:
-        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_6203C56905974EABA45FF8FFDA13E851 }}
-        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_71D48D4E46734FA7B9FBF4E8B919CF94 }}
-        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_A3EF38FD72594121A218B249A09D38CB }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     
     - name: Deploy back-office to Azure Web App
       id: deploy-back-office
@@ -206,4 +208,4 @@ jobs:
       with:
         app-name: 'mcw-back-office-dev'
         slot-name: 'Production'
-        package: 'apps/back-office/deploy'  # Use the deploy directory created by your script
+        package: 'apps/back-office/deploy'  
