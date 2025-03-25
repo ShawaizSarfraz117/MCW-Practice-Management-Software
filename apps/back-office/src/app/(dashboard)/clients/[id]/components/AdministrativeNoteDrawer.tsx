@@ -1,27 +1,42 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { X, Bold, Italic, Strikethrough, List, ListOrdered, Link, Minus, Undo, Redo, Image } from "lucide-react"
-import { Button } from "@mcw/ui"
-import { Sheet, SheetContent } from "@mcw/ui"
+import { useState } from "react";
+import {
+  X,
+  Bold,
+  Italic,
+  Strikethrough,
+  List,
+  ListOrdered,
+  Link,
+  Minus,
+  Undo,
+  Redo,
+  Image,
+} from "lucide-react";
+import { Button } from "@mcw/ui";
+import { Sheet, SheetContent } from "@mcw/ui";
 
 interface AdministrativeNoteDrawerProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export default function AdministrativeNoteDrawer({ open, onOpenChange }: AdministrativeNoteDrawerProps) {
-  const [noteContent, setNoteContent] = useState("")
+export default function AdministrativeNoteDrawer({
+  open,
+  onOpenChange,
+}: AdministrativeNoteDrawerProps) {
+  const [noteContent, setNoteContent] = useState("");
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-[450px] p-0 gap-0 [&>button]:hidden">
         <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
-              onClick={() => onOpenChange(false)} 
+              onClick={() => onOpenChange(false)}
               className="h-8 w-8 mr-2"
             >
               <X className="h-5 w-5 text-gray-500 hover:text-gray-700" />
@@ -33,9 +48,10 @@ export default function AdministrativeNoteDrawer({ open, onOpenChange }: Adminis
 
         <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
           <div className="text-sm text-gray-600 mb-4">
-            The Administrative Note is just like a sticky note in your office. Use it as a reminder for yourself or for
-            your team members about this client. Also, like a sticky note, these are not part of the client&apos;s
-            medical record.{" "}
+            The Administrative Note is just like a sticky note in your office.
+            Use it as a reminder for yourself or for your team members about
+            this client. Also, like a sticky note, these are not part of the
+            client&apos;s medical record.{" "}
             <a href="#" className="text-blue-500 hover:underline">
               Learn more
             </a>
@@ -89,11 +105,11 @@ export default function AdministrativeNoteDrawer({ open, onOpenChange }: Adminis
           </div>
 
           <div className="text-sm text-gray-600">
-            If you want to notify a team member about this, send them a Secure Message.
+            If you want to notify a team member about this, send them a Secure
+            Message.
           </div>
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
-

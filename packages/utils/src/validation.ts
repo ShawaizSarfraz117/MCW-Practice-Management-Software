@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // Email validation schema
 export const emailSchema = z.string().email();
@@ -21,4 +21,4 @@ export function validateEmail(email: string): boolean {
   } catch (error) {
     return false;
   }
-} 
+}

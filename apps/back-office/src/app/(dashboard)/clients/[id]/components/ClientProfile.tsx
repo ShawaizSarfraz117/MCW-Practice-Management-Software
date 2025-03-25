@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
+import { useState } from "react";
+import Link from "next/link";
 import {
   Bold,
   Italic,
@@ -15,30 +15,46 @@ import {
   X,
   MoreHorizontal,
   ArrowUpDown,
-} from "lucide-react"
-import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer"
+} from "lucide-react";
+import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
 
-import { Button } from "@mcw/ui"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui"
-import { Textarea } from "@mcw/ui"
-import { Input } from "@mcw/ui"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@mcw/ui"
-import { Badge } from "@mcw/ui"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@mcw/ui"
-import { Alert, AlertDescription, AlertTitle } from "@mcw/ui"
+import { Button } from "@mcw/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
+import { Textarea } from "@mcw/ui";
+import { Input } from "@mcw/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@mcw/ui";
+import { Badge } from "@mcw/ui";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@mcw/ui";
+import { Alert, AlertDescription, AlertTitle } from "@mcw/ui";
 
 interface ClientProfileProps {
-  clientId: string
+  clientId: string;
 }
 
 export default function ClientProfile({ clientId }: ClientProfileProps) {
-  const [activeTab, setActiveTab] = useState("measures")
-  const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("measures");
+  const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
 
   return (
     <div className="flex flex-col h-full">
       {/* Breadcrumb */}
-      <AdministrativeNoteDrawer open={adminNoteModalOpen} onOpenChange={setAdminNoteModalOpen} />
+      <AdministrativeNoteDrawer
+        open={adminNoteModalOpen}
+        onOpenChange={setAdminNoteModalOpen}
+      />
 
       <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
         <Link href="/clients" className="hover:text-gray-700">
@@ -51,7 +67,9 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
       {/* Client Header */}
       <div className="px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold mb-1">Jamie D. Appleseed</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold mb-1">
+            Jamie D. Appleseed
+          </h1>
           <div className="text-sm text-gray-600 flex flex-wrap items-center gap-2">
             <span>Adult</span>
             <span className="text-gray-300 hidden sm:inline">•</span>
@@ -68,14 +86,20 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
           <Button variant="outline" className="bg-white text-xs sm:text-sm">
             Upload
           </Button>
-          <Button className="bg-[#2d8467] hover:bg-[#236c53] text-xs sm:text-sm">Message</Button>
+          <Button className="bg-[#2d8467] hover:bg-[#236c53] text-xs sm:text-sm">
+            Message
+          </Button>
         </div>
       </div>
 
       {/* Add Administrative Note Button - Fixed at the top */}
       <div className="hidden lg:block sticky top-0 z-10">
         <div className="absolute right-[324px] top-1">
-          <Button variant="ghost" className="text-blue-500 hover:bg-blue-50" onClick={() => setAdminNoteModalOpen(true)}>
+          <Button
+            variant="ghost"
+            className="text-blue-500 hover:bg-blue-50"
+            onClick={() => setAdminNoteModalOpen(true)}
+          >
             <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
           </Button>
         </div>
@@ -85,7 +109,12 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
       <div className="flex flex-col lg:flex-row flex-1">
         <div className="flex-1 border-t border-[#e5e7eb]">
           {/* Tabs */}
-          <Tabs defaultValue="measures" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            defaultValue="measures"
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <div className="border-b border-[#e5e7eb] overflow-x-auto">
               <div className="px-4 sm:px-6">
                 <TabsList className="h-[40px] bg-transparent p-0 w-auto">
@@ -117,7 +146,10 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
               </div>
             </div>
 
-            <TabsContent value="overview" className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
+            <TabsContent
+              value="overview"
+              className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
+            >
               {/* Text Editor */}
               <div className="mb-6">
                 <div className="flex gap-2 sm:gap-4 mb-2 overflow-x-auto">
@@ -145,7 +177,9 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
 
               <div className="text-sm text-gray-500 mb-4">
                 02/06/2025 5:07 pm
-                <button className="text-blue-500 hover:underline ml-4">+ Add Note</button>
+                <button className="text-blue-500 hover:underline ml-4">
+                  + Add Note
+                </button>
               </div>
 
               {/* Date Range and Filter */}
@@ -188,7 +222,9 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                     <div className="text-sm text-gray-500">FEB 8</div>
                     <div className="font-medium">Appointment #2</div>
                     <div className="text-sm text-gray-500">GAD-7</div>
-                    <button className="text-blue-500 hover:underline text-sm mt-1">+ Progress Note</button>
+                    <button className="text-blue-500 hover:underline text-sm mt-1">
+                      + Progress Note
+                    </button>
                   </div>
                   <div className="text-sm text-gray-500">1:00 PM</div>
                 </div>
@@ -205,7 +241,10 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="billing" className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
+            <TabsContent
+              value="billing"
+              className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
+            >
               {/* Date Range and Filter */}
               <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -233,7 +272,9 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="w-[120px] font-medium">Date</TableHead>
+                      <TableHead className="w-[120px] font-medium">
+                        Date
+                      </TableHead>
                       <TableHead className="font-medium">Details</TableHead>
                       <TableHead className="font-medium">Fee</TableHead>
                       <TableHead className="font-medium">Client</TableHead>
@@ -269,41 +310,65 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="measures" className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
+            <TabsContent
+              value="measures"
+              className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
+            >
               {/* New Measures Available Alert */}
               <Alert className="mb-6 bg-white border-[#e5e7eb]">
                 <div className="flex justify-between items-start">
                   <div>
-                    <AlertTitle className="text-black font-medium mb-1">New measures available</AlertTitle>
+                    <AlertTitle className="text-black font-medium mb-1">
+                      New measures available
+                    </AlertTitle>
                     <AlertDescription className="text-gray-600">
-                      Track new measurements such as therapeutic alliance, pain, functioning, or other symptoms.
+                      Track new measurements such as therapeutic alliance, pain,
+                      functioning, or other symptoms.
                     </AlertDescription>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-500">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-400 hover:text-gray-500"
+                  >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-                <Button className="mt-3 bg-[#2d8467] hover:bg-[#236c53]">View measures</Button>
+                <Button className="mt-3 bg-[#2d8467] hover:bg-[#236c53]">
+                  View measures
+                </Button>
               </Alert>
 
               {/* Completed Measure */}
               <div className="mb-6">
-                <div className="text-sm text-gray-500 mb-4">Completed by Jamie A.</div>
+                <div className="text-sm text-gray-500 mb-4">
+                  Completed by Jamie A.
+                </div>
 
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-medium">GAD-7</h3>
                   <div className="flex gap-4">
-                    <span className="text-green-500 text-sm">+2 since baseline</span>
-                    <span className="text-green-500 text-sm">+2 since last</span>
+                    <span className="text-green-500 text-sm">
+                      +2 since baseline
+                    </span>
+                    <span className="text-green-500 text-sm">
+                      +2 since last
+                    </span>
                   </div>
                 </div>
 
                 {/* Graph */}
                 <div className="relative h-[200px] mb-2">
                   {/* Scale Labels */}
-                  <div className="absolute right-0 top-0 text-sm text-gray-500">Severe</div>
-                  <div className="absolute right-0 top-[33%] text-sm text-gray-500">Moderate</div>
-                  <div className="absolute right-0 top-[66%] text-sm text-gray-500">Mild</div>
+                  <div className="absolute right-0 top-0 text-sm text-gray-500">
+                    Severe
+                  </div>
+                  <div className="absolute right-0 top-[33%] text-sm text-gray-500">
+                    Moderate
+                  </div>
+                  <div className="absolute right-0 top-[66%] text-sm text-gray-500">
+                    Mild
+                  </div>
                   <div className="absolute right-0 bottom-0 text-sm text-gray-500">
                     None—
                     <br />
@@ -335,12 +400,18 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="files" className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
+            <TabsContent
+              value="files"
+              className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
+            >
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
                 <div className="relative w-full sm:w-[300px]">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input placeholder="Search files" className="pl-9 h-10 bg-white border-[#e5e7eb]" />
+                  <Input
+                    placeholder="Search files"
+                    className="pl-9 h-10 bg-white border-[#e5e7eb]"
+                  />
                 </div>
                 <div className="flex gap-2">
                   <Select defaultValue="all">
@@ -387,7 +458,11 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                       </TableCell>
                       <TableCell>2/6/25</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
                           <MoreHorizontal className="h-5 w-5" />
                         </Button>
                       </TableCell>
@@ -402,7 +477,11 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                       </TableCell>
                       <TableCell>2/8/25</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
                           <MoreHorizontal className="h-5 w-5" />
                         </Button>
                       </TableCell>
@@ -435,14 +514,18 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
               <div className="text-sm font-medium">$300</div>
             </div>
 
-            <Button className="w-full bg-[#2d8467] hover:bg-[#236c53]">Add Payment</Button>
+            <Button className="w-full bg-[#2d8467] hover:bg-[#236c53]">
+              Add Payment
+            </Button>
           </div>
 
           {/* Client Info */}
           <div className="mb-6">
             <div className="flex justify-between mb-4">
               <h3 className="font-medium">Client info</h3>
-              <button className="text-blue-500 hover:underline text-sm">Edit</button>
+              <button className="text-blue-500 hover:underline text-sm">
+                Edit
+              </button>
             </div>
           </div>
 
@@ -457,21 +540,27 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
               <div className="flex justify-between items-center">
                 <div className="text-sm text-blue-500">INV #3</div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-red-500 text-white text-xs">Unpaid</Badge>
+                  <Badge className="bg-red-500 text-white text-xs">
+                    Unpaid
+                  </Badge>
                   <div className="text-xs text-gray-500">02/06/2025</div>
                 </div>
               </div>
               <div className="flex justify-between items-center">
                 <div className="text-sm text-blue-500">INV #2</div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-red-500 text-white text-xs">Unpaid</Badge>
+                  <Badge className="bg-red-500 text-white text-xs">
+                    Unpaid
+                  </Badge>
                   <div className="text-xs text-gray-500">02/05/2025</div>
                 </div>
               </div>
               <div className="flex justify-between items-center">
                 <div className="text-sm text-blue-500">INV #1</div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-red-500 text-white text-xs">Unpaid</Badge>
+                  <Badge className="bg-red-500 text-white text-xs">
+                    Unpaid
+                  </Badge>
                   <div className="text-xs text-gray-500">02/04/2025</div>
                 </div>
               </div>
@@ -504,12 +593,15 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
       {/* Mobile Add Administrative Note Button - Fixed at the bottom */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 border-t border-[#e5e7eb] bg-white">
         <div className="px-4 sm:px-6 py-2">
-          <Button variant="ghost" className="text-blue-500 hover:bg-blue-50 w-full justify-center" onClick={() => setAdminNoteModalOpen(true)}>
+          <Button
+            variant="ghost"
+            className="text-blue-500 hover:bg-blue-50 w-full justify-center"
+            onClick={() => setAdminNoteModalOpen(true)}
+          >
             <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
           </Button>
         </div>
       </div>
     </div>
-  )
+  );
 }
-

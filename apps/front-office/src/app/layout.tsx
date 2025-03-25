@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import '@mcw/ui/styles.css';
+import type { Metadata } from "next";
+import "./globals.css";
+import "@mcw/ui/styles.css";
 
 export const metadata: Metadata = {
-  title: 'Front Office | Client Portal',
-  description: 'Client-facing application',
+  title: "Front Office | Client Portal",
+  description: "Client-facing application",
 };
 
 export default function RootLayout({
@@ -23,10 +23,12 @@ export default function RootLayout({
         {children}
         <footer className="bg-gray-100 p-4 mt-auto">
           <div className="container mx-auto text-center">
-            <p>&copy; {new Date().getFullYear()} My Project. All rights reserved.</p>
+            <p>
+              &copy; {new Date().getFullYear()} My Project. All rights reserved.
+            </p>
           </div>
         </footer>
       </body>
     </html>
   );
-} 
+}

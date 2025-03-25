@@ -73,4 +73,4 @@ You can extend the shared configuration with your own project-specific options:
 - **base.json**: Base TypeScript configuration for all projects
 - **next.json**: Configuration for Next.js projects
 - **react.json**: Configuration for React projects (non-Next.js)
-- **node.json**: Configuration for Node.js projects 
+- **node.json**: Configuration for Node.js projects

@@ -13,7 +13,7 @@ try {
     console.warn("Using fallback password comparison - bcrypt not available");
     // Using the parameters to avoid unused parameter warnings
     console.log(
-      `Attempted to compare: ${data.length} chars with hash: ${hash.substring(0, 10)}...`
+      `Attempted to compare: ${data.length} chars with hash: ${hash.substring(0, 10)}...`,
     );
     // In a real implementation, you would need a better fallback
     return false;
@@ -46,7 +46,7 @@ export const authConfig: AuthOptions = {
 
         const isPasswordValid = await compare(
           credentials.password as string,
-          user.password_hash
+          user.password_hash,
         );
 
         if (!isPasswordValid) {
