@@ -1,8 +1,7 @@
 {
-    "compilerOptions": {
-      "incremental": true,
-      "tsBuildInfoFile": "./dist/.tsbuildinfo",
-      "module": "NodeNext",
-      "moduleResolution": "NodeNext"
-    }
+  "extends": "@mcw/tsconfig-config/node",
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
   }
+}

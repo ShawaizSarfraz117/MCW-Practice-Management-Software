@@ -1,0 +1,20 @@
+{
+  "name": "@mcw/tsconfig-config",
+  "version": "0.0.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./base.json",
+    "./next": "./next.json",
+    "./react": "./react.json",
+    "./node": "./node.json"
+  },
+  "files": [
+    "base.json",
+    "next.json",
+    "react.json",
+    "node.json"
+  ]
+}

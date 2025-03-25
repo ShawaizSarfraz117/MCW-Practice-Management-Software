@@ -12,6 +12,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",
     "@mcw/database": "*",
+    "@mcw/tsconfig-config": "*",
     "@mcw/types": "*",
     "@mcw/ui": "*",
     "@mcw/utils": "*",
