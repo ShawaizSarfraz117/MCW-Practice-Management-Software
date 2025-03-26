@@ -10,30 +10,30 @@ export default function Calendar() {
       {/* Header */}
       <header className="bg-card border-b p-4 flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon">
+          <Button size="icon" variant="ghost">
             <ChevronLeft className="w-5 h-5" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button size="sm" variant="ghost">
             Today
           </Button>
           <h2 className="text-lg font-medium">Oct 2025</h2>
         </div>
 
         <div className="flex space-x-2">
-          <Button variant="ghost" size="sm">
+          <Button size="sm" variant="ghost">
             Day
           </Button>
-          <Button variant="secondary" size="sm">
+          <Button size="sm" variant="secondary">
             Week
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button size="sm" variant="ghost">
             Month
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center gap-1">
+          <Button className="flex items-center gap-1" size="sm" variant="ghost">
             <span>Color: Status</span>
             <ChevronDown className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon">
+          <Button size="icon" variant="ghost">
             <Settings className="w-5 h-5" />
           </Button>
         </div>

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable */
 // complete-sqlite-converter.js - Single file to handle all SQL Server to SQLite schema conversion
 
 const fs = require('fs');
