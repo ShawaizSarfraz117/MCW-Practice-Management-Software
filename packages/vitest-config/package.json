@@ -1,0 +1,21 @@
+{
+  "name": "@mcw/vitest-config",
+  "type": "module",
+  "exports": {
+    ".": "./base.js",
+    "./ui": "./ui.js"
+  },
+  "scripts": {},
+  "devDependencies": {
+    "@mcw/tsconfig-config": "*",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/ui": "3.0.9",
+    "jsdom": "^26.0.0",
+    "node-mocks-http": "^1.16.2",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.0.9"
+  }
+}

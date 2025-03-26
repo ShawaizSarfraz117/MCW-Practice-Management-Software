@@ -1,0 +1,14 @@
+
+name: mcw-test
+services:
+  test-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    ports:
+      - "1434:1433"  # Different port to avoid conflicts with dev database
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "YourStrongTestPassword123"  # Hard-coded for tests
+      MSSQL_PID: "Developer"
+    tmpfs:
+      - /var/opt/mssql/data # Using tmpfs for faster performance and automatic cleanup

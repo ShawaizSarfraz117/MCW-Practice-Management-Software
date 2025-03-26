@@ -5,7 +5,7 @@ import nodePlugin from "eslint-plugin-n";
 export default [
   ...baseConfig,
   {
-    files: ["**/*.{js,ts}"],
+    files: ["**/*.{mjs,cjs,js,ts}"],
     plugins: {
       n: nodePlugin,
     },
