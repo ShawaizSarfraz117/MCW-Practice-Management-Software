@@ -1,11 +1,12 @@
-import uiConfig from "@mcw/vitest-config/ui";
+import baseConfig from "@mcw/vitest-config";
 import { defineProject, mergeConfig } from "vitest/config";
 
 export default mergeConfig(
-  uiConfig,
+  baseConfig,
   defineProject({
     test: {
-      include: ["**/*.test.tsx", "**/*.test.ts"],
+      name: "back-office/integration",
+      include: ["**/*.i-test.ts"],
     },
   }),
 );
