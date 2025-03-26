@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button, Input, Card } from "@mcw/ui";
 
-interface FormData {
+interface SignInBody {
   email: string;
   password: string;
 }
@@ -15,7 +15,7 @@ interface FormData {
 export default function LoginForm() {
   const router = useRouter();
   
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<SignInBody>({
     email: '',
     password: '',
   });
@@ -70,7 +70,7 @@ export default function LoginForm() {
         >
           Email
         </label>
-        <input
+        <Input
           id="email"
           name="email"
           type="email"
@@ -78,7 +78,7 @@ export default function LoginForm() {
           required
           value={formData.email}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full"
         />
       </div>
 
@@ -98,7 +98,7 @@ export default function LoginForm() {
           </Link>
         </div>
         <div className="relative">
-          <input
+          <Input
             id="password"
             name="password"
             type={showPassword ? "text" : "password"}
@@ -106,7 +106,7 @@ export default function LoginForm() {
             required
             value={formData.password}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full"
           />
           <button
             type="button"

@@ -1,9 +1,7 @@
 import { AuthOptions } from "next-auth";
 import Credentials from 'next-auth/providers/credentials';
-import { PrismaClient, User as PrismaUser, Role, UserRole } from '@prisma/client';
-import bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
+import { User as PrismaUser, Role, UserRole } from '@prisma/client';
+import { authorize } from './auth.service';
 
 // Extend the built-in session types
 declare module 'next-auth' {
@@ -37,55 +35,7 @@ export const backofficeAuthOptions: AuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
-
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const email = credentials.email.toString();
-        
-        // Find user and include their roles
-        const user = await prisma.user.findUnique({
-          where: { email },
-          include: {
-            UserRole: {
-              include: {
-                Role: true,
-              },
-            },
-          },
-        }) as UserWithRoles | null;
-        
-        if (!user) {
-          return null;
-        }
-        
-        const plainPassword = credentials.password.toString();
-        const hashedPassword = user.password_hash;
-        
-        const isValid = await bcrypt.compare(plainPassword, hashedPassword);
-        console.log("🚀 ~ authorize ~ user:", isValid)
-        
-        if (!isValid) {
-          return null;
-        }
-
-        // Update last_login timestamp
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { last_login: new Date() },
-        });
-
-        // Extract role names from user's roles
-        const roles = user.UserRole.map((ur) => ur.Role.name);
-
-        return {
-          id: user.id,
-          email: user.email,
-          roles: roles,
-        };
-      }
+      authorize
     })
   ],
   callbacks: {
@@ -113,6 +63,6 @@ export const backofficeAuthOptions: AuthOptions = {
   session: {
     strategy: "jwt",
   },
-  debug: true,
+  debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET,
 }; 
