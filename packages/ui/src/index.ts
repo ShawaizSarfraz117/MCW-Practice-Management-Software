@@ -15,3 +15,4 @@ export * from './components/textarea';
 export * from './components/select';
 export * from './components/alert';
 export * from './components/dropdown-menu';
+export * from './components/password-input';

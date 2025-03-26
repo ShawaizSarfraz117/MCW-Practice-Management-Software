@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
-import { Eye, EyeOff } from 'lucide-react';
-import { Button, Input, Card } from "@mcw/ui";
+import { Button, Input, PasswordInput } from "@mcw/ui";
 
 interface SignInBody {
   email: string;
@@ -19,7 +18,6 @@ export default function LoginForm() {
     email: '',
     password: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -97,33 +95,19 @@ export default function LoginForm() {
             Forgot password?
           </Link>
         </div>
-        <div className="relative">
-          <Input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
-            required
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full"
-          />
-          <button
-            type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? (
-              <EyeOff className="h-5 w-5 text-gray-400" />
-            ) : (
-              <Eye className="h-5 w-5 text-gray-400" />
-            )}
-          </button>
-        </div>
+        <PasswordInput
+          id="password"
+          name="password"
+          autoComplete="current-password"
+          required
+          value={formData.password}
+          onChange={handleChange}
+          className="w-full"
+        />
       </div>
 
       <div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? 'Signing in...' : 'Sign in'}
         </Button>
       </div>
