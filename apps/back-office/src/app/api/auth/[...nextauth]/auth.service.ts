@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { RequestInternal } from 'next-auth';
-
-const prisma = new PrismaClient();
+import {prisma} from "@mcw/database"
 
 interface UserWithRoles {
   id: string;
