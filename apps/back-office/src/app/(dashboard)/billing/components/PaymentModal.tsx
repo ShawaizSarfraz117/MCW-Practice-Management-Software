@@ -1,7 +1,23 @@
 "use client";
-
-import { X } from "lucide-react";
 import { useState } from "react";
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Input,
+  Label,
+  RadioGroup,
+  RadioGroupItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@mcw/ui";
+import { X } from "lucide-react";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -20,24 +36,26 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-5xl max-h-[90vh] overflow-auto">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-auto [&>button]:hidden">
         {/* Header */}
         <div className="flex items-center p-4 border-b border-[#e5e7eb]">
-          <button
-            className="text-[#6b7280] hover:text-[#374151] mr-3"
+          <Button
+            className="mr-3"
+            size="icon"
+            variant="ghost"
             onClick={onClose}
           >
             <X className="w-5 h-5" />
-          </button>
-          <h2 className="text-xl font-semibold">
+          </Button>
+          <DialogTitle className="text-xl">
             Add Payment for Jamie D. Appleseed
-          </h2>
+          </DialogTitle>
         </div>
 
         {/* Content */}
         <div className="p-6">
-          <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex flex-row md:flex-row gap-6">
             <div className="flex-1">
               {/* Step 1 */}
               <div className="mb-8">
@@ -55,64 +73,65 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 </p>
 
                 <div className="bg-[#f9fafb] rounded-md p-4 mb-4">
-                  <table className="w-full mb-4">
-                    <thead>
-                      <tr className="border-b border-[#e5e7eb]">
-                        <th className="text-left py-2 w-10" />
-                        <th className="text-left py-2 text-sm font-medium text-[#6b7280]">
+                  <Table className="mb-4">
+                    <TableHeader>
+                      <TableRow className="border-b border-[#e5e7eb]">
+                        <TableHead className="w-10" />
+                        <TableHead className="text-left py-2 text-sm font-medium text-[#6b7280]">
                           Invoice
-                        </th>
-                        <th className="text-left py-2 text-sm font-medium text-[#6b7280]">
+                        </TableHead>
+                        <TableHead className="text-left py-2 text-sm font-medium text-[#6b7280]">
                           Details
-                        </th>
-                        <th className="text-left py-2 text-sm font-medium text-[#6b7280]">
+                        </TableHead>
+                        <TableHead className="text-left py-2 text-sm font-medium text-[#6b7280]">
                           Type
-                        </th>
-                        <th className="text-right py-2 text-sm font-medium text-[#6b7280]">
+                        </TableHead>
+                        <TableHead className="text-right py-2 text-sm font-medium text-[#6b7280]">
                           Balance
-                        </th>
-                        <th className="text-right py-2 text-sm font-medium text-[#6b7280]">
+                        </TableHead>
+                        <TableHead className="text-right py-2 text-sm font-medium text-[#6b7280]">
                           Amount
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="py-3">
-                          <input
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="py-3">
+                          <Checkbox
                             checked={invoiceChecked}
                             className="rounded border-[#d1d5db] text-[#2563eb]"
-                            type="checkbox"
-                            onChange={(e) =>
-                              setInvoiceChecked(e.target.checked)
+                            onCheckedChange={(checked) =>
+                              setInvoiceChecked(checked as boolean)
                             }
                           />
-                        </td>
-                        <td className="py-3 text-sm text-[#2563eb]">INV #4</td>
-                        <td className="py-3 text-sm text-[#374151]">
+                        </TableCell>
+                        <TableCell className="py-3 text-sm text-[#2563eb]">
+                          INV #4
+                        </TableCell>
+                        <TableCell className="py-3 text-sm text-[#374151]">
                           02/07/2025 Professional Services
-                        </td>
-                        <td className="py-3 text-sm text-[#374151]">
+                        </TableCell>
+                        <TableCell className="py-3 text-sm text-[#374151]">
                           Self-pay
-                        </td>
-                        <td className="py-3 text-sm text-right text-[#374151]">
+                        </TableCell>
+                        <TableCell className="py-3 text-sm text-right text-[#374151]">
                           $100
-                        </td>
-                        <td className="py-3 text-right">
-                          <input
+                        </TableCell>
+                        <TableCell className="py-3 text-right">
+                          <Input
                             className="w-24 px-3 py-1 text-right border border-[#e5e7eb] rounded-md text-sm"
                             type="text"
                             value={paymentAmount}
                             onChange={(e) => setPaymentAmount(e.target.value)}
                           />
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
 
-                  <button className="text-[#2563eb] text-sm hover:underline">
+                  <Button className="text-[#2563eb] text-sm" variant="link">
                     Show additional unpaid invoices (3)
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="space-y-4">
@@ -122,21 +141,22 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                   </div>
 
                   <div className="flex items-center">
-                    <input
+                    <Checkbox
                       checked={creditChecked}
                       className="rounded border-[#d1d5db] mr-2"
                       id="credit"
-                      type="checkbox"
-                      onChange={(e) => setCreditChecked(e.target.checked)}
+                      onCheckedChange={(checked) =>
+                        setCreditChecked(checked as boolean)
+                      }
                     />
-                    <label className="text-sm text-[#374151]" htmlFor="credit">
+                    <Label className="text-sm text-[#374151]" htmlFor="credit">
                       Apply available credit ($100)
-                    </label>
+                    </Label>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Payment amount</span>
-                    <input
+                    <Input
                       className="w-32 px-3 py-1 text-right border border-[#e5e7eb] rounded-md"
                       type="text"
                       value={paymentAmount}
@@ -162,105 +182,90 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 </p>
 
                 <div className="bg-[#f9fafb] rounded-md p-4 space-y-4">
-                  <div className="flex items-center">
-                    <input
-                      checked={paymentMethod === "card"}
-                      className="mr-2"
-                      id="card"
-                      name="paymentMethod"
-                      type="radio"
-                      value="card"
-                      onChange={() => setPaymentMethod("card")}
-                    />
-                    <label className="flex items-center" htmlFor="card">
-                      <span className="mr-2">Online card on file</span>
-                      <div className="flex">
-                        <span className="bg-[#1f2937] text-white text-xs px-1 rounded mr-1">
-                          VISA
-                        </span>
-                        <span className="bg-[#ea580c] text-white text-xs px-1 rounded mr-1">
-                          MC
-                        </span>
-                        <span className="bg-[#3b82f6] text-white text-xs px-1 rounded">
-                          AMEX
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-
-                  <div className="flex items-start">
-                    <input
-                      checked={paymentMethod === "cash"}
-                      className="mr-2 mt-1"
-                      id="cash"
-                      name="paymentMethod"
-                      type="radio"
-                      value="cash"
-                      onChange={() => setPaymentMethod("cash")}
-                    />
-                    <div className="flex-1">
-                      <label className="block mb-2" htmlFor="cash">
-                        Cash
-                      </label>
-                      {paymentMethod === "cash" && (
-                        <div>
-                          <label
-                            className="block text-sm text-[#6b7280] mb-1"
-                            htmlFor="paymentDate"
-                          >
-                            Payment Date
-                          </label>
-                          <input
-                            className="px-3 py-2 border border-[#e5e7eb] rounded-md w-48"
-                            id="paymentDate"
-                            type="date"
-                            value={paymentDate}
-                            onChange={(e) => setPaymentDate(e.target.value)}
-                          />
+                  <RadioGroup
+                    value={paymentMethod}
+                    onValueChange={setPaymentMethod}
+                  >
+                    <div className="flex items-center">
+                      <RadioGroupItem className="mr-2" id="card" value="card" />
+                      <Label className="flex items-center" htmlFor="card">
+                        <span className="mr-2">Online card on file</span>
+                        <div className="flex">
+                          <span className="bg-[#1f2937] text-white text-xs px-1 rounded mr-1">
+                            VISA
+                          </span>
+                          <span className="bg-[#ea580c] text-white text-xs px-1 rounded mr-1">
+                            MC
+                          </span>
+                          <span className="bg-[#3b82f6] text-white text-xs px-1 rounded">
+                            AMEX
+                          </span>
                         </div>
-                      )}
+                      </Label>
                     </div>
-                  </div>
 
-                  <div className="flex items-center">
-                    <input
-                      checked={paymentMethod === "check"}
-                      className="mr-2"
-                      id="check"
-                      name="paymentMethod"
-                      type="radio"
-                      value="check"
-                      onChange={() => setPaymentMethod("check")}
-                    />
-                    <label htmlFor="check">Check</label>
-                  </div>
-
-                  <div className="flex items-start">
-                    <input
-                      checked={paymentMethod === "external"}
-                      className="mr-2 mt-1"
-                      id="external"
-                      name="paymentMethod"
-                      type="radio"
-                      value="external"
-                      onChange={() => setPaymentMethod("external")}
-                    />
-                    <div>
-                      <label className="block" htmlFor="external">
-                        External card
-                      </label>
-                      <p className="text-sm text-[#6b7280]">
-                        Record a payment collected using an external payment
-                        processor
-                      </p>
+                    <div className="flex items-start">
+                      <RadioGroupItem
+                        className="mr-2 mt-1"
+                        id="cash"
+                        value="cash"
+                      />
+                      <div className="flex-1">
+                        <Label className="block mb-2" htmlFor="cash">
+                          Cash
+                        </Label>
+                        {paymentMethod === "cash" && (
+                          <div>
+                            <Label
+                              className="block text-sm text-[#6b7280] mb-1"
+                              htmlFor="paymentDate"
+                            >
+                              Payment Date
+                            </Label>
+                            <Input
+                              className="px-3 py-2 border border-[#e5e7eb] rounded-md w-48"
+                              id="paymentDate"
+                              type="date"
+                              value={paymentDate}
+                              onChange={(e) => setPaymentDate(e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+
+                    <div className="flex items-center">
+                      <RadioGroupItem
+                        className="mr-2"
+                        id="check"
+                        value="check"
+                      />
+                      <Label htmlFor="check">Check</Label>
+                    </div>
+
+                    <div className="flex items-start">
+                      <RadioGroupItem
+                        className="mr-2 mt-1"
+                        id="external"
+                        value="external"
+                      />
+                      <div>
+                        <Label className="block" htmlFor="external">
+                          External card
+                        </Label>
+                        <p className="text-sm text-[#6b7280]">
+                          Record a payment collected using an external payment
+                          processor
+                        </p>
+                      </div>
+                    </div>
+                  </RadioGroup>
                 </div>
               </div>
             </div>
 
             {/* Summary */}
-            <div className="w-full md:w-80 shrink-0">
+            <div className="basis-1/3">
               <div className="border border-[#e5e7eb] rounded-md p-4">
                 <h4 className="font-medium mb-4">Summary</h4>
 
@@ -281,14 +286,14 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                   </div>
                 </div>
 
-                <button className="w-full bg-[#2d8467] text-white py-3 rounded-md font-medium">
+                <Button className="w-full bg-[#2d8467] text-white py-3 rounded-md font-medium">
                   Add $100 payment
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

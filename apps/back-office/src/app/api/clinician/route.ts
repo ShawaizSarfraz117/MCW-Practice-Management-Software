@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { auth } from "@mcw/utils";
-
-const prisma = new PrismaClient();
+import { prisma } from "@mcw/database";
 
 // GET - Retrieve all clinicians or a specific clinician by ID
 export async function GET(request: NextRequest) {

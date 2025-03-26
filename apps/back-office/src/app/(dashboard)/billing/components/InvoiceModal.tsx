@@ -3,6 +3,18 @@
 import { X, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@mcw/ui";
 
 // Dynamically import the PaymentModal to prevent context provider conflicts
 const PaymentModal = dynamic(
@@ -29,32 +41,34 @@ export function InvoiceModal({ isOpen, onClose }: InvoiceModalProps) {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-auto [&>button]:hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-[#e5e7eb]">
             <div className="flex items-center gap-3">
-              <button
+              <Button
                 className="text-[#6b7280] hover:text-[#374151]"
+                size="icon"
+                variant="ghost"
                 onClick={onClose}
               >
                 <X className="w-5 h-5" />
-              </button>
-              <h2 className="text-xl font-semibold">
+              </Button>
+              <DialogTitle className="text-xl font-semibold">
                 Invoice for Jamie D. Appleseed
-              </h2>
+              </DialogTitle>
             </div>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-1 px-4 py-2 border border-[#e5e7eb] rounded-md text-[#374151]">
+              <Button className="flex items-center gap-1" variant="outline">
                 <span>More</span>
                 <ChevronDown className="w-4 h-4" />
-              </button>
-              <button
-                className="bg-[#2d8467] text-white px-4 py-2 rounded-md"
+              </Button>
+              <Button
+                className="bg-[#2d8467] text-white"
                 onClick={openPaymentModal}
               >
                 Add Payment
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -120,34 +134,34 @@ export function InvoiceModal({ isOpen, onClose }: InvoiceModalProps) {
 
             {/* Services Table */}
             <div className="border border-[#e5e7eb] rounded-md overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-[#f9fafb] border-b border-[#e5e7eb]">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-[#6b7280]">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[#f9fafb] border-b border-[#e5e7eb]">
+                    <TableHead className="text-left py-3 px-4 text-sm font-medium text-[#6b7280]">
                       Date
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-[#6b7280]">
+                    </TableHead>
+                    <TableHead className="text-left py-3 px-4 text-sm font-medium text-[#6b7280]">
                       Description
-                    </th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-[#6b7280]">
+                    </TableHead>
+                    <TableHead className="text-right py-3 px-4 text-sm font-medium text-[#6b7280]">
                       Amount
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-[#e5e7eb]">
-                    <td className="py-3 px-4 text-sm text-[#374151]">
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow className="border-b border-[#e5e7eb]">
+                    <TableCell className="py-3 px-4 text-sm text-[#374151]">
                       02/07/2025
-                    </td>
-                    <td className="py-3 px-4 text-sm text-[#374151]">
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-sm text-[#374151]">
                       Professional Services
-                    </td>
-                    <td className="py-3 px-4 text-sm text-right font-medium text-[#374151]">
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-sm text-right font-medium text-[#374151]">
                       $100.00
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
 
             {/* Summary */}
@@ -170,8 +184,8 @@ export function InvoiceModal({ isOpen, onClose }: InvoiceModalProps) {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Payment Modal */}
       {isPaymentModalOpen && (

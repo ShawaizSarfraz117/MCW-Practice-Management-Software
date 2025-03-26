@@ -4,14 +4,20 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./mock": "./src/__mocks__/mockPrisma.ts"
+  },
+  "prisma": {
+    "seed": "node ./src/seed.mjs"
   },
   "scripts": {
     "clean": "rm -rf dist",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:deploy": "prisma migrate deploy",
     "lint": "eslint ."
   },
   "dependencies": {
