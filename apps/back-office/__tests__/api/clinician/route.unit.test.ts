@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { Clinician, User } from '@mcw/database';
 import prismaMock from '@mcw/database/mock';
 import { createRequest } from '@mcw/utils';
-import { GET } from '../../../src/app/api/clinician/route';
+import { GET } from '@/api/clinician/route';
 import { v4 as uuidv4 } from 'uuid';
 
 // Make TypeScript recognize the mock
