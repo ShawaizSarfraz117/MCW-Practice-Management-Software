@@ -1,24 +1,19 @@
 import { vi } from 'vitest';
-
-// Mock the database module before any imports that use it
-// Using a function to avoid variable hoisting issues
-vi.mock('@mcw/database', () => {
-  return {
-    prisma: {
-      clinician: {
-        findMany: vi.fn()
-      }
-    }
-  };
-});
-
-// Now import everything else
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Clinician, User } from '@mcw/database';
-import { prisma } from '@mcw/database';
+import prismaMock from '@mcw/database/mock';
 import { createRequest } from '@mcw/utils';
 import { GET } from '../../../src/app/api/clinician/route';
 import { v4 as uuidv4 } from 'uuid';
+
+// Make TypeScript recognize the mock
+vi.mock('@mcw/database', async () => {
+  const actual = await vi.importActual('@mcw/database');
+  return {
+    ...actual,
+    prisma: prismaMock
+  };
+});
 
 describe('Clinician API Unit Tests', () => {
   // Define test data
@@ -64,9 +59,7 @@ describe('Clinician API Unit Tests', () => {
 
   it('GET /api/clinician should return all clinicians', async () => {
     // Mock the prisma response for findMany
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mockFindMany = prisma.clinician.findMany as any;
-    mockFindMany.mockResolvedValue(
+    prismaMock.clinician.findMany.mockResolvedValue(
       clinicians.map((clinician, index) => ({
         ...clinician,
         User: users[index]  // Include the related User data for each clinician
@@ -91,7 +84,7 @@ describe('Clinician API Unit Tests', () => {
     expect(json[1]).toHaveProperty('User.email', users[1].email);
 
     // Verify the mock was called with correct parameters
-    expect(mockFindMany).toHaveBeenCalledWith({
+    expect(prismaMock.clinician.findMany).toHaveBeenCalledWith({
       include: {
         User: {
           select: {
