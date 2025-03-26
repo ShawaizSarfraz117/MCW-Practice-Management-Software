@@ -1,26 +1,17 @@
-import type { Metadata } from "next";
-import "./globals.css";
+
+// Style Imports
+import './globals.css'
 import "@mcw/ui/styles.css";
-import Sidebar from "@/components/layouts/Sidebar";
 
-export const metadata: Metadata = {
-  title: "Back Office | Admin Portal",
-  description: "Admin/therapist application",
-};
+const RootLayout = ({ children }) => {
+  // Vars
+  const direction = 'ltr'
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
   return (
-    <html>
-      <body>
-        <div className="flex h-screen">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
-        </div>
-      </body>
+    <html id='__next' lang='en' dir={direction}>
+      <body className='flex is-full min-bs-full flex-auto flex-col'>{children}</body>
     </html>
-  );
+  )
 }
+
+export default RootLayout
