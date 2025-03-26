@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@mcw/utils";
 import { prisma } from "@mcw/database";
+import { logger } from '@mcw/logger';
+
 
 // GET - Retrieve all clinicians or a specific clinician by ID
 export async function GET(request: NextRequest) {
@@ -14,6 +16,7 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (id) {
+      logger.info("Retrieving specific clinician");
       // Retrieve specific clinician
       const clinician = await prisma.clinician.findUnique({
         where: { id },
@@ -45,6 +48,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(clinician);
     } else {
+      logger.info("Retrieving all clinicians");
       // List all clinicians
       const clinicians = await prisma.clinician.findMany({
         include: {

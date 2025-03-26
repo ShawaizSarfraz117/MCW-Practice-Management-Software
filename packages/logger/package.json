@@ -1,0 +1,25 @@
+{
+    "name": "@mcw/logger",
+    "version": "0.0.0",
+    "private": true,
+    "sideEffects": false,
+    "exports": {
+      ".": "./src/index.ts"
+    },
+    "scripts": {
+      "clean": "if exist dist rd /s /q dist",
+      "lint": "eslint ."
+    },
+    "dependencies": {
+      "@mcw/tsconfig-config": "*",
+      "pino": "^8.14.1",
+      "pino-pretty": "^10.0.0",
+      "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+      "@types/node": "^20.11.17",
+      "@types/uuid": "^9.0.8",
+      "eslint": "^9.22.0",
+      "typescript": "^5.3.3"
+    }
+  }
