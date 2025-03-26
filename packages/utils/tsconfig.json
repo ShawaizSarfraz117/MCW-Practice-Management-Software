@@ -10,6 +10,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "__tests__/validation.test.ts"],
   "exclude": ["node_modules", "dist"]
 }
