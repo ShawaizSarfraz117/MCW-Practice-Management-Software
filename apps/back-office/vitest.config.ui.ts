@@ -6,7 +6,7 @@ export default mergeConfig(
   defineProject({
     test: {
       name: "back-office/ui",
-      include: ["**/*.ui-test.tsx"],
+      include: ["**/*.ui.test.tsx"],
     },
   }),
 );

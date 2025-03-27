@@ -8,7 +8,6 @@ export default mergeConfig(
       name: "back-office/unit",
       include: ["**/*.unit.test.ts"],
       setupFiles: ["./vitest.setup.unit.ts"],
-      environment: 'node',
     },
   }),
 );
