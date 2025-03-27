@@ -46,7 +46,7 @@ export default function LoginForm() {
       // Redirect to backoffice dashboard
       router.push("/clients");
       router.refresh(); // Refresh to update session data
-    } catch (err) {
+    } catch {
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
@@ -54,7 +54,7 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form className="space-y-4" onSubmit={handleSubmit}>
       {error && (
         <div className="p-3 bg-red-50 text-red-800 rounded-md text-sm">
           {error}
@@ -63,51 +63,51 @@ export default function LoginForm() {
 
       <div className="space-y-2">
         <label
-          htmlFor="email"
           className="block text-sm font-medium text-gray-700"
+          htmlFor="email"
         >
           Email
         </label>
         <Input
+          required
+          autoComplete="email"
+          className="w-full"
           id="email"
           name="email"
           type="email"
-          autoComplete="email"
-          required
           value={formData.email}
           onChange={handleChange}
-          className="w-full"
         />
       </div>
 
       <div className="space-y-2">
         <div className="flex justify-between">
           <label
-            htmlFor="password"
             className="block text-sm font-medium text-gray-700"
+            htmlFor="password"
           >
             Password
           </label>
           <Link
-            href="/backoffice/forgot-password"
             className="text-sm text-blue-600 hover:underline"
+            href="/backoffice/forgot-password"
           >
             Forgot password?
           </Link>
         </div>
         <PasswordInput
+          required
+          autoComplete="current-password"
+          className="w-full"
           id="password"
           name="password"
-          autoComplete="current-password"
-          required
           value={formData.password}
           onChange={handleChange}
-          className="w-full"
         />
       </div>
 
       <div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button className="w-full" disabled={isLoading} type="submit">
           {isLoading ? "Signing in..." : "Sign in"}
         </Button>
       </div>

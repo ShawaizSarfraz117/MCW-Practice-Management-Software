@@ -35,7 +35,7 @@ export default function Sidebar({ mobile = false }: SidebarProps) {
       )}
     >
       <div className="p-6 border-b border-[#e5e7eb]">
-        <Link href="/" className="block">
+        <Link className="block" href="/">
           <h1 className="text-2xl font-bold text-[#2d8467]">MCW</h1>
         </Link>
       </div>
@@ -48,69 +48,69 @@ export default function Sidebar({ mobile = false }: SidebarProps) {
           label="Calendar"
         />
         <SidebarItem
+          active={pathname.includes("/clients")}
+          href="/clients"
           icon={<Users className="w-5 h-5" />}
           label="Clients"
-          href="/clients"
-          active={pathname.includes("/clients")}
         />
         <SidebarItem
+          active={pathname.startsWith("/billing")}
+          href="/billing"
           icon={<CreditCard className="w-5 h-5" />}
           label="Billing"
-          href="/billing"
-          active={pathname.startsWith("/billing")}
         />
         <SidebarItem
+          active={pathname === "/insurance"}
+          href="/insurance"
           icon={<Heart className="w-5 h-5" />}
           label="Insurance"
-          href="/insurance"
-          active={pathname === "/insurance"}
         />
         <SidebarItem
+          active={pathname === "/analytics"}
+          href="/analytics"
           icon={<BarChart2 className="w-5 h-5" />}
           label="Analytics"
-          href="/analytics"
-          active={pathname === "/analytics"}
         />
         <SidebarItem
+          active={pathname === "/activity"}
+          href="/activity"
           icon={<Clock className="w-5 h-5" />}
           label="Activity"
-          href="/activity"
-          active={pathname === "/activity"}
         />
         <SidebarItem
+          active={pathname === "/supervision"}
+          href="/supervision"
           icon={<Eye className="w-5 h-5" />}
           label="Supervision"
-          href="/supervision"
-          active={pathname === "/supervision"}
         />
         <SidebarItem
+          active={pathname === "/settings"}
+          href="/settings"
           icon={<Settings className="w-5 h-5" />}
           label="Settings"
-          href="/settings"
-          active={pathname === "/settings"}
         />
         <SidebarItem
-          icon={<Bell className="w-5 h-5" />}
-          label="Reminders"
-          href="/reminders"
           active={pathname === "/reminders"}
           badge={
             <span className="flex items-center justify-center w-6 h-6 text-xs font-medium rounded-full bg-[#e5e7eb]">
               95+
             </span>
           }
+          href="/reminders"
+          icon={<Bell className="w-5 h-5" />}
+          label="Reminders"
         />
         <SidebarItem
+          active={pathname === "/requests"}
+          href="/requests"
           icon={<Send className="w-5 h-5" />}
           label="Requests"
-          href="/requests"
-          active={pathname === "/requests"}
         />
         <SidebarItem
+          active={pathname === "/marketing"}
+          href="/marketing"
           icon={<Megaphone className="w-5 h-5" />}
           label="Marketing"
-          href="/marketing"
-          active={pathname === "/marketing"}
         />
       </nav>
     </div>
@@ -134,13 +134,13 @@ function SidebarItem({
 }: SidebarItemProps) {
   return (
     <Link
-      href={href}
       className={cn(
         "flex items-center justify-between px-6 py-3 text-sm font-medium transition-colors",
         active
           ? "bg-[#d1e4de] text-[#2d8467] border-l-4 border-[#2d8467] pl-[22px]"
           : "text-[#4b5563] hover:bg-gray-50",
       )}
+      href={href}
     >
       <div className="flex items-center">
         <div className="mr-3">{icon}</div>

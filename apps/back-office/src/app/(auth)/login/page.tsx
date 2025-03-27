@@ -23,7 +23,7 @@ export default function BackofficeSignInPage() {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             Need help?{" "}
-            <Link href="/help" className="text-blue-600 hover:underline">
+            <Link className="text-blue-600 hover:underline" href="/help">
               Contact support
             </Link>
           </p>
@@ -33,17 +33,17 @@ export default function BackofficeSignInPage() {
       <div className="mt-6 text-center">
         <p className="text-sm text-gray-500">
           Can't sign in?{" "}
-          <Link href="/help" className="text-blue-600 hover:underline">
+          <Link className="text-blue-600 hover:underline" href="/help">
             Get Help
           </Link>
         </p>
         <p className="text-sm text-gray-500 mt-4">
           © 2023 MCW |{" "}
-          <Link href="/terms" className="text-blue-600 hover:underline">
+          <Link className="text-blue-600 hover:underline" href="/terms">
             Terms
           </Link>{" "}
           |{" "}
-          <Link href="/privacy" className="text-blue-600 hover:underline">
+          <Link className="text-blue-600 hover:underline" href="/privacy">
             Privacy
           </Link>
         </p>

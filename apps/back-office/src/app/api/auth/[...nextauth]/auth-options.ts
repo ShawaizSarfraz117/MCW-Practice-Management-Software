@@ -21,7 +21,7 @@ declare module "next-auth" {
   }
 }
 
-type UserWithRoles = PrismaUser & {
+export type UserWithRoles = PrismaUser & {
   UserRole: (UserRole & {
     Role: Role;
   })[];

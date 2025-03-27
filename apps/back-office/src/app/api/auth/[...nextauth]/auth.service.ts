@@ -15,7 +15,7 @@ interface UserWithRoles {
 
 export async function authorize(
   credentials: Record<"email" | "password", string> | undefined,
-  req: Pick<RequestInternal, "query" | "body" | "headers" | "method">,
+  _req: Pick<RequestInternal, "query" | "body" | "headers" | "method">,
 ) {
   if (!credentials?.email || !credentials?.password) {
     return null;

@@ -44,7 +44,9 @@ interface ClientProfileProps {
   clientId: string;
 }
 
-export default function ClientProfile({ clientId }: ClientProfileProps) {
+export default function ClientProfile({
+  clientId: _clientId,
+}: ClientProfileProps) {
   const [activeTab, setActiveTab] = useState("measures");
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
 
@@ -57,7 +59,7 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
       />
 
       <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
-        <Link href="/clients" className="hover:text-gray-700">
+        <Link className="hover:text-gray-700" href="/clients">
           Clients and contacts
         </Link>
         <span className="mx-1">/</span>
@@ -80,10 +82,10 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="bg-white text-xs sm:text-sm">
+          <Button className="bg-white text-xs sm:text-sm" variant="outline">
             Share
           </Button>
-          <Button variant="outline" className="bg-white text-xs sm:text-sm">
+          <Button className="bg-white text-xs sm:text-sm" variant="outline">
             Upload
           </Button>
           <Button className="bg-[#2d8467] hover:bg-[#236c53] text-xs sm:text-sm">
@@ -96,8 +98,8 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
       <div className="hidden lg:block sticky top-0 z-10">
         <div className="absolute right-[324px] top-1">
           <Button
-            variant="ghost"
             className="text-blue-500 hover:bg-blue-50"
+            variant="ghost"
             onClick={() => setAdminNoteModalOpen(true)}
           >
             <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
@@ -110,35 +112,35 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
         <div className="flex-1 border-t border-[#e5e7eb]">
           {/* Tabs */}
           <Tabs
+            className="w-full"
             defaultValue="measures"
             value={activeTab}
             onValueChange={setActiveTab}
-            className="w-full"
           >
             <div className="border-b border-[#e5e7eb] overflow-x-auto">
               <div className="px-4 sm:px-6">
                 <TabsList className="h-[40px] bg-transparent p-0 w-auto">
                   <TabsTrigger
-                    value="overview"
                     className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "overview" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
+                    value="overview"
                   >
                     Overview
                   </TabsTrigger>
                   <TabsTrigger
-                    value="billing"
                     className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "billing" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
+                    value="billing"
                   >
                     Billing
                   </TabsTrigger>
                   <TabsTrigger
-                    value="measures"
                     className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "measures" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
+                    value="measures"
                   >
                     Measures
                   </TabsTrigger>
                   <TabsTrigger
-                    value="files"
                     className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "files" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
+                    value="files"
                   >
                     Files
                   </TabsTrigger>
@@ -147,31 +149,31 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
             </div>
 
             <TabsContent
-              value="overview"
               className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
+              value="overview"
             >
               {/* Text Editor */}
               <div className="mb-6">
                 <div className="flex gap-2 sm:gap-4 mb-2 overflow-x-auto">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
                     <Bold className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
                     <Italic className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
                     <List className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
                     <ListOrdered className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
                     <LinkIcon className="h-4 w-4" />
                   </Button>
                 </div>
                 <Textarea
-                  placeholder="Add Chart Note: include notes from a call with a client or copy & paste the contents of a document"
                   className="min-h-[100px] border-[#e5e7eb] resize-none"
+                  placeholder="Add Chart Note: include notes from a call with a client or copy & paste the contents of a document"
                 />
               </div>
 
@@ -186,8 +188,8 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
               <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Input
-                    value="01/08/2025 - 02/06/2025"
                     className="w-full sm:w-[200px] h-9 bg-white border-[#e5e7eb]"
+                    value="01/08/2025 - 02/06/2025"
                   />
                   <Select defaultValue="all">
                     <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">
@@ -242,15 +244,15 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
             </TabsContent>
 
             <TabsContent
-              value="billing"
               className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
+              value="billing"
             >
               {/* Date Range and Filter */}
               <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Input
-                    value="01/08/2025 - 02/06/2025"
                     className="w-full sm:w-[200px] h-9 bg-white border-[#e5e7eb]"
+                    value="01/08/2025 - 02/06/2025"
                   />
                   <Select defaultValue="billable">
                     <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">
@@ -279,7 +281,7 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                       <TableHead className="font-medium">Fee</TableHead>
                       <TableHead className="font-medium">Client</TableHead>
                       <TableHead className="font-medium">Write-Off</TableHead>
-                      <TableHead className="font-medium"></TableHead>
+                      <TableHead className="font-medium" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -298,7 +300,7 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                         <TableCell>
                           <div className="flex justify-between items-center">
                             <span className="text-red-500 text-sm">Unpaid</span>
-                            <Button variant="link" className="text-blue-500">
+                            <Button className="text-blue-500" variant="link">
                               Manage
                             </Button>
                           </div>
@@ -311,8 +313,8 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
             </TabsContent>
 
             <TabsContent
-              value="measures"
               className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
+              value="measures"
             >
               {/* New Measures Available Alert */}
               <Alert className="mb-6 bg-white border-[#e5e7eb]">
@@ -327,9 +329,9 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                     </AlertDescription>
                   </div>
                   <Button
-                    variant="ghost"
-                    size="sm"
                     className="text-gray-400 hover:text-gray-500"
+                    size="sm"
+                    variant="ghost"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -376,13 +378,13 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                   </div>
 
                   {/* Horizontal Lines */}
-                  <div className="absolute left-0 right-16 top-0 border-t border-gray-200"></div>
-                  <div className="absolute left-0 right-16 top-[33%] border-t border-gray-200"></div>
-                  <div className="absolute left-0 right-16 top-[66%] border-t border-gray-200"></div>
-                  <div className="absolute left-0 right-16 bottom-0 border-t border-gray-200"></div>
+                  <div className="absolute left-0 right-16 top-0 border-t border-gray-200" />
+                  <div className="absolute left-0 right-16 top-[33%] border-t border-gray-200" />
+                  <div className="absolute left-0 right-16 top-[66%] border-t border-gray-200" />
+                  <div className="absolute left-0 right-16 bottom-0 border-t border-gray-200" />
 
                   {/* Graph Line */}
-                  <div className="absolute left-[20%] right-16 top-[33%] border-t border-gray-300"></div>
+                  <div className="absolute left-[20%] right-16 top-[33%] border-t border-gray-300" />
 
                   {/* Data Point */}
                   <div className="absolute left-[60%] top-[33%] transform -translate-x-1/2 -translate-y-1/2">
@@ -401,16 +403,16 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
             </TabsContent>
 
             <TabsContent
-              value="files"
               className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
+              value="files"
             >
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
                 <div className="relative w-full sm:w-[300px]">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search files"
                     className="pl-9 h-10 bg-white border-[#e5e7eb]"
+                    placeholder="Search files"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -444,7 +446,7 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                           Updated <ArrowUpDown className="ml-1 h-4 w-4" />
                         </div>
                       </TableHead>
-                      <TableHead className="w-[40px]"></TableHead>
+                      <TableHead className="w-[40px]" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -459,9 +461,9 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                       <TableCell>2/6/25</TableCell>
                       <TableCell>
                         <Button
-                          variant="ghost"
-                          size="sm"
                           className="h-8 w-8 p-0"
+                          size="sm"
+                          variant="ghost"
                         >
                           <MoreHorizontal className="h-5 w-5" />
                         </Button>
@@ -478,9 +480,9 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
                       <TableCell>2/8/25</TableCell>
                       <TableCell>
                         <Button
-                          variant="ghost"
-                          size="sm"
                           className="h-8 w-8 p-0"
+                          size="sm"
+                          variant="ghost"
                         >
                           <MoreHorizontal className="h-5 w-5" />
                         </Button>
@@ -594,8 +596,8 @@ export default function ClientProfile({ clientId }: ClientProfileProps) {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 border-t border-[#e5e7eb] bg-white">
         <div className="px-4 sm:px-6 py-2">
           <Button
-            variant="ghost"
             className="text-blue-500 hover:bg-blue-50 w-full justify-center"
+            variant="ghost"
             onClick={() => setAdminNoteModalOpen(true)}
           >
             <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
