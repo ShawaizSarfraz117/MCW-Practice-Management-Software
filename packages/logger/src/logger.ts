@@ -19,8 +19,9 @@ export class Logger {
   constructor(component = 'app', context: Record<string, any> = {}) {
     this.component = component;
     this.context = context;
-    
-    if (typeof window !== 'undefined') {
+
+    const isBrowser = typeof globalThis !== 'undefined' && globalThis.document !== undefined;
+    if (isBrowser) {
       this.logger = pino({
         browser: { asObject: true },
         level: 'info'
