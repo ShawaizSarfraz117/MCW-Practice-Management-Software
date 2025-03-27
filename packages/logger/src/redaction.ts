@@ -1,42 +1,45 @@
-import pino from 'pino';
-import { config } from './config';
-
+import pino from "pino";
+import { config } from "./config";
+import { IncomingMessage, ServerResponse } from "node:http";
 
 export const serializers = {
   err: pino.stdSerializers.err,
-  
+
   // Custom serializer for SQL queries
   query: (query: string): string => {
-    if (typeof query !== 'string') return query;
-    
+    if (typeof query !== "string") return query;
+
     // Get sensitive fields from config
     const sensitiveFields = config.redactFields;
-    
+
     // Initialize redacted query
     let redactedQuery = query;
-    
+
     // Apply redaction for each sensitive field
-    sensitiveFields.forEach(field => {
+    sensitiveFields.forEach((field) => {
       // Pattern: field = 'value' or field = "value"
-      const pattern = new RegExp(`(${field}\\s*=\\s*['"])[^'"]+(['"])`, 'gi');
-      redactedQuery = redactedQuery.replace(pattern, '$1[REDACTED]$2');
-      
+      const pattern = new RegExp(`(${field}\\s*=\\s*['"])[^'"]+(['"])`, "gi");
+      redactedQuery = redactedQuery.replace(pattern, "$1[REDACTED]$2");
+
       // Pattern: field:'value' or field:"value" (JSON)
-      const jsonPattern = new RegExp(`(["']${field}["']\\s*:\\s*["'])[^'"]+(['"])`, 'gi');
-      redactedQuery = redactedQuery.replace(jsonPattern, '$1[REDACTED]$2');
+      const jsonPattern = new RegExp(
+        `(["']${field}["']\\s*:\\s*["'])[^'"]+(['"])`,
+        "gi",
+      );
+      redactedQuery = redactedQuery.replace(jsonPattern, "$1[REDACTED]$2");
     });
-    
+
     return redactedQuery;
   },
-  
-  req: (req: any): object => {
+
+  req: (req: IncomingMessage): object => {
     const serialized = pino.stdSerializers.req(req);
     return serialized;
   },
-  
-  res: (res: any): object => {
+
+  res: (res: ServerResponse): object => {
     return pino.stdSerializers.res(res);
-  }
+  },
 };
 
 /**
@@ -45,8 +48,8 @@ export const serializers = {
 export function getRedactionConfig() {
   return {
     paths: config.getRedactionPaths(),
-    censor: '[REDACTED]',
-    remove: false
+    censor: "[REDACTED]",
+    remove: false,
   };
 }
 

@@ -1,7 +1,7 @@
-import pino from 'pino';
-import { config } from './config';
-import { serializers } from './redaction';
-import { getRedactionPaths } from './redaction';
+import pino from "pino";
+import { config } from "./config";
+import { serializers } from "./redaction";
+import { getRedactionPaths } from "./redaction";
 
 /**
  * Main Logger class
@@ -9,36 +9,37 @@ import { getRedactionPaths } from './redaction';
 export class Logger {
   private logger: pino.Logger;
   private component: string;
-  private context: Record<string, any>;
-  
+  private context: Record<string, unknown>;
+
   /**
    * Create a new logger instance
    * @param component Component name
    * @param context Additional context
    */
-  constructor(component = 'app', context: Record<string, any> = {}) {
+  constructor(component = "app", context: Record<string, unknown> = {}) {
     this.component = component;
     this.context = context;
 
-    const isBrowser = typeof globalThis !== 'undefined' && globalThis.document !== undefined;
+    const isBrowser =
+      typeof globalThis !== "undefined" && globalThis.document !== undefined;
     if (isBrowser) {
       this.logger = pino({
         browser: { asObject: true },
-        level: 'info'
+        level: "info",
       }).child({ component, ...context });
       return;
     }
-    
+
     // Get base configuration
     const baseConfig = config.getBaseConfig(component);
-    
+
     // Add redaction
     baseConfig.redact = {
       paths: getRedactionPaths(),
-      censor: '[REDACTED]'
+      censor: "[REDACTED]",
     };
     baseConfig.serializers = serializers;
-    
+
     // Create logger based on environment
     if (config.logToFile) {
       try {
@@ -49,19 +50,22 @@ export class Logger {
           this.logger = pino(baseConfig).child(context);
           return;
         }
-        
+
         // Create date-based log file path
-        const date = new Date().toISOString().split('T')[0];
+        const date = new Date().toISOString().split("T")[0];
         const logFile = `${logsDir}/${date}.log`;
-        
+
         // Create file logger with pino's native destination
-        this.logger = pino(baseConfig, pino.destination({
-          dest: logFile,
-          append: true
-        })).child(context);
+        this.logger = pino(
+          baseConfig,
+          pino.destination({
+            dest: logFile,
+            append: true,
+          }),
+        ).child(context);
       } catch (error) {
         // Fallback to console logger on error
-        console.error('Failed to create file logger:', error);
+        console.error("Failed to create file logger:", error);
         this.logger = pino(baseConfig).child(context);
       }
     } else if (config.isPretty) {
@@ -69,56 +73,58 @@ export class Logger {
       this.logger = pino({
         ...baseConfig,
         transport: {
-          target: 'pino-pretty',
+          target: "pino-pretty",
           options: {
-            colorize: true
-          }
-        }
+            colorize: true,
+          },
+        },
       }).child(context);
     } else {
       // Standard logging
       this.logger = pino(baseConfig).child(context);
     }
   }
-  
+
   /**
    * Create a child logger with additional context
    * @param additionalContext Additional context information
    */
-  child(additionalContext: Record<string, any> = {}): Logger {
+  child(
+    additionalContext: Record<string, unknown> & { component?: string } = {},
+  ): Logger {
     const componentName = additionalContext.component || this.component;
     const mergedContext = { ...this.context, ...additionalContext };
-    
+
     return new Logger(componentName, mergedContext);
   }
-  
+
   // Standard logging methods
-  
+
   trace(message: string): void;
   trace(obj: object, message?: string): void;
   trace(messageOrObj: string | object, message?: string): void {
     try {
-      if (typeof messageOrObj === 'string') {
+      if (typeof messageOrObj === "string") {
         this.logger.trace(messageOrObj);
       } else {
-        this.logger.trace(messageOrObj, message || '');
+        this.logger.trace(messageOrObj, message || "");
       }
-    } catch (err) {
-      console.trace('[TRACE]', this.component, messageOrObj, message || '');
+    } catch {
+      console.trace("[TRACE]", this.component, messageOrObj, message || "");
     }
   }
-  
+
   debug(message: string): void;
   debug(obj: object, message?: string): void;
   debug(messageOrObj: string | object, message?: string): void {
     try {
-      if (typeof messageOrObj === 'string') {
+      if (typeof messageOrObj === "string") {
         this.logger.debug(messageOrObj);
       } else {
-        this.logger.debug(messageOrObj, message || '');
+        this.logger.debug(messageOrObj, message || "");
       }
-    } catch (err) {
-      console.debug('[DEBUG]', this.component, messageOrObj, message || '');
+    } catch {
+      console.debug("[DEBUG]", this.component, messageOrObj, message || "");
     }
   }
 
@@ -126,13 +132,13 @@ export class Logger {
   info(obj: object, message?: string): void;
   info(messageOrObj: string | object, message?: string): void {
     try {
-      if (typeof messageOrObj === 'string') {
+      if (typeof messageOrObj === "string") {
         this.logger.info(messageOrObj);
       } else {
-        this.logger.info(messageOrObj, message || '');
+        this.logger.info(messageOrObj, message || "");
       }
-    } catch (err) {
-      console.info('[INFO]', this.component, messageOrObj, message || '');
+    } catch {
+      console.info("[INFO]", this.component, messageOrObj, message || "");
     }
   }
 
@@ -140,13 +146,13 @@ export class Logger {
   warn(obj: object, message?: string): void;
   warn(messageOrObj: string | object, message?: string): void {
     try {
-      if (typeof messageOrObj === 'string') {
+      if (typeof messageOrObj === "string") {
         this.logger.warn(messageOrObj);
       } else {
-        this.logger.warn(messageOrObj, message || '');
+        this.logger.warn(messageOrObj, message || "");
       }
-    } catch (err) {
-      console.warn('[WARN]', this.component, messageOrObj, message || '');
+    } catch {
+      console.warn("[WARN]", this.component, messageOrObj, message || "");
     }
   }
 
@@ -156,30 +162,38 @@ export class Logger {
   error(messageOrObjOrError: string | object | Error, message?: string): void {
     try {
       if (messageOrObjOrError instanceof Error) {
-        this.logger.error({
-          err: messageOrObjOrError,
-          message: messageOrObjOrError.message,
-          stack: messageOrObjOrError.stack
-        }, message || 'An error occurred');
+        this.logger.error(
+          {
+            err: messageOrObjOrError,
+            message: messageOrObjOrError.message,
+            stack: messageOrObjOrError.stack,
+          },
+          message || "An error occurred",
+        );
       } else {
         this.logger.error(messageOrObjOrError, message);
       }
-    } catch (err) {
-      console.error('[ERROR]', this.component, messageOrObjOrError, message || '');
+    } catch {
+      console.error(
+        "[ERROR]",
+        this.component,
+        messageOrObjOrError,
+        message || "",
+      );
     }
   }
-  
+
   fatal(message: string): void;
   fatal(obj: object, message?: string): void;
   fatal(messageOrObj: string | object, message?: string): void {
     try {
-      if (typeof messageOrObj === 'string') {
+      if (typeof messageOrObj === "string") {
         this.logger.fatal(messageOrObj);
       } else {
-        this.logger.fatal(messageOrObj, message || '');
+        this.logger.fatal(messageOrObj, message || "");
       }
-    } catch (err) {
-      console.error('[FATAL]', this.component, messageOrObj, message || '');
+    } catch {
+      console.error("[FATAL]", this.component, messageOrObj, message || "");
     }
   }
 }
@@ -194,8 +208,8 @@ export const logger = new Logger();
  */
 export function getDbLogger(operation: string, model: string): Logger {
   return logger.child({
-    component: 'database',
+    component: "database",
     operation,
-    model
+    model,
   });
 }
