@@ -4,7 +4,7 @@ import { prisma } from "@mcw/database";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { v4 as uuidv4 } from "uuid";
 
-import { DELETE, GET, POST, PUT } from "./route";
+import { DELETE, GET, POST, PUT } from "@/api/clinician/route";
 
 describe("Clinician API", () => {
   const clinicians: Clinician[] = [

@@ -8,7 +8,7 @@
     "./mock": "./src/__mocks__/mockPrisma.ts"
   },
   "prisma": {
-    "seed": "node ./src/seed.mjs"
+    "seed": "node ./prisma/seed.mjs"
   },
   "scripts": {
     "clean": "rm -rf dist",
@@ -19,9 +19,6 @@
     "db:seed": "prisma db seed",
     "db:deploy": "prisma migrate deploy",
     "lint": "eslint ."
-  },
-  "prisma": {
-    "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0"

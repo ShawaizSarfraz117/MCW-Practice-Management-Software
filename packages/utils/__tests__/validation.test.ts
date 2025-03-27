@@ -1,4 +1,4 @@
-import { emailSchema, passwordSchema, userSchema, validateEmail } from "./validation";
+import { emailSchema, passwordSchema, userSchema, validateEmail } from "@/validation";
 import { describe, it, expect } from "vitest";
 
 describe("Email Validation", () => {
