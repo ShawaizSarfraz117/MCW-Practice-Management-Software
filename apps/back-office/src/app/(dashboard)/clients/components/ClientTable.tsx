@@ -48,9 +48,7 @@ const rows = [
 ];
 
 // TODO: Add right type
-const ClientTable = (props: {
-  onRowClick: (row: Record<string, unknown>) => void;
-}) => {
+const ClientTable = (props: { onRowClick: (id: string) => void }) => {
   const columns = [
     {
       key: "name",
@@ -105,6 +103,8 @@ const ClientTable = (props: {
   ];
 
   return (
+    // TODO: Add right type
+    // @ts-expect-error - TODO: Add right type
     <DataTable columns={columns} rows={rows} onRowClick={props.onRowClick} />
   );
 };

@@ -29,6 +29,7 @@
     "format": "turbo run format",
     "prettier:check": "turbo run prettier:check",
     "typecheck": "turbo run typecheck",
+    "checks": "turbo run checks",
     "prepare": "husky",
     "lint-staged": "lint-staged"
   },
