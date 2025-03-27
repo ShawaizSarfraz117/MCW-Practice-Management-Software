@@ -34,10 +34,10 @@ export default function AdministrativeNoteDrawer({
         <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
               className="h-8 w-8 mr-2"
+              size="icon"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
             >
               <X className="h-5 w-5 text-gray-500 hover:text-gray-700" />
             </Button>
@@ -52,44 +52,44 @@ export default function AdministrativeNoteDrawer({
             Use it as a reminder for yourself or for your team members about
             this client. Also, like a sticky note, these are not part of the
             client&apos;s medical record.{" "}
-            <a href="#" className="text-blue-500 hover:underline">
+            <a className="text-blue-500 hover:underline" href="#">
               Learn more
             </a>
           </div>
 
           {/* Editor Toolbar */}
           <div className="flex flex-wrap gap-1 mb-2 border-b pb-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <Bold className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <Italic className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <Strikethrough className="h-4 w-4" />
             </Button>
-            <div className="h-8 border-r mx-1"></div>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <div className="h-8 border-r mx-1" />
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <List className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <ListOrdered className="h-4 w-4" />
             </Button>
-            <div className="h-8 border-r mx-1"></div>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <div className="h-8 border-r mx-1" />
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <Link className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <Minus className="h-4 w-4" />
             </Button>
-            <div className="h-8 border-r mx-1"></div>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <div className="h-8 border-r mx-1" />
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <Undo className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <Redo className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button className="h-8 w-8" size="icon" variant="ghost">
               <Image className="h-4 w-4" />
             </Button>
           </div>
@@ -101,7 +101,7 @@ export default function AdministrativeNoteDrawer({
               placeholder="Begin typing here..."
               value={noteContent}
               onChange={(e) => setNoteContent(e.target.value)}
-            ></textarea>
+            />
           </div>
 
           <div className="text-sm text-gray-600">

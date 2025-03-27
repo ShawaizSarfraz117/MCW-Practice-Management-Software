@@ -1,6 +1,5 @@
 export * from "./formatting";
 export * from "./styles";
-export * from "./auth";
 export * from "./next-test";
 
 // Example validation utility

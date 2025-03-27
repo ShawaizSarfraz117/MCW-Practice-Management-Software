@@ -15,8 +15,10 @@
   "license": "MIT",
   "scripts": {
     "build": "tailwindcss -i ./src/styles.css -o ./dist/index.css",
-    "check-types": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --pretty --checkJs",
     "dev": "tailwindcss -i ./src/styles.css -o ./dist/index.css --watch",
+    "format": "prettier --write src",
+    "prettier:check": "prettier --check src",
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {

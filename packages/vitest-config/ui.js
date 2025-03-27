@@ -8,7 +8,7 @@ export default mergeConfig(
   defineProject({
     plugins: [react()],
     test: {
-      environment: "jsdom",
+      environment: "happy-dom",
     },
   }),
 );

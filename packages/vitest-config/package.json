@@ -13,7 +13,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/ui": "3.0.9",
-    "jsdom": "^26.0.0",
+    "happy-dom": "^17.4.4",
     "node-mocks-http": "^1.16.2",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.0.9"

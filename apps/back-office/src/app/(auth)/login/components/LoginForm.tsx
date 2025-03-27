@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { Button, Input, PasswordInput } from "@mcw/ui";
 
 interface SignInBody {
@@ -13,13 +13,13 @@ interface SignInBody {
 
 export default function LoginForm() {
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState<SignInBody>({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,88 +29,88 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
         redirect: false,
-        callbackUrl: '/clients',
+        callbackUrl: "/clients",
       });
 
       if (result?.error) {
-        setError('Invalid email or password. Please try again.');
+        setError("Invalid email or password. Please try again.");
         return;
       }
 
       // Redirect to backoffice dashboard
-      router.push('/clients');
+      router.push("/clients");
       router.refresh(); // Refresh to update session data
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+    } catch {
+      setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form className="space-y-4" onSubmit={handleSubmit}>
       {error && (
         <div className="p-3 bg-red-50 text-red-800 rounded-md text-sm">
           {error}
         </div>
       )}
-      
+
       <div className="space-y-2">
-        <label 
-          htmlFor="email" 
+        <label
           className="block text-sm font-medium text-gray-700"
+          htmlFor="email"
         >
           Email
         </label>
         <Input
+          required
+          autoComplete="email"
+          className="w-full"
           id="email"
           name="email"
           type="email"
-          autoComplete="email"
-          required
           value={formData.email}
           onChange={handleChange}
-          className="w-full"
         />
       </div>
 
       <div className="space-y-2">
         <div className="flex justify-between">
-          <label 
-            htmlFor="password" 
+          <label
             className="block text-sm font-medium text-gray-700"
+            htmlFor="password"
           >
             Password
           </label>
-          <Link 
-            href="/backoffice/forgot-password" 
+          <Link
             className="text-sm text-blue-600 hover:underline"
+            href="/backoffice/forgot-password"
           >
             Forgot password?
           </Link>
         </div>
         <PasswordInput
+          required
+          autoComplete="current-password"
+          className="w-full"
           id="password"
           name="password"
-          autoComplete="current-password"
-          required
           value={formData.password}
           onChange={handleChange}
-          className="w-full"
         />
       </div>
 
       <div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Signing in...' : 'Sign in'}
+        <Button className="w-full" disabled={isLoading} type="submit">
+          {isLoading ? "Signing in..." : "Sign in"}
         </Button>
       </div>
     </form>
   );
-} 
+}

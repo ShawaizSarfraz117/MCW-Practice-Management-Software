@@ -1,3 +1,5 @@
+import process from "process";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@mcw/ui", "@mcw/utils", "@mcw/types", "@mcw/database", "@mcw/tailwind-config"],
