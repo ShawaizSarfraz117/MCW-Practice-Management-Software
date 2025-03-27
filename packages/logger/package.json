@@ -1,5 +1,5 @@
 {
-  "name": "@mcw/utils",
+  "name": "@mcw/logger",
   "version": "0.0.0",
   "private": true,
   "sideEffects": false,
@@ -8,19 +8,18 @@
   },
   "scripts": {
     "clean": "if exist dist rd /s /q dist",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit --pretty --checkJs",
+    "lint": "eslint src",
     "format": "prettier --write src",
-    "prettier:check": "prettier --check src"
+    "prettier:check": "prettier --check src",
+    "typecheck": "tsc --noEmit --pretty --allowJs"
   },
   "dependencies": {
     "@mcw/tsconfig-config": "*",
-    "bcrypt": "^5.1.1",
-    "uuid": "^9.0.1",
-    "zod": "^3.22.4"
+    "pino": "^8.14.1",
+    "pino-pretty": "^10.0.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.11.17",
     "@types/uuid": "^9.0.8",
     "eslint": "^9.22.0",

@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Front Office",
+        "type": "node",
+        "request": "launch",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev"],
+        "cwd": "${workspaceFolder}/apps/front-office",
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"],
+        "env": {
+          "LOG_LEVEL": "debug",
+          "LOG_LEVEL_PRISMA": "debug",
+          "LOG_TO_FILE": "false"
+        }
+      },
+      {
+        "name": "Debug Back Office",
+        "type": "node",
+        "request": "launch",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev"],
+        "cwd": "${workspaceFolder}/apps/back-office",
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"],
+        "env": {
+          "LOG_LEVEL": "debug",
+          "LOG_LEVEL_PRISMA": "debug",
+          "LOG_TO_FILE": "false"
+        }
+      },
+      {
+        "name": "Attach to Process",
+        "type": "node",
+        "request": "attach",
+        "processId": "${command:PickProcess}",
+        "skipFiles": ["<node_internals>/**"]
+      }
+    ]
+  }

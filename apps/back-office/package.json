@@ -16,12 +16,14 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",
     "@mcw/database": "*",
+    "@mcw/logger": "*",
     "@mcw/tsconfig-config": "*",
     "@mcw/types": "*",
     "@mcw/ui": "*",
     "@mcw/utils": "*",
     "next": "^14.2.25",
     "next-auth": "^4.22.1",
+    "openid-client": "^5.7.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

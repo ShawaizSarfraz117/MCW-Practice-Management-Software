@@ -234,6 +234,68 @@ The application uses a role-based access control system with the following model
 - **Role**: Available roles (ADMIN, CLINICIAN)
 - **UserRole**: Junction table for many-to-many relationship between User and Role
 
+## Logging
+
+This application uses a unified logging system based on Pino for consistent log management across both applications.
+
+1. **Basic Usage**:
+
+```bash
+
+import { logger } from '@mcw/logger';
+
+// Simple logging
+logger.info('Application started');
+logger.error('Something went wrong');
+
+// Structured logging
+logger.info({ userId: '123', action: 'login' }, 'User logged in');
+
+```
+
+2. **Request Context (API Routes)**:   
+
+```bash
+
+import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@mcw/logger';
+
+export async function GET(request: NextRequest) {
+  // Create a logger with the request context
+  const log = logger.fromRequest(request);
+  
+  log.info('Processing request');
+  
+  try {
+    // Your API logic here
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    log.error(error, 'Request failed');
+    return NextResponse.json({ error: 'Error occurred' }, { status: 500 });
+  }
+}
+
+```
+  
+3. **Component-Specific Logging**:    
+
+```bash
+
+import { logger } from '@mcw/logger';
+
+// Create a component-specific logger
+const componentLogger = logger.child({
+  component: 'user-management',
+});
+
+// Use it in your component
+componentLogger.info('Component initialized');
+
+```
+
+Logs are stored in the logs directory of each application as daily files (app-YYYY-MM-DD.log).
+
+
 ## Open Questions and Decisions
 
 The following questions need to be addressed by the team:

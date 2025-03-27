@@ -1,12 +1,12 @@
-import { vi } from 'vitest';
-import { describe, it, expect, beforeEach } from 'vitest';
-import type { Clinician, User } from '@mcw/database';
-import prismaMock from '@mcw/database/mock';
-import { createRequest } from '@mcw/utils';
-import { GET } from '@/api/clinician/route';
-import { v4 as uuidv4 } from 'uuid';
+import { vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import type { Clinician, User } from "@mcw/database";
+import prismaMock from "@mcw/database/mock";
+import { createRequest } from "@mcw/utils";
+import { GET } from "@/api/clinician/route";
+import { v4 as uuidv4 } from "uuid";
 
-describe('Clinician API Unit Tests', () => {
+describe("Clinician API Unit Tests", () => {
   // Define test data
   const clinicians: Clinician[] = [
     {
@@ -26,7 +26,7 @@ describe('Clinician API Unit Tests', () => {
       first_name: "Jane",
       last_name: "Doe",
       is_active: true,
-    }
+    },
   ];
 
   const users: User[] = [
@@ -41,20 +41,20 @@ describe('Clinician API Unit Tests', () => {
       email: "jane.doe@example.com",
       password_hash: "password",
       last_login: null,
-    }
+    },
   ];
 
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
-  it('GET /api/clinician should return all clinicians', async () => {
+  it("GET /api/clinician should return all clinicians", async () => {
     // Mock the prisma response for findMany
     prismaMock.clinician.findMany.mockResolvedValue(
       clinicians.map((clinician, index) => ({
         ...clinician,
-        User: users[index]  // Include the related User data for each clinician
-      }))
+        User: users[index], // Include the related User data for each clinician
+      })),
     );
 
     const req = createRequest("/api/clinician");
@@ -65,14 +65,14 @@ describe('Clinician API Unit Tests', () => {
 
     // Verify response structure
     expect(json).toHaveLength(clinicians.length);
-    
+
     // Verify first clinician data
-    expect(json[0]).toHaveProperty('id', clinicians[0].id);
-    expect(json[0]).toHaveProperty('User.email', users[0].email);
-    
+    expect(json[0]).toHaveProperty("id", clinicians[0].id);
+    expect(json[0]).toHaveProperty("User.email", users[0].email);
+
     // Verify second clinician data
-    expect(json[1]).toHaveProperty('id', clinicians[1].id);
-    expect(json[1]).toHaveProperty('User.email', users[1].email);
+    expect(json[1]).toHaveProperty("id", clinicians[1].id);
+    expect(json[1]).toHaveProperty("User.email", users[1].email);
 
     // Verify the mock was called with correct parameters
     expect(prismaMock.clinician.findMany).toHaveBeenCalledWith({
