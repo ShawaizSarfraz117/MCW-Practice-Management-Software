@@ -248,7 +248,7 @@ model PracticeService {
 
 model Role {
   id       String     @id @default(dbgenerated("newid()"), map: "PK_Role_ID") @db.UniqueIdentifier
-  name     String     @db.VarChar(255)
+  name     String     @unique @db.VarChar(255)
   UserRole UserRole[]
 }
 

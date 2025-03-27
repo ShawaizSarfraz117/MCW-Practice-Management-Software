@@ -1,4 +1,3 @@
-// Export all UI components from here
 export * from "./components/button";
 export * from "./components/input";
 export * from "./components/card";
@@ -16,3 +15,4 @@ export * from "./components/select";
 export * from "./components/alert";
 export * from "./components/alert";
 export * from "./components/radio-group";
+export * from "./components/password-input";

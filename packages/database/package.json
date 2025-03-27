@@ -20,6 +20,9 @@
     "db:deploy": "prisma migrate deploy",
     "lint": "eslint ."
   },
+  "prisma": {
+    "seed": "node prisma/seed.mjs"
+  },
   "dependencies": {
     "@prisma/client": "^6.5.0"
   },
