@@ -23,6 +23,7 @@
     "test:back-office:unit": "vitest --project back-office/unit",
     "test:front-office:unit": "vitest --project front-office/unit",
     "db:migrate": "turbo run db:migrate",
+    "db:deploy": "turbo run db:deploy",
     "db:seed": "turbo run db:seed",
     "db:generate": "turbo run db:generate",
     "format": "turbo run format"

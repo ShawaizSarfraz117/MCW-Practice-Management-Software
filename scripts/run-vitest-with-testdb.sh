@@ -33,7 +33,7 @@ export DATABASE_URL="sqlserver://localhost:1434;database=mcw_test;user=sa;passwo
 
 echo "Running database migrations..."
 
-npm run db:migrate
+npm run db:deploy
 
 # forward the arguments to vitest
 vitest $@
