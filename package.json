@@ -29,7 +29,7 @@
     "format": "turbo run format",
     "prettier:check": "turbo run prettier:check",
     "typecheck": "turbo run typecheck",
-    "prepare": "husky install",
+    "prepare": "husky",
     "lint-staged": "lint-staged"
   },
   "lint-staged": {
