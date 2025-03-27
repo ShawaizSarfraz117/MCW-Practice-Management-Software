@@ -20,5 +20,5 @@
     "module": "esnext",
     "lib": ["es2020", "dom"]
   },
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 } 

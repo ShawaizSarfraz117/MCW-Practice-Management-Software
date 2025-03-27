@@ -45,6 +45,15 @@
     },
     "db:seed": {
       "cache": false
+    },
+    "typecheck": {
+      "outputs": []
+    },
+    "prettier:check": {
+      "outputs": []
+    },
+    "format": {
+      "outputs": []
     }
   }
 }

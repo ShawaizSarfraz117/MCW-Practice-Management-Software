@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { Button, Input, PasswordInput } from "@mcw/ui";
 
 interface SignInBody {
@@ -13,13 +13,13 @@ interface SignInBody {
 
 export default function LoginForm() {
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState<SignInBody>({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,25 +29,25 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
         redirect: false,
-        callbackUrl: '/clients',
+        callbackUrl: "/clients",
       });
 
       if (result?.error) {
-        setError('Invalid email or password. Please try again.');
+        setError("Invalid email or password. Please try again.");
         return;
       }
 
       // Redirect to backoffice dashboard
-      router.push('/clients');
+      router.push("/clients");
       router.refresh(); // Refresh to update session data
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -60,10 +60,10 @@ export default function LoginForm() {
           {error}
         </div>
       )}
-      
+
       <div className="space-y-2">
-        <label 
-          htmlFor="email" 
+        <label
+          htmlFor="email"
           className="block text-sm font-medium text-gray-700"
         >
           Email
@@ -82,14 +82,14 @@ export default function LoginForm() {
 
       <div className="space-y-2">
         <div className="flex justify-between">
-          <label 
-            htmlFor="password" 
+          <label
+            htmlFor="password"
             className="block text-sm font-medium text-gray-700"
           >
             Password
           </label>
-          <Link 
-            href="/backoffice/forgot-password" 
+          <Link
+            href="/backoffice/forgot-password"
             className="text-sm text-blue-600 hover:underline"
           >
             Forgot password?
@@ -108,9 +108,9 @@ export default function LoginForm() {
 
       <div>
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Signing in...' : 'Sign in'}
+          {isLoading ? "Signing in..." : "Sign in"}
         </Button>
       </div>
     </form>
   );
-} 
+}

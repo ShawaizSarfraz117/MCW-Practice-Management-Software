@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@mcw/utils";
 import { prisma } from "@mcw/database";
 
 // GET - Retrieve all clinicians or a specific clinician by ID
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
 
@@ -70,11 +64,6 @@ export async function GET(request: NextRequest) {
 // POST - Create a new clinician
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const data = await request.json();
 
     // Validate required fields
@@ -122,11 +111,6 @@ export async function POST(request: NextRequest) {
 // PUT - Update an existing clinician
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const data = await request.json();
 
     if (!data.id) {
@@ -173,11 +157,6 @@ export async function PUT(request: NextRequest) {
 // DELETE - Remove a clinician
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
 

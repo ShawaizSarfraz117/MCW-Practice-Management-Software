@@ -16,3 +16,4 @@ export * from "./components/alert";
 export * from "./components/alert";
 export * from "./components/radio-group";
 export * from "./components/password-input";
+export * from "./components/dropdown-menu";
