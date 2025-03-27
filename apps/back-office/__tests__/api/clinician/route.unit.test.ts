@@ -6,15 +6,6 @@ import { createRequest } from '@mcw/utils';
 import { GET } from '@/api/clinician/route';
 import { v4 as uuidv4 } from 'uuid';
 
-// Make TypeScript recognize the mock
-vi.mock('@mcw/database', async () => {
-  const actual = await vi.importActual('@mcw/database');
-  return {
-    ...actual,
-    prisma: prismaMock
-  };
-});
-
 describe('Clinician API Unit Tests', () => {
   // Define test data
   const clinicians: Clinician[] = [
