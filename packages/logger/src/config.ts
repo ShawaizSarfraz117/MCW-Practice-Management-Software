@@ -104,7 +104,9 @@ export class LoggerConfig {
 
   // Ensure logs directory exists
   public ensureLogsDirectory(): string | null {
-    if (typeof window === "undefined" && this._logToFile) {
+    const isBrowser = "window" in globalThis;
+
+    if (!isBrowser && this._logToFile) {
       const logsDir = path.join(process.cwd(), this._logsDir);
       if (!fs.existsSync(logsDir)) {
         fs.mkdirSync(logsDir, { recursive: true });

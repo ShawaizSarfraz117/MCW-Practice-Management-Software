@@ -20,8 +20,8 @@ export class Logger {
     this.component = component;
     this.context = context;
 
-    const isBrowser =
-      typeof globalThis !== "undefined" && globalThis.document !== undefined;
+    const isBrowser = "window" in globalThis;
+
     if (isBrowser) {
       this.logger = pino({
         browser: { asObject: true },
