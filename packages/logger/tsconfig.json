@@ -1,10 +1,6 @@
 {
     "extends": "@mcw/tsconfig-config/react",
     "compilerOptions": {
-      "tsBuildInfoFile": "./dist/.tsbuildinfo",
-      "declaration": true,
-      "declarationDir": "./dist",
-      "outDir": "./dist",
       "baseUrl": ".",
       "paths": {
         "@/*": ["./src/*"]

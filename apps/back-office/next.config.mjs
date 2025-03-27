@@ -3,6 +3,10 @@ const nextConfig = {
   transpilePackages: ["@mcw/ui", "@mcw/utils", "@mcw/types", "@mcw/database", "@mcw/tailwind-config", "@mcw/logger"],
   reactStrictMode: true,
   output: 'standalone', // Add standalone output for Azure deployment
+
+  experimental: {
+    serverComponentsExternalPackages: ['pino', 'pino-pretty', 'thread-stream']
+  },
   
   // Add webpack configuration to handle node-pre-gyp
   webpack: (config) => {

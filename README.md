@@ -236,7 +236,7 @@ The application uses a role-based access control system with the following model
 
 ## Logging
 
-This application uses a unified logging system for consistent log management across both applications.
+This application uses a unified logging system based on Pino for consistent log management across both applications.
 
 1. **Basic Usage**:
 

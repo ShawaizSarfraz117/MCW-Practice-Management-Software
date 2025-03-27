@@ -1,3 +1,3 @@
-// Main exports
-export * from "./logger";
-export type { Logger } from "pino";
+export * from './logger';
+export * from './config';
+export * from './redaction';

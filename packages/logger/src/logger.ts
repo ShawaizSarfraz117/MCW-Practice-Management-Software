@@ -1,197 +1,197 @@
-import { NextRequest } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import pino from 'pino';
+import { config } from './config';
+import { serializers } from './redaction';
+import { getRedactionPaths } from './redaction';
 
-// Define log levels and their priority
-type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
-
-const LOG_LEVELS: Record<LogLevel, number> = {
-  trace: 0,
-  debug: 1,
-  info: 2,
-  warn: 3,
-  error: 4,
-  fatal: 5
-};
-
-
+/**
+ * Main Logger class
+ */
 export class Logger {
+  private logger: pino.Logger;
   private component: string;
   private context: Record<string, any>;
-
-  constructor(component = 'app', context = {}) {
+  
+  /**
+   * Create a new logger instance
+   * @param component Component name
+   * @param context Additional context
+   */
+  constructor(component = 'app', context: Record<string, any> = {}) {
     this.component = component;
     this.context = context;
-  }
-
-  // Create a child logger with additional context
-  child(additionalContext: Record<string, any> = {}) {
-    const newLogger = new Logger(
-      additionalContext.component || this.component,
-      { ...this.context, ...additionalContext }
-    );
-    return newLogger;
-  }
-
-  // Create a logger from request object
-  fromRequest(req: NextRequest) {
-    const path = new URL(req.url).pathname;
-    const requestContext = {
-      path,
-      method: req.method,
-      requestId: req.headers.get('x-request-id') || crypto.randomUUID(),
-      component: 'api'
-    };
     
-    return this.child(requestContext);
-  }
-
-  // Check if the log level should be displayed based on configured level
-  private shouldLog(level: LogLevel): boolean {
-    // Determine the configured log level
-    let configuredLevel = (process.env.LOG_LEVEL || 'info') as LogLevel;
-    
-    // If this is a database component, use the database-specific level if available
-    if (this.component === 'database' || this.component === 'prisma') {
-      configuredLevel = (process.env.LOG_LEVEL_PRISMA || configuredLevel) as LogLevel;
+    if (typeof window !== 'undefined') {
+      this.logger = pino({
+        browser: { asObject: true },
+        level: 'info'
+      }).child({ component, ...context });
+      return;
     }
     
-    // Check if this level should be logged
-    return LOG_LEVELS[level] >= LOG_LEVELS[configuredLevel];
-  }
-
-  // Create log message with context
-  private formatMessage(level: string, message: string, data?: Record<string, any>) {
-    const timestamp = new Date().toISOString();
-    const contextStr = JSON.stringify({ 
-      ...this.context, 
-      ...data, 
-      component: this.component, 
-      timestamp 
-    });
+    // Get base configuration
+    const baseConfig = config.getBaseConfig(component);
     
-    return `[${level.toUpperCase()}] ${contextStr} ${message}`;
+    // Add redaction
+    baseConfig.redact = {
+      paths: getRedactionPaths(),
+      censor: '[REDACTED]'
+    };
+    baseConfig.serializers = serializers;
+    
+    // Create logger based on environment
+    if (config.logToFile) {
+      try {
+        // Ensure logs directory
+        const logsDir = config.ensureLogsDirectory();
+        if (!logsDir) {
+          // Fallback to console if directory creation fails
+          this.logger = pino(baseConfig).child(context);
+          return;
+        }
+        
+        // Create date-based log file path
+        const date = new Date().toISOString().split('T')[0];
+        const logFile = `${logsDir}/${date}.log`;
+        
+        // Create file logger with pino's native destination
+        this.logger = pino(baseConfig, pino.destination({
+          dest: logFile,
+          append: true
+        })).child(context);
+      } catch (error) {
+        // Fallback to console logger on error
+        console.error('Failed to create file logger:', error);
+        this.logger = pino(baseConfig).child(context);
+      }
+    } else if (config.isPretty) {
+      // Pretty logging for development with native transport
+      this.logger = pino({
+        ...baseConfig,
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true
+          }
+        }
+      }).child(context);
+    } else {
+      // Standard logging
+      this.logger = pino(baseConfig).child(context);
+    }
   }
   
-  // Write log message to file
-  private writeToFile(message: string): void {
-    if (process.env.LOG_TO_FILE !== 'true') return;
+  /**
+   * Create a child logger with additional context
+   * @param additionalContext Additional context information
+   */
+  child(additionalContext: Record<string, any> = {}): Logger {
+    const componentName = additionalContext.component || this.component;
+    const mergedContext = { ...this.context, ...additionalContext };
     
-    try {
-      // Create logs directory if it doesn't exist
-      const logsDir = path.join(process.cwd(), 'logs');
-      if (!fs.existsSync(logsDir)) {
-        fs.mkdirSync(logsDir, { recursive: true });
-      }
-      
-      // Get current date for filename
-      const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const logFile = path.join(logsDir, `${date}.log`);
-      
-      // Append to log file
-      fs.appendFileSync(logFile, message + '\n');
-    } catch (error) {
-      console.error('Failed to write to log file:', error);
-    }
+    return new Logger(componentName, mergedContext);
   }
-
-  // Log methods
+  
+  // Standard logging methods
+  
   trace(message: string): void;
-  trace(data: Record<string, any>, message: string): void;
-  trace(messageOrData: string | Record<string, any>, messageOrNothing?: string): void {
-    if (!this.shouldLog('trace')) return;
-    
-    const formattedMessage = typeof messageOrData === 'string'
-      ? this.formatMessage('trace', messageOrData)
-      : this.formatMessage('trace', messageOrNothing || '', messageOrData);
-    
-    console.log(formattedMessage);
-    this.writeToFile(formattedMessage);
+  trace(obj: object, message?: string): void;
+  trace(messageOrObj: string | object, message?: string): void {
+    try {
+      if (typeof messageOrObj === 'string') {
+        this.logger.trace(messageOrObj);
+      } else {
+        this.logger.trace(messageOrObj, message || '');
+      }
+    } catch (err) {
+      console.trace('[TRACE]', this.component, messageOrObj, message || '');
+    }
   }
   
   debug(message: string): void;
-  debug(data: Record<string, any>, message: string): void;
-  debug(messageOrData: string | Record<string, any>, messageOrNothing?: string): void {
-    if (!this.shouldLog('debug')) return;
-    
-    const formattedMessage = typeof messageOrData === 'string'
-      ? this.formatMessage('debug', messageOrData)
-      : this.formatMessage('debug', messageOrNothing || '', messageOrData);
-    
-    console.log(formattedMessage);
-    this.writeToFile(formattedMessage);
+  debug(obj: object, message?: string): void;
+  debug(messageOrObj: string | object, message?: string): void {
+    try {
+      if (typeof messageOrObj === 'string') {
+        this.logger.debug(messageOrObj);
+      } else {
+        this.logger.debug(messageOrObj, message || '');
+      }
+    } catch (err) {
+      console.debug('[DEBUG]', this.component, messageOrObj, message || '');
+    }
   }
 
   info(message: string): void;
-  info(data: Record<string, any>, message: string): void;
-  info(messageOrData: string | Record<string, any>, messageOrNothing?: string): void {
-    if (!this.shouldLog('info')) return;
-    
-    const formattedMessage = typeof messageOrData === 'string'
-      ? this.formatMessage('info', messageOrData)
-      : this.formatMessage('info', messageOrNothing || '', messageOrData);
-    
-    console.log(formattedMessage);
-    this.writeToFile(formattedMessage);
+  info(obj: object, message?: string): void;
+  info(messageOrObj: string | object, message?: string): void {
+    try {
+      if (typeof messageOrObj === 'string') {
+        this.logger.info(messageOrObj);
+      } else {
+        this.logger.info(messageOrObj, message || '');
+      }
+    } catch (err) {
+      console.info('[INFO]', this.component, messageOrObj, message || '');
+    }
   }
 
   warn(message: string): void;
-  warn(data: Record<string, any>, message: string): void;
-  warn(messageOrData: string | Record<string, any>, messageOrNothing?: string): void {
-    if (!this.shouldLog('warn')) return;
-    
-    const formattedMessage = typeof messageOrData === 'string'
-      ? this.formatMessage('warn', messageOrData)
-      : this.formatMessage('warn', messageOrNothing || '', messageOrData);
-    
-    console.warn(formattedMessage);
-    this.writeToFile(formattedMessage);
+  warn(obj: object, message?: string): void;
+  warn(messageOrObj: string | object, message?: string): void {
+    try {
+      if (typeof messageOrObj === 'string') {
+        this.logger.warn(messageOrObj);
+      } else {
+        this.logger.warn(messageOrObj, message || '');
+      }
+    } catch (err) {
+      console.warn('[WARN]', this.component, messageOrObj, message || '');
+    }
   }
 
   error(message: string): void;
-  error(error: Error, message: string): void;
-  error(data: Record<string, any>, message: string): void;
-  error(messageOrDataOrError: string | Record<string, any> | Error, messageOrNothing?: string): void {
-    if (!this.shouldLog('error')) return;
-    
-    let formattedMessage: string;
-    
-    if (typeof messageOrDataOrError === 'string') {
-      formattedMessage = this.formatMessage('error', messageOrDataOrError);
-    } else if (messageOrDataOrError instanceof Error) {
-      const errorData = {
-        name: messageOrDataOrError.name,
-        message: messageOrDataOrError.message,
-        stack: messageOrDataOrError.stack
-      };
-      formattedMessage = this.formatMessage('error', messageOrNothing || 'An error occurred', errorData);
-    } else {
-      formattedMessage = this.formatMessage('error', messageOrNothing || '', messageOrDataOrError);
+  error(error: Error, message?: string): void;
+  error(obj: object, message?: string): void;
+  error(messageOrObjOrError: string | object | Error, message?: string): void {
+    try {
+      if (messageOrObjOrError instanceof Error) {
+        this.logger.error({
+          err: messageOrObjOrError,
+          message: messageOrObjOrError.message,
+          stack: messageOrObjOrError.stack
+        }, message || 'An error occurred');
+      } else {
+        this.logger.error(messageOrObjOrError, message);
+      }
+    } catch (err) {
+      console.error('[ERROR]', this.component, messageOrObjOrError, message || '');
     }
-    
-    console.error(formattedMessage);
-    this.writeToFile(formattedMessage);
   }
   
   fatal(message: string): void;
-  fatal(data: Record<string, any>, message: string): void;
-  fatal(messageOrData: string | Record<string, any>, messageOrNothing?: string): void {
-    if (!this.shouldLog('fatal')) return;
-    
-    const formattedMessage = typeof messageOrData === 'string'
-      ? this.formatMessage('fatal', messageOrData)
-      : this.formatMessage('fatal', messageOrNothing || '', messageOrData);
-    
-    console.error(formattedMessage);
-    this.writeToFile(formattedMessage);
+  fatal(obj: object, message?: string): void;
+  fatal(messageOrObj: string | object, message?: string): void {
+    try {
+      if (typeof messageOrObj === 'string') {
+        this.logger.fatal(messageOrObj);
+      } else {
+        this.logger.fatal(messageOrObj, message || '');
+      }
+    } catch (err) {
+      console.error('[FATAL]', this.component, messageOrObj, message || '');
+    }
   }
 }
 
 // Create default logger instance
 export const logger = new Logger();
 
-
-export function getDbOperationLogger(operation: string, model: string) {
+/**
+ * Create a logger for database operations
+ * @param operation Database operation type
+ * @param model Database model name
+ */
+export function getDbLogger(operation: string, model: string): Logger {
   return logger.child({
     component: 'database',
     operation,
