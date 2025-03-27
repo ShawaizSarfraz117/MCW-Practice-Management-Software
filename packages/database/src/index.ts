@@ -1,20 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { getDbLogger } from "@mcw/logger";
 
-// Define the event payload types
-interface QueryEvent {
-  query: string;
-  params: string;
-  duration: number;
-  target: string;
-}
-
-interface LogEvent {
-  message: string;
-  target: string;
-  stack?: string;
-}
-
 const dbLogger = getDbLogger("prisma", "client");
 
 const createPrismaClient = () => {
@@ -53,7 +39,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // Map Prisma log events to custom logger
-prisma.$on("query", (e: QueryEvent) => {
+prisma.$on("query", (e) => {
   try {
     dbLogger.debug(
       {
@@ -70,7 +56,7 @@ prisma.$on("query", (e: QueryEvent) => {
   }
 });
 
-prisma.$on("info", (e: LogEvent) => {
+prisma.$on("info", (e) => {
   try {
     dbLogger.info(
       {
@@ -84,7 +70,7 @@ prisma.$on("info", (e: LogEvent) => {
   }
 });
 
-prisma.$on("warn", (e: LogEvent) => {
+prisma.$on("warn", (e) => {
   try {
     dbLogger.warn(
       {
@@ -98,18 +84,17 @@ prisma.$on("warn", (e: LogEvent) => {
   }
 });
 
-prisma.$on("error", (e: LogEvent) => {
+prisma.$on("error", (e) => {
   try {
     dbLogger.error(
       {
         message: e.message,
         target: e.target,
-        stack: e.stack,
       },
       "Prisma error",
     );
   } catch {
-    console.error("Prisma error:", e.message, e.stack);
+    console.error("Prisma error:", e.message);
   }
 });
 
