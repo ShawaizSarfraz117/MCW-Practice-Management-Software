@@ -18,7 +18,7 @@ export function validateEmail(email: string): boolean {
   try {
     emailSchema.parse(email);
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

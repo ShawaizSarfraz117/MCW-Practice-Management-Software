@@ -23,9 +23,25 @@
     "test:back-office:unit": "vitest --project back-office/unit",
     "test:front-office:unit": "vitest --project front-office/unit",
     "db:migrate": "turbo run db:migrate",
+    "db:deploy": "turbo run db:deploy",
     "db:seed": "turbo run db:seed",
     "db:generate": "turbo run db:generate",
-    "format": "turbo run format"
+    "format": "turbo run format",
+    "prettier:check": "turbo run prettier:check",
+    "typecheck": "turbo run typecheck",
+    "checks": "turbo run checks",
+    "test:ci": "./scripts/run-vitest-with-testdb.sh run",
+    "prepare": "husky",
+    "lint-staged": "lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "devDependencies": {
     "@swc/core": "^1.11.11",
@@ -33,6 +49,8 @@
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "eslint": "^9.22.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0",
     "node-mocks-http": "^1.16.2",
     "prettier": "^3.0.0",
     "prisma": "^6.5.0",

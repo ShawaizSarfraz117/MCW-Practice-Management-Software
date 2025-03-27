@@ -8,7 +8,10 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit --pretty --checkJs",
+    "format": "prettier --write src",
+    "prettier:check": "prettier --check src"
   },
   "devDependencies": {
     "@mcw/tsconfig-config": "*",

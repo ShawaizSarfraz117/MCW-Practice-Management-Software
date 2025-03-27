@@ -47,7 +47,8 @@ const rows = [
   },
 ];
 
-const ClientTable = (props: any) => {
+// TODO: Add right type
+const ClientTable = (props: { onRowClick: (id: string) => void }) => {
   const columns = [
     {
       key: "name",
@@ -60,10 +61,11 @@ const ClientTable = (props: any) => {
     {
       key: "status",
       label: "Status",
-      formatter: (row: any) => (
+      // TODO: Add right type
+      formatter: (row: { status: string }) => (
         <Badge
-          variant="outline"
           className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-50"
+          variant="outline"
         >
           {row.status}
         </Badge>
@@ -76,7 +78,10 @@ const ClientTable = (props: any) => {
     {
       key: "email",
       label: "Email",
-      formatter: (row: any) => <div className="text-gray-500">{row.email}</div>,
+      // TODO: Add right type
+      formatter: (row: { email: string }) => (
+        <div className="text-gray-500">{row.email}</div>
+      ),
     },
     {
       key: "relationship",
@@ -89,8 +94,8 @@ const ClientTable = (props: any) => {
     {
       key: "actions",
       label: "Actions",
-      formatter: (row: any) => (
-        <Button variant="ghost" size="icon" className="h-8 w-8">
+      formatter: () => (
+        <Button className="h-8 w-8" size="icon" variant="ghost">
           <MoreHorizontal className="h-5 w-5" />
         </Button>
       ),
@@ -98,7 +103,9 @@ const ClientTable = (props: any) => {
   ];
 
   return (
-    <DataTable columns={columns} rows={rows} title="Clients Data" {...props} />
+    // TODO: Add right type
+    // @ts-expect-error - TODO: Add right type
+    <DataTable columns={columns} rows={rows} onRowClick={props.onRowClick} />
   );
 };
 

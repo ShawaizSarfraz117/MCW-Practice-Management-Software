@@ -1,4 +1,9 @@
-import { emailSchema, passwordSchema, userSchema, validateEmail } from "./validation";
+import {
+  emailSchema,
+  passwordSchema,
+  userSchema,
+  validateEmail,
+} from "@/validation";
 import { describe, it, expect } from "vitest";
 
 describe("Email Validation", () => {
@@ -45,11 +50,7 @@ describe("Password Validation", () => {
   });
 
   it("should reject passwords that are too short or too long", () => {
-    const invalidPasswords = [
-      "short",
-      "1234567",
-      "a".repeat(101),
-    ];
+    const invalidPasswords = ["short", "1234567", "a".repeat(101)];
 
     invalidPasswords.forEach((password) => {
       expect(() => passwordSchema.parse(password)).toThrow();

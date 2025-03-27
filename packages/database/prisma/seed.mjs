@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { console } from 'console';
+import process from 'process';
 
 const prisma = new PrismaClient();
 

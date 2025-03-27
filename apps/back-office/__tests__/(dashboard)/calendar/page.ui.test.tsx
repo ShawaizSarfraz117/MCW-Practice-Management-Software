@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import CalendarPage from "./page";
+import CalendarPage from "@/(dashboard)/calendar/page";
 
 describe("CalendarPage", () => {
   // TODO: Write tests when the page is ready to be tested

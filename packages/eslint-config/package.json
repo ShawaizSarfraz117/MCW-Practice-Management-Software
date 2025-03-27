@@ -20,8 +20,10 @@
     "typescript": ">=5.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
     "@next/eslint-plugin-next": "^15.2.4",
-    "eslint-plugin-n": "^17.16.2"
+    "eslint-plugin-n": "^17.16.2",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "typescript": "^5.3.3"
   }
 }

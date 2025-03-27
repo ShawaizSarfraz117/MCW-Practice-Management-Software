@@ -3,9 +3,9 @@
 import { useState } from "react";
 import {
   Search,
-  Plus,
-  Share,
-  MessageSquare,
+  // Plus,
+  // Share,
+  // MessageSquare,
   ChevronDown,
   Filter,
 } from "lucide-react";
@@ -14,7 +14,7 @@ import ClientTable from "./ClientTable";
 import { useRouter } from "next/navigation";
 
 export default function Clients() {
-  const [sortBy, setSortBy] = useState("last name");
+  const [sortBy, _setSortBy] = useState("last name");
   const router = useRouter();
   const handleRedirect = (id: string) => {
     router.push(`/clients/${id}`);
@@ -43,9 +43,9 @@ export default function Clients() {
             </div>
             <div className="flex-shrink-0">
               <img
-                src="/images/transfer.svg"
                 alt="Transfer illustration"
                 className="h-[120px] w-[120px]"
+                src="/images/transfer.svg"
               />
             </div>
           </div>
@@ -66,15 +66,15 @@ export default function Clients() {
           <div className="relative w-[230px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search"
               className="pl-9 px-9 h-10 bg-white border-[#e5e7eb]"
+              placeholder="Search"
             />
           </div>
 
           <div className="flex items-center gap-4">
             <Button
-              variant="outline"
               className="border-[#e5e7eb] bg-white h-10"
+              variant="outline"
             >
               <Filter className="mr-2 h-4 w-4 text-blue-500" />
               Client status
@@ -83,8 +83,8 @@ export default function Clients() {
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500">Sort:</span>
               <Button
-                variant="outline"
                 className="border-[#e5e7eb] bg-white h-10"
+                variant="outline"
               >
                 {sortBy}
                 <ChevronDown className="ml-2 h-4 w-4" />

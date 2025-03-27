@@ -10,17 +10,21 @@ import {
 
 interface Column {
   key: string;
-  formatter?: (value: any) => React.ReactNode;
+  value: string;
+  // TODO: Add right type
+  formatter?: (value: unknown) => React.ReactNode;
 }
 
 interface TableProps {
   columns: Column[];
-  rows: Record<string, any>[];
-  onRowClick?: (row: Record<string, any>) => void;
+  // TODO: Add right type
+  rows: Record<string, unknown>[];
+  onRowClick?: (id: string) => void;
 }
 
 const renderCellContent = (
-  row: Record<string, any>,
+  // TODO: Add right type
+  row: Record<string, unknown>,
   column: Column,
 ): React.ReactNode => {
   if (column.formatter && typeof column.formatter === "function") {
@@ -28,7 +32,12 @@ const renderCellContent = (
   }
   const value = column.key
     .split(".")
-    .reduce((acc, key) => acc && acc[key], row);
+    .reduce((acc: Record<string, unknown> | unknown, key: string) => {
+      if (acc && typeof acc === "object") {
+        return (acc as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, row);
   return String(value ?? "");
 };
 
@@ -50,8 +59,9 @@ const DataTable: React.FC<TableProps> = ({ rows, columns, onRowClick }) => {
             {rows.map((row, rowIndex) => (
               <TableRow
                 key={rowIndex}
-                onClick={() => (onRowClick ? onRowClick(row.id) : null)}
                 className={`${onRowClick ? "cursor-pointer" : null}`}
+                // @ts-expect-error - TODO: Add right type
+                onClick={() => (onRowClick ? onRowClick(row.id) : null)}
               >
                 {columns.map((column, colIndex) => (
                   <TableCell key={`${rowIndex}-${colIndex}`}>

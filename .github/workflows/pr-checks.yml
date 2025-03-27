@@ -1,0 +1,37 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [main, master]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        # don't use npm ci, we need dev dependencies for checks
+        run: npm i
+
+      - name: Prisma generate
+        run: npm run --workspace packages/database db:generate
+
+      - name: Check TypeScript, formatting, and linting
+        run: npm run checks
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run tests
+        run: npm run test:ci

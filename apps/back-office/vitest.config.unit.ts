@@ -6,7 +6,8 @@ export default mergeConfig(
   defineProject({
     test: {
       name: "back-office/unit",
-      include: ["**/*.test.ts"],
+      include: ["**/*.unit.test.ts"],
+      setupFiles: ["./vitest.setup.unit.ts"],
     },
   }),
 );

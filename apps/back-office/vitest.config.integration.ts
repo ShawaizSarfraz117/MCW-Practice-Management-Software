@@ -6,7 +6,7 @@ export default mergeConfig(
   defineProject({
     test: {
       name: "back-office/integration",
-      include: ["**/*.i-test.ts"],
+      include: ["**/*.integration.test.ts"],
     },
   }),
 );

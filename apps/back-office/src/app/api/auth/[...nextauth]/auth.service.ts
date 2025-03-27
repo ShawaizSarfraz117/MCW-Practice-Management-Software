@@ -1,6 +1,6 @@
-import bcrypt from 'bcrypt';
-import { RequestInternal } from 'next-auth';
-import {prisma} from "@mcw/database"
+import bcrypt from "bcrypt";
+import { RequestInternal } from "next-auth";
+import { prisma } from "@mcw/database";
 
 interface UserWithRoles {
   id: string;
@@ -15,16 +15,16 @@ interface UserWithRoles {
 
 export async function authorize(
   credentials: Record<"email" | "password", string> | undefined,
-  req: Pick<RequestInternal, "query" | "body" | "headers" | "method">
+  _req: Pick<RequestInternal, "query" | "body" | "headers" | "method">,
 ) {
   if (!credentials?.email || !credentials?.password) {
     return null;
   }
 
   const email = credentials.email.toString();
-  
+
   // Find user and include their roles
-  const user = await prisma.user.findUnique({
+  const user = (await prisma.user.findUnique({
     where: { email },
     include: {
       UserRole: {
@@ -33,17 +33,17 @@ export async function authorize(
         },
       },
     },
-  }) as UserWithRoles | null;
-  
+  })) as UserWithRoles | null;
+
   if (!user) {
     return null;
   }
-  
+
   const plainPassword = credentials.password.toString();
   const hashedPassword = user.password_hash;
-  
+
   const isValid = await bcrypt.compare(plainPassword, hashedPassword);
-  
+
   if (!isValid) {
     return null;
   }

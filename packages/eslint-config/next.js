@@ -1,17 +1,21 @@
-import reactConfig from './react.js';
-import nextPlugin from '@next/eslint-plugin-next';
+import reactConfig from "./react.js";
+import { defineConfig, globalIgnores } from "eslint/config";
+
+import nextPlugin from "@next/eslint-plugin-next";
 
 /** @type {import('eslint').Linter.Config[]} */
-export default [
+export default defineConfig([
   ...reactConfig,
+  globalIgnores([".next"]),
   {
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: ["**/*.{js,jsx,ts,tsx}"],
+
     plugins: {
-      '@next/next': nextPlugin
+      "@next/next": nextPlugin,
     },
     rules: {
-      '@next/next/no-html-link-for-pages': 'off',
-      'react/no-unescaped-entities': 'off'
-    }
-  }
-]; 
+      "@next/next/no-html-link-for-pages": "off",
+      "react/no-unescaped-entities": "off",
+    },
+  },
+]);
