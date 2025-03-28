@@ -49,4 +49,37 @@ describe("Clinician API Unit Tests", async () => {
       },
     });
   });
+
+  it("GET /api/clinician/?id=<id> should return a specific clinician", async () => {
+    const user = UserFactory.build();
+    const clinician = ClinicianFactory.build({
+      user_id: user.id,
+      User: {
+        email: user.email,
+      },
+    });
+
+    // Mock the prisma response for findUnique
+    prismaMock.clinician.findUnique.mockResolvedValueOnce(clinician);
+
+    const req = createRequest(`/api/clinician/?id=${clinician.id}`);
+    const response = await GET(req);
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+
+    // Verify essential response properties
+    expect(json).toHaveProperty("id", clinician.id);
+    expect(json).toHaveProperty("user_id", clinician.user_id);
+    expect(json).toHaveProperty("first_name", clinician.first_name);
+    expect(json).toHaveProperty("last_name", clinician.last_name);
+    expect(json).toHaveProperty("User.email", user.email);
+
+    // Verify the mock was called with the correct ID
+    expect(prismaMock.clinician.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: clinician.id },
+      }),
+    );
+  });
 });
