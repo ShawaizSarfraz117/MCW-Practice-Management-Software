@@ -47,7 +47,7 @@ describe("Clinician API", async () => {
 
     expect(json).toHaveLength(clinicians.length);
 
-    clinicians.forEach((clinician) => {
+    clinicians.forEach((clinician: Clinician) => {
       const foundClinician = json.find((c) => c.id === clinician.id);
 
       expect(foundClinician).toBeDefined();
