@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { getDbLogger } from "@mcw/logger";
+import { initialize } from "../generated/fabbrica/index.js";
 
 const dbLogger = getDbLogger("prisma", "client");
 
@@ -97,6 +98,8 @@ prisma.$on("error", (e) => {
     console.error("Prisma error:", e.message);
   }
 });
+
+initialize({ prisma });
 
 export { prisma };
 export * from "@prisma/client";
