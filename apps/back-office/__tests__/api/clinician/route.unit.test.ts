@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
-import { GET, POST } from "@/api/clinician/route";
+import { GET, POST, DELETE } from "@/api/clinician/route";
 import prismaMock from "@mcw/database/mock";
 import { ClinicianFactory, UserFactory } from "@mcw/database/mock-data";
 
@@ -118,6 +118,39 @@ describe("Clinician API Unit Tests", async () => {
     expect(prismaMock.clinician.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: clinicianBody,
+      }),
+    );
+  });
+
+  it("DELETE /api/clinician/?id=<id> should deactivate a clinician", async () => {
+    const user = UserFactory.build();
+    const clinician = ClinicianFactory.build({ user_id: user.id });
+    const deactivatedClinician = { ...clinician, is_active: false };
+
+    // Mock findUnique to return the existing clinician
+    prismaMock.clinician.findUnique.mockResolvedValueOnce(clinician);
+    // Mock update to return the deactivated clinician
+    prismaMock.clinician.update.mockResolvedValueOnce(deactivatedClinician);
+
+    const req = createRequest(`/api/clinician/?id=${clinician.id}`, {
+      method: "DELETE",
+    });
+    const response = await DELETE(req);
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+
+    // Verify response structure
+    expect(json).toEqual({
+      message: "Clinician deactivated successfully",
+      clinician: deactivatedClinician,
+    });
+
+    // Verify update was called with correct data
+    expect(prismaMock.clinician.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: clinician.id },
+        data: { is_active: false },
       }),
     );
   });
