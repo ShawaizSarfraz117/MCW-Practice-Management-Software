@@ -6,7 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./mock": "./src/__mocks__/mockPrisma.ts",
-    "./fabbrica": "./generated/fabbrica/index.ts",
+    "./fabbrica": "./src/generated/fabbrica/index.ts",
     "./mock-data": "./src/__mocks__/data.ts"
   },
   "prisma": {
@@ -21,7 +21,7 @@
     "db:seed": "prisma db seed",
     "db:deploy": "prisma migrate deploy",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit --pretty --checkJs src",
+    "typecheck": "tsc --noEmit --pretty --checkJs",
     "format": "prettier --write src",
     "prettier:check": "prettier --check src"
   },

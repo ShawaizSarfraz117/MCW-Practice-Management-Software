@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { getDbLogger } from "@mcw/logger";
-import { initialize } from "../generated/fabbrica/index.js";
+import { initialize } from "./generated/fabbrica/index.js";
 
 const dbLogger = getDbLogger("prisma", "client");
 
