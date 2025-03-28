@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
-import { createRequest } from "@mcw/utils";
-import { GET } from "@/api/clinician/route";
+import { createRequest, createRequestWithBody } from "@mcw/utils";
+import { GET, POST } from "@/api/clinician/route";
 import prismaMock from "@mcw/database/mock";
 import { ClinicianFactory, UserFactory } from "@mcw/database/mock-data";
 
@@ -79,6 +79,45 @@ describe("Clinician API Unit Tests", async () => {
     expect(prismaMock.clinician.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: clinician.id },
+      }),
+    );
+  });
+
+  it("POST /api/clinician should create a new clinician", async () => {
+    const user = UserFactory.build();
+    const clinician = ClinicianFactory.build({ user_id: user.id });
+
+    const clinicianBody = {
+      user_id: user.id,
+      address: clinician.address,
+      percentage_split: clinician.percentage_split,
+      is_active: clinician.is_active,
+      first_name: clinician.first_name,
+      last_name: clinician.last_name,
+    };
+
+    // Mock findUnique to return null (no existing clinician)
+    prismaMock.clinician.findUnique.mockResolvedValueOnce(null);
+    // Mock create to return the new clinician
+    prismaMock.clinician.create.mockResolvedValueOnce(clinician);
+
+    const req = createRequestWithBody("/api/clinician", clinicianBody);
+    const response = await POST(req);
+
+    expect(response.status).toBe(201);
+    const json = await response.json();
+
+    // Verify essential response properties
+    expect(json).toHaveProperty("address", clinicianBody.address);
+    expect(json).toHaveProperty("is_active", clinicianBody.is_active);
+    expect(json).toHaveProperty("first_name", clinicianBody.first_name);
+    expect(json).toHaveProperty("last_name", clinicianBody.last_name);
+    expect(json).toHaveProperty("user_id", user.id);
+
+    // Verify create was called with correct data
+    expect(prismaMock.clinician.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: clinicianBody,
       }),
     );
   });
