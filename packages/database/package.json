@@ -21,7 +21,7 @@
     "db:seed": "prisma db seed",
     "db:deploy": "prisma migrate deploy",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit --pretty --checkJs",
+    "typecheck": "tsc --noEmit --pretty --checkJs src",
     "format": "prettier --write src",
     "prettier:check": "prettier --check src"
   },
