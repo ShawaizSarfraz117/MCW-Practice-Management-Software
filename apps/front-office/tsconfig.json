@@ -2,14 +2,16 @@
   "extends": "@mcw/tsconfig-config/next",
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/app/*"]
     }
   },
   "include": [
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx"
   ],
   "exclude": ["node_modules", ".next"]
 }
