@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
-import { GET, POST, DELETE } from "@/api/clinician/route";
+import { GET, POST, DELETE, PUT } from "@/api/clinician/route";
 import prismaMock from "@mcw/database/mock";
 import { ClinicianFactory, UserFactory } from "@mcw/database/mock-data";
 
@@ -151,6 +151,45 @@ describe("Clinician API Unit Tests", async () => {
       expect.objectContaining({
         where: { id: clinician.id },
         data: { is_active: false },
+      }),
+    );
+  });
+
+  it("PUT /api/clinician should update an existing clinician", async () => {
+    const user = UserFactory.build();
+    const clinician = ClinicianFactory.build({ user_id: user.id });
+    const updatedClinician = {
+      ...clinician,
+      first_name: "John 2",
+    };
+
+    // Mock findUnique to return the existing clinician
+    prismaMock.clinician.findUnique.mockResolvedValueOnce(clinician);
+    // Mock update to return the updated clinician
+    prismaMock.clinician.update.mockResolvedValueOnce(updatedClinician);
+
+    const req = createRequestWithBody("/api/clinician", updatedClinician, {
+      method: "PUT",
+    });
+    const response = await PUT(req);
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+
+    // Verify response matches updated clinician
+    expect(json).toEqual(updatedClinician);
+
+    // Verify update was called with correct data
+    expect(prismaMock.clinician.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: clinician.id },
+        data: {
+          first_name: updatedClinician.first_name,
+          last_name: updatedClinician.last_name,
+          address: updatedClinician.address,
+          percentage_split: updatedClinician.percentage_split,
+          is_active: updatedClinician.is_active,
+        },
       }),
     );
   });
