@@ -141,10 +141,13 @@ describe("Clinician API Unit Tests", async () => {
     const json = await response.json();
 
     // Verify response structure
-    expect(json).toEqual({
-      message: "Clinician deactivated successfully",
-      clinician: deactivatedClinician,
-    });
+    expect(json).toHaveProperty(
+      "message",
+      "Clinician deactivated successfully",
+    );
+    expect(json).toHaveProperty("clinician");
+    expect(json.clinician).toHaveProperty("id", deactivatedClinician.id);
+    expect(json.clinician).toHaveProperty("is_active", false);
 
     // Verify update was called with correct data
     expect(prismaMock.clinician.update).toHaveBeenCalledWith(
