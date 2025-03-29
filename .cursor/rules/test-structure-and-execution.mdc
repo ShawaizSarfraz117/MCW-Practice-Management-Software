@@ -136,7 +136,7 @@ it('submits the form', async () => {
   const input = screen.getByLabelText('Email');
 
   // Act
-  await userEvent.type(input, '[email@example.com](mailto:email@example.com)');
+  await userEvent.type(input, 'email@example.com');
   await userEvent.click(screen.getByRole('button'));
 
   // Assert
