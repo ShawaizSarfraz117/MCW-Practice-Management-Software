@@ -1,0 +1,193 @@
+---
+description: This rule is used when an agent creates, edits, or executes tests
+globs: 
+alwaysApply: false
+---
+# CursorRules for Testing Best Practices
+
+These rules follow the best practices to make tests more maintainable, less brittle, focused on business logic, easier to debug, and resilient to implementation changes.
+
+---
+
+## ✅ When executing runner - Always Use Non-Watch Mode
+
+```bash
+npx vitest run [test-file] --no-watch
+```
+- Use `--no-watch` to run tests once and exit.
+- Prevents the test runner from hanging.
+
+---
+
+## ✅ Mock Expectations (Simplified Approach)
+
+### Only Verify Essential Mock Calls
+```ts
+expect(prismaMock.user.findUnique).toHaveBeenCalledWith(
+  expect.objectContaining({ where: { id: user.id } })
+);
+```
+- Avoid over-specific mocks.
+- Use `expect.objectContaining` to reduce brittleness.
+
+### ❌ Don’t Over-Verify
+```ts
+expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+  where: { id: user.id },
+  include: {
+    profile: true,
+    posts: true
+  }
+});
+```
+
+---
+
+## ✅ Focus on Business Logic
+- Assert expected *outcomes*, not internal implementation.
+- Example: check returned JSON, not query structure.
+
+```ts
+// ✅ Good
+expect(response).toHaveProperty('status', 'success');
+
+// ❌ Bad
+expect(query).toHaveBeenCalledWith({...full nested details...});
+```
+
+---
+
+## ✅ Keep Mock Response Structure Minimal
+
+- Include only fields required for that test.
+- No need to mirror full production responses.
+
+```ts
+const mockUser = { id: 1, name: 'Alice' }; // ✅ Enough
+```
+
+---
+
+## ✅ Use Focused Assertions
+
+### Prefer `toHaveProperty`, `toMatchObject`, or Partial Checks
+```ts
+expect(result).toHaveProperty('id', 42);
+expect(result).toMatchObject({ status: 'ok', userId: 42 });
+```
+
+### ❌ Avoid full object comparison unless necessary
+```ts
+expect(result).toEqual({ id: 42, status: 'ok', extra: '...' }); // Too strict ❌
+```
+
+---
+
+## ✅ Factory Patterns
+
+### Unit Test Factories (In-memory only)
+```ts
+import { UserFactory } from '@app/test/factories';
+const user = UserFactory.build({ name: 'John' });
+```
+- Suffix: `EntityFactory`
+- Method: `.build()`
+
+### Integration Test Factories (DB-backed)
+```ts
+import { UserPrismaFactory } from '@app/test/factories';
+const user = await UserPrismaFactory.create();
+```
+- Suffix: `EntityPrismaFactory`
+- Method: `.create()`
+
+---
+
+## ✅ Naming Conventions
+
+### File Types
+- `route.unit.test.ts` → Unit tests for API routes
+- `route.integration.test.ts` → Integration tests for routes
+- `Component.ui.test.ts` → UI/DOM behavior of components
+- `Component.unit.test.ts` → Logic of component
+
+### Factory Naming
+- `UserFactory.build()` – Unit test data
+- `UserPrismaFactory.create()` – Integration test data
+
+---
+
+## ✅ Assert Outcomes, Not Implementations
+
+- Prefer checking return values, state, or side effects.
+```ts
+expect(submitHandler).toHaveBeenCalled();
+expect(screen.getByText('Success')).toBeInTheDocument();
+```
+
+---
+
+## ✅ Test Structure: Arrange → Act → Assert
+
+```ts
+it('submits the form', async () => {
+  // Arrange
+  render(<Form />);
+  const input = screen.getByLabelText('Email');
+
+  // Act
+  await userEvent.type(input, '[email@example.com](mailto:email@example.com)');
+  await userEvent.click(screen.getByRole('button'));
+
+  // Assert
+  expect(screen.getByText('Success')).toBeInTheDocument();
+});
+```
+
+---
+
+## ✅ Keep Test Data Minimal But Meaningful
+
+```ts
+const mockUser = {
+  id: 42,
+  name: 'Test User'
+}; // ✅ Sufficient for most cases
+```
+- Only include fields that are validated or used in the test.
+- Use descriptive values like `"Test User"`, `"invalid@example.com"`.
+
+---
+
+## ✅ Group and Name Tests Clearly
+
+```ts
+describe('UserService', () => {
+  describe('createUser', () => {
+    it('returns user ID on success', async () => {
+      ...
+    });
+  });
+});
+```
+
+---
+
+## ✅ Avoid Over-Specification
+- Don't mock everything
+- Don't verify unnecessary fields
+- Don't use full deep equals unless testing contracts
+
+---
+
+## ✅ Use Type-Safe Factories When Possible
+
+```ts
+const user = UserFactory.build<Partial<User>>({
+  email: 'test@example.com'
+});
+```
+
+---
+
+End of `cursorrules` ✅
