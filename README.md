@@ -82,7 +82,7 @@ cp .env.example .env.local
 npm install
 
 # Generate Prisma client
-npx prisma generate
+npx prisma generate --schema=./packages/database/prisma/schema.prisma
 
 # Run database migrations
 npx prisma migrate dev
