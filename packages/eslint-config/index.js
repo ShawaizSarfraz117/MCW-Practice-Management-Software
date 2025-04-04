@@ -22,6 +22,8 @@ export default tseslint.config(
           ignoreRestSiblings: true,
         },
       ],
+      "max-lines-per-function": ["warn", 200],
+      "max-lines": ["warn", 400],
     },
   },
 );

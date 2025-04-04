@@ -82,7 +82,7 @@ cp .env.example .env.local
 npm install
 
 # Generate Prisma client
-npx prisma generate
+npx prisma generate --schema=./packages/database/prisma/schema.prisma
 
 # Run database migrations
 npx prisma migrate dev
@@ -111,7 +111,12 @@ The application is configured to use SQLite in-memory database for testing, prov
 The application uses two main testing approaches:
 
 1. **Integration Tests**: Test the interaction between components and modules in a more realistic environment
+
+- Use `UserPrismaFactory`, `ClinicianPrismaFactory` and other factories to create mock data for testing inside the database
+
 2. **Mock Tests**: Use mock objects to isolate the unit being tested from its dependencies
+
+- Use `UserFactory` and `ClinicianFactory` and other factories to create mock data for testing outside the database
 
 ### Running Tests
 
@@ -253,7 +258,7 @@ logger.info({ userId: '123', action: 'login' }, 'User logged in');
 
 ```
 
-2. **Request Context (API Routes)**:   
+2. **Request Context (API Routes)**:
 
 ```bash
 
@@ -263,9 +268,9 @@ import { logger } from '@mcw/logger';
 export async function GET(request: NextRequest) {
   // Create a logger with the request context
   const log = logger.fromRequest(request);
-  
+
   log.info('Processing request');
-  
+
   try {
     // Your API logic here
     return NextResponse.json({ success: true });
@@ -276,8 +281,8 @@ export async function GET(request: NextRequest) {
 }
 
 ```
-  
-3. **Component-Specific Logging**:    
+
+3. **Component-Specific Logging**:
 
 ```bash
 
@@ -294,7 +299,6 @@ componentLogger.info('Component initialized');
 ```
 
 Logs are stored in the logs directory of each application as daily files (app-YYYY-MM-DD.log).
-
 
 ## Open Questions and Decisions
 

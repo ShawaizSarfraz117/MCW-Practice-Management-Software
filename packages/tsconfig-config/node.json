@@ -4,7 +4,7 @@
   "extends": "./base.json",
   "compilerOptions": {
     "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "nodenext",
     "target": "ES2020",
     "lib": ["es2020"],
     "outDir": "./dist",
@@ -15,4 +15,4 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
-} 
+}

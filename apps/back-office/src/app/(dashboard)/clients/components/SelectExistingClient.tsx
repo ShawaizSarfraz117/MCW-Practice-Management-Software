@@ -77,7 +77,7 @@ export function SelectExistingClient({
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            className="pl-10"
+            className="pl-9 px-9"
             placeholder="Search Clients and Contacts"
             value={searchQuery}
             onChange={(e: { target: { value: SetStateAction<string> } }) =>
