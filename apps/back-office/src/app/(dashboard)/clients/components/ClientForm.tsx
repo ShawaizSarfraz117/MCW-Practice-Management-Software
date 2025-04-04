@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+/* eslint-disable max-lines-per-function */
 import { FieldApi } from "@tanstack/react-form";
 import { Plus, Minus } from "lucide-react";
 import {
