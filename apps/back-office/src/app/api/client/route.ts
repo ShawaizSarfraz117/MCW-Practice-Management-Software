@@ -84,8 +84,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const requestData = await request.json();
-    console.log("🚀 ~ POST ~ requestData:", requestData);
-
     // Extract client data from numbered keys (client1, client2, etc.)
     const clientDataArray = Object.entries(requestData)
       .filter(([key]) => key.startsWith("client"))
@@ -120,7 +118,7 @@ export async function POST(request: NextRequest) {
         // Create ClientGroupMembership
         await prisma.clientGroupMembership.create({
           data: {
-            client_group_id: "{83C1C902-98E5-4A4C-8239-6F341F98DA1B}",
+            client_group_id: data.clientGroupId,
             client_id: client.id,
             role: data.role || null,
             is_contact_only: data.is_contact_only || false,
@@ -136,7 +134,7 @@ export async function POST(request: NextRequest) {
           ) => ({
             client_id: client.id,
             contact_type: "EMAIL",
-            type: "PRIMARY",
+            type: email.type,
             value: email.value,
             permission: email.permission,
             is_primary: index === 0,
@@ -151,7 +149,7 @@ export async function POST(request: NextRequest) {
           ) => ({
             client_id: client.id,
             contact_type: "PHONE",
-            type: "PRIMARY",
+            type: phone.type,
             value: phone.value,
             permission: phone.permission,
             is_primary: index === 0,
@@ -272,8 +270,8 @@ export async function PUT(request: NextRequest) {
           preferred_name: data.preferredName,
           date_of_birth: data.dob ? new Date(data.dob) : null,
           is_waitlist: data.addToWaitlist,
-          primary_clinician_id: data.primaryClinician,
-          primary_location_id: data.location,
+          primary_clinician_id: data.primaryClinicianId,
+          primary_location_id: data.locationId,
           is_active: data.status === "active",
         },
       });
@@ -307,31 +305,39 @@ export async function PUT(request: NextRequest) {
         });
 
         // Create new contacts
-        const emailContacts = (data.emails || []).map(
+        let emailContacts = (data.emails || []).map(
           (
             email: { value: string; type: string; permission: string },
             index: number,
           ) => ({
             client_id: data.id,
             contact_type: "EMAIL",
-            type: "PRIMARY",
+            type: email.type,
             value: email.value,
             permission: email.permission,
             is_primary: index === 0,
           }),
         );
+        emailContacts = [...emailContacts].filter(
+          (email: { value: string }) => email.value !== "",
+        );
 
-        const phoneContacts = (data.phones || []).map(
-          (phone: string, index: number) => ({
+        let phoneContacts = (data.phones || []).map(
+          (
+            phone: { value: string; type: string; permission: string },
+            index: number,
+          ) => ({
             client_id: data.id,
             contact_type: "PHONE",
-            type: "PRIMARY",
-            value: phone,
-            permission: "ALLOWED",
+            type: phone.type,
+            value: phone.value,
+            permission: phone.permission,
             is_primary: index === 0,
           }),
         );
-
+        phoneContacts = [...phoneContacts].filter(
+          (phone: { value: string }) => phone.value !== "",
+        );
         if (emailContacts.length > 0 || phoneContacts.length > 0) {
           await prisma.clientContact.createMany({
             data: [...emailContacts, ...phoneContacts],

@@ -71,7 +71,7 @@ export function CreateClientDrawer({
   onOpenChange,
   defaultAppointmentDate = "Tuesday, Oct 22, 2025 @ 12:00 PM",
 }: CreateClientDrawerProps) {
-  const [clientType, setClientType] = useState("minor");
+  const [clientType, setClientType] = useState("adult");
   const [activeTab, setActiveTab] = useState("");
   const [selectedClients, setSelectedClients] = useState<
     Record<string, Client | null>

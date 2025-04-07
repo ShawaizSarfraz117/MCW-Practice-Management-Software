@@ -122,17 +122,17 @@ export function ClientForm({
         <div className="space-y-2">
           <Label>Legal first name</Label>
           <Input
-            disabled={!!selectedClient}
-            placeholder="Almir"
-            value={value.legalFirstName || ""}
-            onChange={(e) =>
-              handleInputChange("legalFirstName", e.target.value)
-            }
             className={
               field.state.meta.errors?.legalFirstName ||
               validationErrors.legalFirstName
                 ? "border-red-500"
                 : ""
+            }
+            disabled={!!selectedClient}
+            placeholder="Almir"
+            value={value.legalFirstName || ""}
+            onChange={(e) =>
+              handleInputChange("legalFirstName", e.target.value)
             }
           />
           {(field.state.meta.errors?.legalFirstName ||
@@ -146,16 +146,16 @@ export function ClientForm({
         <div className="space-y-2">
           <Label>Legal last name</Label>
           <Input
-            disabled={!!selectedClient}
-            placeholder="Kazacic"
-            value={value.legalLastName || ""}
-            onChange={(e) => handleInputChange("legalLastName", e.target.value)}
             className={
               field.state.meta.errors?.legalLastName ||
               validationErrors.legalLastName
                 ? "border-red-500"
                 : ""
             }
+            disabled={!!selectedClient}
+            placeholder="Kazacic"
+            value={value.legalLastName || ""}
+            onChange={(e) => handleInputChange("legalLastName", e.target.value)}
           />
           {(field.state.meta.errors?.legalLastName ||
             validationErrors.legalLastName?.[0]) && (
@@ -187,8 +187,8 @@ export function ClientForm({
           <div className="space-y-2 flex items-center mt-6">
             <div className="flex flex-row items-center space-x-2 h-10">
               <Checkbox
-                id="responsible-billing"
                 checked={value.is_responsible_for_billing || false}
+                id="responsible-billing"
                 onCheckedChange={(checked) => {
                   field.setValue({
                     ...value,
@@ -209,14 +209,14 @@ export function ClientForm({
           <div className="space-y-2">
             <Label>Date of Birth</Label>
             <Input
-              placeholder="DD/MM/YYYY"
-              value={value.dob || ""}
-              onChange={(e) => handleInputChange("dob", e.target.value)}
               className={
                 field.state.meta.errors?.dob || validationErrors.dob
                   ? "border-red-500"
                   : ""
               }
+              placeholder="DD/MM/YYYY"
+              value={value.dob || ""}
+              onChange={(e) => handleInputChange("dob", e.target.value)}
             />
             {(field.state.meta.errors?.dob || validationErrors.dob?.[0]) && (
               <p className="text-sm text-red-500 mt-1">
@@ -248,12 +248,12 @@ export function ClientForm({
               className="grid grid-cols-[1fr_1fr_1fr_auto] gap-4 items-end"
             >
               <Input
-                placeholder="Email"
-                value={email.value || ""}
-                onChange={(e) => handleEmailChange(index, e.target.value)}
                 className={
                   field.state.meta.errors?.emails ? "border-red-500" : ""
                 }
+                placeholder="Email"
+                value={email.value || ""}
+                onChange={(e) => handleEmailChange(index, e.target.value)}
               />
               <Select
                 value={email.type || "home"}
@@ -325,12 +325,12 @@ export function ClientForm({
               className="grid grid-cols-[1fr_1fr_1fr_auto] gap-4 items-end"
             >
               <Input
-                placeholder="Phone Number"
-                value={phone.value || ""}
-                onChange={(e) => handlePhoneChange(index, e.target.value)}
                 className={
                   field.state.meta.errors?.emails ? "border-red-500" : ""
                 }
+                placeholder="Phone Number"
+                value={phone.value || ""}
+                onChange={(e) => handlePhoneChange(index, e.target.value)}
               />
               <Select
                 value={phone.type || "mobile"}
@@ -388,7 +388,7 @@ export function ClientForm({
             onClick={() => {
               const newPhones = [
                 ...(value.phones || []),
-                { number: "", type: "mobile", permission: "text-voicemail" },
+                { value: "", type: "mobile", permission: "text-voicemail" },
               ];
               field.setValue({ ...value, phones: newPhones });
             }}
