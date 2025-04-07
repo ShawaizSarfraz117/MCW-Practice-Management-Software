@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
-import { logger } from "@mcw/logger";
+import { logger, config } from "@mcw/logger";
 
 interface ClientData {
   legalFirstName: string;
@@ -9,10 +9,10 @@ interface ClientData {
   dob?: string;
   status: string;
   addToWaitlist?: boolean;
-  primaryClinician?: string;
-  location?: string;
-  emails?: string[];
-  phones?: string[];
+  primaryClinicianId?: string;
+  locationId?: string;
+  emails?: { value: string; type: string; permission: string }[];
+  phones?: { value: string; type: string; permission: string }[];
   notificationOptions?: {
     upcomingAppointments?: boolean;
     incompleteDocuments?: boolean;
@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const requestData = await request.json();
+    console.log("🚀 ~ POST ~ requestData:", requestData);
 
     // Extract client data from numbered keys (client1, client2, etc.)
     const clientDataArray = Object.entries(requestData)
@@ -110,8 +111,8 @@ export async function POST(request: NextRequest) {
             preferred_name: data.preferredName,
             date_of_birth: data.dob ? new Date(data.dob) : null,
             is_waitlist: data.addToWaitlist || false,
-            primary_clinician_id: data.primaryClinician,
-            primary_location_id: data.location,
+            primary_clinician_id: data.primaryClinicianId || null,
+            primary_location_id: data.locationId || null,
             is_active: data.status === "active",
           },
         });
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
         // Create ClientGroupMembership
         await prisma.clientGroupMembership.create({
           data: {
-            client_group_id: data.clientGroupId,
+            client_group_id: "{83C1C902-98E5-4A4C-8239-6F341F98DA1B}",
             client_id: client.id,
             role: data.role || null,
             is_contact_only: data.is_contact_only || false,
@@ -129,24 +130,30 @@ export async function POST(request: NextRequest) {
 
         // Create email contacts
         const emailContacts = (data.emails || []).map(
-          (email: string, index: number) => ({
+          (
+            email: { value: string; type: string; permission: string },
+            index: number,
+          ) => ({
             client_id: client.id,
             contact_type: "EMAIL",
             type: "PRIMARY",
-            value: email,
-            permission: "ALLOWED",
+            value: email.value,
+            permission: email.permission,
             is_primary: index === 0,
           }),
         );
 
         // Create phone contacts
         const phoneContacts = (data.phones || []).map(
-          (phone: string, index: number) => ({
+          (
+            phone: { value: string; type: string; permission: string },
+            index: number,
+          ) => ({
             client_id: client.id,
             contact_type: "PHONE",
             type: "PRIMARY",
-            value: phone,
-            permission: "ALLOWED",
+            value: phone.value,
+            permission: phone.permission,
             is_primary: index === 0,
           }),
         );
@@ -216,7 +223,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(results, { status: 201 });
   } catch (error) {
-    console.error("Error creating clients:", error);
+    // Only log non-validation errors
+    if (
+      !(error instanceof Error) ||
+      !error.message.includes("Conversion failed")
+    ) {
+      console.error("Error creating clients:", error);
+    }
     return NextResponse.json(
       { error: "Failed to create clients" },
       { status: 500 },
@@ -295,12 +308,15 @@ export async function PUT(request: NextRequest) {
 
         // Create new contacts
         const emailContacts = (data.emails || []).map(
-          (email: string, index: number) => ({
+          (
+            email: { value: string; type: string; permission: string },
+            index: number,
+          ) => ({
             client_id: data.id,
             contact_type: "EMAIL",
             type: "PRIMARY",
-            value: email,
-            permission: "ALLOWED",
+            value: email.value,
+            permission: email.permission,
             is_primary: index === 0,
           }),
         );
@@ -425,3 +441,5 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+config.setLevel("error");

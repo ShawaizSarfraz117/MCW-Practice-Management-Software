@@ -14,18 +14,7 @@ import {
 } from "@mcw/ui";
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "@mcw/ui";
 import { Client } from "./SelectExistingClient";
-
-interface EmailEntry {
-  address: string;
-  type: string;
-  permission: string;
-}
-
-interface PhoneEntry {
-  number: string;
-  type: string;
-  permission: string;
-}
+import { EmailEntry, PhoneEntry } from "./CreateClientDrawer";
 
 interface FormState {
   legalFirstName?: string;
@@ -47,6 +36,7 @@ interface FormState {
     text: boolean;
     voice: boolean;
   };
+  is_responsible_for_billing?: boolean;
 }
 
 interface ClientFormProps {
@@ -54,11 +44,77 @@ interface ClientFormProps {
   // @ts-expect-error - TanStack form types are complex, we'll fix this later
   field: FieldApi<FormState, string>;
   selectedClient: Client | null;
+  validationErrors?: Record<string, string[]>;
+  clearValidationError?: (fieldName: string) => void;
+  tabId?: string;
 }
 
-export function ClientForm({ selectedClient, field }: ClientFormProps) {
+export function ClientForm({
+  selectedClient,
+  field,
+  validationErrors = {},
+  clearValidationError,
+  clientType,
+  tabId = "client-1",
+}: ClientFormProps) {
   const state = field.state;
   const value = state.value || ({} as FormState);
+
+  const isContactTab = clientType === "minor" && tabId === "client-2";
+
+  // Helper to handle input changes with validation clearing
+  const handleInputChange = (fieldName: string, newValue: string) => {
+    field.setValue({
+      ...value,
+      [fieldName]: newValue,
+    });
+
+    // Clear validation error when user types valid input
+    if (clearValidationError && newValue.trim() !== "") {
+      clearValidationError(fieldName);
+    }
+  };
+
+  // Handle email/phone changes with validation
+  const handleEmailChange = (index: number, newValue: string) => {
+    const newEmails = [...(value.emails || [])];
+    newEmails[index] = { ...newEmails[index], value: newValue };
+    field.setValue({ ...value, emails: newEmails });
+
+    // Check if we have at least one valid email or phone
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const hasValidEmail = newEmails.some(
+      (e: EmailEntry) => e.value.trim() !== "" && emailRegex.test(e.value),
+    );
+
+    const hasValidPhone = (value.phones || []).some(
+      (p: PhoneEntry) => p.value.trim() !== "",
+    );
+
+    if (clearValidationError && (hasValidEmail || hasValidPhone)) {
+      clearValidationError("emails");
+    }
+  };
+
+  const handlePhoneChange = (index: number, newValue: string) => {
+    const newPhones = [...(value.phones || [])];
+    newPhones[index] = { ...newPhones[index], value: newValue };
+    field.setValue({ ...value, phones: newPhones });
+
+    // Check if we have at least one valid email or phone
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const hasValidEmail = (value.emails || []).some(
+      (e: EmailEntry) => e.value.trim() !== "" && emailRegex.test(e.value),
+    );
+
+    const hasValidPhone = newPhones.some(
+      (p: PhoneEntry) => p.value.trim() !== "",
+    );
+
+    if (clearValidationError && (hasValidEmail || hasValidPhone)) {
+      clearValidationError("emails");
+    }
+  };
 
   return (
     <div className="mt-4 px-6">
@@ -70,12 +126,22 @@ export function ClientForm({ selectedClient, field }: ClientFormProps) {
             placeholder="Almir"
             value={value.legalFirstName || ""}
             onChange={(e) =>
-              field.setValue({
-                ...value,
-                legalFirstName: e.target.value,
-              })
+              handleInputChange("legalFirstName", e.target.value)
+            }
+            className={
+              field.state.meta.errors?.legalFirstName ||
+              validationErrors.legalFirstName
+                ? "border-red-500"
+                : ""
             }
           />
+          {(field.state.meta.errors?.legalFirstName ||
+            validationErrors.legalFirstName?.[0]) && (
+            <p className="text-sm text-red-500 mt-1">
+              {field.state.meta.errors?.legalFirstName ||
+                validationErrors.legalFirstName?.[0]}
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label>Legal last name</Label>
@@ -83,17 +149,25 @@ export function ClientForm({ selectedClient, field }: ClientFormProps) {
             disabled={!!selectedClient}
             placeholder="Kazacic"
             value={value.legalLastName || ""}
-            onChange={(e) =>
-              field.setValue({
-                ...value,
-                legalLastName: e.target.value,
-              })
+            onChange={(e) => handleInputChange("legalLastName", e.target.value)}
+            className={
+              field.state.meta.errors?.legalLastName ||
+              validationErrors.legalLastName
+                ? "border-red-500"
+                : ""
             }
           />
+          {(field.state.meta.errors?.legalLastName ||
+            validationErrors.legalLastName?.[0]) && (
+            <p className="text-sm text-red-500 mt-1">
+              {field.state.meta.errors?.legalLastName ||
+                validationErrors.legalLastName?.[0]}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Preferred Name & DOB */}
+      {/* Preferred Name & DOB or Billing Responsibility */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div className="space-y-2">
           <Label>Preferred name</Label>
@@ -108,19 +182,49 @@ export function ClientForm({ selectedClient, field }: ClientFormProps) {
             }
           />
         </div>
-        <div className="space-y-2">
-          <Label>Date of Birth</Label>
-          <Input
-            placeholder="DD/MM/YYYY"
-            value={value.dob || ""}
-            onChange={(e) =>
-              field.setValue({
-                ...value,
-                dob: e.target.value,
-              })
-            }
-          />
-        </div>
+
+        {isContactTab ? (
+          <div className="space-y-2 flex items-center mt-6">
+            <div className="flex flex-row items-center space-x-2 h-10">
+              <Checkbox
+                id="responsible-billing"
+                checked={value.is_responsible_for_billing || false}
+                onCheckedChange={(checked) => {
+                  field.setValue({
+                    ...value,
+                    is_responsible_for_billing: checked === true,
+                  });
+
+                  if (clearValidationError && checked) {
+                    clearValidationError("is_responsible_for_billing");
+                  }
+                }}
+              />
+              <Label htmlFor="responsible-billing">
+                Responsible for billing
+              </Label>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>Date of Birth</Label>
+            <Input
+              placeholder="DD/MM/YYYY"
+              value={value.dob || ""}
+              onChange={(e) => handleInputChange("dob", e.target.value)}
+              className={
+                field.state.meta.errors?.dob || validationErrors.dob
+                  ? "border-red-500"
+                  : ""
+              }
+            />
+            {(field.state.meta.errors?.dob || validationErrors.dob?.[0]) && (
+              <p className="text-sm text-red-500 mt-1">
+                {field.state.meta.errors?.dob || validationErrors.dob?.[0]}
+              </p>
+            )}
+          </div>
+        )}
       </div>
       <div className="space-y-4 mt-2">
         {/* Email Section */}
@@ -132,6 +236,12 @@ export function ClientForm({ selectedClient, field }: ClientFormProps) {
           </p>
         </div>
         <div className="space-y-2">
+          {(field.state.meta.errors?.emails ||
+            validationErrors.emails?.[0]) && (
+            <p className="text-sm text-red-500 mb-2">
+              {field.state.meta.errors?.emails || validationErrors.emails?.[0]}
+            </p>
+          )}
           {(value.emails || []).map((email: EmailEntry, index: number) => (
             <div
               key={index}
@@ -139,12 +249,11 @@ export function ClientForm({ selectedClient, field }: ClientFormProps) {
             >
               <Input
                 placeholder="Email"
-                value={email.address || ""}
-                onChange={(e) => {
-                  const newEmails = [...(value.emails || [])];
-                  newEmails[index] = { ...email, address: e.target.value };
-                  field.setValue({ ...value, emails: newEmails });
-                }}
+                value={email.value || ""}
+                onChange={(e) => handleEmailChange(index, e.target.value)}
+                className={
+                  field.state.meta.errors?.emails ? "border-red-500" : ""
+                }
               />
               <Select
                 value={email.type || "home"}
@@ -199,7 +308,7 @@ export function ClientForm({ selectedClient, field }: ClientFormProps) {
             onClick={() => {
               const newEmails = [
                 ...(value.emails || []),
-                { address: "", type: "home", permission: "email-ok" },
+                { value: "", type: "home", permission: "email-ok" },
               ];
               field.setValue({ ...value, emails: newEmails });
             }}
@@ -217,12 +326,11 @@ export function ClientForm({ selectedClient, field }: ClientFormProps) {
             >
               <Input
                 placeholder="Phone Number"
-                value={phone.number || ""}
-                onChange={(e) => {
-                  const newPhones = [...(value.phones || [])];
-                  newPhones[index] = { ...phone, number: e.target.value };
-                  field.setValue({ ...value, phones: newPhones });
-                }}
+                value={phone.value || ""}
+                onChange={(e) => handlePhoneChange(index, e.target.value)}
+                className={
+                  field.state.meta.errors?.emails ? "border-red-500" : ""
+                }
               />
               <Select
                 value={phone.type || "mobile"}
@@ -381,10 +489,10 @@ export function ClientForm({ selectedClient, field }: ClientFormProps) {
       </div>
 
       {/* Notification Settings */}
-      <div className="space-y-4 mt-6">
+      <div className="space-y-4 mt-4">
         <h3 className="text-lg font-medium">Notification Preferences</h3>
 
-        <div className="space-y-2">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label>Upcoming Appointments</Label>
             <Switch
@@ -434,7 +542,7 @@ export function ClientForm({ selectedClient, field }: ClientFormProps) {
           </div>
         </div>
 
-        <div className="space-y-2 mt-4">
+        <div className="space-y-4 mt-4">
           <Label>Preferred Contact Method</Label>
           <RadioGroup
             className="flex gap-4"

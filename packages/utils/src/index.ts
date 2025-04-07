@@ -1,6 +1,7 @@
 export * from "./formatting";
 export * from "./styles";
 export * from "./next-test";
+export * from "./fetch";
 
 // Example validation utility
 export function validateEmail(email: string): boolean {

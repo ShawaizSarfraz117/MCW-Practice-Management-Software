@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
@@ -18,14 +19,14 @@ interface CreateClientDrawerProps {
   defaultAppointmentDate?: string;
 }
 
-interface EmailEntry {
-  address: string;
+export interface EmailEntry {
+  value: string;
   type: string;
   permission: string;
 }
 
-interface PhoneEntry {
-  number: string;
+export interface PhoneEntry {
+  value: string;
   type: string;
   permission: string;
 }
@@ -57,6 +58,7 @@ interface FormState {
     text: boolean;
     voice: boolean;
   };
+  is_responsible_for_billing?: boolean;
 }
 
 interface FormValues {
@@ -71,10 +73,15 @@ export function CreateClientDrawer({
 }: CreateClientDrawerProps) {
   const [clientType, setClientType] = useState("minor");
   const [activeTab, setActiveTab] = useState("");
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClients, setSelectedClients] = useState<
+    Record<string, Client | null>
+  >({});
   const [clientTabs, setClientTabs] = useState<
     Array<{ id: string; label: string }>
   >([]);
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, Record<string, string[]>>
+  >({});
 
   const [showSelectExisting, setShowSelectExisting] = useState(false);
 
@@ -108,107 +115,168 @@ export function CreateClientDrawer({
     defaultValues: {
       clientType: "minor",
       clients: {
-        client: defaultClientData,
-        contact: defaultClientData,
+        "client-1": { ...defaultClientData },
       },
     },
-    onSubmit: ({ value }) => {
+    validatorAdapter: {
+      validate: (values: FormValues) => {
+        // Email validation regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        // Validate each client
+        const clientsValidation = Object.entries(values.clients).reduce(
+          (acc, [key, client]) => {
+            // Skip empty clients
+            console.log("🚀 ~ clientsValidation ~ client:", client);
+            if (!client) return acc;
+
+            const clientErrors: Record<string, string> = {};
+
+            // Required field validations
+            if (!client.legalFirstName || client.legalFirstName.trim() === "") {
+              clientErrors.legalFirstName = "First name is required";
+            }
+
+            if (!client.legalLastName || client.legalLastName.trim() === "") {
+              clientErrors.legalLastName = "Last name is required";
+            }
+
+            // DOB validation - only for non-contact tabs
+            const isContactTab =
+              clientType === "minor" && activeTab === "client-2";
+            if (!isContactTab && (!client.dob || client.dob.trim() === "")) {
+              clientErrors.dob = "Date of Birth is required";
+            }
+
+            // For contact tab in minor client type, validate is_responsible_for_billing
+            if (
+              isContactTab &&
+              client.is_responsible_for_billing === undefined
+            ) {
+              clientErrors.is_responsible_for_billing =
+                "Please specify if contact is responsible for billing";
+            }
+
+            // Contact method validation
+            const hasValidEmail =
+              client.emails &&
+              client.emails.length > 0 &&
+              client.emails.some(
+                (e) => e.value.trim() !== "" && emailRegex.test(e.value),
+              );
+
+            const hasPhone =
+              client.phones &&
+              client.phones.length > 0 &&
+              client.phones.some((p) => p.value.trim() !== "");
+
+            if (!hasValidEmail && !hasPhone) {
+              clientErrors.emails =
+                "At least one valid contact method (email or phone) is required";
+            }
+
+            // Add errors for this client if any were found
+            if (Object.keys(clientErrors).length > 0) {
+              acc[key] = { meta: { errors: clientErrors } };
+            }
+
+            return acc;
+          },
+          {} as Record<string, any>,
+        );
+
+        return {
+          clientType: values.clientType,
+          clients: clientsValidation,
+        };
+      },
+    },
+    onSubmit: async ({ value }) => {
+      console.log("🚀 ~ onSubmit: ~ value:", value);
       const structuredData = structureData(value);
       console.log("Form submitted:", structuredData);
     },
   });
 
   useEffect(() => {
-    if (clientType === "minor") {
-      setClientTabs([
-        { id: "client", label: "Client" },
-        { id: "contact", label: "Contact" },
-      ]);
-      setActiveTab("client");
-    } else if (clientType === "couple") {
-      setClientTabs([
-        { id: "client-1", label: "Client 1" },
-        { id: "client-2", label: "Client 2" },
-      ]);
-      setActiveTab("client-1");
-    } else if (clientType === "family") {
-      setClientTabs([{ id: "client-1", label: "Client 1" }]);
-      setActiveTab("client-1");
+    let initialTabs;
+    let initialClients: Record<string, FormState>;
+
+    switch (clientType) {
+      case "minor":
+        initialTabs = [
+          { id: "client-1", label: "Client" },
+          { id: "client-2", label: "Contact" },
+        ];
+        initialClients = {
+          "client-1": { ...defaultClientData, clientType },
+          "client-2": { ...defaultClientData, clientType },
+        };
+        break;
+      case "couple":
+        initialTabs = [
+          { id: "client-1", label: "Client 1" },
+          { id: "client-2", label: "Client 2" },
+        ];
+        initialClients = {
+          "client-1": { ...defaultClientData, clientType },
+          "client-2": { ...defaultClientData, clientType },
+        };
+        break;
+      case "family":
+        initialTabs = [{ id: "client-1", label: "Client 1" }];
+        initialClients = {
+          "client-1": { ...defaultClientData, clientType },
+        };
+        break;
+      case "adult":
+      default:
+        initialTabs = [{ id: "client-1", label: "Client" }];
+        initialClients = {
+          "client-1": { ...defaultClientData, clientType },
+        };
     }
 
+    setClientTabs(initialTabs);
+    setActiveTab("client-1");
+
+    // First set the client type
     form.setFieldValue("clientType", clientType);
-    initializeFormForClientType(clientType);
-    setSelectedClient(null);
+
+    // Then set each client individually to ensure proper state updates
+    Object.entries(initialClients).forEach(([key, value]) => {
+      form.setFieldValue(`clients.${key}`, value);
+    });
+
+    // Reset form state to only include the initial clients
+    form.setFieldValue("clients", initialClients);
+
+    setSelectedClients({});
   }, [clientType]);
 
-  const initializeFormForClientType = (type: string) => {
-    switch (type) {
-      case "minor":
-        form.reset({
-          clientType: type,
-          clients: {
-            client: { ...defaultClientData, clientType: type },
-            contact: { ...defaultClientData, clientType: type },
-          },
-        });
-        break;
-      case "couple":
-        form.reset({
-          clientType: type,
-          clients: {
-            "client-1": { ...defaultClientData, clientType: type },
-            "client-2": { ...defaultClientData, clientType: type },
-          },
-        });
-        break;
-      case "family":
-        form.reset({
-          clientType: type,
-          clients: {
-            "client-1": { ...defaultClientData, clientType: type },
-          },
-        });
-        break;
-      case "adult":
-        form.reset({
-          clientType: type,
-          clients: {
-            client: { ...defaultClientData, clientType: type },
-          },
-        });
-        break;
-    }
-  };
-
   const structureData = (values: FormValues) => {
-    switch (values.clientType) {
-      case "minor":
-        return {
-          client: values.clients.client,
-          contact: values.clients.contact,
-        };
-      case "couple":
-        return {
-          client1: values.clients["client-1"],
-          client2: values.clients["client-2"],
-        };
-      case "family":
-        return Object.keys(values.clients).reduce(
-          (acc, key, index) => ({
-            ...acc,
-            [`client${index + 1}`]: values.clients[key],
-          }),
-          {},
-        );
-      case "adult":
-        return { client: values.clients.client };
-      default:
-        return {};
-    }
+    // Filter out empty or undefined client objects
+    const filteredClients = Object.entries(values.clients).reduce(
+      (acc, [key, value]) => {
+        if (value && Object.keys(value).length > 0) {
+          const clientNum = key.split("-")[1] || "1";
+          acc[`client${clientNum}`] = value;
+        }
+        return acc;
+      },
+      {} as Record<string, FormState>,
+    );
+
+    return filteredClients;
   };
 
   const handleSelectExistingClient = (selectedClientParam: Client) => {
-    setSelectedClient(selectedClientParam);
+    // Store selected client for the current tab only
+    setSelectedClients((prev) => ({
+      ...prev,
+      [activeTab]: selectedClientParam,
+    }));
+
     const [firstName, lastName] = selectedClientParam.name.split(" ");
     const mappedClient: FormState = {
       clientType: clientType,
@@ -222,7 +290,7 @@ export function CreateClientDrawer({
       location: "stpete",
       emails: [
         {
-          address: selectedClientParam.email,
+          value: selectedClientParam.email,
           type: "primary",
           permission: "allowed",
         },
@@ -238,23 +306,45 @@ export function CreateClientDrawer({
         voice: false,
       },
     };
-    form.setFieldValue("clients.contact", mappedClient);
+
+    // Only set the active tab's data
+    form.setFieldValue(`clients.${activeTab}`, mappedClient);
     setShowSelectExisting(false);
   };
 
   const handleClientRemoved = () => {
-    setSelectedClient(null);
+    // Remove selected client for active tab only
+    setSelectedClients((prev) => {
+      const updated = { ...prev };
+      delete updated[activeTab];
+      return updated;
+    });
+  };
+
+  // Function to clear validation error for a specific field in a specific tab
+  const clearValidationError = (tabId: string, fieldName: string) => {
+    if (validationErrors[tabId]?.[fieldName]) {
+      setValidationErrors((prev) => {
+        const updatedErrors = { ...prev };
+        if (updatedErrors[tabId]) {
+          const updatedTabErrors = { ...updatedErrors[tabId] };
+          delete updatedTabErrors[fieldName];
+          updatedErrors[tabId] = updatedTabErrors;
+        }
+        return updatedErrors;
+      });
+    }
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="sm:max-w-[500px] p-0 gap-0 overflow-auto [&>button]:hidden"
+        className="sm:max-w-[500px] p-0 gap-0 [&>button]:hidden"
         side="right"
       >
         {showSelectExisting ? (
           <SelectExistingClient
-            selectedClient={selectedClient}
+            selectedClient={selectedClients[activeTab] || null}
             onBack={() => setShowSelectExisting(false)}
             onSelect={handleSelectExistingClient}
           />
@@ -279,7 +369,143 @@ export function CreateClientDrawer({
                 </Button>
                 <Button
                   className="bg-[#2d8467] hover:bg-[#236c53]"
-                  onClick={() => form.handleSubmit()}
+                  onClick={() => {
+                    // Manual validation for active tab only
+                    const formData = form.getFieldValue("clients");
+                    const currentTabErrors: Record<string, string[]> = {};
+                    let isValid = true;
+
+                    const currentTabClient = formData
+                      ? formData[activeTab]
+                      : null;
+
+                    if (currentTabClient) {
+                      // Validate required fields
+                      if (
+                        !currentTabClient.legalFirstName ||
+                        currentTabClient.legalFirstName.trim() === ""
+                      ) {
+                        currentTabErrors.legalFirstName = [
+                          "First name is required",
+                        ];
+                        isValid = false;
+                      }
+
+                      if (
+                        !currentTabClient.legalLastName ||
+                        currentTabClient.legalLastName.trim() === ""
+                      ) {
+                        currentTabErrors.legalLastName = [
+                          "Last name is required",
+                        ];
+                        isValid = false;
+                      }
+
+                      // DOB validation - only for non-contact tabs
+                      const isContactTab =
+                        clientType === "minor" && activeTab === "client-2";
+                      if (
+                        !isContactTab &&
+                        (!currentTabClient.dob ||
+                          currentTabClient.dob.trim() === "")
+                      ) {
+                        currentTabErrors.dob = ["Date of Birth is required"];
+                        isValid = false;
+                      }
+                      // Email validation regex
+                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                      // Contact method validation
+                      const hasValidEmail =
+                        currentTabClient.emails &&
+                        currentTabClient.emails.length > 0 &&
+                        currentTabClient.emails.some(
+                          (e: EmailEntry) =>
+                            e.value.trim() !== "" && emailRegex.test(e.value),
+                        );
+
+                      const hasPhone =
+                        currentTabClient.phones &&
+                        currentTabClient.phones.length > 0 &&
+                        currentTabClient.phones.some(
+                          (p: PhoneEntry) => p.value.trim() !== "",
+                        );
+
+                      if (!hasValidEmail && !hasPhone) {
+                        currentTabErrors.emails = [
+                          "At least one valid contact method (email or phone) is required",
+                        ];
+                        isValid = false;
+                      }
+
+                      // Update validation errors in state - only update for the active tab
+                      setValidationErrors((prev) => ({
+                        ...prev,
+                        [activeTab]:
+                          Object.keys(currentTabErrors).length > 0
+                            ? currentTabErrors
+                            : {},
+                      }));
+
+                      if (isValid) {
+                        // If all tabs are valid, then submit
+                        let allTabsValid = true;
+
+                        // Check if we need to validate all tabs or just the current one
+                        if (clientType !== "adult") {
+                          // For family, couple, or minor types, validate all tabs
+                          for (const tab of clientTabs) {
+                            const tabClient = formData?.[tab.id];
+                            if (!tabClient) {
+                              allTabsValid = false;
+                              setActiveTab(tab.id);
+                              break;
+                            }
+
+                            const isContactTabCheck =
+                              clientType === "minor" && tab.id === "client-2";
+
+                            // Basic validation for all tabs
+                            if (
+                              !tabClient.legalFirstName ||
+                              !tabClient.legalLastName
+                            ) {
+                              allTabsValid = false;
+                              setActiveTab(tab.id);
+                              break;
+                            }
+
+                            // DOB validation only for non-contact tabs
+                            if (!isContactTabCheck && !tabClient.dob) {
+                              allTabsValid = false;
+                              setActiveTab(tab.id);
+                              break;
+                            }
+
+                            // Contact method validation for all tabs
+                            if (
+                              !(
+                                tabClient.emails?.some(
+                                  (e: EmailEntry) => e.value.trim() !== "",
+                                ) ||
+                                tabClient.phones?.some(
+                                  (p: PhoneEntry) => p.value.trim() !== "",
+                                )
+                              )
+                            ) {
+                              allTabsValid = false;
+                              setActiveTab(tab.id);
+                              break;
+                            }
+                          }
+                        }
+
+                        if (allTabsValid) {
+                          form.handleSubmit();
+                        }
+                      }
+                    }
+                  }}
                 >
                   Continue
                 </Button>
@@ -293,7 +519,11 @@ export function CreateClientDrawer({
                   className="flex gap-4"
                   defaultValue="minor"
                   value={clientType}
-                  onValueChange={setClientType}
+                  onValueChange={(newClientType) => {
+                    setClientType(newClientType);
+                    // Clear all validation errors when changing client type
+                    setValidationErrors({});
+                  }}
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem id="adult" value="adult" />
@@ -317,22 +547,31 @@ export function CreateClientDrawer({
                 <ClientTabs
                   ref={tabsRef}
                   activeTab={activeTab}
+                  clearValidationError={(fieldName) =>
+                    clearValidationError(activeTab, fieldName)
+                  }
                   clientTabs={clientTabs}
                   clientType={clientType}
                   form={form}
-                  selectedClient={selectedClient}
+                  selectedClient={selectedClients[activeTab] || null}
                   setActiveTab={setActiveTab}
                   setClientTabs={setClientTabs}
+                  validationErrors={validationErrors[activeTab] || {}}
                   onClientRemoved={handleClientRemoved}
                   onSelectExisting={setShowSelectExisting}
                 />
               ) : (
-                <form.Field name="clients.client">
+                <form.Field name="clients.client-1">
                   {(field: any) => (
                     <ClientForm
+                      clearValidationError={(fieldName) =>
+                        clearValidationError("client-1", fieldName)
+                      }
                       clientType={clientType}
                       field={field}
-                      selectedClient={selectedClient}
+                      selectedClient={selectedClients["client-1"] || null}
+                      tabId="client-1"
+                      validationErrors={validationErrors["client-1"] || {}}
                     />
                   )}
                 </form.Field>

@@ -16,6 +16,8 @@ interface ClientTabsProps {
   setClientTabs: (tabs: Array<{ id: string; label: string }>) => void;
   selectedClient: Client | null;
   onClientRemoved: () => void;
+  validationErrors?: Record<string, string[]>;
+  clearValidationError?: (fieldName: string) => void;
 }
 
 export const ClientTabs = forwardRef<{ submit: () => void }, ClientTabsProps>(
@@ -30,55 +32,60 @@ export const ClientTabs = forwardRef<{ submit: () => void }, ClientTabsProps>(
       onSelectExisting,
       selectedClient,
       onClientRemoved,
+      validationErrors = {},
+      clearValidationError,
     },
     ref,
   ) => {
-    // const [activeTab, setActiveTab] = useState("");
-    // const [clientTabs, setClientTabs] = useState<
-    //   Array<{ id: string; label: string }>
-    // >([]);
-
     useImperativeHandle(ref, () => ({
       submit: () => {
         form.handleSubmit();
       },
     }));
 
-    // useEffect(() => {
-    //   // Initialize tabs based on clientType
-    //   if (clientType === "minor") {
-    //     setClientTabs([
-    //       { id: "client", label: "Client" },
-    //       { id: "contact", label: "Contact" },
-    //     ]);
-    //     setActiveTab("client");
-    //   } else if (clientType === "couple") {
-    //     setClientTabs([
-    //       { id: "client-1", label: "Client 1" },
-    //       { id: "client-2", label: "Client 2" },
-    //     ]);
-    //     setActiveTab("client-1");
-    //   } else if (clientType === "family") {
-    //     setClientTabs([{ id: "client-1", label: "Client 1" }]);
-    //     setActiveTab("client-1");
-    //   }
-    // }, [clientType]);
-
     const addClientTab = () => {
       const newTabId = `client-${clientTabs.length + 1}`;
       const newTabLabel = `Client ${clientTabs.length + 1}`;
       setClientTabs([...clientTabs, { id: newTabId, label: newTabLabel }]);
       setActiveTab(newTabId);
-      form.setFieldValue(`clients.${newTabId}`, {});
+
+      // Initialize the new client with default values
+      form.setFieldValue(`clients.${newTabId}`, {
+        clientType: clientType,
+        legalFirstName: "",
+        legalLastName: "",
+        preferredName: "",
+        dob: "",
+        status: "active",
+        addToWaitlist: false,
+        primaryClinician: "travis",
+        location: "stpete",
+        emails: [],
+        phones: [],
+        notificationOptions: {
+          upcomingAppointments: true,
+          incompleteDocuments: false,
+          cancellations: false,
+        },
+        contactMethod: {
+          text: true,
+          voice: false,
+        },
+      });
     };
 
     const handleExistingClientClick = () => {
+      // Only allow selecting existing clients in the contact tab (client-2)
+      if (activeTab !== "client-2") {
+        return;
+      }
+
       if (selectedClient) {
         // If there's a selected client, remove it
-        form.setFieldValue("clients.contact", {});
+        form.setFieldValue(`clients.${activeTab}`, {});
         onClientRemoved();
       } else {
-        // If no client is selected, show the selection dialog
+        // If no client is selected, show the selection dialog with the active tab
         onSelectExisting(true);
       }
     };
@@ -121,7 +128,7 @@ export const ClientTabs = forwardRef<{ submit: () => void }, ClientTabsProps>(
             <form.Field name={`clients.${tab.id}`}>
               {(field: any) => (
                 <>
-                  {tab.id === "contact" && (
+                  {tab.id === "client-2" && (
                     <div className="px-6 mt-2">
                       <Button
                         className="bg-gray-100 hover:bg-gray-200 text-gray-700"
@@ -140,9 +147,12 @@ export const ClientTabs = forwardRef<{ submit: () => void }, ClientTabsProps>(
                     </div>
                   )}
                   <ClientForm
+                    clearValidationError={clearValidationError}
                     clientType={clientType}
                     field={field}
                     selectedClient={selectedClient}
+                    validationErrors={validationErrors}
+                    tabId={tab.id}
                   />
                 </>
               )}
@@ -153,3 +163,5 @@ export const ClientTabs = forwardRef<{ submit: () => void }, ClientTabsProps>(
     );
   },
 );
+
+ClientTabs.displayName = "ClientTabs";
