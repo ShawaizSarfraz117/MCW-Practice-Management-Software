@@ -86,7 +86,9 @@ export async function POST(request: NextRequest) {
     const requestData = await request.json();
     // Extract client data from numbered keys (client1, client2, etc.)
     const clientDataArray = Object.entries(requestData)
-      .filter(([key]) => key.startsWith("client"))
+      .filter(
+        ([key, value]) => key.startsWith("client") && typeof value === "object",
+      )
       .map(([_, value]) => value as ClientData);
 
     if (clientDataArray.length === 0) {
@@ -118,7 +120,7 @@ export async function POST(request: NextRequest) {
         // Create ClientGroupMembership
         await prisma.clientGroupMembership.create({
           data: {
-            client_group_id: data.clientGroupId,
+            client_group_id: requestData.clientGroupId,
             client_id: client.id,
             role: data.role || null,
             is_contact_only: data.is_contact_only || false,

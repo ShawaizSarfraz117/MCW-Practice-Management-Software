@@ -19,6 +19,7 @@ describe("Client API Integration Tests", () => {
     await prisma.clinician.deleteMany();
     await prisma.userRole.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.clientGroup.deleteMany();
   });
 
   it("GET /api/client should return all clients", async () => {
@@ -92,6 +93,7 @@ describe("Client API Integration Tests", () => {
     const clientGroup = await ClientGroupPrismaFactory.create();
 
     const clientData = {
+      clientGroupId: clientGroup.id,
       client1: {
         legalFirstName: "John",
         legalLastName: "Doe",
@@ -100,7 +102,6 @@ describe("Client API Integration Tests", () => {
         status: "active",
         addToWaitlist: false,
         primaryClinicianId: clinician.id,
-        clientGroupId: clientGroup.id,
         isResponsibleForBilling: true,
         emails: [
           { value: "john@example.com", type: "PRIMARY", permission: "ALLOWED" },

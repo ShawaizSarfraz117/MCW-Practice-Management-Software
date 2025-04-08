@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
+import { useState, useEffect } from "react";
 import { FieldApi } from "@tanstack/react-form";
 import { Plus, Minus } from "lucide-react";
 import {
@@ -15,6 +16,18 @@ import {
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "@mcw/ui";
 import { Client } from "./SelectExistingClient";
 import { EmailEntry, PhoneEntry } from "./CreateClientDrawer";
+import { fetchLocations, fetchClinicians } from "../services/client.service";
+
+interface Location {
+  id: string;
+  name: string;
+}
+
+interface Clinician {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
 
 interface FormState {
   legalFirstName?: string;
@@ -23,8 +36,8 @@ interface FormState {
   dob?: string;
   status?: string;
   addToWaitlist?: boolean;
-  primaryClinician?: string;
-  location?: string;
+  primaryClinicianId?: string;
+  locationId?: string;
   emails?: EmailEntry[];
   phones?: PhoneEntry[];
   notificationOptions?: {
@@ -59,6 +72,28 @@ export function ClientForm({
 }: ClientFormProps) {
   const state = field.state;
   const value = state.value || ({} as FormState);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [clinicians, setClinicians] = useState<Clinician[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [locationsData, cliniciansData] = await Promise.all([
+          fetchLocations(),
+          fetchClinicians(),
+        ]);
+        setLocations(locationsData[0] as Location[]);
+        setClinicians(cliniciansData[0] as Clinician[]);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const isContactTab = clientType === "minor" && tabId === "client-2";
 
@@ -117,7 +152,7 @@ export function ClientForm({
   };
 
   return (
-    <div className="mt-4 px-6">
+    <div className="mt-4 px-6 pb-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Legal first name</Label>
@@ -446,42 +481,50 @@ export function ClientForm({
           <div className="space-y-2">
             <Label>Primary Clinician</Label>
             <Select
-              value={value.primaryClinician || "travis"}
+              value={value.primaryClinicianId || ""}
               onValueChange={(newValue) =>
                 field.setValue({
                   ...value,
-                  primaryClinician: newValue,
+                  primaryClinicianId: newValue,
                 })
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select clinician" />
+                <SelectValue
+                  placeholder={isLoading ? "Loading..." : "Select clinician"}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="travis">Travis McNulty</SelectItem>
-                <SelectItem value="alam">Alam Naqvi</SelectItem>
+                {clinicians.map((clinician) => (
+                  <SelectItem key={clinician.id} value={clinician.id}>
+                    {clinician.first_name} {clinician.last_name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
             <Label>Location</Label>
             <Select
-              value={value.location || "stpete"}
+              value={value.locationId || ""}
               onValueChange={(newValue) =>
                 field.setValue({
                   ...value,
-                  location: newValue,
+                  locationId: newValue,
                 })
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select location" />
+                <SelectValue
+                  placeholder={isLoading ? "Loading..." : "Select location"}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="stpete">
-                  Saint Petersburg McNulty Counseling
-                </SelectItem>
-                <SelectItem value="tampa">Tampa McNulty Counseling</SelectItem>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

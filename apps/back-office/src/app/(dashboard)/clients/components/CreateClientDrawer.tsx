@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 import { useState, useRef, useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
 import { X } from "lucide-react";
@@ -12,6 +11,8 @@ import { Label } from "@mcw/ui";
 import { ClientTabs } from "./ClientTabs";
 import { ClientForm } from "./ClientForm";
 import { SelectExistingClient } from "./SelectExistingClient";
+import { fetchClientGroups, createClient } from "../services/client.service";
+import { ClientGroup } from "@prisma/client";
 
 interface CreateClientDrawerProps {
   open: boolean;
@@ -45,8 +46,8 @@ interface FormState {
   dob: string;
   status: string;
   addToWaitlist: boolean;
-  primaryClinician: string;
-  location: string;
+  primaryClinicianId: string;
+  locationId: string;
   emails: EmailEntry[];
   phones: PhoneEntry[];
   notificationOptions: {
@@ -73,6 +74,9 @@ export function CreateClientDrawer({
 }: CreateClientDrawerProps) {
   const [clientType, setClientType] = useState("adult");
   const [activeTab, setActiveTab] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
+  console.log("🚀 ~ clientGroups:", clientGroups);
   const [selectedClients, setSelectedClients] = useState<
     Record<string, Client | null>
   >({});
@@ -87,6 +91,17 @@ export function CreateClientDrawer({
 
   const tabsRef = useRef<{ submit: () => void }>(null);
 
+  useEffect(() => {
+    const fetchGroups = async () => {
+      const [groups, error] = await fetchClientGroups();
+      if (!error && Array.isArray(groups)) {
+        setClientGroups(groups as ClientGroup[]);
+        setClientType(groups.length > 0 ? groups[0].type : "adult");
+      }
+    };
+    fetchGroups();
+  }, []);
+
   const defaultClientData: FormState = {
     clientType: clientType,
     legalFirstName: "",
@@ -95,8 +110,8 @@ export function CreateClientDrawer({
     dob: "",
     status: "active",
     addToWaitlist: false,
-    primaryClinician: "travis",
-    location: "stpete",
+    primaryClinicianId: "",
+    locationId: "",
     emails: [],
     phones: [],
     notificationOptions: {
@@ -108,6 +123,30 @@ export function CreateClientDrawer({
       text: true,
       voice: false,
     },
+  };
+
+  // Function to reset form state
+  const resetFormState = () => {
+    setClientType("adult");
+    setActiveTab("");
+    setSelectedClients({});
+    setClientTabs([]);
+    setValidationErrors({});
+    setShowSelectExisting(false);
+
+    // Reset form to default values
+    form.setFieldValue("clientType", "adult");
+    form.setFieldValue("clients", {
+      "client-1": { ...defaultClientData },
+    });
+  };
+
+  // Handle drawer close
+  const handleDrawerOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      resetFormState();
+    }
+    onOpenChange(isOpen);
   };
 
   // @ts-expect-error - TODO: Fix form typing
@@ -193,8 +232,12 @@ export function CreateClientDrawer({
     },
     onSubmit: async ({ value }) => {
       console.log("🚀 ~ onSubmit: ~ value:", value);
+      setIsLoading(true);
       const structuredData = structureData(value);
+      await createClient({ body: structuredData });
       console.log("Form submitted:", structuredData);
+      setIsLoading(false);
+      handleDrawerOpenChange(false);
     },
   });
 
@@ -256,6 +299,7 @@ export function CreateClientDrawer({
 
   const structureData = (values: FormValues) => {
     // Filter out empty or undefined client objects
+    const clientGroup = clientGroups.find((group) => group.type === clientType);
     const filteredClients = Object.entries(values.clients).reduce(
       (acc, [key, value]) => {
         if (value && Object.keys(value).length > 0) {
@@ -266,8 +310,10 @@ export function CreateClientDrawer({
       },
       {} as Record<string, FormState>,
     );
-
-    return filteredClients;
+    return {
+      clientGroupId: clientGroup?.id,
+      ...filteredClients,
+    };
   };
 
   const handleSelectExistingClient = (selectedClientParam: Client) => {
@@ -286,8 +332,8 @@ export function CreateClientDrawer({
       dob: "",
       status: "active",
       addToWaitlist: false,
-      primaryClinician: "travis",
-      location: "stpete",
+      primaryClinicianId: "",
+      locationId: "",
       emails: [
         {
           value: selectedClientParam.email,
@@ -337,10 +383,11 @@ export function CreateClientDrawer({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleDrawerOpenChange}>
       <SheetContent
         className="sm:max-w-[500px] p-0 gap-0 [&>button]:hidden"
         side="right"
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {showSelectExisting ? (
           <SelectExistingClient
@@ -362,13 +409,14 @@ export function CreateClientDrawer({
                   className="h-8 w-8"
                   size="icon"
                   variant="ghost"
-                  onClick={() => onOpenChange(false)}
+                  onClick={() => handleDrawerOpenChange(false)}
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>
                 </Button>
                 <Button
                   className="bg-[#2d8467] hover:bg-[#236c53]"
+                  disabled={isLoading}
                   onClick={() => {
                     // Manual validation for active tab only
                     const formData = form.getFieldValue("clients");
@@ -512,7 +560,7 @@ export function CreateClientDrawer({
               </div>
             </div>
 
-            <div className="space-y-6 overflow-y-auto h-[calc(100vh-72px)]">
+            <div className="space-y-6 overflow-y-auto h-[calc(100vh-72px)] pb-10">
               {/* Client Type */}
               <div className="px-6 pt-6">
                 <RadioGroup
@@ -525,22 +573,12 @@ export function CreateClientDrawer({
                     setValidationErrors({});
                   }}
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem id="adult" value="adult" />
-                    <Label htmlFor="adult">Adult</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem id="minor" value="minor" />
-                    <Label htmlFor="minor">Minor</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem id="couple" value="couple" />
-                    <Label htmlFor="couple">Couple</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem id="family" value="family" />
-                    <Label htmlFor="family">Family</Label>
-                  </div>
+                  {clientGroups.map((group) => (
+                    <div key={group.id} className="flex items-center space-x-2">
+                      <RadioGroupItem id={group.id} value={group.type} />
+                      <Label htmlFor={group.id}>{group.name}</Label>
+                    </div>
+                  ))}
                 </RadioGroup>
               </div>
               {clientType !== "adult" ? (

@@ -58,8 +58,8 @@ export const ClientTabs = forwardRef<{ submit: () => void }, ClientTabsProps>(
         dob: "",
         status: "active",
         addToWaitlist: false,
-        primaryClinician: "travis",
-        location: "stpete",
+        primaryClinicianId: "",
+        locationId: "",
         emails: [],
         phones: [],
         notificationOptions: {
