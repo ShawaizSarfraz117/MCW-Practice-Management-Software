@@ -9,6 +9,7 @@ import { createRequest, createRequestWithBody } from "@mcw/utils";
 
 import { DELETE, GET, POST, PUT } from "@/api/client/route";
 
+// eslint-disable-next-line max-lines-per-function
 describe("Client API Integration Tests", () => {
   beforeEach(async () => {
     await prisma.clientReminderPreference.deleteMany();
@@ -154,6 +155,16 @@ describe("Client API Integration Tests", () => {
       },
     });
     const newClinician = await ClinicianPrismaFactory.create();
+    const clientGroup = await ClientGroupPrismaFactory.create();
+
+    // Create initial client group membership
+    await prisma.clientGroupMembership.create({
+      data: {
+        client_id: client.id,
+        client_group_id: clientGroup.id,
+        is_responsible_for_billing: false,
+      },
+    });
 
     const updateData = {
       id: client.id,
@@ -162,6 +173,8 @@ describe("Client API Integration Tests", () => {
       preferredName: "Janey",
       status: "active",
       primaryClinicianId: newClinician.id,
+      clientGroupId: clientGroup.id,
+      isResponsibleForBilling: true,
       emails: [
         { value: "jane@example.com", type: "PRIMARY", permission: "ALLOWED" },
       ],
@@ -181,6 +194,14 @@ describe("Client API Integration Tests", () => {
     expect(json).toHaveProperty("preferred_name", updateData.preferredName);
     expect(json).toHaveProperty("is_active", true);
     expect(json).toHaveProperty("primary_clinician_id", newClinician.id);
+    expect(json.ClientGroupMembership[0]).toHaveProperty(
+      "client_group_id",
+      clientGroup.id,
+    );
+    expect(json.ClientGroupMembership[0]).toHaveProperty(
+      "is_responsible_for_billing",
+      true,
+    );
   });
 
   it("DELETE /api/client/?id=<id> should deactivate a client", async () => {
