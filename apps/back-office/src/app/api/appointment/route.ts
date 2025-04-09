@@ -128,52 +128,294 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new appointment
-    const newAppointment = await prisma.appointment.create({
-      data: {
-        type: data.type,
-        title: data.title,
-        is_all_day: data.is_all_day || false,
-        start_date: new Date(data.start_date),
-        end_date: new Date(data.end_date || data.start_date),
-        location_id: data.location_id,
-        created_by: data.created_by,
-        status: data.status || "SCHEDULED",
-        client_id: data.client_id,
-        clinician_id: data.clinician_id,
-        is_recurring: data.is_recurring || false,
-        recurring_rule: data.recurring_rule || data.recurring_pattern,
-        service_id: data.service_id,
-        appointment_fee: data.appointment_fee,
-        recurring_appointment_id: data.recurring_appointment_id,
-      },
-      include: {
-        Client: {
-          select: {
-            id: true,
-            legal_first_name: true,
-            legal_last_name: true,
-            preferred_name: true,
-          },
-        },
-        Clinician: {
-          select: {
-            id: true,
-            first_name: true,
-            last_name: true,
-          },
-        },
-        Location: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-          },
-        },
-      },
-    });
+    // Base appointment data
+    const baseAppointmentData = {
+      type: data.type,
+      title: data.title,
+      is_all_day: data.is_all_day || false,
+      location_id: data.location_id,
+      created_by: data.created_by,
+      status: data.status || "SCHEDULED",
+      client_id: data.client_id,
+      clinician_id: data.clinician_id,
+      service_id: data.service_id,
+      appointment_fee: data.appointment_fee,
+    };
 
-    return NextResponse.json(newAppointment, { status: 201 });
+    // Check if it's a recurring appointment
+    if (data.is_recurring && data.recurring_rule) {
+      // Log the recurring rule
+      console.log(
+        `Processing recurring appointment with rule: ${data.recurring_rule}`,
+      );
+
+      // Parse the recurring rule
+      const freq = data.recurring_rule.match(/FREQ=([^;]+)/)?.[1] || "WEEKLY";
+      const count = parseInt(
+        data.recurring_rule.match(/COUNT=([^;]+)/)?.[1] || "0",
+      );
+      const interval = parseInt(
+        data.recurring_rule.match(/INTERVAL=([^;]+)/)?.[1] || "1",
+      );
+
+      // Parse BYDAY for weekly recurrence with multiple days
+      const byDayMatch = data.recurring_rule.match(/BYDAY=([^;]+)/)?.[1];
+      const byDays = byDayMatch ? byDayMatch.split(",") : [];
+
+      // Create the master appointment
+      const masterAppointment = await prisma.appointment.create({
+        data: {
+          ...baseAppointmentData,
+          start_date: new Date(data.start_date),
+          end_date: new Date(data.end_date || data.start_date),
+          is_recurring: true,
+          recurring_rule: data.recurring_rule,
+        },
+        include: {
+          Client: {
+            select: {
+              id: true,
+              legal_first_name: true,
+              legal_last_name: true,
+              preferred_name: true,
+            },
+          },
+          Clinician: {
+            select: {
+              id: true,
+              first_name: true,
+              last_name: true,
+            },
+          },
+          Location: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+            },
+          },
+        },
+      });
+
+      // Create recurring instances
+      const recurringAppointments = [masterAppointment];
+      const startDate = new Date(data.start_date);
+      const endDate = new Date(data.end_date || data.start_date);
+      const duration = endDate.getTime() - startDate.getTime();
+
+      // Define number of occurrences
+      const defaultCount = 4; // Default to 4 weeks if no count specified
+      const maxOccurrences = count > 0 ? count : defaultCount;
+
+      // For WEEKLY frequency with BYDAY parameter
+      if (freq === "WEEKLY" && byDays.length > 0) {
+        // Map of day codes to day indices (0 = Sunday, 1 = Monday, etc.)
+        const dayCodeToIndex: Record<string, number> = {
+          SU: 0,
+          MO: 1,
+          TU: 2,
+          WE: 3,
+          TH: 4,
+          FR: 5,
+          SA: 6,
+        };
+
+        // Get the day of the week for the start date (0-6)
+        const startDayOfWeek = startDate.getDay();
+
+        // Calculate the start of the current week (Sunday)
+        const startOfWeek = new Date(startDate);
+        startOfWeek.setDate(startDate.getDate() - startDayOfWeek);
+
+        // Count how many appointments we've created
+        let createdCount = 0;
+
+        // Create appointments for each specified day for several weeks
+        for (
+          let week = 0;
+          week < Math.ceil(maxOccurrences / byDays.length);
+          week++
+        ) {
+          // For each day specified in BYDAY
+          for (const dayCode of byDays) {
+            // Skip if we've reached the maximum count
+            if (createdCount >= maxOccurrences) break;
+
+            const dayIndex = dayCodeToIndex[dayCode];
+            if (dayIndex === undefined) continue; // Invalid day code
+
+            // Calculate the date for this appointment
+            const appointmentDate = new Date(startOfWeek);
+            appointmentDate.setDate(
+              startOfWeek.getDate() + dayIndex + week * 7 * interval,
+            );
+
+            // Skip if this date is before the start date
+            if (appointmentDate < startDate) continue;
+
+            // Skip if this is exactly the same as the master appointment's date
+            if (
+              appointmentDate.toISOString().split("T")[0] ===
+                startDate.toISOString().split("T")[0] &&
+              dayIndex === startDayOfWeek &&
+              week === 0
+            ) {
+              continue;
+            }
+
+            // Calculate end date for this occurrence
+            const appointmentEndDate = new Date(
+              appointmentDate.getTime() + duration,
+            );
+
+            try {
+              // Create the recurring appointment
+              const recurringAppointment = await prisma.appointment.create({
+                data: {
+                  ...baseAppointmentData,
+                  start_date: appointmentDate,
+                  end_date: appointmentEndDate,
+                  is_recurring: true,
+                  recurring_rule: data.recurring_rule,
+                  recurring_appointment_id: masterAppointment.id,
+                },
+                include: {
+                  Client: {
+                    select: {
+                      id: true,
+                      legal_first_name: true,
+                      legal_last_name: true,
+                      preferred_name: true,
+                    },
+                  },
+                  Clinician: {
+                    select: {
+                      id: true,
+                      first_name: true,
+                      last_name: true,
+                    },
+                  },
+                  Location: {
+                    select: {
+                      id: true,
+                      name: true,
+                      address: true,
+                    },
+                  },
+                },
+              });
+
+              recurringAppointments.push(recurringAppointment);
+              createdCount++;
+            } catch (error) {
+              console.error(
+                `Failed to create recurring appointment for date ${appointmentDate.toISOString()}:`,
+                error,
+              );
+            }
+          }
+        }
+
+        return NextResponse.json(recurringAppointments, { status: 201 });
+      } else {
+        // Handle standard recurrence (not using BYDAY with multiple days)
+        // Calculate occurrences (max 10 for this implementation)
+        const maxOccurrencesStandard = Math.min(count > 0 ? count - 1 : 9, 9);
+
+        for (let i = 0; i < maxOccurrencesStandard; i++) {
+          // Calculate the next occurrence date based on frequency
+          const nextDate = new Date(startDate);
+
+          if (freq === "WEEKLY") {
+            nextDate.setDate(nextDate.getDate() + (i + 1) * 7 * interval);
+          } else if (freq === "MONTHLY") {
+            nextDate.setMonth(nextDate.getMonth() + (i + 1) * interval);
+          } else if (freq === "YEARLY") {
+            nextDate.setFullYear(nextDate.getFullYear() + (i + 1) * interval);
+          }
+
+          // Calculate end date for this occurrence
+          const nextEndDate = new Date(nextDate.getTime() + duration);
+
+          // Create the recurring appointment
+          const recurringAppointment = await prisma.appointment.create({
+            data: {
+              ...baseAppointmentData,
+              start_date: nextDate,
+              end_date: nextEndDate,
+              is_recurring: true,
+              recurring_rule: data.recurring_rule,
+              recurring_appointment_id: masterAppointment.id,
+            },
+            include: {
+              Client: {
+                select: {
+                  id: true,
+                  legal_first_name: true,
+                  legal_last_name: true,
+                  preferred_name: true,
+                },
+              },
+              Clinician: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                },
+              },
+              Location: {
+                select: {
+                  id: true,
+                  name: true,
+                  address: true,
+                },
+              },
+            },
+          });
+
+          recurringAppointments.push(recurringAppointment);
+        }
+
+        return NextResponse.json(recurringAppointments, { status: 201 });
+      }
+    } else {
+      // Not recurring, create a single appointment
+      const newAppointment = await prisma.appointment.create({
+        data: {
+          ...baseAppointmentData,
+          start_date: new Date(data.start_date),
+          end_date: new Date(data.end_date || data.start_date),
+          is_recurring: false,
+          recurring_rule: null,
+        },
+        include: {
+          Client: {
+            select: {
+              id: true,
+              legal_first_name: true,
+              legal_last_name: true,
+              preferred_name: true,
+            },
+          },
+          Clinician: {
+            select: {
+              id: true,
+              first_name: true,
+              last_name: true,
+            },
+          },
+          Location: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+            },
+          },
+        },
+      });
+
+      return NextResponse.json(newAppointment, { status: 201 });
+    }
   } catch (error) {
     console.error("Error creating appointment:", error);
     return NextResponse.json(

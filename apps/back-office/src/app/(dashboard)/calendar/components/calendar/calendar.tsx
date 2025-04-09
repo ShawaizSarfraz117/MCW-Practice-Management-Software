@@ -6,6 +6,7 @@ import resourceTimeGridPlugin from "@fullcalendar/resource-timegrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { EventClickArg } from "@fullcalendar/core";
 import { ChevronLeft, ChevronRight, Columns } from "lucide-react";
 import {
   Button,
@@ -311,6 +312,78 @@ export function CalendarView({
       values.allDay,
     );
 
+    // Parse recurring information if it exists in the form values
+    interface RecurringInfo {
+      frequency: string;
+      period: string;
+      selectedDays: string[];
+      monthlyPattern?: string;
+      endType: string;
+      endValue: string | undefined;
+    }
+
+    const recurringInfo = (values as { recurringInfo?: RecurringInfo })
+      .recurringInfo;
+
+    // Format recurring rule in RFC5545 format (iCalendar standard)
+    let recurringRule = null;
+    if (values.recurring && recurringInfo) {
+      // Build the recurring rule in RFC5545 format
+      // Basic format: FREQ=DAILY|WEEKLY|MONTHLY;INTERVAL=n;BYDAY=MO,TU,WE;COUNT=n;UNTIL=date
+      const parts = [`FREQ=${recurringInfo.period}`];
+
+      // Add interval (frequency)
+      if (recurringInfo.frequency && parseInt(recurringInfo.frequency) > 1) {
+        parts.push(`INTERVAL=${recurringInfo.frequency}`);
+      }
+
+      // Add weekdays for weekly recurrence
+      if (
+        recurringInfo.period === "WEEKLY" &&
+        recurringInfo.selectedDays?.length > 0
+      ) {
+        parts.push(`BYDAY=${recurringInfo.selectedDays.join(",")}`);
+      }
+
+      // Add monthly pattern if specified
+      if (recurringInfo.period === "MONTHLY" && recurringInfo.monthlyPattern) {
+        if (recurringInfo.monthlyPattern === "onDateOfMonth") {
+          // Use BYMONTHDAY for same day each month
+          const dayOfMonth = values.startDate.getDate();
+          parts.push(`BYMONTHDAY=${dayOfMonth}`);
+        } else if (recurringInfo.monthlyPattern === "onWeekDayOfMonth") {
+          // Use BYDAY with ordinal for same weekday each month (e.g., 2nd Monday)
+          const dayOfWeek = values.startDate.getDay();
+          const weekNumber = Math.ceil(values.startDate.getDate() / 7);
+          const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+          parts.push(`BYDAY=${weekNumber}${days[dayOfWeek]}`);
+        } else if (recurringInfo.monthlyPattern === "onLastWeekDayOfMonth") {
+          // Use BYDAY with -1 for last weekday of month
+          const dayOfWeek = values.startDate.getDay();
+          const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+          parts.push(`BYDAY=-1${days[dayOfWeek]}`);
+        }
+      }
+
+      // Add end condition
+      if (recurringInfo.endType === "After" && recurringInfo.endValue) {
+        parts.push(`COUNT=${recurringInfo.endValue}`);
+      } else if (
+        recurringInfo.endType === "On Date" &&
+        recurringInfo.endValue
+      ) {
+        // Format the end date as YYYYMMDD for UNTIL
+        const endDate = new Date(recurringInfo.endValue);
+        const year = endDate.getFullYear();
+        const month = String(endDate.getMonth() + 1).padStart(2, "0");
+        const day = String(endDate.getDate()).padStart(2, "0");
+        parts.push(`UNTIL=${year}${month}${day}T235959Z`);
+      }
+
+      recurringRule = parts.join(";");
+      console.log("Generated recurring rule:", recurringRule);
+    }
+
     // Create API payload
     const appointmentData = {
       type: values.type || "APPOINTMENT",
@@ -329,7 +402,7 @@ export function CalendarView({
       created_by: session?.user?.id || "", // Current user as creator
       status: "SCHEDULED",
       is_recurring: values.recurring || false,
-      recurring_rule: values.recurring ? "WEEKLY" : null, // Simple default
+      recurring_rule: recurringRule,
       service_id: values.selectedServices?.[0]?.serviceId || null,
       appointment_fee: values.selectedServices?.[0]?.fee || null,
     };
@@ -341,6 +414,8 @@ export function CalendarView({
         endDate: values.endDate,
         endTime: values.endTime,
         isAllDay: values.allDay,
+        recurring: values.recurring,
+        recurringRule,
       },
       formatted: {
         startDateTime,
@@ -378,18 +453,23 @@ export function CalendarView({
       .then((createdAppointment) => {
         console.log("Appointment created:", createdAppointment);
 
-        // Add the new event to the calendar
-        const newEvent = {
-          id: createdAppointment.id,
-          resourceId: createdAppointment.clinician_id || "",
-          title: createdAppointment.title,
-          start: createdAppointment.start_date,
-          end: createdAppointment.end_date,
-          location: createdAppointment.location_id || "",
-        };
+        // Handle recurring appointments - API may return an array of appointments
+        const appointments = Array.isArray(createdAppointment)
+          ? createdAppointment
+          : [createdAppointment];
 
-        // Add the new event to the calendar
-        _setEvents((prevEvents) => [...prevEvents, newEvent]);
+        // Add the new events to the calendar
+        const newEvents = appointments.map((appointment) => ({
+          id: appointment.id,
+          resourceId: appointment.clinician_id || "",
+          title: appointment.title,
+          start: appointment.start_date,
+          end: appointment.end_date,
+          location: appointment.location_id || "",
+        }));
+
+        // Add the new events to the calendar
+        _setEvents((prevEvents) => [...prevEvents, ...newEvents]);
       })
       .catch((error) => {
         console.error("Error creating appointment:", error);
@@ -474,16 +554,8 @@ export function CalendarView({
     }
   };
 
-  // Use the original eventClick handler
-  const handleEventClick = (info: {
-    event: {
-      id: string;
-      title: string;
-      start: Date;
-      end: Date;
-      extendedProps: Record<string, unknown>;
-    };
-  }) => {
+  // Use the event click handler with the proper EventClickArg type
+  const handleEventClick = (info: EventClickArg) => {
     // Get the appointment ID from the event
     const appointmentId = info.event.id;
     fetchAppointmentDetails(appointmentId);
@@ -768,11 +840,15 @@ export function CalendarView({
 
       <AppointmentDialog
         open={isDialogOpen}
-        selectedDate={selectedDate}
+        selectedDate={selectedDate || new Date()}
         selectedResource={selectedResource}
-        appointmentData={isViewingAppointment ? selectedAppointment : undefined}
+        appointmentData={
+          isViewingAppointment && selectedAppointment
+            ? (selectedAppointment as unknown as Record<string, unknown>)
+            : undefined
+        }
         isViewMode={isViewingAppointment}
-        onCreateClient={onCreateClient}
+        onCreateClient={(date, time) => onCreateClient?.(date, time)}
         onDone={handleAppointmentSubmit}
         onOpenChange={setIsDialogOpen}
       />

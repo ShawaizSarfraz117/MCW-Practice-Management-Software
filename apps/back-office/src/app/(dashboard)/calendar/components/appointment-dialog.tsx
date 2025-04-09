@@ -97,6 +97,14 @@ interface FormValues {
   allDay: boolean;
   cancelAppointments: boolean;
   notifyClients: boolean;
+  recurringInfo?: {
+    frequency: string;
+    period: string;
+    selectedDays: string[];
+    monthlyPattern?: string;
+    endType: string;
+    endValue: string | undefined;
+  };
 }
 
 // Custom hook to get clinician data for the current user
@@ -1479,6 +1487,11 @@ export function AppointmentDialog({
                           visible={true}
                           onRecurringChange={(recurringValues) => {
                             console.log("Recurring values:", recurringValues);
+                            // Store the recurring values in the form state
+                            form.setFieldValue(
+                              "recurringInfo",
+                              recurringValues,
+                            );
                           }}
                         />
                       )}
