@@ -95,7 +95,8 @@ export function ClientForm({
     loadData();
   }, []);
 
-  const isContactTab = clientType === "minor" && tabId === "client-2";
+  const isContactTab = tabId === "client-2";
+  const shouldShowClinicianAndLocation = clientType === "minor" && isContactTab;
 
   // Helper to handle input changes with validation clearing
   const handleInputChange = (fieldName: string, newValue: string) => {
@@ -477,58 +478,60 @@ export function ClientForm({
         </div>
 
         {/* Clinician and Location */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div className="space-y-2">
-            <Label>Primary Clinician</Label>
-            <Select
-              value={value.primaryClinicianId || ""}
-              onValueChange={(newValue) =>
-                field.setValue({
-                  ...value,
-                  primaryClinicianId: newValue,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={isLoading ? "Loading..." : "Select clinician"}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {clinicians.map((clinician) => (
-                  <SelectItem key={clinician.id} value={clinician.id}>
-                    {clinician.first_name} {clinician.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {shouldShowClinicianAndLocation && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="space-y-2">
+              <Label>Primary Clinician</Label>
+              <Select
+                value={value.primaryClinicianId || ""}
+                onValueChange={(newValue) =>
+                  field.setValue({
+                    ...value,
+                    primaryClinicianId: newValue,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={isLoading ? "Loading..." : "Select clinician"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {clinicians.map((clinician) => (
+                    <SelectItem key={clinician.id} value={clinician.id}>
+                      {clinician.first_name} {clinician.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Select
+                value={value.locationId || ""}
+                onValueChange={(newValue) =>
+                  field.setValue({
+                    ...value,
+                    locationId: newValue,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={isLoading ? "Loading..." : "Select location"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Location</Label>
-            <Select
-              value={value.locationId || ""}
-              onValueChange={(newValue) =>
-                field.setValue({
-                  ...value,
-                  locationId: newValue,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={isLoading ? "Loading..." : "Select location"}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((location) => (
-                  <SelectItem key={location.id} value={location.id}>
-                    {location.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Notification Settings */}

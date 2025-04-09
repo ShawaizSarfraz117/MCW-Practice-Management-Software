@@ -76,7 +76,6 @@ export function CreateClientDrawer({
   const [activeTab, setActiveTab] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
-  console.log("🚀 ~ clientGroups:", clientGroups);
   const [selectedClients, setSelectedClients] = useState<
     Record<string, Client | null>
   >({});
@@ -231,11 +230,9 @@ export function CreateClientDrawer({
       },
     },
     onSubmit: async ({ value }) => {
-      console.log("🚀 ~ onSubmit: ~ value:", value);
       setIsLoading(true);
       const structuredData = structureData(value);
       await createClient({ body: structuredData });
-      console.log("Form submitted:", structuredData);
       setIsLoading(false);
       handleDrawerOpenChange(false);
     },
