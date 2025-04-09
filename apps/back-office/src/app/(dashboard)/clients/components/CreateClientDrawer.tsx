@@ -12,6 +12,11 @@ import { ClientForm } from "./ClientForm";
 import { SelectExistingClient } from "./SelectExistingClient";
 import { fetchClientGroups, createClient } from "../services/client.service";
 import { ClientGroup } from "@prisma/client";
+import {
+  validateClient,
+  hasErrors,
+  ValidationErrors,
+} from "../utils/validation";
 
 interface CreateClientDrawerProps {
   open: boolean;
@@ -82,7 +87,7 @@ export function CreateClientDrawer({
     Array<{ id: string; label: string }>
   >([]);
   const [validationErrors, setValidationErrors] = useState<
-    Record<string, Record<string, string[]>>
+    Record<string, ValidationErrors>
   >({});
 
   const [showSelectExisting, setShowSelectExisting] = useState(false);
@@ -157,54 +162,14 @@ export function CreateClientDrawer({
     },
     validatorAdapter: {
       validate: (values: FormValues) => {
-        // Email validation regex
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
         // Validate each client
         const clientsValidation = Object.entries(values.clients).reduce(
           (acc, [key, client]) => {
-            // Skip empty clients
-            if (!client) return acc;
+            const isContactTab = clientType === "minor" && key === "client-2";
+            const errors = validateClient(client, isContactTab);
 
-            const clientErrors: Record<string, string> = {};
-
-            // Required field validations
-            if (!client.legalFirstName || client.legalFirstName.trim() === "") {
-              clientErrors.legalFirstName = "First name is required";
-            }
-
-            if (!client.legalLastName || client.legalLastName.trim() === "") {
-              clientErrors.legalLastName = "Last name is required";
-            }
-
-            // DOB validation - only for non-contact tabs
-            const isContactTab =
-              clientType === "minor" && activeTab === "client-2";
-            if (!isContactTab && (!client.dob || client.dob.trim() === "")) {
-              clientErrors.dob = "Date of Birth is required";
-            }
-
-            // Contact method validation
-            const hasValidEmail =
-              client.emails &&
-              client.emails.length > 0 &&
-              client.emails.some(
-                (e) => e.value.trim() !== "" && emailRegex.test(e.value),
-              );
-
-            const hasPhone =
-              client.phones &&
-              client.phones.length > 0 &&
-              client.phones.some((p) => p.value.trim() !== "");
-
-            if (!hasValidEmail && !hasPhone) {
-              clientErrors.emails =
-                "At least one valid contact method (email or phone) is required";
-            }
-
-            // Add errors for this client if any were found
-            if (Object.keys(clientErrors).length > 0) {
-              acc[key] = { meta: { errors: clientErrors } };
+            if (hasErrors(errors)) {
+              acc[key] = { meta: { errors } };
             }
 
             return acc;
@@ -406,137 +371,48 @@ export function CreateClientDrawer({
                   onClick={() => {
                     // Manual validation for active tab only
                     const formData = form.getFieldValue("clients");
-                    const currentTabErrors: Record<string, string[]> = {};
-                    let isValid = true;
+                    const currentTabClient = formData?.[activeTab];
+                    const isContactTab =
+                      clientType === "minor" && activeTab === "client-2";
 
-                    const currentTabClient = formData
-                      ? formData[activeTab]
-                      : null;
+                    const currentTabErrors = validateClient(
+                      currentTabClient,
+                      isContactTab,
+                    );
+                    const isValid = !hasErrors(currentTabErrors);
 
-                    if (currentTabClient) {
-                      // Validate required fields
-                      if (
-                        !currentTabClient.legalFirstName ||
-                        currentTabClient.legalFirstName.trim() === ""
-                      ) {
-                        currentTabErrors.legalFirstName = [
-                          "First name is required",
-                        ];
-                        isValid = false;
-                      }
+                    // Update validation errors in state - only update for the active tab
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      [activeTab]: currentTabErrors,
+                    }));
 
-                      if (
-                        !currentTabClient.legalLastName ||
-                        currentTabClient.legalLastName.trim() === ""
-                      ) {
-                        currentTabErrors.legalLastName = [
-                          "Last name is required",
-                        ];
-                        isValid = false;
-                      }
+                    if (isValid) {
+                      // If all tabs are valid, then submit
+                      let allTabsValid = true;
 
-                      // DOB validation - only for non-contact tabs
-                      const isContactTab =
-                        clientType === "minor" && activeTab === "client-2";
-                      if (
-                        !isContactTab &&
-                        (!currentTabClient.dob ||
-                          currentTabClient.dob.trim() === "")
-                      ) {
-                        currentTabErrors.dob = ["Date of Birth is required"];
-                        isValid = false;
-                      }
-                      // Email validation regex
-                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                      // Check if we need to validate all tabs or just the current one
+                      if (clientType !== "adult") {
+                        // For family, couple, or minor types, validate all tabs
+                        for (const tab of clientTabs) {
+                          const tabClient = formData?.[tab.id];
+                          const isTabContactTab =
+                            clientType === "minor" && tab.id === "client-2";
+                          const tabErrors = validateClient(
+                            tabClient,
+                            isTabContactTab,
+                          );
 
-                      // Contact method validation
-                      const hasValidEmail =
-                        currentTabClient.emails &&
-                        currentTabClient.emails.length > 0 &&
-                        currentTabClient.emails.some(
-                          (e: EmailEntry) =>
-                            e.value.trim() !== "" && emailRegex.test(e.value),
-                        );
-
-                      const hasPhone =
-                        currentTabClient.phones &&
-                        currentTabClient.phones.length > 0 &&
-                        currentTabClient.phones.some(
-                          (p: PhoneEntry) => p.value.trim() !== "",
-                        );
-
-                      if (!hasValidEmail && !hasPhone) {
-                        currentTabErrors.emails = [
-                          "At least one valid contact method (email or phone) is required",
-                        ];
-                        isValid = false;
-                      }
-
-                      // Update validation errors in state - only update for the active tab
-                      setValidationErrors((prev) => ({
-                        ...prev,
-                        [activeTab]:
-                          Object.keys(currentTabErrors).length > 0
-                            ? currentTabErrors
-                            : {},
-                      }));
-
-                      if (isValid) {
-                        // If all tabs are valid, then submit
-                        let allTabsValid = true;
-
-                        // Check if we need to validate all tabs or just the current one
-                        if (clientType !== "adult") {
-                          // For family, couple, or minor types, validate all tabs
-                          for (const tab of clientTabs) {
-                            const tabClient = formData?.[tab.id];
-                            if (!tabClient) {
-                              allTabsValid = false;
-                              setActiveTab(tab.id);
-                              break;
-                            }
-
-                            const isContactTabCheck =
-                              clientType === "minor" && tab.id === "client-2";
-
-                            // Basic validation for all tabs
-                            if (
-                              !tabClient.legalFirstName ||
-                              !tabClient.legalLastName
-                            ) {
-                              allTabsValid = false;
-                              setActiveTab(tab.id);
-                              break;
-                            }
-
-                            // DOB validation only for non-contact tabs
-                            if (!isContactTabCheck && !tabClient.dob) {
-                              allTabsValid = false;
-                              setActiveTab(tab.id);
-                              break;
-                            }
-
-                            // Contact method validation for all tabs
-                            if (
-                              !(
-                                tabClient.emails?.some(
-                                  (e: EmailEntry) => e.value.trim() !== "",
-                                ) ||
-                                tabClient.phones?.some(
-                                  (p: PhoneEntry) => p.value.trim() !== "",
-                                )
-                              )
-                            ) {
-                              allTabsValid = false;
-                              setActiveTab(tab.id);
-                              break;
-                            }
+                          if (hasErrors(tabErrors)) {
+                            allTabsValid = false;
+                            setActiveTab(tab.id);
+                            break;
                           }
                         }
+                      }
 
-                        if (allTabsValid) {
-                          form.handleSubmit();
-                        }
+                      if (allTabsValid) {
+                        form.handleSubmit();
                       }
                     }
                   }}
