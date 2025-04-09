@@ -1,23 +1,24 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { signOut } from "next-auth/react";
 
 const ROUTES = {
   BASE_URL: `/api`,
 };
 
-// type SearchParams = Record<string, string | number | boolean>;
+type SearchParams = Record<string, string | number | boolean>;
 type AuthHeaders = {
   Authorization?: string;
   Accept: string;
   "Content-Type"?: string;
   "Accept-Encoding"?: string;
 };
-type ResponseData = unknown; // Adjust this type based on the actual response structure
+
+// Define a more specific response type that can be extended where needed
+type ResponseData<T = unknown> = T;
 
 interface FetchParams {
   url: string;
   id?: string | number | null;
-  searchParams?: unknown;
+  searchParams?: SearchParams | null;
   auth?: boolean;
   token?: string | null;
   body?: unknown;
@@ -84,7 +85,7 @@ const post = async ({
     const promise = await fetch(`${ROUTES.BASE_URL}/${url}`, {
       method: "POST",
       headers,
-      body: isFormData ? body : (JSON.stringify(body) as any),
+      body: isFormData ? (body as FormData) : JSON.stringify(body),
     });
 
     if (!promise.ok) {
@@ -94,12 +95,16 @@ const post = async ({
 
     const data = await promise.json();
     return data;
-  } catch (ex: any) {
+  } catch (ex: unknown) {
     if (ex instanceof TypeError && ex.message === "Failed to fetch") {
       throw new Error("Network Error: Please check your internet connection");
     }
 
-    throw new Error(ex);
+    if (ex instanceof Error) {
+      throw ex;
+    }
+
+    throw new Error("An unknown error occurred");
   }
 };
 
@@ -121,7 +126,7 @@ const update = async ({
       {
         method: "PUT",
         headers,
-        body: isFormData ? body : (JSON.stringify(body) as any),
+        body: isFormData ? (body as FormData) : JSON.stringify(body),
       },
     );
 
@@ -134,8 +139,11 @@ const update = async ({
       const res = await promise.json();
       return res;
     } else return null;
-  } catch (error: any) {
-    throw new Error(error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("An unknown error occurred");
   }
 };
 

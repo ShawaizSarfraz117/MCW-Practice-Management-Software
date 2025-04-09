@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
 import { X } from "lucide-react";
@@ -38,7 +37,7 @@ interface Client {
   email: string;
 }
 
-interface FormState {
+export interface FormState {
   clientType: string;
   legalFirstName: string;
   legalLastName: string;
@@ -165,7 +164,6 @@ export function CreateClientDrawer({
         const clientsValidation = Object.entries(values.clients).reduce(
           (acc, [key, client]) => {
             // Skip empty clients
-            console.log("🚀 ~ clientsValidation ~ client:", client);
             if (!client) return acc;
 
             const clientErrors: Record<string, string> = {};
@@ -184,15 +182,6 @@ export function CreateClientDrawer({
               clientType === "minor" && activeTab === "client-2";
             if (!isContactTab && (!client.dob || client.dob.trim() === "")) {
               clientErrors.dob = "Date of Birth is required";
-            }
-
-            // For contact tab in minor client type, validate is_responsible_for_billing
-            if (
-              isContactTab &&
-              client.is_responsible_for_billing === undefined
-            ) {
-              clientErrors.is_responsible_for_billing =
-                "Please specify if contact is responsible for billing";
             }
 
             // Contact method validation
@@ -220,7 +209,7 @@ export function CreateClientDrawer({
 
             return acc;
           },
-          {} as Record<string, any>,
+          {} as Record<string, unknown>,
         );
 
         return {
@@ -597,7 +586,7 @@ export function CreateClientDrawer({
                 />
               ) : (
                 <form.Field name="clients.client-1">
-                  {(field: any) => (
+                  {(field) => (
                     <ClientForm
                       clearValidationError={(fieldName) =>
                         clearValidationError("client-1", fieldName)
