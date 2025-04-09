@@ -171,8 +171,8 @@ export const ClientContactFactory = {
 export const ClientGroupFactory = {
   build: <T extends Partial<ClientGroup>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
+    type: faker.helpers.arrayElement(["FAMILY", "INDIVIDUAL", "ORGANIZATION"]),
     name: faker.company.name(),
-    description: faker.lorem.sentence(),
     ...overrides,
   }),
 };

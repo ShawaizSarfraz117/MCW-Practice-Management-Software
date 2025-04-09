@@ -12,16 +12,24 @@ import {
 import { Button, Input, Card } from "@mcw/ui";
 import ClientTable from "./ClientTable";
 import { useRouter } from "next/navigation";
+import { CreateClientDrawer } from "@/(dashboard)/clients/components/CreateClientDrawer";
 
 export default function Clients() {
   const [sortBy, _setSortBy] = useState("last name");
+  const [createClientOpen, setCreateClientOpen] = useState(false);
   const router = useRouter();
+
   const handleRedirect = (id: string) => {
     router.push(`/clients/${id}`);
   };
   return (
     <div className="flex-1 overflow-auto">
       <main className="p-6">
+        <CreateClientDrawer
+          open={createClientOpen}
+          onOpenChange={setCreateClientOpen}
+        />
+
         {/* Transfer Client Data Card */}
         <Card className="mb-8 p-6 relative">
           <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
@@ -57,7 +65,10 @@ export default function Clients() {
             <h2 className="text-xl font-semibold">Clients and contacts</h2>
             <p className="text-sm text-gray-500">Total Clients: 3</p>
           </div>
-          <Button className="bg-[#2d8467] hover:bg-[#236c53]">
+          <Button
+            className="bg-[#2d8467] hover:bg-[#236c53]"
+            onClick={() => setCreateClientOpen(true)}
+          >
             Add New Client
           </Button>
         </div>
