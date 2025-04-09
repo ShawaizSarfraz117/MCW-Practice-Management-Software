@@ -54,7 +54,7 @@ export function ContactDetailsSection({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-4">
       <div className="flex flex-col gap-1">
         <h3 className="text-lg font-medium">Contact details</h3>
         <p className="text-xs text-gray-500">
