@@ -116,8 +116,9 @@ export function ClientForm({
           <Label>Legal first name</Label>
           <Input
             className={
-              field.state.meta.errors?.legalFirstName ||
-              validationErrors.legalFirstName
+              !selectedClient && // Only show error state if no client is selected
+              (field.state.meta.errors?.legalFirstName ||
+                validationErrors.legalFirstName)
                 ? "border-red-500"
                 : ""
             }
@@ -128,20 +129,22 @@ export function ClientForm({
               handleInputChange("legalFirstName", e.target.value)
             }
           />
-          {(field.state.meta.errors?.legalFirstName ||
-            validationErrors.legalFirstName?.[0]) && (
-            <p className="text-sm text-red-500 mt-1">
-              {field.state.meta.errors?.legalFirstName ||
-                validationErrors.legalFirstName?.[0]}
-            </p>
-          )}
+          {!selectedClient && // Only show error message if no client is selected
+            (field.state.meta.errors?.legalFirstName ||
+              validationErrors.legalFirstName?.[0]) && (
+              <p className="text-sm text-red-500 mt-1">
+                {field.state.meta.errors?.legalFirstName ||
+                  validationErrors.legalFirstName?.[0]}
+              </p>
+            )}
         </div>
         <div className="space-y-2">
           <Label>Legal last name</Label>
           <Input
             className={
-              field.state.meta.errors?.legalLastName ||
-              validationErrors.legalLastName
+              !selectedClient && // Only show error state if no client is selected
+              (field.state.meta.errors?.legalLastName ||
+                validationErrors.legalLastName)
                 ? "border-red-500"
                 : ""
             }
@@ -150,13 +153,14 @@ export function ClientForm({
             value={value.legalLastName || ""}
             onChange={(e) => handleInputChange("legalLastName", e.target.value)}
           />
-          {(field.state.meta.errors?.legalLastName ||
-            validationErrors.legalLastName?.[0]) && (
-            <p className="text-sm text-red-500 mt-1">
-              {field.state.meta.errors?.legalLastName ||
-                validationErrors.legalLastName?.[0]}
-            </p>
-          )}
+          {!selectedClient && // Only show error message if no client is selected
+            (field.state.meta.errors?.legalLastName ||
+              validationErrors.legalLastName?.[0]) && (
+              <p className="text-sm text-red-500 mt-1">
+                {field.state.meta.errors?.legalLastName ||
+                  validationErrors.legalLastName?.[0]}
+              </p>
+            )}
         </div>
       </div>
 
@@ -208,6 +212,7 @@ export function ClientForm({
                   : ""
               }
               placeholder="DD/MM/YYYY"
+              type="date"
               value={value.dob || ""}
               onChange={(e) => handleInputChange("dob", e.target.value)}
             />
