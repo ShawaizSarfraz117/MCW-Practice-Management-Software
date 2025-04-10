@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const sortBy = searchParams.get("sortBy") || "legal_last_name";
 
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const skip = (page - 1) * limit;
+
     if (id) {
       logger.info("Retrieving specific client");
       const client = await prisma.client.findUnique({
@@ -112,6 +116,8 @@ export async function GET(request: NextRequest) {
         orderBy: {
           [sortBy]: "asc",
         },
+        skip: skip,
+        take: limit,
         include: {
           ClientContact: true,
           Clinician: true,
@@ -124,7 +130,14 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      return NextResponse.json(clients);
+      return NextResponse.json({
+        data: clients,
+        pagination: {
+          page,
+          limit,
+          total: await prisma.client.count({ where: whereCondition }),
+        },
+      });
     }
   } catch (error) {
     console.error("Error fetching clients:", error);

@@ -40,7 +40,9 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
       ) => {
         return (
           <div className="text-gray-500">
-            {row.ClientGroupMembership[0].ClientGroup.name}
+            {row.ClientGroupMembership.length > 0
+              ? row.ClientGroupMembership[0].ClientGroup.name
+              : "No Group"}
           </div>
         );
       },
@@ -96,8 +98,8 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
     {
       key: "waitlist",
       label: "Waitlist",
-      formatter: (row: { is_on_waitlist: boolean }) => (
-        <p>{row.is_on_waitlist ? "Yes" : "No"}</p>
+      formatter: (row: { is_waitlist: boolean }) => (
+        <p>{row.is_waitlist ? "Yes" : "No"}</p>
       ),
     },
   ];

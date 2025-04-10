@@ -14,16 +14,27 @@ interface ClientGroup {
   name: string;
 }
 
-export const fetchClients = async ({ searchParams = {} }) => {
+interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+}
+
+export const fetchClients = async ({
+  searchParams = {},
+}): Promise<[PaginatedResponse<Client> | null, Error | null]> => {
   try {
     const response = (await FETCH.get({
       url: "/client",
       searchParams,
-    })) as Client[];
+    })) as PaginatedResponse<Client>;
 
     return [response, null];
   } catch (error) {
-    return [null, error];
+    return [null, error instanceof Error ? error : new Error("Unknown error")];
   }
 };
 

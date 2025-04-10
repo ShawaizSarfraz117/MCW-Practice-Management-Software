@@ -208,6 +208,7 @@ export function ClientForm({
                   : ""
               }
               placeholder="DD/MM/YYYY"
+              type="date"
               value={value.dob || ""}
               onChange={(e) => handleInputChange("dob", e.target.value)}
             />

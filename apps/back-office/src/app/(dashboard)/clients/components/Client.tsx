@@ -16,7 +16,10 @@ export default function Clients() {
   const [createClientOpen, setCreateClientOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string[]>(["all"]);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<{
+    data: Client[];
+    pagination: { page: number; limit: number; total: number };
+  }>({ data: [], pagination: { page: 1, limit: 20, total: 0 } });
   const [searchQuery, setSearchQuery] = useState("");
 
   const router = useRouter();
@@ -35,7 +38,12 @@ export default function Clients() {
       },
     });
     if (!error) {
-      setClients(clients as Client[]);
+      setClients(
+        clients as {
+          data: Client[];
+          pagination: { page: number; limit: number; total: number };
+        },
+      );
     }
   };
 
@@ -47,14 +55,9 @@ export default function Clients() {
     { id: "contacts", label: "Contacts" },
   ];
 
-  const handleStatusChange = (checked: boolean, status: string) => {
-    if (checked) {
-      // When a checkbox is checked, it becomes the only selected item
-      setStatusFilter([status]);
-    } else {
-      // When unchecking, clear the selection
-      setStatusFilter([]);
-    }
+  const handleStatusChange = (status: string) => {
+    // Always set to the selected status - no unchecking
+    setStatusFilter([status]);
   };
 
   const sortOptions = [
@@ -65,15 +68,25 @@ export default function Clients() {
   const handleSort = async (field: string) => {
     setSortBy(field);
     setSortDropdownOpen(false);
+    await fetchClientData({ sortBy: field });
+  };
+
+  const fetchClientData = async (params = {}) => {
     const [clients, error] = await fetchClients({
       searchParams: {
         status: statusFilter,
         search: searchQuery,
-        sortBy: field,
+        sortBy,
+        ...params,
       },
     });
     if (!error) {
-      setClients(clients as Client[]);
+      setClients(
+        clients as {
+          data: Client[];
+          pagination: { page: number; limit: number; total: number };
+        },
+      );
     }
   };
 
@@ -81,18 +94,7 @@ export default function Clients() {
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const [clients, error] = await fetchClients({
-        searchParams: {
-          status: statusFilter,
-          sortBy,
-        },
-      });
-      if (!error) {
-        setClients(clients as Client[]);
-      }
-    };
-    fetchData();
+    fetchClientData();
   }, [statusFilter, sortBy]);
 
   useEffect(() => {
@@ -121,6 +123,7 @@ export default function Clients() {
     <div>
       <main className="p-6">
         <CreateClientDrawer
+          fetchClientData={fetchClientData}
           open={createClientOpen}
           onOpenChange={setCreateClientOpen}
         />
@@ -173,7 +176,9 @@ export default function Clients() {
             <div className="relative w-[230px]">
               <form onSubmit={handleSearch}>
                 <Search
+                  aria-label="Search clients"
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer"
+                  role="button"
                   onClick={handleSearch}
                 />
                 <Input
@@ -207,9 +212,7 @@ export default function Clients() {
                           checked={statusFilter.includes(option.id)}
                           className="mr-2"
                           id={`status-${option.id}`}
-                          onCheckedChange={(checked) =>
-                            handleStatusChange(checked as boolean, option.id)
-                          }
+                          onCheckedChange={() => handleStatusChange(option.id)}
                         />
                         <label
                           className="text-sm cursor-pointer"
@@ -256,7 +259,7 @@ export default function Clients() {
             </div>
           </div>
         </div>
-        <ClientTable rows={clients} onRowClick={handleRedirect} />
+        <ClientTable rows={clients.data} onRowClick={handleRedirect} />
       </main>
     </div>
   );

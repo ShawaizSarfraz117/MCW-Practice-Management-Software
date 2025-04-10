@@ -22,6 +22,7 @@ interface CreateClientDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultAppointmentDate?: string;
+  fetchClientData: () => void;
 }
 
 export interface EmailEntry {
@@ -75,6 +76,7 @@ export function CreateClientDrawer({
   open,
   onOpenChange,
   defaultAppointmentDate = "Tuesday, Oct 22, 2025 @ 12:00 PM",
+  fetchClientData,
 }: CreateClientDrawerProps) {
   const [clientType, setClientType] = useState("adult");
   const [activeTab, setActiveTab] = useState("");
@@ -189,6 +191,7 @@ export function CreateClientDrawer({
       await createClient({ body: structuredData });
       setIsLoading(false);
       handleDrawerOpenChange(false);
+      await fetchClientData();
     },
   });
 
