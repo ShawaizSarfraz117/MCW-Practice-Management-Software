@@ -1,4 +1,5 @@
 import { FETCH } from "@mcw/utils";
+import { Client } from "@prisma/client";
 
 interface Location {
   id: string;
@@ -12,6 +13,19 @@ interface ClientGroup {
   type: string;
   name: string;
 }
+
+export const fetchClients = async ({ searchParams = {} }) => {
+  try {
+    const response = (await FETCH.get({
+      url: "/client",
+      searchParams,
+    })) as Client[];
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
 
 export const createClient = async ({ body = {} }) => {
   try {

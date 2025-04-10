@@ -10,6 +10,7 @@ import {
 
 interface Column {
   key: string;
+  label: string;
   value: string;
   // TODO: Add right type
   formatter?: (value: unknown) => React.ReactNode;
@@ -50,7 +51,7 @@ const DataTable: React.FC<TableProps> = ({ rows, columns, onRowClick }) => {
             <TableRow className="bg-gray-50">
               {columns.map((column, index) => (
                 <TableHead key={index} className="font-medium">
-                  {column.key}
+                  {column.label}
                 </TableHead>
               ))}
             </TableRow>
