@@ -150,6 +150,17 @@ export function CreateClientDrawer({
   const handleDrawerOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       resetFormState();
+    } else {
+      // Reset validation errors when opening the drawer
+      setValidationErrors({});
+      // Set initial client type and form data
+      const initialClientType =
+        clientGroups.length > 0 ? clientGroups[0].type : "adult";
+      setClientType(initialClientType);
+      form.setFieldValue("clientType", initialClientType);
+      form.setFieldValue("clients", {
+        "client-1": { ...defaultClientData, clientType: initialClientType },
+      });
     }
     onOpenChange(isOpen);
   };
@@ -186,12 +197,29 @@ export function CreateClientDrawer({
       },
     },
     onSubmit: async ({ value }) => {
+      // Validate all clients before submitting
+      const allClientsValid = Object.entries(value.clients).every(
+        ([key, client]) => {
+          const isContactTab = clientType === "minor" && key === "client-2";
+          const errors = validateClient(client, isContactTab);
+          if (hasErrors(errors)) {
+            setValidationErrors((prev) => ({ ...prev, [key]: errors }));
+            return false;
+          }
+          return true;
+        },
+      );
+
+      if (!allClientsValid) {
+        return;
+      }
+
       setIsLoading(true);
       const structuredData = structureData(value);
       await createClient({ body: structuredData });
       setIsLoading(false);
       handleDrawerOpenChange(false);
-      await fetchClientData();
+      fetchClientData();
     },
   });
 
@@ -306,6 +334,20 @@ export function CreateClientDrawer({
         voice: false,
       },
     };
+
+    // Clear validation errors for populated fields
+    setValidationErrors((prev) => {
+      const updatedErrors = { ...prev };
+      if (updatedErrors[activeTab]) {
+        const tabErrors = { ...updatedErrors[activeTab] };
+        // Remove errors for fields that now have values
+        if (firstName) delete tabErrors.legalFirstName;
+        if (lastName) delete tabErrors.legalLastName;
+        if (selectedClientParam.email) delete tabErrors.emails;
+        updatedErrors[activeTab] = tabErrors;
+      }
+      return updatedErrors;
+    });
 
     // Only set the active tab's data
     form.setFieldValue(`clients.${activeTab}`, mappedClient);
