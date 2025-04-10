@@ -2,43 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Bold,
-  Italic,
-  List,
-  ListOrdered,
-  LinkIcon,
-  Plus,
-  ChevronDown,
-  Info,
-  Search,
-  X,
-  MoreHorizontal,
-  ArrowUpDown,
-} from "lucide-react";
+import { Plus, ChevronDown, Info } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
 
 import { Button } from "@mcw/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
-import { Textarea } from "@mcw/ui";
-import { Input } from "@mcw/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@mcw/ui";
 import { Badge } from "@mcw/ui";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@mcw/ui";
-import { Alert, AlertDescription, AlertTitle } from "@mcw/ui";
+
+import OverviewTab from "./tabs/OverviewTab";
+import BillingTab from "./tabs/BillingTab";
+import MeasuresTab from "./tabs/MeasuresTab";
+import FilesTab from "./tabs/FilesTab";
+import { AddPaymentModal } from "./AddPaymentModal";
 
 interface ClientProfileProps {
   clientId: string;
@@ -48,6 +23,8 @@ export default function ClientProfile({
   clientId: _clientId,
 }: ClientProfileProps) {
   const [activeTab, setActiveTab] = useState("measures");
+  const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
+
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
 
   return (
@@ -56,6 +33,11 @@ export default function ClientProfile({
       <AdministrativeNoteDrawer
         open={adminNoteModalOpen}
         onOpenChange={setAdminNoteModalOpen}
+      />
+      <AddPaymentModal
+        open={addPaymentModalOpen}
+        onOpenChange={setAddPaymentModalOpen}
+        clientName="Jamie D. Appleseed"
       />
 
       <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
@@ -94,23 +76,23 @@ export default function ClientProfile({
         </div>
       </div>
 
-      {/* Add Administrative Note Button - Fixed at the top */}
-      <div className="hidden lg:block sticky top-0 z-10">
-        <div className="absolute right-[324px] top-1">
-          <Button
-            className="text-blue-500 hover:bg-blue-50"
-            variant="ghost"
-            onClick={() => setAdminNoteModalOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
-          </Button>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <div className="flex flex-col lg:flex-row flex-1">
-        <div className="flex-1 border-t border-[#e5e7eb]">
-          {/* Tabs */}
+      <div className="grid grid-cols-12 flex-1">
+        {/* Left Side - Tabs */}
+        <div className="col-span-12 lg:col-span-8 border-t lg:border-r border-[#e5e7eb]">
+          {/* Add Administrative Note Button - Fixed at the top */}
+          <div className="hidden lg:block sticky top-0 z-10">
+            <div className="absolute right-4 top-1">
+              <Button
+                className="text-blue-500 hover:bg-blue-50"
+                variant="ghost"
+                onClick={() => setAdminNoteModalOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
+              </Button>
+            </div>
+          </div>
+
           <Tabs
             className="w-full"
             defaultValue="measures"
@@ -148,355 +130,26 @@ export default function ClientProfile({
               </div>
             </div>
 
-            <TabsContent
-              className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
-              value="overview"
-            >
-              {/* Text Editor */}
-              <div className="mb-6">
-                <div className="flex gap-2 sm:gap-4 mb-2 overflow-x-auto">
-                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
-                    <Bold className="h-4 w-4" />
-                  </Button>
-                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
-                    <Italic className="h-4 w-4" />
-                  </Button>
-                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
-                    <ListOrdered className="h-4 w-4" />
-                  </Button>
-                  <Button className="h-8 w-8 p-0" size="sm" variant="ghost">
-                    <LinkIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Textarea
-                  className="min-h-[100px] border-[#e5e7eb] resize-none"
-                  placeholder="Add Chart Note: include notes from a call with a client or copy & paste the contents of a document"
-                />
-              </div>
-
-              <div className="text-sm text-gray-500 mb-4">
-                02/06/2025 5:07 pm
-                <button className="text-blue-500 hover:underline ml-4">
-                  + Add Note
-                </button>
-              </div>
-
-              {/* Date Range and Filter */}
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    className="w-full sm:w-[200px] h-9 bg-white border-[#e5e7eb]"
-                    value="01/08/2025 - 02/06/2025"
-                  />
-                  <Select defaultValue="all">
-                    <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">
-                      <SelectValue placeholder="All Items" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Items</SelectItem>
-                      <SelectItem value="appointments">Appointments</SelectItem>
-                      <SelectItem value="measures">Measures</SelectItem>
-                      <SelectItem value="notes">Notes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button className="bg-[#2d8467] hover:bg-[#236c53]">New</Button>
-              </div>
-
-              {/* Timeline */}
-              <div className="space-y-6">
-                {/* Scored measure */}
-                <div className="flex justify-between">
-                  <div>
-                    <div className="text-sm text-gray-500">FEB 8</div>
-                    <div className="font-medium">Scored measure</div>
-                    <div className="text-sm text-gray-500">GAD-7</div>
-                  </div>
-                  <div className="text-sm text-gray-500">1:00 PM</div>
-                </div>
-
-                {/* Appointment #2 */}
-                <div className="flex justify-between">
-                  <div>
-                    <div className="text-sm text-gray-500">FEB 8</div>
-                    <div className="font-medium">Appointment #2</div>
-                    <div className="text-sm text-gray-500">GAD-7</div>
-                    <button className="text-blue-500 hover:underline text-sm mt-1">
-                      + Progress Note
-                    </button>
-                  </div>
-                  <div className="text-sm text-gray-500">1:00 PM</div>
-                </div>
-
-                {/* Appointment #1 */}
-                <div className="flex justify-between">
-                  <div>
-                    <div className="text-sm text-gray-500">FEB 8</div>
-                    <div className="font-medium">Appointment #1</div>
-                    <div className="text-sm text-gray-500">GAD-7</div>
-                  </div>
-                  <div className="text-sm text-gray-500">1:00 PM</div>
-                </div>
-              </div>
+            <TabsContent value="overview">
+              <OverviewTab />
             </TabsContent>
 
-            <TabsContent
-              className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
-              value="billing"
-            >
-              {/* Date Range and Filter */}
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    className="w-full sm:w-[200px] h-9 bg-white border-[#e5e7eb]"
-                    value="01/08/2025 - 02/06/2025"
-                  />
-                  <Select defaultValue="billable">
-                    <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">
-                      <SelectValue placeholder="Billable Items" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="billable">Billable Items</SelectItem>
-                      <SelectItem value="all">All Items</SelectItem>
-                      <SelectItem value="invoices">Invoices</SelectItem>
-                      <SelectItem value="payments">Payments</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button className="bg-[#2d8467] hover:bg-[#236c53]">New</Button>
-              </div>
-
-              {/* Billing Table */}
-              <div className="border rounded-md overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50">
-                      <TableHead className="w-[120px] font-medium">
-                        Date
-                      </TableHead>
-                      <TableHead className="font-medium">Details</TableHead>
-                      <TableHead className="font-medium">Fee</TableHead>
-                      <TableHead className="font-medium">Client</TableHead>
-                      <TableHead className="font-medium">Write-Off</TableHead>
-                      <TableHead className="font-medium" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {[1, 2, 3].map((item) => (
-                      <TableRow key={item}>
-                        <TableCell className="font-medium">FEB 6</TableCell>
-                        <TableCell>
-                          <div>90834</div>
-                          <div className="text-xs text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded">
-                            INV #3
-                          </div>
-                        </TableCell>
-                        <TableCell>$100</TableCell>
-                        <TableCell>$100</TableCell>
-                        <TableCell>--</TableCell>
-                        <TableCell>
-                          <div className="flex justify-between items-center">
-                            <span className="text-red-500 text-sm">Unpaid</span>
-                            <Button className="text-blue-500" variant="link">
-                              Manage
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+            <TabsContent value="billing">
+              <BillingTab />
             </TabsContent>
 
-            <TabsContent
-              className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
-              value="measures"
-            >
-              {/* New Measures Available Alert */}
-              <Alert className="mb-6 bg-white border-[#e5e7eb]">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <AlertTitle className="text-black font-medium mb-1">
-                      New measures available
-                    </AlertTitle>
-                    <AlertDescription className="text-gray-600">
-                      Track new measurements such as therapeutic alliance, pain,
-                      functioning, or other symptoms.
-                    </AlertDescription>
-                  </div>
-                  <Button
-                    className="text-gray-400 hover:text-gray-500"
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Button className="mt-3 bg-[#2d8467] hover:bg-[#236c53]">
-                  View measures
-                </Button>
-              </Alert>
-
-              {/* Completed Measure */}
-              <div className="mb-6">
-                <div className="text-sm text-gray-500 mb-4">
-                  Completed by Jamie A.
-                </div>
-
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium">GAD-7</h3>
-                  <div className="flex gap-4">
-                    <span className="text-green-500 text-sm">
-                      +2 since baseline
-                    </span>
-                    <span className="text-green-500 text-sm">
-                      +2 since last
-                    </span>
-                  </div>
-                </div>
-
-                {/* Graph */}
-                <div className="relative h-[200px] mb-2">
-                  {/* Scale Labels */}
-                  <div className="absolute right-0 top-0 text-sm text-gray-500">
-                    Severe
-                  </div>
-                  <div className="absolute right-0 top-[33%] text-sm text-gray-500">
-                    Moderate
-                  </div>
-                  <div className="absolute right-0 top-[66%] text-sm text-gray-500">
-                    Mild
-                  </div>
-                  <div className="absolute right-0 bottom-0 text-sm text-gray-500">
-                    None—
-                    <br />
-                    minimal
-                  </div>
-
-                  {/* Horizontal Lines */}
-                  <div className="absolute left-0 right-16 top-0 border-t border-gray-200" />
-                  <div className="absolute left-0 right-16 top-[33%] border-t border-gray-200" />
-                  <div className="absolute left-0 right-16 top-[66%] border-t border-gray-200" />
-                  <div className="absolute left-0 right-16 bottom-0 border-t border-gray-200" />
-
-                  {/* Graph Line */}
-                  <div className="absolute left-[20%] right-16 top-[33%] border-t border-gray-300" />
-
-                  {/* Data Point */}
-                  <div className="absolute left-[60%] top-[33%] transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="bg-[#f59e0b] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-medium">
-                      10
-                    </div>
-                  </div>
-                </div>
-
-                {/* Date Labels */}
-                <div className="flex justify-between pr-16">
-                  <div className="text-sm text-gray-500">Feb 7</div>
-                  <div className="text-sm text-gray-500">Feb 12</div>
-                </div>
-              </div>
+            <TabsContent value="measures">
+              <MeasuresTab />
             </TabsContent>
 
-            <TabsContent
-              className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6"
-              value="files"
-            >
-              {/* Search and Filters */}
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
-                <div className="relative w-full sm:w-[300px]">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    className="pl-9 h-10 bg-white border-[#e5e7eb]"
-                    placeholder="Search files"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Select defaultValue="all">
-                    <SelectTrigger className="w-[150px] h-10 bg-white border-[#e5e7eb]">
-                      <SelectValue placeholder="All files" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All files</SelectItem>
-                      <SelectItem value="documents">Documents</SelectItem>
-                      <SelectItem value="measures">Measures</SelectItem>
-                      <SelectItem value="images">Images</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button className="bg-[#2d8467] hover:bg-[#236c53]">
-                    Actions <ChevronDown className="ml-1 h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Files Table */}
-              <div className="border rounded-md overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50">
-                      <TableHead className="font-medium">Name</TableHead>
-                      <TableHead className="font-medium">Type</TableHead>
-                      <TableHead className="font-medium">Status</TableHead>
-                      <TableHead className="font-medium">
-                        <div className="flex items-center">
-                          Updated <ArrowUpDown className="ml-1 h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[40px]" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>
-                        <span className="text-blue-500">GAD-7</span>
-                      </TableCell>
-                      <TableCell>Measure</TableCell>
-                      <TableCell>
-                        <span className="text-green-600">Completed JA</span>
-                      </TableCell>
-                      <TableCell>2/6/25</TableCell>
-                      <TableCell>
-                        <Button
-                          className="h-8 w-8 p-0"
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <span className="text-blue-500">GAD-7</span>
-                      </TableCell>
-                      <TableCell>Measure</TableCell>
-                      <TableCell>
-                        <span className="text-green-600">Completed JA</span>
-                      </TableCell>
-                      <TableCell>2/8/25</TableCell>
-                      <TableCell>
-                        <Button
-                          className="h-8 w-8 p-0"
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
+            <TabsContent value="files">
+              <FilesTab />
             </TabsContent>
           </Tabs>
         </div>
 
-        {/* Right Sidebar - Show as a bottom section on mobile/tablet */}
-        <div className="w-full lg:w-[300px] lg:min-w-[300px] border-t lg:border-t-0 lg:border-l border-[#e5e7eb] p-4 sm:p-6">
+        {/* Right Sidebar */}
+        <div className="col-span-12 lg:col-span-4 border-t lg:border-t-0 border-[#e5e7eb] p-4 sm:p-6">
           {/* Client Billing */}
           <div className="mb-8">
             <h3 className="font-medium mb-4">Client billing</h3>
@@ -516,7 +169,10 @@ export default function ClientProfile({
               <div className="text-sm font-medium">$300</div>
             </div>
 
-            <Button className="w-full bg-[#2d8467] hover:bg-[#236c53]">
+            <Button
+              className="w-full bg-[#2d8467] hover:bg-[#236c53]"
+              onClick={() => setAddPaymentModalOpen(true)}
+            >
               Add Payment
             </Button>
           </div>
