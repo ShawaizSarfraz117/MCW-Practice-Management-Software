@@ -247,7 +247,7 @@ model PracticeService {
 
 model Role {
   id       String     @id @default(uuid())
-  name     String
+  name     String     @unique
   UserRole UserRole[]
 }
 
