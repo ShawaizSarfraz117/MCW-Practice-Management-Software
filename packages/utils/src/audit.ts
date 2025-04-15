@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { prisma } from "@mcw/database";
 
 /**
  * Zod schema for validating audit log requests
@@ -18,6 +19,21 @@ export interface CreateAuditLogParams {
   client_id?: string;
   user_id: string;
   is_hipaa?: boolean;
+}
+
+/**
+ * Creates an audit log entry in the database
+ */
+export async function createAudit(params: CreateAuditLogParams) {
+  return prisma.audit.create({
+    data: {
+      event_type: params.event_type,
+      event_text: params.event_text,
+      client_id: params.client_id,
+      user_id: params.user_id,
+      is_hipaa: params.is_hipaa ?? false,
+    },
+  });
 }
 
 /**
