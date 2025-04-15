@@ -45,11 +45,11 @@ export const AppointmentDialog: React.FC<AppointmentDialogProps> = ({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <AppointmentTabs
+            appointmentData={appointmentData}
+            isViewMode={isViewMode}
             selectedDate={selectedDate}
             selectedTime={selectedTime}
             onCreateClient={onCreateClient}
-            appointmentData={appointmentData}
-            isViewMode={isViewMode}
           />
         </DialogHeader>
         <DialogFooter className="mt-6">

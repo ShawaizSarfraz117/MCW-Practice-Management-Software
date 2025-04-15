@@ -7,116 +7,14 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { EventClickArg } from "@fullcalendar/core";
-import { ChevronLeft, ChevronRight, Columns } from "lucide-react";
-import {
-  Button,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Separator,
-  MultiSelect,
-  LocationSelect,
-} from "@mcw/ui";
-import { AppointmentDialog } from "../appointment-dialog";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 
-// Types
-interface Clinician {
-  value: string;
-  label: string;
-  group: string;
-}
-
-interface Location {
-  value: string;
-  label: string;
-  type: "physical" | "virtual" | "unassigned";
-}
-
-interface Event {
-  id: string;
-  resourceId: string;
-  title: string;
-  start: string;
-  end: string;
-  location: string;
-}
-
-interface AppointmentData {
-  id: string;
-  type: string;
-  title: string;
-  start_date: string;
-  end_date: string;
-  location_id: string;
-  client_id?: string;
-  clinician_id?: string;
-  status: string;
-  is_all_day: boolean;
-  is_recurring: boolean;
-  recurring_rule?: string;
-  service_id?: string;
-  appointment_fee?: number;
-  notes?: string;
-  Client?: {
-    id: string;
-    legal_first_name: string;
-    legal_last_name: string;
-    preferred_name?: string;
-  };
-  Clinician?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
-  Location?: {
-    id: string;
-    name: string;
-    address: string;
-  };
-  services?: Array<{
-    id: string;
-    name: string;
-    code: string;
-    rate: number;
-    duration: number;
-  }>;
-}
-
-interface CalendarViewProps {
-  initialClinicians: Clinician[];
-  initialLocations: Location[];
-  initialEvents: Event[];
-  onCreateClient?: (date: string, time: string) => void;
-  onAppointmentDone?: () => void;
-}
-
-// Define FormValues interface to match the appointment dialog's form values
-interface FormValues {
-  type: string;
-  eventName: string;
-  clientType: string;
-  client: string;
-  clinician: string;
-  selectedServices: Array<{ serviceId: string; fee: number }>;
-  startDate: Date;
-  endDate: Date;
-  startTime: string;
-  endTime: string;
-  location: string;
-  recurring: boolean;
-  allDay: boolean;
-  cancelAppointments: boolean;
-  notifyClients: boolean;
-}
-
-const clinicianGroups = {
-  clinicians: "CLINICIANS",
-  admins: "ADMINS",
-};
+import { AppointmentDialog } from "../appointment-dialog";
+import { CalendarToolbar } from "./components/CalendarToolbar";
+import { useAppointmentHandler } from "./hooks/useAppointmentHandler";
+import { getHeaderDateFormat } from "./utils/date-utils";
+import { CalendarViewProps, Event } from "./types";
 
 export function CalendarView({
   initialClinicians,
@@ -128,20 +26,13 @@ export function CalendarView({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
-  // Add state to track if we're viewing an existing appointment
   const [isViewingAppointment, setIsViewingAppointment] = useState(false);
-  // State for API error notifications, use _apiError naming to avoid linter error
-  const [_apiError, setApiError] = useState<string | null>(null);
+  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
 
   // Get session data to check if user is admin
   const { data: session } = useSession();
   const isAdmin = session?.user?.isAdmin || false;
-
-  // Rename to _setEvents to avoid unused warning
-  const [events, _setEvents] = useState<Event[]>(initialEvents);
-
-  // Create ref to track dialog form values with proper type
-  const appointmentFormRef = useRef<FormValues | null>(null);
 
   // Set the view based on user role
   const [currentView, setCurrentView] = useState(
@@ -149,9 +40,7 @@ export function CalendarView({
   );
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Initialize selectedClinicians based on user role
-  // For admin, preselect first two clinicians (or just the first one if only one exists)
-  // For non-admin, only select their own clinician ID (which should be the only one in initialClinicians)
+  // Initialize selected clinicians based on user role
   const [selectedClinicians, setSelectedClinicians] = useState<string[]>(() => {
     if (!isAdmin && initialClinicians.length === 1) {
       // Non-admin users should only see their own clinician
@@ -167,8 +56,14 @@ export function CalendarView({
   const [selectedLocations, setSelectedLocations] = useState<string[]>(
     initialLocations.map((loc) => loc.value),
   );
+
   const calendarRef = useRef<FullCalendar>(null);
 
+  // Use the appointment handler hook
+  const { appointmentFormRef, fetchAppointmentDetails } =
+    useAppointmentHandler();
+
+  // Filter events based on selected resources
   const filteredEvents = useMemo(() => {
     // First filter events by selected locations
     let filtered = events.filter((event) =>
@@ -185,306 +80,9 @@ export function CalendarView({
     return filtered;
   }, [events, selectedLocations, selectedClinicians, isAdmin]);
 
-  // State for selected appointment
-  const [selectedAppointment, setSelectedAppointment] =
-    useState<AppointmentData | null>(null);
-
-  // Function to handle appointment dialog closing
-  const handleAppointmentSubmit = () => {
-    // Get form values from the dialog's form state
-    if (appointmentFormRef.current) {
-      // Create a new appointment from the form data
-      const values = appointmentFormRef.current;
-
-      try {
-        // If client is specified, first get client details to use proper name in title
-        if (values.client) {
-          // Fetch client info to get their name
-          fetch(`/api/client?id=${values.client}`)
-            .then((response) => {
-              if (!response.ok) {
-                throw new Error("Failed to fetch client information");
-              }
-              return response.json();
-            })
-            .then((clientData) => {
-              // Create title with actual client name
-              const clientName =
-                clientData.legal_first_name && clientData.legal_last_name
-                  ? `${clientData.legal_first_name} ${clientData.legal_last_name}`
-                  : "Client";
-
-              // Create appointment with proper client name in title
-              createAppointment(values, clientName);
-            })
-            .catch((error) => {
-              console.error("Error fetching client details:", error);
-              // Continue with generic title if client fetch fails
-              createAppointment(values);
-            });
-        } else {
-          // No client specified, just create the appointment with default title
-          createAppointment(values);
-        }
-      } catch (err) {
-        console.error("Error preparing appointment data:", err);
-      }
-    }
-
-    // Call the onAppointmentDone callback if provided
-    if (onAppointmentDone) onAppointmentDone();
-  };
-
-  // Helper function to format ISO datetime
-  const getISODateTime = (
-    date: Date,
-    timeStr: string,
-    isAllDay: boolean = false,
-  ): string => {
-    // Parse the time components from the timeStr (e.g., "6:30 PM")
-    try {
-      // Get the date part (YYYY-MM-DD) from the date object
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const dateStr = `${year}-${month}-${day}`;
-
-      let hours = 0;
-      let minutes = 0;
-      let seconds = 0;
-
-      // For all-day events, use specific times
-      if (isAllDay) {
-        // If this is an end date for an all-day event, set it to 11:59:59 PM
-        if (timeStr === "end") {
-          hours = 23;
-          minutes = 59;
-          seconds = 59;
-        }
-        // Otherwise, start date for an all-day event uses 00:00:00
-      } else if (timeStr) {
-        // Parse time string (e.g., "6:30 PM")
-        const [time, ampm] = timeStr.split(" ");
-        const [hourStr, minuteStr] = time.split(":");
-
-        hours = parseInt(hourStr);
-        minutes = parseInt(minuteStr);
-
-        // Convert to 24-hour format
-        if (ampm === "PM" && hours < 12) hours += 12;
-        if (ampm === "AM" && hours === 12) hours = 0;
-      }
-
-      // Create a new date object with the combined date and time
-      // This ensures we're not affected by timezone conversions in toISOString()
-      const combinedDate = new Date(
-        `${dateStr}T${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
-      );
-
-      // Return the ISO string but adjust it to maintain the local time the user selected
-      // We need to adjust for the timezone offset to ensure the time is stored correctly
-      const tzOffset = combinedDate.getTimezoneOffset() * 60000; // offset in milliseconds
-      const localISOTime = new Date(
-        combinedDate.getTime() - tzOffset,
-      ).toISOString();
-
-      return localISOTime;
-    } catch (err) {
-      console.error("Error formatting date:", err);
-      return new Date().toISOString();
-    }
-  };
-
-  // Helper function to create appointment with API
-  const createAppointment = (values: FormValues, clientName?: string) => {
-    // Reset error state
-    setApiError(null);
-
-    // Get formatted start and end dates, handling all-day events
-    const startDateTime = getISODateTime(
-      values.startDate,
-      values.allDay ? "start" : values.startTime,
-      values.allDay,
-    );
-    const endDateTime = getISODateTime(
-      values.endDate,
-      values.allDay ? "end" : values.endTime,
-      values.allDay,
-    );
-
-    // Parse recurring information if it exists in the form values
-    interface RecurringInfo {
-      frequency: string;
-      period: string;
-      selectedDays: string[];
-      monthlyPattern?: string;
-      endType: string;
-      endValue: string | undefined;
-    }
-
-    const recurringInfo = (values as { recurringInfo?: RecurringInfo })
-      .recurringInfo;
-
-    // Format recurring rule in RFC5545 format (iCalendar standard)
-    let recurringRule = null;
-    if (values.recurring && recurringInfo) {
-      // Build the recurring rule in RFC5545 format
-      // Basic format: FREQ=DAILY|WEEKLY|MONTHLY;INTERVAL=n;BYDAY=MO,TU,WE;COUNT=n;UNTIL=date
-      const parts = [`FREQ=${recurringInfo.period}`];
-
-      // Add interval (frequency)
-      if (recurringInfo.frequency && parseInt(recurringInfo.frequency) > 1) {
-        parts.push(`INTERVAL=${recurringInfo.frequency}`);
-      }
-
-      // Add weekdays for weekly recurrence
-      if (
-        recurringInfo.period === "WEEKLY" &&
-        recurringInfo.selectedDays?.length > 0
-      ) {
-        parts.push(`BYDAY=${recurringInfo.selectedDays.join(",")}`);
-      }
-
-      // Add monthly pattern if specified
-      if (recurringInfo.period === "MONTHLY" && recurringInfo.monthlyPattern) {
-        if (recurringInfo.monthlyPattern === "onDateOfMonth") {
-          // Use BYMONTHDAY for same day each month
-          const dayOfMonth = values.startDate.getDate();
-          parts.push(`BYMONTHDAY=${dayOfMonth}`);
-        } else if (recurringInfo.monthlyPattern === "onWeekDayOfMonth") {
-          // Use BYDAY with ordinal for same weekday each month (e.g., 2nd Monday)
-          const dayOfWeek = values.startDate.getDay();
-          const weekNumber = Math.ceil(values.startDate.getDate() / 7);
-          const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
-          parts.push(`BYDAY=${weekNumber}${days[dayOfWeek]}`);
-        } else if (recurringInfo.monthlyPattern === "onLastWeekDayOfMonth") {
-          // Use BYDAY with -1 for last weekday of month
-          const dayOfWeek = values.startDate.getDay();
-          const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
-          parts.push(`BYDAY=-1${days[dayOfWeek]}`);
-        }
-      }
-
-      // Add end condition
-      if (recurringInfo.endType === "After" && recurringInfo.endValue) {
-        parts.push(`COUNT=${recurringInfo.endValue}`);
-      } else if (
-        recurringInfo.endType === "On Date" &&
-        recurringInfo.endValue
-      ) {
-        // Format the end date as YYYYMMDD for UNTIL
-        const endDate = new Date(recurringInfo.endValue);
-        const year = endDate.getFullYear();
-        const month = String(endDate.getMonth() + 1).padStart(2, "0");
-        const day = String(endDate.getDate()).padStart(2, "0");
-        parts.push(`UNTIL=${year}${month}${day}T235959Z`);
-      }
-
-      recurringRule = parts.join(";");
-      console.log("Generated recurring rule:", recurringRule);
-    }
-
-    // Create API payload
-    const appointmentData = {
-      type: values.type || "APPOINTMENT",
-      title:
-        values.type === "event"
-          ? values.eventName || "Event"
-          : values.client
-            ? `Appointment with ${clientName || "Client"}`
-            : "New Appointment",
-      is_all_day: values.allDay || false,
-      start_date: startDateTime,
-      end_date: endDateTime,
-      location_id: values.location || "",
-      client_id: values.client || null,
-      clinician_id: values.clinician || selectedResource || "",
-      created_by: session?.user?.id || "", // Current user as creator
-      status: "SCHEDULED",
-      is_recurring: values.recurring || false,
-      recurring_rule: recurringRule,
-      service_id: values.selectedServices?.[0]?.serviceId || null,
-      appointment_fee: values.selectedServices?.[0]?.fee || null,
-    };
-
-    console.log("Submitting appointment with dates:", {
-      original: {
-        startDate: values.startDate,
-        startTime: values.startTime,
-        endDate: values.endDate,
-        endTime: values.endTime,
-        isAllDay: values.allDay,
-        recurring: values.recurring,
-        recurringRule,
-      },
-      formatted: {
-        startDateTime,
-        endDateTime,
-      },
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      browserTime: new Date().toString(),
-    });
-
-    // Save to API
-    fetch("/api/appointment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(appointmentData),
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          // Try to parse error message from response
-          let errorMessage = "Failed to create appointment";
-          try {
-            const errorData = await response.json();
-            if (errorData.error) {
-              errorMessage = errorData.error;
-            }
-          } catch (_e) {
-            // If we can't parse error JSON, use status text
-            errorMessage = response.statusText || errorMessage;
-          }
-          throw new Error(errorMessage);
-        }
-        return response.json();
-      })
-      .then((createdAppointment) => {
-        console.log("Appointment created:", createdAppointment);
-
-        // Handle recurring appointments - API may return an array of appointments
-        const appointments = Array.isArray(createdAppointment)
-          ? createdAppointment
-          : [createdAppointment];
-
-        // Add the new events to the calendar
-        const newEvents = appointments.map((appointment) => ({
-          id: appointment.id,
-          resourceId: appointment.clinician_id || "",
-          title: appointment.title,
-          start: appointment.start_date,
-          end: appointment.end_date,
-          location: appointment.location_id || "",
-        }));
-
-        // Add the new events to the calendar
-        _setEvents((prevEvents) => [...prevEvents, ...newEvents]);
-      })
-      .catch((error) => {
-        console.error("Error creating appointment:", error);
-        // Set error message for display
-        setApiError(error.message);
-
-        // Show error notification to user with time zone info to help debugging
-        const timeZoneInfo = `Browser timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
-        alert(`Error: ${error.message}\n\n${timeZoneInfo}`);
-      });
-  };
-
   // Effect to capture form values from the AppointmentDialog
   useEffect(() => {
-    // This is a hook to access appointment form values when needed
+    // Hook to access appointment form values when needed
     const captureFormValues = (e: CustomEvent) => {
       if (e.detail && e.detail.formValues) {
         appointmentFormRef.current = e.detail.formValues;
@@ -505,28 +103,151 @@ export function CalendarView({
     };
   }, []);
 
-  // Add a function to fetch appointment details by ID
-  const fetchAppointmentDetails = async (appointmentId: string) => {
+  // Handle appointment dialog closing and form submission
+  const handleAppointmentSubmit = async () => {
     try {
-      console.log(`Fetching appointment details for ID: ${appointmentId}`);
-      const response = await fetch(`/api/appointment?id=${appointmentId}`);
+      // Process the appointment submission and update the calendar
+      const newEvents = await handleCreateAppointment();
+      if (newEvents && newEvents.length > 0) {
+        setEvents((prevEvents) => [...prevEvents, ...newEvents]);
+      }
+
+      // Call the onAppointmentDone callback if provided
+      if (onAppointmentDone) onAppointmentDone();
+    } catch (error) {
+      console.error("Error handling appointment submission:", error);
+    }
+  };
+
+  // Helper function to handle appointment creation
+  const handleCreateAppointment = async () => {
+    if (!appointmentFormRef.current) return [];
+
+    const values = appointmentFormRef.current;
+
+    try {
+      // If client is specified, get client details for title
+      if (values.client) {
+        const response = await fetch(`/api/client?id=${values.client}`);
+        if (response.ok) {
+          const clientData = await response.json();
+          const clientName =
+            clientData.legal_first_name && clientData.legal_last_name
+              ? `${clientData.legal_first_name} ${clientData.legal_last_name}`
+              : "Client";
+
+          return createAppointmentWithAPI(values, clientName);
+        }
+      }
+
+      // No client or error fetching client, proceed with generic title
+      return createAppointmentWithAPI(values);
+    } catch (error) {
+      console.error("Error in appointment creation:", error);
+      return [];
+    }
+  };
+
+  // Function to create appointment via API
+  const createAppointmentWithAPI = async (
+    values: {
+      type?: string;
+      eventName?: string;
+      client?: string;
+      startDate: Date;
+      endDate: Date;
+      location?: string;
+      clinician?: string;
+      recurring?: boolean;
+      allDay?: boolean;
+      selectedServices?: Array<{ serviceId: string; fee: number }>;
+    },
+    clientName?: string,
+  ) => {
+    // Create the appointment payload based on form values
+    const appointmentData = createAppointmentPayload(values, clientName);
+
+    try {
+      const response = await fetch("/api/appointment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(appointmentData),
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
+        throw new Error(
           errorData.error ||
-          `Error ${response.status}: Failed to fetch appointment details`;
-        console.error(errorMessage);
-        setApiError(errorMessage);
-
-        // Show a user-friendly error message
-        alert(`Could not load appointment details. ${errorMessage}`);
-        return;
+            response.statusText ||
+            "Failed to create appointment",
+        );
       }
 
-      const appointmentData = await response.json();
-      console.log("Appointment data received:", appointmentData);
+      const data = await response.json();
+      const appointments = Array.isArray(data) ? data : [data];
 
+      // Format events for calendar
+      return appointments.map((appointment) => ({
+        id: appointment.id,
+        resourceId: appointment.clinician_id || "",
+        title: appointment.title,
+        start: appointment.start_date,
+        end: appointment.end_date,
+        location: appointment.location_id || "",
+      }));
+    } catch (error) {
+      console.error("API error:", error);
+      alert(
+        `Error creating appointment: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      return [];
+    }
+  };
+
+  // Helper to create appointment payload
+  const createAppointmentPayload = (
+    values: {
+      type?: string;
+      eventName?: string;
+      client?: string;
+      startDate: Date;
+      endDate: Date;
+      location?: string;
+      clinician?: string;
+      recurring?: boolean;
+      allDay?: boolean;
+      selectedServices?: Array<{ serviceId: string; fee: number }>;
+    },
+    clientName?: string,
+  ) => {
+    return {
+      type: values.type || "APPOINTMENT",
+      title:
+        values.type === "event"
+          ? values.eventName || "Event"
+          : values.client
+            ? `Appointment with ${clientName || "Client"}`
+            : "New Appointment",
+      is_all_day: values.allDay || false,
+      start_date: values.startDate.toISOString(),
+      end_date: values.endDate.toISOString(),
+      location_id: values.location || "",
+      client_id: values.client || null,
+      clinician_id: values.clinician || selectedResource || "",
+      created_by: session?.user?.id || "",
+      status: "SCHEDULED",
+      is_recurring: values.recurring || false,
+      service_id: values.selectedServices?.[0]?.serviceId || null,
+      appointment_fee: values.selectedServices?.[0]?.fee || null,
+    };
+  };
+
+  // Handle event click to view appointment details
+  const handleEventClick = async (info: EventClickArg) => {
+    const appointmentId = info.event.id;
+    const appointmentData = await fetchAppointmentDetails(appointmentId);
+
+    if (appointmentData) {
       // Set selected date from appointment
       if (appointmentData.start_date) {
         setSelectedDate(new Date(appointmentData.start_date));
@@ -540,28 +261,11 @@ export function CalendarView({
       // Open the dialog in view mode
       setIsViewingAppointment(true);
       setIsDialogOpen(true);
-
-      // Update selectedAppointment state
       setSelectedAppointment(appointmentData);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      console.error("Error fetching appointment details:", error);
-      setApiError(`Failed to load appointment details: ${errorMessage}`);
-
-      // Show a user-friendly error message
-      alert(`Could not load appointment details. Please try again.`);
     }
   };
 
-  // Use the event click handler with the proper EventClickArg type
-  const handleEventClick = (info: EventClickArg) => {
-    // Get the appointment ID from the event
-    const appointmentId = info.event.id;
-    fetchAppointmentDetails(appointmentId);
-  };
-
-  // Modify handleDateSelect to reset viewing mode
+  // Handle date selection to create a new appointment
   const handleDateSelect = (selectInfo: {
     start: Date;
     end: Date;
@@ -569,11 +273,11 @@ export function CalendarView({
   }) => {
     // Reset viewing mode when creating a new appointment
     setIsViewingAppointment(false);
-
+    setSelectedAppointment(null);
     setSelectedDate(selectInfo.start);
     setSelectedResource(selectInfo.resource?.id || null);
 
-    // Save the selected time info so the appointment dialog can use it
+    // Save the selected time info for the appointment dialog
     const eventData = {
       startTime: format(selectInfo.start, "h:mm a"),
       endTime: format(selectInfo.end, "h:mm a"),
@@ -588,6 +292,7 @@ export function CalendarView({
     setIsDialogOpen(true);
   };
 
+  // View handling functions
   const handleViewChange = (newView: string) => {
     // For non-admin users, don't allow resourceTimeGrid views
     if (!isAdmin && newView.startsWith("resourceTimeGrid")) {
@@ -625,17 +330,9 @@ export function CalendarView({
     }
   };
 
-  const getHeaderDateFormat = () => {
-    switch (currentView) {
-      case "resourceTimeGridDay":
-        return format(currentDate, "EEEE, MMMM d, yyyy");
-      case "timeGridWeek":
-        return format(currentDate, "MMMM yyyy");
-      case "dayGridMonth":
-        return format(currentDate, "MMMM yyyy");
-      default:
-        return format(currentDate, "MMMM yyyy");
-    }
+  // Get formatted header date text
+  const getFormattedHeaderDate = () => {
+    return getHeaderDateFormat(currentView, currentDate);
   };
 
   // Filter resources based on selected clinicians
@@ -649,114 +346,21 @@ export function CalendarView({
   return (
     <div className="flex h-full bg-background">
       <div className="flex-1 flex flex-col">
-        <div className="border-b">
-          <div className="h-14 px-4 flex items-center justify-between">
-            {/* Left section */}
-            <div className="flex items-center space-x-2">
-              <Button size="icon" variant="ghost" onClick={handlePrev}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                className="text-sm"
-                size="sm"
-                variant="ghost"
-                onClick={handleToday}
-              >
-                Today
-              </Button>
-              <Button size="icon" variant="ghost" onClick={handleNext}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-medium">
-                {getHeaderDateFormat()}
-              </span>
-            </div>
-
-            {/* Center section - only show clinician selector for admin users */}
-            <div className="flex items-center">
-              {isAdmin && (
-                <MultiSelect
-                  groups={clinicianGroups}
-                  options={initialClinicians}
-                  selected={selectedClinicians}
-                  onChange={setSelectedClinicians}
-                />
-              )}
-            </div>
-
-            {/* Right section with view selector buttons */}
-            <div className="flex items-center space-x-2">
-              <div className="flex rounded-md border">
-                <Button
-                  className="rounded-none text-sm px-3"
-                  size="sm"
-                  variant={
-                    currentView ===
-                    (isAdmin ? "resourceTimeGridDay" : "timeGridDay")
-                      ? "secondary"
-                      : "ghost"
-                  }
-                  onClick={() =>
-                    handleViewChange(
-                      isAdmin ? "resourceTimeGridDay" : "timeGridDay",
-                    )
-                  }
-                >
-                  Day
-                </Button>
-                <Separator orientation="vertical" />
-                <Button
-                  className="rounded-none text-sm px-3"
-                  size="sm"
-                  variant={
-                    currentView ===
-                    (isAdmin ? "resourceTimeGridWeek" : "timeGridWeek")
-                      ? "secondary"
-                      : "ghost"
-                  }
-                  onClick={() =>
-                    handleViewChange(
-                      isAdmin ? "resourceTimeGridWeek" : "timeGridWeek",
-                    )
-                  }
-                >
-                  Week
-                </Button>
-                <Separator orientation="vertical" />
-                <Button
-                  className="rounded-none text-sm px-3"
-                  size="sm"
-                  variant={
-                    currentView === "dayGridMonth" ? "secondary" : "ghost"
-                  }
-                  onClick={() => handleViewChange("dayGridMonth")}
-                >
-                  Month
-                </Button>
-              </div>
-
-              <Select defaultValue="status">
-                <SelectTrigger className="w-[120px] h-8 text-sm">
-                  <SelectValue>Color: Status</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="type">Type</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button className="h-8 w-8" size="icon" variant="ghost">
-                <Columns className="h-4 w-4" />
-              </Button>
-
-              <LocationSelect
-                options={initialLocations}
-                selected={selectedLocations}
-                onChange={setSelectedLocations}
-              />
-            </div>
-          </div>
-        </div>
+        <CalendarToolbar
+          currentView={currentView}
+          getHeaderDateFormat={getFormattedHeaderDate}
+          handleNext={handleNext}
+          handlePrev={handlePrev}
+          handleToday={handleToday}
+          handleViewChange={handleViewChange}
+          initialClinicians={initialClinicians}
+          initialLocations={initialLocations}
+          isAdmin={isAdmin}
+          selectedClinicians={selectedClinicians}
+          selectedLocations={selectedLocations}
+          setSelectedClinicians={setSelectedClinicians}
+          setSelectedLocations={setSelectedLocations}
+        />
 
         <div className="flex-1 p-4">
           <FullCalendar
@@ -769,8 +373,8 @@ export function CalendarView({
               day: "numeric",
               omitCommas: true,
             }}
-            events={filteredEvents}
             eventClick={handleEventClick}
+            events={filteredEvents}
             headerToolbar={false}
             height="100%"
             initialView={currentView}
@@ -839,15 +443,15 @@ export function CalendarView({
       </div>
 
       <AppointmentDialog
-        open={isDialogOpen}
-        selectedDate={selectedDate || new Date()}
-        selectedResource={selectedResource}
         appointmentData={
           isViewingAppointment && selectedAppointment
             ? (selectedAppointment as unknown as Record<string, unknown>)
             : undefined
         }
         isViewMode={isViewingAppointment}
+        open={isDialogOpen}
+        selectedDate={selectedDate || new Date()}
+        selectedResource={selectedResource}
         onCreateClient={(date, time) => onCreateClient?.(date, time)}
         onDone={handleAppointmentSubmit}
         onOpenChange={setIsDialogOpen}

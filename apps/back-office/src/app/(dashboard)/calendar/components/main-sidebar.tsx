@@ -45,9 +45,9 @@ export const MainSidebar: React.FC = () => {
         {sidebarItems.map((item) => (
           <SidebarItem
             key={item.label}
+            badge={item.badge}
             icon={item.icon}
             label={item.label}
-            badge={item.badge}
           />
         ))}
       </nav>
