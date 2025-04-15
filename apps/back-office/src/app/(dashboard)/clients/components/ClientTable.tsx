@@ -1,87 +1,95 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
-import { Button, Badge } from "@mcw/ui";
+import { Badge } from "@mcw/ui";
 import DataTable from "@/components/table/DataTable";
+import {
+  Client,
+  ClientContact,
+  ClientGroup,
+  ClientGroupMembership,
+} from "@prisma/client";
 
-const rows = [
-  {
-    id: 1,
-    name: "Jamie D. Appleseed",
-    type: "Adult",
-    status: "Active",
-    phone: "7275101326",
-    email: "alam@mcnultycw.com",
-    relationship: "Clinician: Alam Naqvi",
-    waitlist: "No",
-  },
-  {
-    id: 2,
-    name: "Jamie D. Appleseed",
-    type: "Adult",
-    status: "Active",
-    phone: "7275101326",
-    email: "alam@mcnultycw.com",
-    relationship: "Clinician: Alam Naqvi",
-    waitlist: "No",
-  },
-  {
-    id: 3,
-    name: "Jamie D. Appleseed",
-    type: "Adult",
-    status: "Active",
-    phone: "7275101326",
-    email: "alam@mcnultycw.com",
-    relationship: "Clinician: Alam Naqvi",
-    waitlist: "No",
-  },
-  {
-    id: 4,
-    name: "Jamie D. Appleseed",
-    type: "Adult",
-    status: "Active",
-    phone: "7275101326",
-    email: "alam@mcnultycw.com",
-    relationship: "Clinician: Alam Naqvi",
-    waitlist: "No",
-  },
-];
+interface ClientTableProps {
+  rows: Client[];
+  onRowClick: (id: string) => void;
+}
 
-// TODO: Add right type
-const ClientTable = (props: { onRowClick: (id: string) => void }) => {
+const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
   const columns = [
     {
       key: "name",
       label: "Name",
+      formatter: (row: {
+        legal_first_name: string;
+        legal_last_name: string;
+      }) => (
+        <div>
+          {row.legal_first_name} {row.legal_last_name}
+        </div>
+      ),
     },
     {
       key: "type",
       label: "Type",
+      formatter: (
+        row: Client & {
+          ClientGroupMembership: (ClientGroupMembership & {
+            ClientGroup: ClientGroup;
+          })[];
+        },
+      ) => {
+        return (
+          <div className="text-gray-500">
+            {row.ClientGroupMembership.length > 0
+              ? row.ClientGroupMembership[0].ClientGroup.name
+              : "No Group"}
+          </div>
+        );
+      },
     },
     {
       key: "status",
       label: "Status",
       // TODO: Add right type
-      formatter: (row: { status: string }) => (
+      formatter: (row: { is_active: boolean }) => (
         <Badge
           className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-50"
           variant="outline"
         >
-          {row.status}
+          {row.is_active ? "Active" : "Inactive"}
         </Badge>
       ),
     },
     {
       key: "phone",
       label: "Phone",
+      formatter: (row: Client & { ClientContact: ClientContact[] }) => {
+        return (
+          <div className="text-gray-500">
+            {
+              row.ClientContact.find(
+                (contact: ClientContact) => contact.contact_type === "PHONE",
+              )?.value
+            }
+          </div>
+        );
+      },
     },
     {
       key: "email",
       label: "Email",
       // TODO: Add right type
-      formatter: (row: { email: string }) => (
-        <div className="text-gray-500">{row.email}</div>
-      ),
+      formatter: (row: Client & { ClientContact: ClientContact[] }) => {
+        return (
+          <div className="text-gray-500">
+            {
+              row.ClientContact.find(
+                (contact: ClientContact) => contact.contact_type === "EMAIL",
+              )?.value
+            }
+          </div>
+        );
+      },
     },
     {
       key: "relationship",
@@ -90,14 +98,8 @@ const ClientTable = (props: { onRowClick: (id: string) => void }) => {
     {
       key: "waitlist",
       label: "Waitlist",
-    },
-    {
-      key: "actions",
-      label: "Actions",
-      formatter: () => (
-        <Button className="h-8 w-8" size="icon" variant="ghost">
-          <MoreHorizontal className="h-5 w-5" />
-        </Button>
+      formatter: (row: { is_waitlist: boolean }) => (
+        <p>{row.is_waitlist ? "Yes" : "No"}</p>
       ),
     },
   ];
@@ -105,7 +107,7 @@ const ClientTable = (props: { onRowClick: (id: string) => void }) => {
   return (
     // TODO: Add right type
     // @ts-expect-error - TODO: Add right type
-    <DataTable columns={columns} rows={rows} onRowClick={props.onRowClick} />
+    <DataTable columns={columns} rows={rows} onRowClick={onRowClick} />
   );
 };
 
