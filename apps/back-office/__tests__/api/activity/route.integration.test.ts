@@ -8,11 +8,16 @@ import {
 } from "@mcw/database/mock-data";
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
-import { AuditEventTypes } from "@mcw/utils";
+import { AuditEventTypes } from "../../../src/utils/audit";
 
 // Mock next-auth
 vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),
+}));
+
+// Mock auth options
+vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
+  backofficeAuthOptions: {},
 }));
 
 interface TransformedAudit extends Omit<Audit, "Id"> {

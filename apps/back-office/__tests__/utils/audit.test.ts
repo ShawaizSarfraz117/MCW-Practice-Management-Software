@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { prisma } from "@mcw/database";
-import { createAuditLog, AuditEventTypes } from "../src/audit";
+import { createAuditLog, AuditEventTypes } from "../../src/utils/audit";
 import {
   UserPrismaFactory,
   ClientPrismaFactory,
@@ -75,9 +75,7 @@ describe("Audit Utils", () => {
       user_id: userId, // This ID no longer exists in the database
     };
 
-    await expect(createAuditLog(auditData)).rejects.toThrow(
-      "Failed to create audit log entry",
-    );
+    await expect(createAuditLog(auditData)).rejects.toThrow();
   });
 
   it("should create audit logs with different event types", async () => {

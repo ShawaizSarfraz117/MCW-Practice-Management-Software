@@ -24,7 +24,7 @@ export interface CreateAuditLogParams {
 /**
  * Creates an audit log entry in the database
  */
-export async function createAudit(params: CreateAuditLogParams) {
+export async function createAuditLog(params: CreateAuditLogParams) {
   return prisma.audit.create({
     data: {
       event_type: params.event_type,
