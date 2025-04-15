@@ -1,43 +1,12 @@
-import { prisma } from "@mcw/database";
-
+/**
+ * Audit log parameter types and constants
+ */
 export interface CreateAuditLogParams {
   event_type: string;
   event_text: string;
   client_id?: string;
   user_id: string;
   is_hipaa?: boolean;
-}
-
-/**
- * Creates an audit log entry in the database
- * @param params The audit log parameters
- * @returns The created audit log entry
- * @throws Error if the audit log creation fails
- */
-export async function createAuditLog({
-  event_type,
-  event_text,
-  client_id,
-  user_id,
-  is_hipaa = false,
-}: CreateAuditLogParams) {
-  try {
-    const audit = await prisma.audit.create({
-      data: {
-        event_type,
-        event_text,
-        client_id,
-        user_id,
-        is_hipaa,
-        datetime: new Date(),
-      },
-    });
-
-    return audit;
-  } catch (error) {
-    console.error("Error creating audit log:", error);
-    throw new Error("Failed to create audit log entry");
-  }
 }
 
 /**
