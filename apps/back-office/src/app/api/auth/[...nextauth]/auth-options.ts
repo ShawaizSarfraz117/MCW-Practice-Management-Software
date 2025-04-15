@@ -27,6 +27,8 @@ export type UserWithRoles = PrismaUser & {
   })[];
 };
 
+console.log(process.env.DATABASE_URL, "DATABASE_URL");
+
 export const backofficeAuthOptions: AuthOptions = {
   providers: [
     Credentials({
