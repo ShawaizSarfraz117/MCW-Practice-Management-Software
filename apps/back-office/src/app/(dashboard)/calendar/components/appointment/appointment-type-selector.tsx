@@ -13,8 +13,8 @@ export const AppointmentTypeSelector: React.FC<
     <div className="flex gap-4">
       <Button
         className="flex-1 justify-start gap-2"
-        variant="outline"
         disabled={disabled}
+        variant="outline"
       >
         <div className="flex -space-x-2">
           <Avatar className="h-6 w-6 border-2 border-background">
@@ -30,8 +30,8 @@ export const AppointmentTypeSelector: React.FC<
       </Button>
       <Button
         className="flex-1 justify-start gap-2"
-        variant="outline"
         disabled={disabled}
+        variant="outline"
       >
         <div className="flex -space-x-2">
           <Avatar className="h-6 w-6 border-2 border-background">

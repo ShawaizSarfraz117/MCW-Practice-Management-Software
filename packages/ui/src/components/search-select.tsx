@@ -75,13 +75,13 @@ export function SearchSelect({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
-            type="button"
-            role="combobox"
             aria-expanded={open}
             className={cn(
               "flex w-full items-center gap-2 rounded-none border border-gray-300 bg-background px-2 py-2 text-sm",
               className,
             )}
+            role="combobox"
+            type="button"
             onClick={(e) => {
               e.preventDefault();
               setOpen(!open);
@@ -96,17 +96,17 @@ export function SearchSelect({
           </button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[--radix-popover-trigger-width] p-0 rounded-none"
           align="start"
+          className="w-[--radix-popover-trigger-width] p-0 rounded-none"
           sideOffset={4}
         >
           <Command className="overflow-hidden" shouldFilter={false}>
             {searchable && (
               <CommandInput
+                className="border-0 py-3 focus:ring-0"
                 placeholder={`Search ${placeholder.toLowerCase()}`}
                 value={searchTerm}
                 onValueChange={handleSearch}
-                className="border-0 py-3 focus:ring-0"
               />
             )}
             <CommandList>
@@ -115,13 +115,13 @@ export function SearchSelect({
                 {options.map((option) => (
                   <CommandItem
                     key={option.value}
-                    value={option.value}
-                    onSelect={() => handleSelect(option.value)}
                     className="cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
+                    value={option.value}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                     }}
+                    onSelect={() => handleSelect(option.value)}
                   >
                     {option.label}
                   </CommandItem>
@@ -130,14 +130,14 @@ export function SearchSelect({
               {showPagination && totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-gray-200 px-2 py-2">
                   <button
+                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                    disabled={currentPage === 1}
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       if (currentPage > 1) onPageChange?.(currentPage - 1);
                     }}
-                    disabled={currentPage === 1}
-                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
                   >
                     Previous
                   </button>
@@ -145,6 +145,8 @@ export function SearchSelect({
                     Page {currentPage} of {totalPages}
                   </span>
                   <button
+                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                    disabled={currentPage === totalPages}
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
@@ -152,8 +154,6 @@ export function SearchSelect({
                       if (currentPage < totalPages)
                         onPageChange?.(currentPage + 1);
                     }}
-                    disabled={currentPage === totalPages}
-                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
                   >
                     Next
                   </button>
@@ -165,12 +165,12 @@ export function SearchSelect({
       </Popover>
       {showCreateOption && (
         <button
+          className="absolute right-0 top-1/2 -translate-y-1/2 px-3 text-sm font-medium text-[#16A34A]"
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             onCreateOption?.();
           }}
-          className="absolute right-0 top-1/2 -translate-y-1/2 px-3 text-sm font-medium text-[#16A34A]"
         >
           + Create client
         </button>

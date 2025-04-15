@@ -37,20 +37,20 @@ export const AppointmentTabs: React.FC<AppointmentTabsProps> = ({
     <Tabs className="w-full" defaultValue="appointment">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger
-          value="appointment"
           disabled={isViewMode && appointmentData?.type !== "appointment"}
+          value="appointment"
         >
           Appointment
         </TabsTrigger>
         <TabsTrigger
-          value="event"
           disabled={isViewMode && appointmentData?.type !== "event"}
+          value="event"
         >
           Event
         </TabsTrigger>
         <TabsTrigger
-          value="out-of-office"
           disabled={isViewMode && appointmentData?.type !== "out-of-office"}
+          value="out-of-office"
         >
           Out of office
         </TabsTrigger>
@@ -59,15 +59,15 @@ export const AppointmentTabs: React.FC<AppointmentTabsProps> = ({
         <AppointmentTypeSelector disabled={isViewMode} />
         <ClientSelector
           appointmentDate={appointmentDate}
-          onCreateClient={onCreateClient}
-          disabled={isViewMode}
           clientId={isViewMode ? appointmentData?.client_id : undefined}
+          disabled={isViewMode}
+          onCreateClient={onCreateClient}
         />
         <AppointmentDetails
-          selectedDate={selectedDate}
-          selectedTime={selectedTime}
           appointmentData={appointmentData}
           isViewMode={isViewMode}
+          selectedDate={selectedDate}
+          selectedTime={selectedTime}
         />
       </TabsContent>
     </Tabs>
