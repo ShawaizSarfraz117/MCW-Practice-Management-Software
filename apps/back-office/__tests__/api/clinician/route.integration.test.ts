@@ -11,8 +11,17 @@ import { DELETE, GET, POST, PUT } from "@/api/clinician/route";
 
 describe("Clinician API", async () => {
   beforeEach(async () => {
-    await prisma.clinician.deleteMany();
-    await prisma.user.deleteMany();
+    try {
+      // Delete in the correct order to respect foreign key constraints
+      await prisma.clinicianClient.deleteMany();
+      await prisma.clinicianLocation.deleteMany();
+      await prisma.clinicianServices.deleteMany();
+      await prisma.clinician.deleteMany();
+      await prisma.user.deleteMany();
+    } catch (error) {
+      console.error("Error cleaning up database:", error);
+      // Continue with the test even if cleanup fails
+    }
   });
 
   it(`GET /api/clinician/?id=<id>`, async () => {

@@ -48,10 +48,12 @@ describe("Client API Integration Tests", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
 
-    expect(json).toHaveLength(clients.length);
+    expect(json).toHaveProperty("data");
+    expect(json).toHaveProperty("pagination");
+    expect(json.data).toHaveLength(clients.length);
 
     clients.forEach((client: Client) => {
-      const foundClient = json.find((c: Client) => c.id === client.id);
+      const foundClient = json.data.find((c: Client) => c.id === client.id);
       expect(foundClient).toBeDefined();
       expect(foundClient).toHaveProperty("id", client.id);
       expect(foundClient).toHaveProperty(
@@ -173,6 +175,7 @@ describe("Client API Integration Tests", () => {
       legalLastName: "Smith",
       preferredName: "Janey",
       status: "active",
+      addToWaitlist: false,
       primaryClinicianId: newClinician.id,
       clientGroupId: clientGroup.id,
       isResponsibleForBilling: true,
