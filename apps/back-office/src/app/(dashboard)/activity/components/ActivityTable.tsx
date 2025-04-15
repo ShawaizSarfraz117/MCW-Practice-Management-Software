@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 interface ActivityEvent {
-  Id: string;
+  id: string;
   datetime: string;
   event_text: string;
   event_type: string;
@@ -21,6 +21,13 @@ interface ActivityEvent {
   };
 }
 
+interface PaginationData {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
 interface ActivityTableProps {
   showDetails: boolean;
   searchQuery: string;
@@ -33,64 +40,78 @@ export default function ActivityTable({
   timeRange,
 }: ActivityTableProps) {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<ActivityEvent[]>([]);
+  const [pagination, setPagination] = useState<PaginationData>({
+    total: 0,
+    page: 1,
+    limit: 20,
+    pages: 0,
+  });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch("/api/activity");
-        if (!response.ok) throw new Error("Failed to fetch events");
-        const data = await response.json();
-        setEvents(data);
-      } catch (error) {
-        console.error("Error fetching events:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, []);
-
-  useEffect(() => {
-    let filtered = [...events];
-
-    // Apply time range filter
-    if (timeRange !== "All Time") {
-      const now = new Date();
-      const ranges: { [key: string]: number } = {
-        "Last 24 Hours": 24 * 60 * 60 * 1000,
-        "Last 7 Days": 7 * 24 * 60 * 60 * 1000,
-        "Last 30 Days": 30 * 24 * 60 * 60 * 1000,
-        "Last 90 Days": 90 * 24 * 60 * 60 * 1000,
-      };
-
-      const timeLimit = ranges[timeRange];
-      filtered = filtered.filter((event) => {
-        const eventDate = new Date(event.datetime);
-        return now.getTime() - eventDate.getTime() <= timeLimit;
+  const fetchEvents = async (page: number = 1) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "20",
       });
+
+      // Add time range filter
+      if (timeRange !== "All Time") {
+        const now = new Date();
+        const startDate = new Date();
+
+        switch (timeRange) {
+          case "Last 24 Hours":
+            startDate.setHours(startDate.getHours() - 24);
+            break;
+          case "Last 7 Days":
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case "Last 30 Days":
+            startDate.setDate(startDate.getDate() - 30);
+            break;
+          case "Last 90 Days":
+            startDate.setDate(startDate.getDate() - 90);
+            break;
+        }
+
+        params.set("startDate", startDate.toISOString());
+        params.set("endDate", now.toISOString());
+      }
+
+      // Add search query as event type filter if it matches an event type
+      if (searchQuery) {
+        params.set("eventType", searchQuery.toUpperCase());
+      }
+
+      const response = await fetch(`/api/activity?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch events");
+      const { data, pagination: paginationData } = await response.json();
+      setEvents(data);
+      setPagination(paginationData);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (event) =>
-          event.event_type.toLowerCase().includes(query) ||
-          event.event_text.toLowerCase().includes(query) ||
-          event.Client?.legal_first_name.toLowerCase().includes(query) ||
-          event.Client?.legal_last_name.toLowerCase().includes(query) ||
-          event.User?.email.toLowerCase().includes(query),
-      );
-    }
+  useEffect(() => {
+    fetchEvents(1); // Reset to first page when filters change
+  }, [searchQuery, timeRange]);
 
-    setFilteredEvents(filtered);
-  }, [events, searchQuery, timeRange]);
-
-  if (loading) {
+  if (loading && pagination.page === 1) {
     return <div className="text-center py-8">Loading activity...</div>;
+  }
+
+  if (events.length === 0) {
+    return (
+      <div className="text-center py-8">
+        No activity events found
+        {searchQuery ? ` matching your search "${searchQuery}"` : ""}.
+      </div>
+    );
   }
 
   return (
@@ -105,11 +126,11 @@ export default function ActivityTable({
           </tr>
         </thead>
         <tbody className="divide-y">
-          {filteredEvents.map((event) => {
+          {events.map((event) => {
             const date = new Date(event.datetime);
 
             return (
-              <tr key={event.Id} className="hover:bg-gray-50">
+              <tr key={event.id} className="hover:bg-gray-50">
                 <td className="px-4 py-4 text-sm">
                   {date.toLocaleDateString()}
                 </td>
@@ -137,7 +158,7 @@ export default function ActivityTable({
                 </td>
                 {showDetails && (
                   <td className="px-4 py-4 text-sm text-gray-600">
-                    {event.User?.email}
+                    {event.User?.email || "N/A"}
                   </td>
                 )}
               </tr>
@@ -145,6 +166,29 @@ export default function ActivityTable({
           })}
         </tbody>
       </table>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
+        <div className="text-sm text-gray-500">
+          Showing {events.length} of {pagination.total} results
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => fetchEvents(pagination.page - 1)}
+            disabled={pagination.page === 1}
+            className="px-3 py-1 text-sm bg-white border rounded-md disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => fetchEvents(pagination.page + 1)}
+            disabled={pagination.page === pagination.pages}
+            className="px-3 py-1 text-sm bg-white border rounded-md disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,3 +1,14 @@
+import { z } from "zod";
+
+/**
+ * Zod schema for validating audit log requests
+ */
+export const auditSchema = z.object({
+  event_type: z.string().min(1),
+  event_text: z.string().min(1),
+  client_id: z.string().uuid().optional(),
+});
+
 /**
  * Audit log parameter types and constants
  */

@@ -6,6 +6,7 @@ import {
   UserPrismaFactory,
   ClientPrismaFactory,
 } from "@mcw/database/mock-data";
+import { NextRequest } from "next/server";
 
 interface AuditResponse extends Audit {
   Client?: {
@@ -56,7 +57,9 @@ describe("Activity API Integration Tests", () => {
       }),
     ]);
 
-    const response = await GET();
+    const response = await GET(
+      new NextRequest(new URL("http://localhost/api/activity")),
+    );
 
     expect(response.status).toBe(200);
     const json = (await response.json()) as AuditResponse[];
