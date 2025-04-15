@@ -4,11 +4,11 @@ import { MapPin } from "lucide-react";
 import { Input, SearchSelect } from "@mcw/ui";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clinician, Location } from "./types";
+import { Clinician, Location } from "./Types";
 import { cn } from "@mcw/utils";
-import { ValidationError } from "./components/validation-error";
-import { useFormContext } from "./context/form-context";
-import { CheckboxControl, DateTimeControls } from "./components/form-controls";
+import { ValidationError } from "./components/ValidationError";
+import { useFormContext } from "./context/FormContext";
+import { CheckboxControl, DateTimeControls } from "./components/FormControls";
 
 export function EventTab(): React.ReactNode {
   const {

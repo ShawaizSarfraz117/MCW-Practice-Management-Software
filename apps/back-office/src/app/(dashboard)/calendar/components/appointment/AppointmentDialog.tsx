@@ -6,7 +6,7 @@ import {
   DialogFooter,
   DialogHeader,
 } from "@mcw/ui";
-import { AppointmentTabs } from "./appointment-tabs";
+import { AppointmentTabs } from "./AppointmentTabs";
 
 interface AppointmentData {
   id?: string;

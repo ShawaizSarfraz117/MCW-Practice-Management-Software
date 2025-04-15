@@ -3,9 +3,9 @@
 import type React from "react";
 // import { MainSidebar } from "./components/main-sidebar";
 import { CalendarView } from "./components/calendar/calendar";
-import { CreateClientForm } from "./components/client/create-client-form";
+import { CreateClientForm } from "./components/client/CreateClientForm";
 import { useState, useEffect } from "react";
-import { IntakeForm } from "./components/intake/intake-form";
+import { IntakeForm } from "./components/intake/IntakeForm";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 

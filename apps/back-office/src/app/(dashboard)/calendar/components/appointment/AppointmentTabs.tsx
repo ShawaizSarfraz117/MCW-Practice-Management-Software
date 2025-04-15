@@ -1,8 +1,8 @@
 import type React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
-import { AppointmentTypeSelector } from "./appointment-type-selector";
-import { ClientSelector } from "./client-selector";
-import { AppointmentDetails } from "./appointment-details";
+import { AppointmentTypeSelector } from "./AppointmentTypeSelector";
+import { ClientSelector } from "./ClientSelector";
+import { AppointmentDetails } from "./AppointmentDetails";
 
 interface AppointmentData {
   id?: string;

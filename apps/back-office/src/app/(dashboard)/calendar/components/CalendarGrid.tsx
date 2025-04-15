@@ -1,5 +1,5 @@
 import type React from "react";
-import { CalendarTimeSlots } from "./calendar-time-slots";
+import { CalendarTimeSlots } from "./CalendarTimeSlots";
 
 interface Day {
   date: number;

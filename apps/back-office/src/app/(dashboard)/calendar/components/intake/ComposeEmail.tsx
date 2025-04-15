@@ -1,7 +1,7 @@
 import type React from "react";
 import { Button } from "@mcw/ui";
 import { Textarea } from "@mcw/ui";
-import { ProgressSteps } from "./progress-steps";
+import { ProgressSteps } from "./ProgressSteps";
 import { Avatar, AvatarFallback } from "@mcw/ui";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 

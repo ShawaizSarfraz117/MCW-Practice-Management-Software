@@ -12,7 +12,7 @@ import {
   SelectValue,
   LocationSelect,
 } from "@mcw/ui";
-import { CalendarToolbarProps, clinicianGroups } from "../types";
+import { CalendarToolbarProps, clinicianGroups } from "../Types";
 
 export function CalendarToolbar({
   currentView,

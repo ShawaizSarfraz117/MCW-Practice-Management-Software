@@ -10,11 +10,11 @@ import { EventClickArg } from "@fullcalendar/core";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 
-import { AppointmentDialog } from "../appointment-dialog";
+import { AppointmentDialog } from "../AppointmentDialog";
 import { CalendarToolbar } from "./components/CalendarToolbar";
 import { useAppointmentHandler } from "./hooks/useAppointmentHandler";
 import { getHeaderDateFormat } from "./utils/date-utils";
-import { CalendarViewProps, Event } from "./types";
+import { CalendarViewProps, Event } from "./Types";
 
 export function CalendarView({
   initialClinicians,

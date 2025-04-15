@@ -11,12 +11,12 @@ import {
   Clinician,
   Location,
   Service,
-} from "./types";
+} from "./Types";
 import { cn } from "@mcw/utils";
-import { ValidationError } from "./components/validation-error";
-import { useFormContext } from "./context/form-context";
-import { CheckboxControl, DateTimeControls } from "./components/form-controls";
-import { RecurringControl } from "../calendar/recurring-control";
+import { ValidationError } from "./components/ValidationError";
+import { useFormContext } from "./context/FormContext";
+import { CheckboxControl, DateTimeControls } from "./components/FormControls";
+import { RecurringControl } from "../calendar/RecurringControl";
 
 export function AppointmentTab({
   onCreateClient,

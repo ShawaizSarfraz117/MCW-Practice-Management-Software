@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FormValues } from "../types";
+import { FormValues } from "../Types";
 
 export function useFormTabs(
   effectiveClinicianId: string | null | undefined,

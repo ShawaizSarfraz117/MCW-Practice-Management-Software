@@ -1,7 +1,7 @@
 import type React from "react";
 import { useState } from "react";
 import { Button } from "@mcw/ui";
-import { ProgressSteps } from "./progress-steps";
+import { ProgressSteps } from "./ProgressSteps";
 import { Avatar, AvatarFallback } from "@mcw/ui";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import {
@@ -11,8 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@mcw/ui";
-import { SendingDialog } from "./sending-dialog";
-import { SuccessDialog } from "./success-dialog";
+import { SendingDialog } from "./SendingDialog";
+import { SuccessDialog } from "./SuccessDialog";
 
 interface ReviewAndSendProps {
   clientName: string;
