@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prisma } from "@mcw/database";
 import type { Audit } from "@mcw/database";
 import { GET } from "@/api/activity/route";
@@ -7,8 +7,16 @@ import {
   ClientPrismaFactory,
 } from "@mcw/database/mock-data";
 import { NextRequest } from "next/server";
+import { getServerSession } from "next-auth";
+import { AuditEventTypes } from "@mcw/utils";
 
-interface AuditResponse extends Audit {
+// Mock next-auth
+vi.mock("next-auth", () => ({
+  getServerSession: vi.fn(),
+}));
+
+interface TransformedAudit extends Omit<Audit, "Id"> {
+  id: string;
   Client?: {
     legal_first_name: string;
     legal_last_name: string;
@@ -18,12 +26,29 @@ interface AuditResponse extends Audit {
   };
 }
 
+interface ActivityResponse {
+  data: TransformedAudit[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
 describe("Activity API Integration Tests", () => {
   beforeEach(async () => {
     await prisma.audit.deleteMany();
     await prisma.client.deleteMany();
     await prisma.userRole.deleteMany();
     await prisma.user.deleteMany();
+
+    // Mock session for each test
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: {
+        id: "test-user-id",
+      },
+    });
   });
 
   it("GET /api/activity should return all audit logs", async () => {
@@ -37,7 +62,7 @@ describe("Activity API Integration Tests", () => {
     const audits = await Promise.all([
       prisma.audit.create({
         data: {
-          event_type: "LOGIN",
+          event_type: AuditEventTypes.USER.LOGIN,
           event_text: "User logged into the system",
           is_hipaa: false,
           datetime: new Date(),
@@ -47,7 +72,7 @@ describe("Activity API Integration Tests", () => {
       }),
       prisma.audit.create({
         data: {
-          event_type: "VIEW",
+          event_type: AuditEventTypes.CLIENT.VIEW,
           event_text: "Viewed client medical records",
           is_hipaa: true,
           datetime: new Date(),
@@ -62,14 +87,21 @@ describe("Activity API Integration Tests", () => {
     );
 
     expect(response.status).toBe(200);
-    const json = (await response.json()) as AuditResponse[];
+    const json = (await response.json()) as ActivityResponse;
 
     // Verify response structure
-    expect(json).toHaveLength(audits.length);
+    expect(json.data).toHaveLength(audits.length);
+    expect(json.pagination).toBeDefined();
+    expect(json.pagination).toEqual({
+      total: audits.length,
+      page: 1,
+      limit: 20,
+      pages: 1,
+    });
 
     // Verify audit entries are returned with correct data
     audits.forEach((audit) => {
-      const foundAudit = json.find((a) => a.Id === audit.Id);
+      const foundAudit = json.data.find((a) => a.id === audit.Id);
       expect(foundAudit).toBeDefined();
       expect(foundAudit).toHaveProperty("event_type", audit.event_type);
       expect(foundAudit).toHaveProperty("event_text", audit.event_text);
@@ -78,7 +110,7 @@ describe("Activity API Integration Tests", () => {
     });
 
     // Verify first audit entry has correct relations
-    const firstAudit = json.find((a) => a.Id === audits[0].Id);
+    const firstAudit = json.data.find((a) => a.id === audits[0].Id);
     expect(firstAudit).toHaveProperty(
       "Client.legal_first_name",
       client1.legal_first_name,
@@ -90,7 +122,7 @@ describe("Activity API Integration Tests", () => {
     expect(firstAudit).toHaveProperty("User.email", user1.email);
 
     // Verify second audit entry has correct relations
-    const secondAudit = json.find((a) => a.Id === audits[1].Id);
+    const secondAudit = json.data.find((a) => a.id === audits[1].Id);
     expect(secondAudit).toHaveProperty(
       "Client.legal_first_name",
       client2.legal_first_name,

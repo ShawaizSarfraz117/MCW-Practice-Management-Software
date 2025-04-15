@@ -24,6 +24,18 @@ vi.mock("@mcw/database", () => ({
   },
 }));
 
+// Interface for the transformed response data
+interface TransformedAudit extends Omit<Audit, "Id"> {
+  id: string;
+  Client?: {
+    legal_first_name: string | null;
+    legal_last_name: string | null;
+  };
+  User?: {
+    email: string;
+  };
+}
+
 interface AuditWithRelations extends Audit {
   Client?: {
     legal_first_name: string | null;
@@ -111,10 +123,10 @@ describe("Activity API Unit Tests", () => {
 
     auditData.forEach((audit) => {
       const foundAudit = json.data.find(
-        (a: AuditWithRelations) => a.Id === audit.Id,
+        (a: TransformedAudit) => a.id === audit.Id,
       );
       expect(foundAudit).toBeDefined();
-      expect(foundAudit).toHaveProperty("Id", audit.Id);
+      expect(foundAudit).toHaveProperty("id", audit.Id);
       expect(foundAudit).toHaveProperty("client_id", audit.client_id);
       expect(foundAudit).toHaveProperty("user_id", audit.user_id);
       expect(foundAudit.event_type?.trim()).toBe(audit.event_type);
