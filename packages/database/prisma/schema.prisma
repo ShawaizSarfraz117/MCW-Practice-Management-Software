@@ -326,3 +326,18 @@ model UserRole {
 
   @@id([user_id, role_id], map: "PK_UserRole_ID")
 }
+
+model HistoryEvent {
+  id         String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  client_id  String?  @db.UniqueIdentifier
+  user_id    String?  @db.UniqueIdentifier
+  datetime   DateTime @default(now()) @db.DateTime
+  event_type String   @db.VarChar(100)
+  event_text String   @db.NVarChar(255)
+  ip_address String?  @db.VarChar(45)
+  location   String?  @db.VarChar(255)
+  Client     Client?  @relation(fields: [client_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  User       User?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("HistoryEvent")
+}

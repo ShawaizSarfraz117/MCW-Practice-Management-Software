@@ -45,6 +45,10 @@
   },
   "devDependencies": {
     "@swc/core": "^1.11.11",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.11.17",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
@@ -63,6 +67,7 @@
   },
   "packageManager": "npm@10.9.0",
   "dependencies": {
-    "@prisma/client": "^6.5.0"
+    "@prisma/client": "^6.5.0",
+    "vitest": "^3.1.1"
   }
 }
