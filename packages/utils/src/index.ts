@@ -2,7 +2,7 @@ export * from "./formatting";
 export * from "./styles";
 export * from "./next-test";
 export * from "./fetch";
-export * from "./audit";
+// export * from "./audit";
 
 // Example validation utility
 export function validateEmail(email: string): boolean {
