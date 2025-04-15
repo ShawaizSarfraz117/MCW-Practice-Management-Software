@@ -12,14 +12,14 @@ import {
 } from "@mcw/ui";
 import { useForm } from "@tanstack/react-form";
 
-import { AppointmentTab } from "./appointment-dialog/appointment-tab";
-import { EventTab } from "./appointment-dialog/event-tab";
-import { useClinicianData } from "./appointment-dialog/hooks/use-clinician-data";
-import { useAppointmentData } from "./appointment-dialog/hooks/use-appointment-data";
-import { FormProvider } from "./appointment-dialog/context/form-context";
-import { useFormTabs } from "./appointment-dialog/hooks/use-form-tabs";
-import { calculateDuration } from "./appointment-dialog/utils/calculate-duration";
-import { AppointmentDialogProps } from "./appointment-dialog/types";
+import { AppointmentTab } from "./appointment-dialog/AppointmentTab";
+import { EventTab } from "./appointment-dialog/EventTab";
+import { useClinicianData } from "./appointment-dialog/hooks/useClinicianData";
+import { useAppointmentData } from "./appointment-dialog/hooks/useAppointmentData";
+import { FormProvider } from "./appointment-dialog/context/FormContext";
+import { useFormTabs } from "./appointment-dialog/hooks/useFormTabs";
+import { calculateDuration } from "./appointment-dialog/utils/CalculateDuration";
+import { AppointmentDialogProps } from "./appointment-dialog/Types";
 
 export function AppointmentDialog({
   open,

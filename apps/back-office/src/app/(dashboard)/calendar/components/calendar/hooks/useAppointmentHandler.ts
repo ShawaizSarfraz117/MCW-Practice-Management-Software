@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { FormValues } from "../types";
+import { FormValues } from "../Types";
 import { useAppointmentCreation } from "./useAppointmentCreation";
 import { useAppointmentDetails } from "./useAppointmentDetails";
 

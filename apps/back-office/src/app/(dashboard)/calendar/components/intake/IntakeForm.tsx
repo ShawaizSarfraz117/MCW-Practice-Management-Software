@@ -1,12 +1,12 @@
 import type React from "react";
 import { useState } from "react";
 import { Button } from "@mcw/ui";
-import { ProgressSteps } from "./progress-steps";
-import { DocumentSection } from "./document-section";
-import { RemindersDialog } from "./reminders-dialog";
-import { ComposeEmail } from "./compose-email";
+import { ProgressSteps } from "./ProgressSteps";
+import { DocumentSection } from "./DocumentSection";
+import { RemindersDialog } from "./RemindersDialog";
+import { ComposeEmail } from "./ComposeEmail";
 import { AlertCircle } from "lucide-react";
-import { ReviewAndSend } from "./review-and-send";
+import { ReviewAndSend } from "./ReviewAndSend";
 
 interface IntakeFormProps {
   clientName: string;

@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { Session } from "next-auth";
-import { FormValues, RecurringInfo } from "../types";
+import { FormValues, RecurringInfo } from "../Types";
 import { getISODateTime } from "../utils/date-utils";
 
 export function useAppointmentCreation(

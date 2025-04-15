@@ -1,5 +1,5 @@
 import type React from "react";
-import { SidebarItem } from "./sidebar-item";
+import { SidebarItem } from "./SidebarItem";
 import {
   Activity,
   AlertCircle,
