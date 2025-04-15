@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger, config } from "@mcw/logger";
+import { Prisma } from "@prisma/client";
 
 interface ClientData {
   legalFirstName: string;
@@ -29,6 +30,13 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
+    const sortBy = searchParams.get("sortBy") || "legal_last_name";
+
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const skip = (page - 1) * limit;
 
     if (id) {
       logger.info("Retrieving specific client");
@@ -56,7 +64,60 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(client);
     } else {
       logger.info("Retrieving all clients");
+
+      const statusArray = status?.split(",") || [];
+      let whereCondition: Prisma.ClientWhereInput = {};
+
+      // Handle status filtering
+      if (statusArray.length > 0 && !statusArray.includes("all")) {
+        whereCondition = {
+          OR: statusArray.map((status) => {
+            switch (status) {
+              case "active":
+                return { is_active: true };
+              case "inactive":
+                return { is_active: false };
+              case "waitlist":
+                return { is_waitlist: true };
+              case "contacts":
+                return {
+                  ClientGroupMembership: {
+                    some: {
+                      is_contact_only: true,
+                    },
+                  },
+                };
+              default:
+                return {};
+            }
+          }),
+        };
+      }
+
+      // Add search condition if search query exists
+      if (search) {
+        const searchTerm = search.toLowerCase();
+        const searchCondition = {
+          OR: [
+            { legal_first_name: { contains: searchTerm } },
+            { legal_last_name: { contains: searchTerm } },
+          ],
+        };
+
+        // Combine with existing conditions if they exist
+        whereCondition =
+          statusArray.length > 0 && !statusArray.includes("all")
+            ? { AND: [whereCondition, searchCondition] }
+            : searchCondition;
+      }
+
       const clients = await prisma.client.findMany({
+        where: whereCondition,
+        orderBy: {
+          [sortBy]: "asc",
+        },
+        skip: skip,
+        take: limit,
         include: {
           ClientContact: true,
           Clinician: true,
@@ -69,7 +130,14 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      return NextResponse.json(clients);
+      return NextResponse.json({
+        data: clients,
+        pagination: {
+          page,
+          limit,
+          total: await prisma.client.count({ where: whereCondition }),
+        },
+      });
     }
   } catch (error) {
     console.error("Error fetching clients:", error);
