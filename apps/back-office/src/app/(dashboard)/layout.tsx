@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Sidebar from "@/components/layouts/Sidebar";
 import { NextAuthProvider } from "@/contexts/NextAuthProvider";
+import { Toaster } from "@mcw/ui";
 
 export const metadata: Metadata = {
   title: "Back Office | Admin Portal",
@@ -17,6 +18,7 @@ export default function DashboardLayout({
       <div className="flex h-screen">
         <Sidebar />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <Toaster />
       </div>
     </NextAuthProvider>
   );

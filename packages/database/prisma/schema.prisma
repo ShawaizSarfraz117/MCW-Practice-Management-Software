@@ -109,20 +109,21 @@ model ClientGroup {
   type                  String                  @db.VarChar(150)
   name                  String                  @db.VarChar(250)
   ClientGroupMembership ClientGroupMembership[]
-  Invoice               Invoice[]
 }
 
 model ClientGroupMembership {
-  client_group_id            String      @default(dbgenerated("newid()"), map: "DF_ClientGroupMembership_ID") @db.UniqueIdentifier
-  client_id                  String      @db.UniqueIdentifier
-  role                       String?     @db.VarChar(50)
-  created_at                 DateTime    @default(now(), map: "DF_ClientGroupMembership_CreatedAt")
-  is_contact_only            Boolean     @default(false, map: "DF_ClientGroupMembership_IsContactOnly")
+  id                       String      @id @default(dbgenerated("newid()"), map: "PK_ClientGroupMembership_ID") @db.UniqueIdentifier
+  client_group_id          String      @db.UniqueIdentifier
+  client_id                String      @db.UniqueIdentifier
+  role                     String?     @db.VarChar(50)
+  created_at               DateTime    @default(now(), map: "DF_ClientGroupMembership_CreatedAt")
+  is_contact_only          Boolean     @default(false, map: "DF_ClientGroupMembership_IsContactOnly")
   is_responsible_for_billing Boolean?
-  Client                     Client      @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_Client")
-  ClientGroup                ClientGroup @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_ClientGroup")
+  Client                   Client      @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_Client")
+  ClientGroup              ClientGroup @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_ClientGroup")
+  Invoice                  Invoice[]
 
-  @@id([client_group_id, client_id], map: "PK_ClientGroupMembership_ID")
+  @@unique([client_group_id, client_id], map: "UQ_ClientGroupMembership_Composite")
   @@index([client_id], map: "IX_ClientGroupMembership_client_id")
 }
 
@@ -202,19 +203,21 @@ model CreditCard {
 }
 
 model Invoice {
-  id              String       @id @default(dbgenerated("newid()"), map: "PK_Invoice_ID") @db.UniqueIdentifier
-  invoice_number  String       @db.VarChar(50)
-  client_group_id String?      @db.UniqueIdentifier
-  appointment_id  String?      @db.UniqueIdentifier
-  clinician_id    String       @db.UniqueIdentifier
-  issued_date     DateTime     @default(now(), map: "DF_Invoice_IssuedDate")
-  due_date        DateTime
-  amount          Decimal      @db.Decimal(10, 2)
-  status          String       @db.VarChar(50)
-  Appointment     Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
-  ClientGroup     ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
-  Clinician       Clinician    @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
-  Payment         Payment[]
+  id                      String       @id @default(dbgenerated("newid()"), map: "PK_Invoice_ID") @db.UniqueIdentifier
+  invoice_number          String       @db.VarChar(50)
+  client_group_membership_id String?   @db.UniqueIdentifier
+  appointment_id          String?      @db.UniqueIdentifier
+  clinician_id            String       @db.UniqueIdentifier
+  issued_date             DateTime     @default(now(), map: "DF_Invoice_IssuedDate")
+  due_date                DateTime
+  amount                  Decimal      @db.Decimal(10, 2)
+  status                  String       @db.VarChar(50)
+  Appointment             Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
+  ClientGroupMembership   ClientGroupMembership? @relation(fields: [client_group_membership_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroupMembership")
+  Clinician               Clinician    @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
+  Payment                 Payment[]
+
+  @@index([client_group_membership_id], map: "IX_Invoice_ClientGroupMembership")
 }
 
 model Location {

@@ -11,7 +11,7 @@ import {
 
 interface ClientTableProps {
   rows: Client[];
-  onRowClick: (id: string) => void;
+  onRowClick: (row: unknown) => void;
 }
 
 const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {

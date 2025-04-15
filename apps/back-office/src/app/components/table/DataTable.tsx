@@ -62,7 +62,7 @@ const DataTable: React.FC<TableProps> = ({ rows, columns, onRowClick }) => {
                 key={rowIndex}
                 className={`${onRowClick ? "cursor-pointer" : null}`}
                 // @ts-expect-error - TODO: Add right type
-                onClick={() => (onRowClick ? onRowClick(row.id) : null)}
+                onClick={() => (onRowClick ? onRowClick(row) : null)}
               >
                 {columns.map((column, colIndex) => (
                   <TableCell key={`${rowIndex}-${colIndex}`}>

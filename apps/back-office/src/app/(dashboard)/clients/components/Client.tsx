@@ -8,7 +8,12 @@ import ClientTable from "./ClientTable";
 import { useRouter } from "next/navigation";
 import { CreateClientDrawer } from "@/(dashboard)/clients/components/CreateClientDrawer";
 import { fetchClients } from "../services/client.service";
-import { Client } from "@prisma/client";
+import { Client as PrismaClient } from "@prisma/client";
+
+// Extended Client type that includes ClientGroupMembership
+interface Client extends PrismaClient {
+  ClientGroupMembership: { id: string }[];
+}
 
 export default function Clients() {
   const [sortBy, setSortBy] = useState("legal_last_name");
@@ -24,8 +29,14 @@ export default function Clients() {
 
   const router = useRouter();
 
-  const handleRedirect = (id: string) => {
-    router.push(`/clients/${id}`);
+  const handleRedirect = (row: unknown) => {
+    const client = row as Client;
+    if (
+      client.ClientGroupMembership &&
+      client.ClientGroupMembership.length > 0
+    ) {
+      router.push(`/clients/${client.ClientGroupMembership[0].id}`);
+    }
   };
 
   const handleSearch = async (e: React.FormEvent) => {

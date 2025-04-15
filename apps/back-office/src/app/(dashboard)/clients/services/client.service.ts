@@ -1,5 +1,5 @@
 import { FETCH } from "@mcw/utils";
-import { Client } from "@prisma/client";
+import { Client, Invoice, Payment } from "@prisma/client";
 
 interface Location {
   id: string;
@@ -33,6 +33,21 @@ export const fetchClients = async ({
     })) as PaginatedResponse<Client>;
 
     return [response, null];
+  } catch (error) {
+    return [null, error instanceof Error ? error : new Error("Unknown error")];
+  }
+};
+
+export const fetchInvoices = async ({
+  searchParams = {},
+}): Promise<[Invoice[] | null, Error | null]> => {
+  try {
+    const response = (await FETCH.get({
+      url: "/invoice",
+      searchParams,
+    })) as Invoice[];
+
+    return [response as Invoice[], null];
   } catch (error) {
     return [null, error instanceof Error ? error : new Error("Unknown error")];
   }
@@ -87,5 +102,21 @@ export const fetchClinicians = async () => {
     return [response, null];
   } catch (error) {
     return [null, error];
+  }
+};
+
+export const createPayment = async ({
+  body = {},
+}): Promise<[Payment | null, Error | null]> => {
+  try {
+    const response = (await FETCH.post({
+      url: "/invoice/payment",
+      body,
+      isFormData: false,
+    })) as Payment;
+
+    return [response, null];
+  } catch (error) {
+    return [null, error instanceof Error ? error : new Error("Unknown error")];
   }
 };

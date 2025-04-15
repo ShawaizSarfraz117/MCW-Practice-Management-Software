@@ -1,19 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
+import { Prisma } from "@prisma/client";
 
 // GET - Retrieve all invoices or a specific invoice by ID
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
+    const client_group_membership_id = searchParams.get(
+      "client_group_membership_id",
+    );
+    const status = searchParams.get("status");
 
     if (id) {
       logger.info("Retrieving specific invoice");
       const invoice = await prisma.invoice.findUnique({
         where: { id },
         include: {
-          ClientGroup: true,
+          ClientGroupMembership: true,
           Appointment: true,
           Clinician: true,
           Payment: true,
@@ -30,9 +35,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(invoice);
     } else {
       logger.info("Retrieving all invoices");
+      const whereCondition: Prisma.InvoiceWhereInput = {};
+
+      if (client_group_membership_id) {
+        whereCondition["client_group_membership_id"] =
+          client_group_membership_id;
+      }
+      if (status) {
+        whereCondition["status"] = status;
+      }
       const invoices = await prisma.invoice.findMany({
+        where: whereCondition,
         include: {
-          ClientGroup: true,
+          ClientGroupMembership: true,
           Appointment: true,
           Clinician: true,
           Payment: true,
@@ -73,7 +88,7 @@ export async function POST(request: NextRequest) {
     const newInvoice = await prisma.invoice.create({
       data: {
         invoice_number: invoiceNumber,
-        client_group_id: data.client_group_id,
+        client_group_membership_id: data.client_group_membership_id,
         appointment_id: data.appointment_id,
         clinician_id: data.clinician_id,
         issued_date: new Date(), // Current date
@@ -82,7 +97,7 @@ export async function POST(request: NextRequest) {
         status: data.status || "PENDING", // Default status
       },
       include: {
-        ClientGroup: true,
+        ClientGroupMembership: true,
         Appointment: true,
         Clinician: true,
       },

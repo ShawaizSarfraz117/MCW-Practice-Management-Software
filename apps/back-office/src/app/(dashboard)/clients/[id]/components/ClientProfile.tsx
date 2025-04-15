@@ -1,6 +1,7 @@
+/* eslint-disable max-lines-per-function */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, ChevronDown, Info } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
@@ -14,18 +15,47 @@ import BillingTab from "./tabs/BillingTab";
 import MeasuresTab from "./tabs/MeasuresTab";
 import FilesTab from "./tabs/FilesTab";
 import { AddPaymentModal } from "./AddPaymentModal";
+import { fetchInvoices } from "@/(dashboard)/clients/services/client.service";
+import { Invoice, Payment } from "@prisma/client";
+import { useParams } from "next/navigation";
 
 interface ClientProfileProps {
   clientId: string;
 }
+
+export interface InvoiceWithPayments extends Invoice {
+  Payment: Payment[];
+}
+
+const formatDate = (date: Date) => {
+  const d = new Date(date);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${month}/${day}/${year}`;
+};
 
 export default function ClientProfile({
   clientId: _clientId,
 }: ClientProfileProps) {
   const [activeTab, setActiveTab] = useState("measures");
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
+  const [invoices, setInvoices] = useState<InvoiceWithPayments[]>([]);
 
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
+  const { id } = useParams();
+
+  useEffect(() => {
+    const fetchInvoicesData = async () => {
+      const [invoices, error] = await fetchInvoices({
+        searchParams: { client_group_membership_id: id },
+      });
+      if (!error && invoices?.length) {
+        setInvoices(invoices as InvoiceWithPayments[]);
+      }
+    };
+    fetchInvoicesData();
+  }, [id]);
 
   return (
     <div className="flex flex-col h-full">
@@ -34,11 +64,13 @@ export default function ClientProfile({
         open={adminNoteModalOpen}
         onOpenChange={setAdminNoteModalOpen}
       />
-      <AddPaymentModal
-        open={addPaymentModalOpen}
-        onOpenChange={setAddPaymentModalOpen}
-        clientName="Jamie D. Appleseed"
-      />
+      {addPaymentModalOpen && (
+        <AddPaymentModal
+          clientName="Jamie D. Appleseed"
+          open={addPaymentModalOpen}
+          onOpenChange={setAddPaymentModalOpen}
+        />
+      )}
 
       <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
         <Link className="hover:text-gray-700" href="/clients">
@@ -195,33 +227,25 @@ export default function ClientProfile({
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-blue-500">INV #3</div>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-red-500 text-white text-xs">
-                    Unpaid
-                  </Badge>
-                  <div className="text-xs text-gray-500">02/06/2025</div>
+              {invoices.map((invoice) => (
+                <div key={invoice.id}>
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm text-blue-500">
+                      {invoice.invoice_number}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className={`bg-red-500 text-white text-xs ${invoice.status === "PAID" ? "bg-green-500" : ""}`}
+                      >
+                        {invoice.status}
+                      </Badge>
+                      <div className="text-xs text-gray-500">
+                        {formatDate(invoice.issued_date)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-blue-500">INV #2</div>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-red-500 text-white text-xs">
-                    Unpaid
-                  </Badge>
-                  <div className="text-xs text-gray-500">02/05/2025</div>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-blue-500">INV #1</div>
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-red-500 text-white text-xs">
-                    Unpaid
-                  </Badge>
-                  <div className="text-xs text-gray-500">02/04/2025</div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
