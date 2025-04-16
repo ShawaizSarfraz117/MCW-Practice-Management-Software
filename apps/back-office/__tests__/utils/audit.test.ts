@@ -31,7 +31,11 @@ describe("Audit Utils", () => {
 
     expect(audit).toBeDefined();
     expect(audit.Id).toBeDefined();
-    expect(audit.event_type?.trim()).toBe(auditData.event_type);
+    if (audit.event_type) {
+      expect(audit.event_type.trim()).toBe(auditData.event_type);
+    } else {
+      throw new Error("event_type should not be null in this test case");
+    }
     expect(audit.event_text).toBe(auditData.event_text);
     expect(audit.client_id).toBe(auditData.client_id);
     expect(audit.user_id).toBe(auditData.user_id);
@@ -52,7 +56,11 @@ describe("Audit Utils", () => {
 
     expect(audit).toBeDefined();
     expect(audit.Id).toBeDefined();
-    expect(audit.event_type?.trim()).toBe(auditData.event_type);
+    if (audit.event_type) {
+      expect(audit.event_type.trim()).toBe(auditData.event_type);
+    } else {
+      throw new Error("event_type should not be null in this test case");
+    }
     expect(audit.event_text).toBe(auditData.event_text);
     expect(audit.user_id).toBe(auditData.user_id);
     expect(audit.client_id).toBeNull();
@@ -101,7 +109,11 @@ describe("Audit Utils", () => {
       const audit = await createAuditLog(auditData);
 
       expect(audit).toBeDefined();
-      expect(audit.event_type?.trim()).toBe(event.type);
+      if (audit.event_type) {
+        expect(audit.event_type.trim()).toBe(event.type);
+      } else {
+        throw new Error("event_type should not be null in this test case");
+      }
       expect(audit.event_text).toBe(event.text);
     }
 

@@ -8,6 +8,8 @@ export const auditSchema = z.object({
   event_type: z.string().min(1),
   event_text: z.string().min(1),
   client_id: z.string().uuid().optional(),
+  user_id: z.string().uuid(),
+  is_hipaa: z.boolean().optional().default(false),
 });
 
 /**
