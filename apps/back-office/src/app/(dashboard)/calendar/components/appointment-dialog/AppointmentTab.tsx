@@ -371,23 +371,6 @@ export function AppointmentTab({
           </div>
           <div className="flex gap-2">
             <button
-              className="text-xs text-gray-500 hover:text-gray-700"
-              type="button"
-              onClick={() => {
-                console.log("Client debug info:");
-                console.log("Raw clients:", clientsData);
-                console.log("Filtered clients:", filteredClients);
-                console.log("Paginated clients:", paginatedClients);
-                console.log("Should fetch data:", shouldFetchData);
-                console.log("Selected client:", selectedClient);
-                alert(
-                  `Found ${clientsData?.length || 0} clients, ${filteredClients.length} after filtering`,
-                );
-              }}
-            >
-              Debug
-            </button>
-            <button
               className="text-sm font-medium text-[#16A34A] hover:text-[#16A34A]/90 whitespace-nowrap"
               type="button"
               onClick={handleCreateClientClick}
