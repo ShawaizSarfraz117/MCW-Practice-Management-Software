@@ -1,12 +1,13 @@
 "use client";
 
-import { Input, SearchSelect } from "@mcw/ui";
+import { Checkbox, DatePicker, Input, SearchSelect, TimePicker } from "@mcw/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Clinician, Location } from "./types";
+import { differenceInDays } from "date-fns";
+import { MapPin } from "lucide-react";
 
 import { useFormContext } from "./context/FormContext";
-import { CheckboxControl, DateTimeControls } from "./components/FormControls";
-import { Label } from "@mcw/ui";
+import { RecurringControl } from "../calendar/RecurringControl";
 
 export function EventTab(): React.ReactNode {
   const {
@@ -19,6 +20,7 @@ export function EventTab(): React.ReactNode {
     isAdmin,
     isClinician,
     shouldFetchData,
+    duration,
   } = useFormContext();
 
   // Fetch clinicians
@@ -78,65 +80,163 @@ export function EventTab(): React.ReactNode {
     }
   };
 
+  const handleCheckboxChange = (field: string, checked: boolean) => {
+    form.setFieldValue(field, checked);
+    forceUpdate();
+  };
+
+  const allDay = form.getFieldValue<boolean>("allDay");
+  const startDate = form.getFieldValue<Date>("startDate");
+  const endDate = form.getFieldValue<Date>("endDate");
+  const startTime = form.getFieldValue<string>("startTime");
+  const endTime = form.getFieldValue<string>("endTime");
+  const isRecurring = form.getFieldValue<boolean>("recurring");
+
+  const formattedClinicianOptions = clinicians.map((clinician) => ({
+    label: `${clinician.first_name} ${clinician.last_name}`,
+    value: clinician.id,
+  }));
+
+  const formattedLocationOptions = locations.map((location) => ({
+    label: location.name,
+    value: location.id,
+  }));
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Event Name */}
-      <div className="space-y-2">
-        <Label htmlFor="eventName">Event Name</Label>
+    <>
+      <div>
         <Input
-          id="eventName"
-          placeholder="Enter event name"
-          value={form.getFieldValue<string>("eventName") || ""}
+          placeholder="Event name (optional)"
+          className="rounded-none border-gray-200"
+          value={form.getFieldValue("eventName") || ""}
           onChange={(e) => form.setFieldValue("eventName", e.target.value)}
         />
       </div>
 
-      {/* Clinician Field */}
-      <div className="space-y-2">
-        <Label htmlFor="clinician">Clinician</Label>
-        <SearchSelect
-          value={form.getFieldValue<string>("clinician")}
-          placeholder="Search or select clinician"
-          onValueChange={(value) => {
-            form.setFieldValue("clinician", value);
-            clearValidationError("clinician");
-            forceUpdate();
-          }}
-          options={clinicians.map((clinician) => ({
-            label: `${clinician.first_name} ${clinician.last_name}`,
-            value: clinician.id,
-          }))}
-          className={validationErrors.clinician ? "border-red-500" : ""}
-        />
-      </div>
+      <div>
+        <h2 className="text-sm mb-4">Appointment details</h2>
+        <div className="space-y-4">
+          <div className="flex items-start space-x-2">
+            <Checkbox
+              id="event-all-day"
+              checked={allDay}
+              onCheckedChange={(checked) =>
+                handleCheckboxChange("allDay", !!checked)
+              }
+              className="data-[state=checked]:bg-[#16A34A] data-[state=checked]:border-[#16A34A] mt-0.5"
+            />
+            <label
+              htmlFor="event-all-day"
+              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 !mt-1"
+            >
+              All day
+            </label>
+          </div>
 
-      {/* Location Select */}
-      <div className="space-y-2">
-        <Label htmlFor="location">Location</Label>
-        <SearchSelect
-          value={form.getFieldValue<string>("location")}
-          placeholder="Search or select location"
-          onValueChange={(value) => {
-            form.setFieldValue("location", value);
-            clearValidationError("location");
-            forceUpdate();
-          }}
-          options={locations.map((location) => ({
-            label: location.name,
-            value: location.id,
-          }))}
-          className={validationErrors.location ? "border-red-500" : ""}
-        />
-      </div>
+          {allDay ? (
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+              <DatePicker
+                value={startDate}
+                onChange={(date) => form.setFieldValue("startDate", date)}
+                className="border-gray-200"
+              />
+              <span className="text-sm text-gray-500">to</span>
+              <div className="flex items-center gap-2">
+                <DatePicker
+                  value={endDate}
+                  onChange={(date) => form.setFieldValue("endDate", date)}
+                  className="border-gray-200"
+                />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {differenceInDays(
+                    endDate || new Date(),
+                    startDate || new Date(),
+                  )}{" "}
+                  days
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <DatePicker
+                value={startDate}
+                onChange={(date) => form.setFieldValue("startDate", date)}
+                className="border-gray-200"
+              />
+              <div className="flex items-center gap-2">
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center flex-1">
+                  <TimePicker
+                    value={startTime}
+                    onChange={(time) => form.setFieldValue("startTime", time)}
+                    className="border-gray-200"
+                  />
+                  <span className="text-sm text-gray-500">to</span>
+                  <TimePicker
+                    value={endTime}
+                    onChange={(time) => form.setFieldValue("endTime", time)}
+                    className="border-gray-200"
+                  />
+                </div>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {duration}
+                </span>
+              </div>
+            </div>
+          )}
 
-      {/* Date/Time Controls */}
-      <div className="space-y-2">
-        <Label htmlFor="datetime">Date & Time</Label>
-        <DateTimeControls id="datetime" />
-      </div>
+          <SearchSelect
+            options={formattedClinicianOptions}
+            value={form.getFieldValue("clinician")}
+            onValueChange={(value) => {
+              form.setFieldValue("clinician", value);
+              clearValidationError("clinician");
+            }}
+            placeholder="Team member"
+            className={`border-gray-200 ${validationErrors.clinician ? "border-red-500" : ""}`}
+          />
 
-      {/* All Day Checkbox */}
-      <CheckboxControl id="allDay" field="allDay" label="All Day" />
-    </div>
+          <SearchSelect
+            options={formattedLocationOptions}
+            value={form.getFieldValue("location")}
+            onValueChange={(value) => {
+              form.setFieldValue("location", value);
+              clearValidationError("location");
+              forceUpdate();
+            }}
+            placeholder="Location"
+            icon={<MapPin className="h-4 w-4 text-gray-500" />}
+            className={`border-gray-200 ${validationErrors.location ? "border-red-500" : ""}`}
+          />
+
+          <div className="flex items-start space-x-2">
+            <Checkbox
+              id="event-recurring"
+              checked={isRecurring}
+              onCheckedChange={(checked) =>
+                handleCheckboxChange("recurring", !!checked)
+              }
+              className="data-[state=checked]:bg-[#16A34A] data-[state=checked]:border-[#16A34A] mt-0.5"
+            />
+            <label
+              htmlFor="event-recurring"
+              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 !mt-1"
+            >
+              Recurring
+            </label>
+          </div>
+
+          {isRecurring && (
+            <RecurringControl
+              startDate={startDate || new Date()}
+              visible={true}
+              open={true}
+              onRecurringChange={(recurringValues) => {
+                form.setFieldValue("recurringInfo", recurringValues);
+              }}
+            />
+          )}
+        </div>
+      </div>
+    </>
   );
 }

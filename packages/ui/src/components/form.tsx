@@ -4,49 +4,60 @@ import * as React from "react";
 import * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot } from "@radix-ui/react-slot";
 import {
-  Controller,
-  ControllerProps,
-  FieldPath,
-  FieldValues,
-  FormProvider,
-  useFormContext,
-} from "react-hook-form";
+  Field,
+  useField,
+  useForm as useTanstackForm,
+} from "@tanstack/react-form";
 
 import { cn } from "@mcw/utils";
 import { Label } from "@mcw/ui";
 
-const Form = FormProvider;
+// Create a form context using React's createContext
+const FormContext = React.createContext({});
 
-type FormFieldContextValue<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> = {
-  name: TName;
+// Form component that provides form context
+function Form({
+  children,
+  ...props
+}: {
+  children: React.ReactNode;
+  [key: string]: unknown;
+}) {
+  return <FormContext.Provider value={props}>{children}</FormContext.Provider>;
+}
+
+// Use a Field context to track the current field
+type FormFieldContextValue = {
+  name: string;
 };
 
 const FormFieldContext = React.createContext<FormFieldContextValue>(
   {} as FormFieldContextValue,
 );
 
-const FormField = <
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({
+// FormField component to replace Controller
+function FormField({
+  name,
+  children,
   ...props
-}: ControllerProps<TFieldValues, TName>) => {
+}: {
+  name: string;
+  children:
+    | React.ReactNode
+    | ((props: Record<string, unknown>) => React.ReactNode);
+  [key: string]: unknown;
+}) {
   return (
-    <FormFieldContext.Provider value={{ name: props.name }}>
-      <Controller {...props} />
+    <FormFieldContext.Provider value={{ name }}>
+      {typeof children === "function" ? children(props) : children}
     </FormFieldContext.Provider>
   );
-};
+}
 
+// Hook to get field information
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
   const itemContext = React.useContext(FormItemContext);
-  const { getFieldState, formState } = useFormContext();
-
-  const fieldState = getFieldState(fieldContext.name, formState);
 
   if (!fieldContext) {
     throw new Error("useFormField should be used within <FormField>");
@@ -60,7 +71,9 @@ const useFormField = () => {
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
-    ...fieldState,
+    // Since we don't have direct access to field state like in react-hook-form,
+    // consumers will need to access validation state differently
+    error: null,
   };
 };
 
@@ -90,12 +103,12 @@ const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
-  const { error, formItemId } = useFormField();
+  const { formItemId } = useFormField();
 
   return (
     <Label
       ref={ref}
-      className={cn(error && "text-destructive", className)}
+      className={cn(className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -107,18 +120,12 @@ const FormControl = React.forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
 >(({ ...props }, ref) => {
-  const { error, formItemId, formDescriptionId, formMessageId } =
-    useFormField();
+  const { formItemId, formDescriptionId, formMessageId } = useFormField();
 
   return (
     <Slot
       ref={ref}
-      aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
-      aria-invalid={!!error}
+      aria-describedby={`${formDescriptionId} ${formMessageId}`}
       id={formItemId}
       {...props}
     />
@@ -147,10 +154,9 @@ const FormMessage = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
-  const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message) : children;
+  const { formMessageId } = useFormField();
 
-  if (!body) {
+  if (!children) {
     return null;
   }
 
@@ -161,11 +167,17 @@ const FormMessage = React.forwardRef<
       id={formMessageId}
       {...props}
     >
-      {body}
+      {children}
     </p>
   );
 });
 FormMessage.displayName = "FormMessage";
+
+// Helper function to create a form
+function useForm<TValues = Record<string, unknown>>(options = {}) {
+  // @ts-expect-error TanStack form has complex generic types that we're simplifying here
+  return useTanstackForm<TValues>(options);
+}
 
 export {
   useFormField,
@@ -176,4 +188,7 @@ export {
   FormDescription,
   FormMessage,
   FormField,
+  useForm,
+  Field,
+  useField,
 };

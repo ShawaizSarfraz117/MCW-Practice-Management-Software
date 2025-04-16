@@ -1,15 +1,9 @@
-import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "@mcw/ui/styles.css";
 import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "McNulty Counseling",
-  description: "McNulty Counseling Back Office",
-};
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   // Vars

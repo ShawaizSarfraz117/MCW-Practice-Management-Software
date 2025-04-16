@@ -132,42 +132,6 @@ function determineLocationType(
   return "physical";
 }
 
-// Sample events data (to be replaced with API later)
-const sampleEvents = [
-  {
-    id: "1",
-    resourceId: "alam",
-    title: "Meeting with John",
-    start: "2025-04-03T10:00:00",
-    end: "2025-04-03T11:30:00",
-    location: "sp",
-  },
-  {
-    id: "2",
-    resourceId: "almir",
-    title: "Therapy Session",
-    start: "2025-04-03T13:00:00",
-    end: "2025-04-03T14:00:00",
-    location: "tampa",
-  },
-  {
-    id: "3",
-    resourceId: "alyssa",
-    title: "Group Counseling",
-    start: "2025-04-04T15:00:00",
-    end: "2025-04-04T16:30:00",
-    location: "tyrone",
-  },
-  {
-    id: "4",
-    resourceId: "ashley",
-    title: "Online Consultation",
-    start: "2025-04-05T09:00:00",
-    end: "2025-04-05T10:00:00",
-    location: "telehealth",
-  },
-];
-
 const CalendarPage: React.FC = () => {
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [appointmentDate, setAppointmentDate] = useState("");
@@ -351,11 +315,7 @@ const CalendarPage: React.FC = () => {
       <div className="flex-1">
         <CalendarView
           initialClinicians={formattedClinicians}
-          initialEvents={
-            formattedAppointments.length > 0
-              ? formattedAppointments
-              : sampleEvents
-          }
+          initialEvents={formattedAppointments}
           initialLocations={formattedLocations}
           onAppointmentDone={handleAppointmentDone}
           onCreateClient={handleCreateClient}
