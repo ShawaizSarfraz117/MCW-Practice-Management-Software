@@ -64,6 +64,11 @@ export async function GET(request: NextRequest) {
       const appointments = await prisma.appointment.findMany({
         where: whereClause,
         include: {
+          Invoice: {
+            include: {
+              Payment: true,
+            },
+          },
           Client: {
             select: {
               id: true,

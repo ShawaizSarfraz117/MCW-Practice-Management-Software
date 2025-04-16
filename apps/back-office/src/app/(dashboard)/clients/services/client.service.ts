@@ -1,5 +1,5 @@
 import { FETCH } from "@mcw/utils";
-import { Client, Invoice, Payment } from "@prisma/client";
+import { Appointment, Client, Invoice, Payment } from "@prisma/client";
 
 interface Location {
   id: string;
@@ -35,6 +35,21 @@ export const fetchClients = async ({
     return [response, null];
   } catch (error) {
     return [null, error instanceof Error ? error : new Error("Unknown error")];
+  }
+};
+
+export const fetchAppointments = async ({
+  searchParams = {},
+}): Promise<Appointment[] | Error> => {
+  try {
+    const response = (await FETCH.get({
+      url: "/appointment",
+      searchParams,
+    })) as Appointment[];
+
+    return response;
+  } catch (error) {
+    throw new Error(error as string);
   }
 };
 

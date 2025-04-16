@@ -1,5 +1,6 @@
+import { useState } from "react";
+import { fetchAppointments } from "@/(dashboard)/clients/services/client.service";
 import { Button } from "@mcw/ui";
-import { Input } from "@mcw/ui";
 import {
   Select,
   SelectContent,
@@ -15,16 +16,57 @@ import {
   TableHeader,
   TableRow,
 } from "@mcw/ui";
+import { DateRangePicker } from "@mcw/ui";
+import { DateRange } from "react-day-picker";
+import { useQuery } from "@tanstack/react-query";
+import Loading from "@/components/Loading";
+import { format } from "date-fns";
+
+// Type definitions
+type Invoice = {
+  id: string;
+  invoice_number: string;
+};
+
+type Appointment = {
+  id: string;
+  start_date: Date | string;
+  appointment_fee: number | string;
+  Invoice?: Invoice[];
+};
 
 export default function BillingTab() {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(2025, 0, 8), // Jan 8, 2025
+    to: new Date(2025, 8, 6), // Sep 6, 2025
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["appointments", dateRange],
+    queryFn: () =>
+      fetchAppointments({
+        searchParams: {
+          startDate: dateRange?.from?.toISOString(),
+          endDate: dateRange?.to?.toISOString(),
+        },
+      }),
+  });
+
+  // Type assertion
+  const appointments = data as Appointment[] | undefined;
+
+  if (isLoading)
+    return <Loading fullScreen message="Loading appointments..." />;
+
   return (
     <div className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
       {/* Date Range and Filter */}
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-2">
-          <Input
-            className="w-full sm:w-[200px] h-9 bg-white border-[#e5e7eb]"
-            value="01/08/2025 - 02/06/2025"
+          <DateRangePicker
+            className="w-full sm:w-[280px] h-9 bg-white border-[#e5e7eb]"
+            value={dateRange}
+            onChange={setDateRange}
           />
           <Select defaultValue="billable">
             <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">
@@ -55,28 +97,39 @@ export default function BillingTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {[1, 2, 3].map((item) => (
-              <TableRow key={item}>
-                <TableCell className="font-medium">FEB 6</TableCell>
-                <TableCell>
-                  <div>90834</div>
-                  <div className="text-xs text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded">
-                    INV #3
-                  </div>
-                </TableCell>
-                <TableCell>$100</TableCell>
-                <TableCell>$100</TableCell>
-                <TableCell>--</TableCell>
-                <TableCell>
-                  <div className="flex justify-between items-center">
-                    <span className="text-red-500 text-sm">Unpaid</span>
-                    <Button className="text-blue-500" variant="link">
-                      Manage
-                    </Button>
-                  </div>
+            {appointments && appointments?.length > 0 ? (
+              appointments?.map((appointment) => (
+                <TableRow key={appointment.id}>
+                  <TableCell className="font-medium">
+                    {format(new Date(appointment.start_date), "MMM d")}
+                  </TableCell>
+                  <TableCell>
+                    {appointment.Invoice?.map((invoice) => (
+                      <div key={invoice.id}>
+                        <div>{invoice.invoice_number}</div>
+                      </div>
+                    ))}
+                  </TableCell>
+                  <TableCell>${appointment.appointment_fee}</TableCell>
+                  <TableCell>$100</TableCell>
+                  <TableCell>--</TableCell>
+                  <TableCell>
+                    <div className="flex justify-between items-center">
+                      <span className="text-red-500 text-sm">Unpaid</span>
+                      <Button className="text-blue-500" variant="link">
+                        Manage
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell className="text-center" colSpan={6}>
+                  No appointments found
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>

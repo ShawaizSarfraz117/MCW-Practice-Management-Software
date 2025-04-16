@@ -26,6 +26,7 @@ export * from "./components/collapsible";
 export * from "./components/command";
 export * from "./components/context-menu";
 export * from "./components/date-picker";
+export * from "./components/date-range-picker";
 export * from "./components/date-time-picker";
 export * from "./components/drawer";
 export * from "./components/form";

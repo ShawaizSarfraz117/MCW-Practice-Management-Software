@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { CreateClientDrawer } from "@/(dashboard)/clients/components/CreateClientDrawer";
 import { fetchClients } from "../services/client.service";
 import { Client as PrismaClient } from "@prisma/client";
-
+import Loading from "@/components/Loading";
 // Extended Client type that includes ClientGroupMembership
 interface Client extends PrismaClient {
   ClientGroupMembership: { id: string }[];
@@ -18,6 +18,7 @@ interface Client extends PrismaClient {
 export default function Clients() {
   const [sortBy, setSortBy] = useState("legal_last_name");
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [createClientOpen, setCreateClientOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string[]>(["all"]);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -83,6 +84,7 @@ export default function Clients() {
   };
 
   const fetchClientData = async (params = {}) => {
+    setIsLoading(true);
     const [clients, error] = await fetchClients({
       searchParams: {
         status: statusFilter,
@@ -99,6 +101,7 @@ export default function Clients() {
         },
       );
     }
+    setIsLoading(false);
   };
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -270,7 +273,11 @@ export default function Clients() {
             </div>
           </div>
         </div>
-        <ClientTable rows={clients.data} onRowClick={handleRedirect} />
+        {isLoading ? (
+          <Loading fullScreen message="Loading clients..." />
+        ) : (
+          <ClientTable rows={clients.data} onRowClick={handleRedirect} />
+        )}
       </main>
     </div>
   );
