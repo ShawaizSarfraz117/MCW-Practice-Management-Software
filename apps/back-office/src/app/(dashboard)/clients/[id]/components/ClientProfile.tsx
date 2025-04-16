@@ -1,14 +1,12 @@
-/* eslint-disable max-lines-per-function */
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, ChevronDown, Info, ChevronUp } from "lucide-react";
+import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
 
 import { Button } from "@mcw/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
-import { Badge } from "@mcw/ui";
 
 import OverviewTab from "./tabs/OverviewTab";
 import BillingTab from "./tabs/BillingTab";
@@ -18,6 +16,8 @@ import { AddPaymentModal } from "./AddPaymentModal";
 import { fetchInvoices } from "@/(dashboard)/clients/services/client.service";
 import { Invoice, Payment } from "@prisma/client";
 import { useParams } from "next/navigation";
+import { ClientBillingCard } from "./ClientBillingCard";
+import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
 
 interface ClientProfileProps {
   clientId: string;
@@ -41,14 +41,8 @@ export default function ClientProfile({
   const [activeTab, setActiveTab] = useState("measures");
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceWithPayments[]>([]);
-
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
   const { id } = useParams();
-
-  // Collapsible section states
-  const [invoicesCollapsed, setInvoicesCollapsed] = useState(false);
-  const [clientBalanceCollapsed, setClientBalanceCollapsed] = useState(false);
-  const [unallocatedCollapsed, setUnallocatedCollapsed] = useState(false);
 
   // Calculate totals for invoice and payments
   const totalInvoiceAmount = invoices.reduce(
@@ -203,157 +197,20 @@ export default function ClientProfile({
         </div>
 
         {/* Right Sidebar */}
-        <div className="col-span-12 lg:col-span-4 border-t lg:border-t-0 border-[#e5e7eb] p-4 sm:p-6">
-          {/* Client Billing */}
-          <div className="mb-8">
-            <h3 className="font-medium mb-4">Client billing</h3>
+        <div className="col-span-12 lg:col-span-4 pt-0 border-[#e5e7eb] p-4 sm:p-6 space-y-4">
+          <ClientBillingCard
+            invoices={invoices}
+            remainingBalance={remainingBalance}
+            totalInvoiceAmount={totalInvoiceAmount}
+            totalPaymentsAmount={totalPaymentsAmount}
+            onAddPayment={() => setAddPaymentModalOpen(true)}
+          />
 
-            <div
-              className="flex justify-between mb-2 items-center cursor-pointer"
-              onClick={() => setClientBalanceCollapsed(!clientBalanceCollapsed)}
-            >
-              <div className="text-sm flex items-center">
-                {clientBalanceCollapsed ? (
-                  <ChevronUp className="h-4 w-4 mr-1" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                )}
-                Client balance
-              </div>
-              <div className="text-sm font-medium text-red-500">
-                ${remainingBalance.toFixed(2)}
-              </div>
-            </div>
-
-            {!clientBalanceCollapsed && (
-              <div className="ml-5 border-l pl-3 mb-2">
-                <div className="flex justify-between mb-2">
-                  <div className="text-sm text-blue-500">Payments</div>
-                  <div className="text-sm font-medium">
-                    ${totalPaymentsAmount.toFixed(2)}
-                  </div>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <div className="text-sm text-blue-500">Invoices</div>
-                  <div className="text-sm font-medium">
-                    ${totalInvoiceAmount.toFixed(2)}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div
-              className="flex justify-between mb-2 items-center cursor-pointer"
-              onClick={() => setUnallocatedCollapsed(!unallocatedCollapsed)}
-            >
-              <div className="text-sm flex items-center">
-                {unallocatedCollapsed ? (
-                  <ChevronUp className="h-4 w-4 mr-1" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                )}
-                Unallocated (1)
-              </div>
-            </div>
-
-            {!unallocatedCollapsed && (
-              <div className="ml-5 border-l pl-3 mb-2">
-                <div className="flex justify-between mb-2">
-                  <div className="text-sm text-blue-500">
-                    Unpaid invoices (
-                    {invoices.filter((invoice) => invoice.status === "UNPAID")
-                      ?.length || 0}
-                    )
-                  </div>
-                  <div className="text-sm font-medium">
-                    ${remainingBalance.toFixed(2)}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <Button
-              className="w-full bg-[#2d8467] hover:bg-[#236c53]"
-              onClick={() => setAddPaymentModalOpen(true)}
-            >
-              Add Payment
-            </Button>
-          </div>
-
-          {/* Client Info */}
-          <div className="mb-6">
-            <div className="flex justify-between mb-4">
-              <h3 className="font-medium">Client info</h3>
-              <button className="text-blue-500 hover:underline text-sm">
-                Edit
-              </button>
-            </div>
-          </div>
-
-          {/* Invoices Section */}
-          <div className="mb-6">
-            <div
-              className="flex justify-between items-center mb-2 cursor-pointer"
-              onClick={() => setInvoicesCollapsed(!invoicesCollapsed)}
-            >
-              <h3 className="font-medium">Invoices</h3>
-              {invoicesCollapsed ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </div>
-
-            {!invoicesCollapsed && (
-              <div className="space-y-2">
-                {invoices.map((invoice) => (
-                  <div key={invoice.id}>
-                    <div className="flex justify-between items-center">
-                      <div className="text-sm text-blue-500">
-                        <Link
-                          href={`${window.location.pathname}?invoiceId=${invoice.id}`}
-                          onClick={() => setAddPaymentModalOpen(true)}
-                        >
-                          {invoice.invoice_number}
-                        </Link>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          className={`bg-red-500 text-white text-xs ${invoice.status === "PAID" ? "bg-green-500" : ""}`}
-                        >
-                          {invoice.status}
-                        </Badge>
-                        <div className="text-xs text-gray-500">
-                          {formatDate(invoice.issued_date)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Billing Documents Section */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center">
-                <h3 className="font-medium">Billing documents</h3>
-                <Info className="h-4 w-4 text-gray-400 ml-1" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-blue-500">SB #0001</div>
-                <div className="text-xs text-gray-500">02/01 - 02/05/2025</div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-blue-500">STMT #0001</div>
-                <div className="text-xs text-gray-500">02/01 - 02/06/2025</div>
-              </div>
-            </div>
-          </div>
+          <InvoicesDocumentsCard
+            invoices={invoices}
+            formatDate={formatDate}
+            onInvoiceClick={() => setAddPaymentModalOpen(true)}
+          />
         </div>
       </div>
 
