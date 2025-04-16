@@ -27,14 +27,6 @@ export interface InvoiceWithPayments extends Invoice {
   Payment: Payment[];
 }
 
-const formatDate = (date: Date) => {
-  const d = new Date(date);
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${month}/${day}/${year}`;
-};
-
 export default function ClientProfile({
   clientId: _clientId,
 }: ClientProfileProps) {
@@ -208,7 +200,6 @@ export default function ClientProfile({
 
           <InvoicesDocumentsCard
             invoices={invoices}
-            formatDate={formatDate}
             onInvoiceClick={() => setAddPaymentModalOpen(true)}
           />
         </div>

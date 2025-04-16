@@ -6,13 +6,19 @@ import { InvoiceWithPayments } from "./ClientProfile";
 
 interface InvoicesDocumentsCardProps {
   invoices: InvoiceWithPayments[];
-  formatDate: (date: Date) => string;
   onInvoiceClick: () => void;
 }
 
+const formatDate = (date: Date) => {
+  const d = new Date(date);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${month}/${day}/${year}`;
+};
+
 export function InvoicesDocumentsCard({
   invoices,
-  formatDate,
   onInvoiceClick,
 }: InvoicesDocumentsCardProps) {
   const [invoicesCollapsed, setInvoicesCollapsed] = useState(false);
