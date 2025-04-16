@@ -151,8 +151,8 @@ export const ClientTabs = forwardRef<{ submit: () => void }, ClientTabsProps>(
                     clientType={clientType}
                     field={field}
                     selectedClient={selectedClient}
-                    validationErrors={validationErrors}
                     tabId={tab.id}
+                    validationErrors={validationErrors}
                   />
                 </>
               )}
