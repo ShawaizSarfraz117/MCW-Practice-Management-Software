@@ -14,7 +14,7 @@ import { AppointmentDialog } from "../AppointmentDialog";
 import { CalendarToolbar } from "./components/CalendarToolbar";
 import { useAppointmentHandler } from "./hooks/useAppointmentHandler";
 import { getHeaderDateFormat } from "./utils/date-utils";
-import { CalendarViewProps, Event } from "./Types";
+import { CalendarViewProps, Event, Clinician, Location } from "./types";
 
 export function CalendarView({
   initialClinicians,
@@ -49,12 +49,12 @@ export function CalendarView({
       // Admin users get default selection of first two clinicians
       return initialClinicians
         .slice(0, Math.min(2, initialClinicians.length))
-        .map((c) => c.value);
+        .map((c: Clinician) => c.value);
     }
   });
 
   const [selectedLocations, setSelectedLocations] = useState<string[]>(
-    initialLocations.map((loc) => loc.value),
+    initialLocations.map((loc: Location) => loc.value),
   );
 
   const calendarRef = useRef<FullCalendar>(null);
@@ -337,8 +337,10 @@ export function CalendarView({
 
   // Filter resources based on selected clinicians
   const resources = initialClinicians
-    .filter((clinician) => selectedClinicians.includes(clinician.value))
-    .map((clinician) => ({
+    .filter((clinician: Clinician) =>
+      selectedClinicians.includes(clinician.value),
+    )
+    .map((clinician: Clinician) => ({
       id: clinician.value,
       title: clinician.label,
     }));
