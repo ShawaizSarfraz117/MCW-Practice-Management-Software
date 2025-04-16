@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@mcw/ui";
 import { Checkbox } from "@mcw/ui";
 import { InvoiceWithPayments } from "./ClientProfile";
@@ -28,6 +28,16 @@ export function SelectInvoices({
   onPaymentAmountChange,
 }: SelectInvoicesProps) {
   const [showAllInvoices, setShowAllInvoices] = useState(false);
+
+  // Set showAllInvoices to true if selected invoice is not the first one
+  useEffect(() => {
+    if (invoices.length > 0 && selectedInvoices.length > 0) {
+      const firstInvoiceId = invoices[0]?.id;
+      if (selectedInvoices[0] !== firstInvoiceId) {
+        setShowAllInvoices(true);
+      }
+    }
+  }, [invoices, selectedInvoices]);
 
   // Calculate remaining amount (invoice amount - sum of payments)
   const calculateRemainingAmount = (invoice: InvoiceWithPayments): number => {

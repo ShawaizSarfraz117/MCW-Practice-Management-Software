@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, ChevronDown, Info } from "lucide-react";
+import { Plus, ChevronDown, Info, ChevronUp } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
 
 import { Button } from "@mcw/ui";
@@ -45,15 +45,36 @@ export default function ClientProfile({
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
   const { id } = useParams();
 
+  // Collapsible section states
+  const [invoicesCollapsed, setInvoicesCollapsed] = useState(false);
+  const [clientBalanceCollapsed, setClientBalanceCollapsed] = useState(false);
+  const [unallocatedCollapsed, setUnallocatedCollapsed] = useState(false);
+
+  // Calculate totals for invoice and payments
+  const totalInvoiceAmount = invoices.reduce(
+    (sum, invoice) => sum + Number(invoice.amount),
+    0,
+  );
+  const totalPaymentsAmount = invoices.reduce((sum, invoice) => {
+    const invoicePayments =
+      invoice.Payment?.reduce(
+        (paymentSum, payment) => paymentSum + Number(payment.amount),
+        0,
+      ) || 0;
+    return sum + invoicePayments;
+  }, 0);
+  const remainingBalance = totalInvoiceAmount - totalPaymentsAmount;
+
+  const fetchInvoicesData = async () => {
+    const [invoices, error] = await fetchInvoices({
+      searchParams: { client_group_membership_id: id },
+    });
+    if (!error && invoices?.length) {
+      setInvoices(invoices as InvoiceWithPayments[]);
+    }
+  };
+
   useEffect(() => {
-    const fetchInvoicesData = async () => {
-      const [invoices, error] = await fetchInvoices({
-        searchParams: { client_group_membership_id: id },
-      });
-      if (!error && invoices?.length) {
-        setInvoices(invoices as InvoiceWithPayments[]);
-      }
-    };
     fetchInvoicesData();
   }, [id]);
 
@@ -67,6 +88,7 @@ export default function ClientProfile({
       {addPaymentModalOpen && (
         <AddPaymentModal
           clientName="Jamie D. Appleseed"
+          fetchInvoicesData={fetchInvoicesData}
           open={addPaymentModalOpen}
           onOpenChange={setAddPaymentModalOpen}
         />
@@ -186,20 +208,69 @@ export default function ClientProfile({
           <div className="mb-8">
             <h3 className="font-medium mb-4">Client billing</h3>
 
-            <div className="flex justify-between mb-2">
-              <div className="text-sm">Client balance</div>
-              <div className="text-sm font-medium text-red-500">$200</div>
+            <div
+              className="flex justify-between mb-2 items-center cursor-pointer"
+              onClick={() => setClientBalanceCollapsed(!clientBalanceCollapsed)}
+            >
+              <div className="text-sm flex items-center">
+                {clientBalanceCollapsed ? (
+                  <ChevronUp className="h-4 w-4 mr-1" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                )}
+                Client balance
+              </div>
+              <div className="text-sm font-medium text-red-500">
+                ${remainingBalance.toFixed(2)}
+              </div>
             </div>
 
-            <div className="flex justify-between mb-2">
-              <div className="text-sm">Unallocated (1)</div>
-              <div className="text-sm font-medium">$100</div>
+            {!clientBalanceCollapsed && (
+              <div className="ml-5 border-l pl-3 mb-2">
+                <div className="flex justify-between mb-2">
+                  <div className="text-sm text-blue-500">Payments</div>
+                  <div className="text-sm font-medium">
+                    ${totalPaymentsAmount.toFixed(2)}
+                  </div>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <div className="text-sm text-blue-500">Invoices</div>
+                  <div className="text-sm font-medium">
+                    ${totalInvoiceAmount.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div
+              className="flex justify-between mb-2 items-center cursor-pointer"
+              onClick={() => setUnallocatedCollapsed(!unallocatedCollapsed)}
+            >
+              <div className="text-sm flex items-center">
+                {unallocatedCollapsed ? (
+                  <ChevronUp className="h-4 w-4 mr-1" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                )}
+                Unallocated (1)
+              </div>
             </div>
 
-            <div className="flex justify-between mb-4">
-              <div className="text-sm">Unpaid invoices (3)</div>
-              <div className="text-sm font-medium">$300</div>
-            </div>
+            {!unallocatedCollapsed && (
+              <div className="ml-5 border-l pl-3 mb-2">
+                <div className="flex justify-between mb-2">
+                  <div className="text-sm text-blue-500">
+                    Unpaid invoices (
+                    {invoices.filter((invoice) => invoice.status === "UNPAID")
+                      ?.length || 0}
+                    )
+                  </div>
+                  <div className="text-sm font-medium">
+                    ${remainingBalance.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Button
               className="w-full bg-[#2d8467] hover:bg-[#236c53]"
@@ -221,32 +292,46 @@ export default function ClientProfile({
 
           {/* Invoices Section */}
           <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
+            <div
+              className="flex justify-between items-center mb-2 cursor-pointer"
+              onClick={() => setInvoicesCollapsed(!invoicesCollapsed)}
+            >
               <h3 className="font-medium">Invoices</h3>
-              <ChevronDown className="h-4 w-4 text-gray-400" />
+              {invoicesCollapsed ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
             </div>
 
-            <div className="space-y-2">
-              {invoices.map((invoice) => (
-                <div key={invoice.id}>
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-blue-500">
-                      {invoice.invoice_number}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        className={`bg-red-500 text-white text-xs ${invoice.status === "PAID" ? "bg-green-500" : ""}`}
-                      >
-                        {invoice.status}
-                      </Badge>
-                      <div className="text-xs text-gray-500">
-                        {formatDate(invoice.issued_date)}
+            {!invoicesCollapsed && (
+              <div className="space-y-2">
+                {invoices.map((invoice) => (
+                  <div key={invoice.id}>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm text-blue-500">
+                        <Link
+                          href={`${window.location.pathname}?invoiceId=${invoice.id}`}
+                          onClick={() => setAddPaymentModalOpen(true)}
+                        >
+                          {invoice.invoice_number}
+                        </Link>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          className={`bg-red-500 text-white text-xs ${invoice.status === "PAID" ? "bg-green-500" : ""}`}
+                        >
+                          {invoice.status}
+                        </Badge>
+                        <div className="text-xs text-gray-500">
+                          {formatDate(invoice.issued_date)}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Billing Documents Section */}

@@ -1,6 +1,7 @@
 /* eslint-disable max-lines-per-function */
 "use client";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@mcw/ui";
 import { Dialog, DialogContent } from "@mcw/ui";
@@ -9,7 +10,7 @@ import {
   fetchInvoices,
   createPayment,
 } from "@/(dashboard)/clients/services/client.service";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { InvoiceWithPayments } from "./ClientProfile";
 import { SelectInvoices } from "./SelectInvoices";
 import { PaymentMethodSelection } from "./PaymentMethodSelection";
@@ -19,12 +20,14 @@ interface AddPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clientName: string;
+  fetchInvoicesData: () => Promise<void>;
 }
 
 export function AddPaymentModal({
   open,
   onOpenChange,
   clientName,
+  fetchInvoicesData,
 }: AddPaymentModalProps) {
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [_paymentAmount, setPaymentAmount] = useState("200");
@@ -40,6 +43,8 @@ export function AddPaymentModal({
 
   const { id } = useParams();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchInvoicesData = async () => {
@@ -48,7 +53,8 @@ export function AddPaymentModal({
       });
       if (!error && invoices?.length) {
         setInvoices(invoices as InvoiceWithPayments[]);
-        setSelectedInvoices([invoices[0].id]);
+        const invoiceId = searchParams.get("invoiceId");
+        setSelectedInvoices(invoiceId ? [invoiceId] : [invoices[0].id]);
         // Initialize invoice amounts with remaining balances
         const initialAmounts: Record<string, string> = {};
         invoices.forEach((invoice) => {
@@ -61,7 +67,7 @@ export function AddPaymentModal({
       }
     };
     fetchInvoicesData();
-  }, [id]);
+  }, [id, searchParams]);
 
   // Calculate remaining amount (invoice amount - sum of payments)
   const calculateRemainingAmount = (invoice: InvoiceWithPayments): number => {
@@ -132,7 +138,7 @@ export function AddPaymentModal({
           };
 
           const [_, error] = await createPayment({ body: paymentData });
-
+          fetchInvoicesData();
           if (error) {
             throw error;
           }
@@ -159,9 +165,18 @@ export function AddPaymentModal({
     }
   };
 
+  // Handle modal close with URL cleanup
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen && searchParams.has("invoiceId")) {
+      // Remove invoiceId from URL when closing modal
+      router.replace(window.location.pathname);
+    }
+    onOpenChange(isOpen);
+  };
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-full w-full h-screen p-0 m-0 rounded-none [&>button]:hidden">
           <div className="flex flex-col h-full overflow-auto">
             {/* Header */}
@@ -171,7 +186,7 @@ export function AddPaymentModal({
                   className="mr-2"
                   size="icon"
                   variant="ghost"
-                  onClick={() => onOpenChange(false)}
+                  onClick={() => handleOpenChange(false)}
                 >
                   <X className="h-5 w-5" />
                 </Button>
