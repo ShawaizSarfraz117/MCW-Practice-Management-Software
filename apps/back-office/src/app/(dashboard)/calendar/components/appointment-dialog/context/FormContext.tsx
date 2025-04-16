@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
-import { FormContextType } from "../Types";
+import { FormContextType, FormInterface } from "../Types";
 
+// Create a more permissive type for the form context
 const FormContext = createContext<FormContextType | undefined>(undefined);
 
 export function useFormContext() {
@@ -13,8 +14,19 @@ export function useFormContext() {
   return context;
 }
 
-interface FormProviderProps extends FormContextType {
+// Use a more specific type for the form prop
+interface FormProviderProps {
   children: ReactNode;
+  form: FormInterface;
+  validationErrors: Record<string, boolean>;
+  setValidationErrors: (errors: Record<string, boolean>) => void;
+  setGeneralError: (error: string | null) => void;
+  duration: string;
+  forceUpdate: () => void;
+  effectiveClinicianId?: string | null;
+  isAdmin?: boolean;
+  isClinician?: boolean;
+  shouldFetchData?: boolean;
 }
 
 export function FormProvider({

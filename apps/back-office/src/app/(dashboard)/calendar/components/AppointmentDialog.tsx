@@ -19,7 +19,15 @@ import { useAppointmentData } from "./appointment-dialog/hooks/useAppointmentDat
 import { FormProvider } from "./appointment-dialog/context/FormContext";
 import { useFormTabs } from "./appointment-dialog/hooks/useFormTabs";
 import { calculateDuration } from "./appointment-dialog/utils/CalculateDuration";
-import { AppointmentDialogProps } from "./appointment-dialog/Types";
+import {
+  AppointmentDialogProps,
+  FormInterface,
+} from "./appointment-dialog/Types";
+
+// Helper function to adapt the form to our interface using type assertion
+function adaptFormToInterface(originalForm: unknown): FormInterface {
+  return originalForm as FormInterface;
+}
 
 export function AppointmentDialog({
   open,
@@ -138,7 +146,7 @@ export function AppointmentDialog({
     setAppointmentFormValues,
     setEventFormValues,
     setActiveTab,
-    form,
+    form: adaptFormToInterface(form),
   });
 
   // Prevent dialog from closing when interacting with date pickers
@@ -192,7 +200,7 @@ export function AppointmentDialog({
             duration={duration}
             effectiveClinicianId={effectiveClinicianId}
             forceUpdate={forceUpdate}
-            form={form}
+            form={adaptFormToInterface(form)}
             isAdmin={isAdmin}
             isClinician={isClinician}
             setGeneralError={setGeneralError}

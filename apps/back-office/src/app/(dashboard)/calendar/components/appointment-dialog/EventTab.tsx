@@ -1,14 +1,12 @@
 "use client";
 
-import { MapPin } from "lucide-react";
 import { Input, SearchSelect } from "@mcw/ui";
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Clinician, Location } from "./Types";
-import { cn } from "@mcw/utils";
-import { ValidationError } from "./components/ValidationError";
+
 import { useFormContext } from "./context/FormContext";
 import { CheckboxControl, DateTimeControls } from "./components/FormControls";
+import { Label } from "@mcw/ui";
 
 export function EventTab(): React.ReactNode {
   const {
@@ -23,19 +21,8 @@ export function EventTab(): React.ReactNode {
     shouldFetchData,
   } = useFormContext();
 
-  // Add separate pagination states for each dropdown
-  const [clinicianPage, setClinicianPage] = useState(1);
-  const [locationPage, setLocationPage] = useState(1);
-  const itemsPerPage = 10;
-
-  // Add state for search terms
-  const [clinicianSearchTerm, setClinicianSearchTerm] = useState("");
-  const [locationSearchTerm, setLocationSearchTerm] = useState("");
-
   // Fetch clinicians
-  const { data: clinicians = [], isLoading: isLoadingClinicians } = useQuery<
-    Clinician[]
-  >({
+  const { data: clinicians = [] } = useQuery<Clinician[]>({
     queryKey: ["clinicians", effectiveClinicianId, isAdmin, isClinician],
     queryFn: async () => {
       let url = "/api/clinician";
@@ -56,9 +43,7 @@ export function EventTab(): React.ReactNode {
   });
 
   // Fetch locations
-  const { data: locations = [], isLoading: isLoadingLocations } = useQuery<
-    Location[]
-  >({
+  const { data: locations = [] } = useQuery<Location[]>({
     queryKey: ["locations", effectiveClinicianId, isAdmin, isClinician],
     queryFn: async () => {
       let url = "/api/location";
@@ -75,50 +60,6 @@ export function EventTab(): React.ReactNode {
     },
     enabled: !!shouldFetchData,
   });
-
-  // Filter and prepare dropdown options
-  const filteredClinicianOptions = Array.isArray(clinicians)
-    ? clinicians
-        .map((clinician) => ({
-          label: `${clinician.first_name} ${clinician.last_name}`,
-          value: clinician.id,
-        }))
-        .filter((option) =>
-          option.label
-            .toLowerCase()
-            .includes(clinicianSearchTerm.toLowerCase()),
-        )
-    : [];
-
-  const filteredLocationOptions = Array.isArray(locations)
-    ? locations
-        .map((location) => ({
-          label: location.name,
-          value: location.id,
-        }))
-        .filter((option) =>
-          option.label.toLowerCase().includes(locationSearchTerm.toLowerCase()),
-        )
-    : [];
-
-  // Calculate total pages for each option type
-  const clinicianTotalPages = Math.ceil(
-    filteredClinicianOptions.length / itemsPerPage,
-  );
-  const locationTotalPages = Math.ceil(
-    filteredLocationOptions.length / itemsPerPage,
-  );
-
-  // Paginate the filtered options
-  const paginatedClinicianOptions = filteredClinicianOptions.slice(
-    (clinicianPage - 1) * itemsPerPage,
-    clinicianPage * itemsPerPage,
-  );
-
-  const paginatedLocationOptions = filteredLocationOptions.slice(
-    (locationPage - 1) * itemsPerPage,
-    locationPage * itemsPerPage,
-  );
 
   // Helper for validation error clearing
   const clearValidationError = (field: string) => {
@@ -138,81 +79,64 @@ export function EventTab(): React.ReactNode {
   };
 
   return (
-    <>
-      <div>
+    <div className="p-6 space-y-6">
+      {/* Event Name */}
+      <div className="space-y-2">
+        <Label htmlFor="eventName">Event Name</Label>
         <Input
-          className="rounded-none border-gray-200"
-          placeholder="Event name (optional)"
-          value={form.getFieldValue("eventName") || ""}
+          id="eventName"
+          placeholder="Enter event name"
+          value={form.getFieldValue<string>("eventName") || ""}
           onChange={(e) => form.setFieldValue("eventName", e.target.value)}
         />
       </div>
 
-      <div>
-        <h2 className="text-sm mb-4">Appointment details</h2>
-        <div className="space-y-4">
-          <CheckboxControl field="allDay" id="event-all-day" label="All day" />
-
-          <DateTimeControls id="event-date-time" />
-
-          <SearchSelect
-            searchable
-            showPagination
-            className={cn(
-              "border-gray-200",
-              validationErrors.clinician && "border-red-500",
-            )}
-            currentPage={clinicianPage}
-            options={paginatedClinicianOptions}
-            placeholder={
-              isLoadingClinicians
-                ? "Loading clinicians..."
-                : "Search Team Members *"
-            }
-            totalPages={clinicianTotalPages}
-            value={form.getFieldValue("clinician")}
-            onPageChange={setClinicianPage}
-            onSearch={setClinicianSearchTerm}
-            onValueChange={(value) => {
-              form.setFieldValue("clinician", value);
-              clearValidationError("clinician");
-              forceUpdate();
-            }}
-          />
-          <ValidationError
-            message="Clinician is required"
-            show={!!validationErrors.clinician}
-          />
-
-          <SearchSelect
-            searchable
-            showPagination
-            className={cn(
-              "border-gray-200",
-              validationErrors.location && "border-red-500",
-            )}
-            currentPage={locationPage}
-            icon={<MapPin className="h-4 w-4 text-gray-500" />}
-            options={paginatedLocationOptions}
-            placeholder={
-              isLoadingLocations ? "Loading locations..." : "Search Locations *"
-            }
-            totalPages={locationTotalPages}
-            value={form.getFieldValue("location")}
-            onPageChange={setLocationPage}
-            onSearch={setLocationSearchTerm}
-            onValueChange={(value) => {
-              form.setFieldValue("location", value);
-              clearValidationError("location");
-              forceUpdate();
-            }}
-          />
-          <ValidationError
-            message="Location is required"
-            show={!!validationErrors.location}
-          />
-        </div>
+      {/* Clinician Field */}
+      <div className="space-y-2">
+        <Label htmlFor="clinician">Clinician</Label>
+        <SearchSelect
+          value={form.getFieldValue<string>("clinician")}
+          placeholder="Search or select clinician"
+          onValueChange={(value) => {
+            form.setFieldValue("clinician", value);
+            clearValidationError("clinician");
+            forceUpdate();
+          }}
+          options={clinicians.map((clinician) => ({
+            label: `${clinician.first_name} ${clinician.last_name}`,
+            value: clinician.id,
+          }))}
+          className={validationErrors.clinician ? "border-red-500" : ""}
+        />
       </div>
-    </>
+
+      {/* Location Select */}
+      <div className="space-y-2">
+        <Label htmlFor="location">Location</Label>
+        <SearchSelect
+          value={form.getFieldValue<string>("location")}
+          placeholder="Search or select location"
+          onValueChange={(value) => {
+            form.setFieldValue("location", value);
+            clearValidationError("location");
+            forceUpdate();
+          }}
+          options={locations.map((location) => ({
+            label: location.name,
+            value: location.id,
+          }))}
+          className={validationErrors.location ? "border-red-500" : ""}
+        />
+      </div>
+
+      {/* Date/Time Controls */}
+      <div className="space-y-2">
+        <Label htmlFor="datetime">Date & Time</Label>
+        <DateTimeControls id="datetime" />
+      </div>
+
+      {/* All Day Checkbox */}
+      <CheckboxControl id="allDay" field="allDay" label="All Day" />
+    </div>
   );
 }

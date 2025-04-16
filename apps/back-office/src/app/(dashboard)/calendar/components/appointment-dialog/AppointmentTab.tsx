@@ -20,7 +20,7 @@ import { RecurringControl } from "../calendar/RecurringControl";
 
 export function AppointmentTab({
   onCreateClient,
-  selectedDate,
+  selectedDate: _selectedDate,
 }: AppointmentTabProps) {
   const {
     form,
@@ -52,11 +52,11 @@ export function AppointmentTab({
   const [serviceSearchTerm, setServiceSearchTerm] = useState("");
 
   // Form values
-  const selectedClient = form.getFieldValue("client");
-  const isRecurring = form.getFieldValue("recurring");
+  const selectedClient = form.getFieldValue<string>("client");
+  const isRecurring = form.getFieldValue<boolean>("recurring");
 
   // API data fetching
-  const { data: services = [], isLoading: isLoadingServices } = useQuery<
+  const { data: servicesData = [], isLoading: isLoadingServices } = useQuery<
     Service[]
   >({
     queryKey: ["services", effectiveClinicianId, isAdmin, isClinician],
@@ -76,28 +76,27 @@ export function AppointmentTab({
     enabled: !!shouldFetchData,
   });
 
-  const { data: clinicians = [], isLoading: isLoadingClinicians } = useQuery<
-    Clinician[]
-  >({
-    queryKey: ["clinicians", effectiveClinicianId, isAdmin, isClinician],
-    queryFn: async () => {
-      let url = "/api/clinician";
+  const { data: cliniciansData = [], isLoading: isLoadingClinicians } =
+    useQuery<Clinician[]>({
+      queryKey: ["clinicians", effectiveClinicianId, isAdmin, isClinician],
+      queryFn: async () => {
+        let url = "/api/clinician";
 
-      if (isClinician && !isAdmin && effectiveClinicianId) {
-        url += `?id=${effectiveClinicianId}`;
-      }
+        if (isClinician && !isAdmin && effectiveClinicianId) {
+          url += `?id=${effectiveClinicianId}`;
+        }
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Failed to fetch clinicians");
-      }
-      const data = await response.json();
-      return Array.isArray(data) ? data : [data];
-    },
-    enabled: !!shouldFetchData,
-  });
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error("Failed to fetch clinicians");
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [data];
+      },
+      enabled: !!shouldFetchData,
+    });
 
-  const { data: locations = [], isLoading: isLoadingLocations } = useQuery<
+  const { data: locationsData = [], isLoading: isLoadingLocations } = useQuery<
     Location[]
   >({
     queryKey: ["locations", effectiveClinicianId, isAdmin, isClinician],
@@ -117,7 +116,7 @@ export function AppointmentTab({
     enabled: !!shouldFetchData,
   });
 
-  const { data: clients = [], isLoading: isLoadingClients } = useQuery<
+  const { data: clientsData = [], isLoading: isLoadingClients } = useQuery<
     Client[]
   >({
     queryKey: ["clients", effectiveClinicianId, isAdmin, isClinician],
@@ -178,8 +177,8 @@ export function AppointmentTab({
   });
 
   // Filter and process options
-  const filteredClients = Array.isArray(clients)
-    ? clients
+  const filteredClients = Array.isArray(clientsData)
+    ? clientsData
         .map((client) => {
           console.log("Processing client:", client);
           // Make the mapping more resilient with optional chaining and fallbacks
@@ -207,8 +206,8 @@ export function AppointmentTab({
   console.log("Filtered clients:", filteredClients);
   console.log("Client search term:", clientSearchTerm);
 
-  const filteredClinicianOptions = Array.isArray(clinicians)
-    ? clinicians
+  const filteredClinicianOptions = Array.isArray(cliniciansData)
+    ? cliniciansData
         .map((clinician) => ({
           label: `${clinician.first_name} ${clinician.last_name}`,
           value: clinician.id,
@@ -220,8 +219,8 @@ export function AppointmentTab({
         )
     : [];
 
-  const filteredLocationOptions = Array.isArray(locations)
-    ? locations
+  const filteredLocationOptions = Array.isArray(locationsData)
+    ? locationsData
         .map((location) => ({
           label: location.name,
           value: location.id,
@@ -231,8 +230,8 @@ export function AppointmentTab({
         )
     : [];
 
-  const filteredServiceOptions = Array.isArray(services)
-    ? services
+  const filteredServiceOptions = Array.isArray(servicesData)
+    ? servicesData
         .map((service) => ({
           label: `${service.code} ${service.type}`,
           value: service.id,
@@ -295,6 +294,20 @@ export function AppointmentTab({
         setGeneralError(null);
       }
     }
+  };
+
+  const handleCreateClientClick = () => {
+    if (!onCreateClient) return;
+
+    const date = form.getFieldValue<Date>("startDate");
+    const time = form.getFieldValue<string>("startTime") || "12:00 PM";
+
+    const formattedDate = date
+      ? format(date, "yyyy-MM-dd")
+      : format(new Date(), "yyyy-MM-dd");
+    const formattedTime = time || "12:00 PM";
+
+    onCreateClient?.(formattedDate, formattedTime);
   };
 
   return (
@@ -362,13 +375,13 @@ export function AppointmentTab({
               type="button"
               onClick={() => {
                 console.log("Client debug info:");
-                console.log("Raw clients:", clients);
+                console.log("Raw clients:", clientsData);
                 console.log("Filtered clients:", filteredClients);
                 console.log("Paginated clients:", paginatedClients);
                 console.log("Should fetch data:", shouldFetchData);
                 console.log("Selected client:", selectedClient);
                 alert(
-                  `Found ${clients?.length || 0} clients, ${filteredClients.length} after filtering`,
+                  `Found ${clientsData?.length || 0} clients, ${filteredClients.length} after filtering`,
                 );
               }}
             >
@@ -377,14 +390,7 @@ export function AppointmentTab({
             <button
               className="text-sm font-medium text-[#16A34A] hover:text-[#16A34A]/90 whitespace-nowrap"
               type="button"
-              onClick={() => {
-                const formattedDate = selectedDate
-                  ? format(selectedDate, "MMMM d, yyyy")
-                  : "";
-                const formattedTime =
-                  form.getFieldValue("startTime") || "12:00 PM";
-                onCreateClient?.(formattedDate, formattedTime);
-              }}
+              onClick={handleCreateClientClick}
             >
               + Create client
             </button>
@@ -410,11 +416,10 @@ export function AppointmentTab({
 
           {isRecurring && (
             <RecurringControl
-              open={true}
-              startDate={form.getFieldValue("startDate") || new Date()}
+              startDate={form.getFieldValue<Date>("startDate") || new Date()}
               visible={true}
+              open={true}
               onRecurringChange={(recurringValues) => {
-                // Store the recurring values in the form state
                 form.setFieldValue("recurringInfo", recurringValues);
               }}
             />
@@ -498,7 +503,7 @@ export function AppointmentTab({
                 onPageChange={setServicePage}
                 onSearch={setServiceSearchTerm}
                 onValueChange={(value: string) => {
-                  const selectedServiceOption = services.find(
+                  const selectedServiceOption = servicesData.find(
                     (option) => option.id === value,
                   );
                   const fee = selectedServiceOption?.rate || 0;
