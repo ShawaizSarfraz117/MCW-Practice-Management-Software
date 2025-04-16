@@ -7,9 +7,10 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
+    const userId = searchParams.get("userId");
 
     if (id) {
-      logger.info("Retrieving specific clinician");
+      logger.info("Retrieving specific clinician by ID");
       // Retrieve specific clinician
       const clinician = await prisma.clinician.findUnique({
         where: { id },
@@ -29,12 +30,48 @@ export async function GET(request: NextRequest) {
               PracticeService: true,
             },
           },
+          ClinicianClient: {
+            include: {
+              Client: {
+                select: {
+                  id: true,
+                  legal_first_name: true,
+                  legal_last_name: true,
+                  preferred_name: true,
+                  is_active: true,
+                },
+              },
+            },
+          },
         },
       });
 
       if (!clinician) {
         return NextResponse.json(
           { error: "Clinician not found" },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json(clinician);
+    } else if (userId) {
+      logger.info(`Retrieving clinician by user ID: ${userId}`);
+
+      // Retrieve clinician by user_id
+      const clinician = await prisma.clinician.findUnique({
+        where: { user_id: userId },
+        include: {
+          User: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!clinician) {
+        return NextResponse.json(
+          { error: "Clinician not found for this user" },
           { status: 404 },
         );
       }
