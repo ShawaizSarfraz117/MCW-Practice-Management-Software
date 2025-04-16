@@ -32,7 +32,8 @@
     "checks": "turbo run checks",
     "test:ci": "./scripts/run-vitest-with-testdb.sh run",
     "prepare": "husky",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "seed": "node packages/database/prisma/seed.mjs"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@swc/core": "^1.11.11",
     "@types/node": "^20.11.17",
+    "@types/nodemailer": "^6.4.17",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "eslint": "^9.22.0",
@@ -63,6 +65,7 @@
   },
   "packageManager": "npm@10.9.0",
   "dependencies": {
-    "@prisma/client": "^6.5.0"
+    "@prisma/client": "^6.5.0",
+    "date-fns": "^4.1.0"
   }
 }

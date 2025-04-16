@@ -1,95 +1,87 @@
 "use client";
 
-import { Badge } from "@mcw/ui";
+import { MoreHorizontal } from "lucide-react";
+import { Button, Badge } from "@mcw/ui";
 import DataTable from "@/components/table/DataTable";
-import {
-  Client,
-  ClientContact,
-  ClientGroup,
-  ClientGroupMembership,
-} from "@prisma/client";
 
-interface ClientTableProps {
-  rows: Client[];
-  onRowClick: (id: string) => void;
-}
+const rows = [
+  {
+    id: 1,
+    name: "Jamie D. Appleseed",
+    type: "Adult",
+    status: "Active",
+    phone: "7275101326",
+    email: "alam@mcnultycw.com",
+    relationship: "Clinician: Alam Naqvi",
+    waitlist: "No",
+  },
+  {
+    id: 2,
+    name: "Jamie D. Appleseed",
+    type: "Adult",
+    status: "Active",
+    phone: "7275101326",
+    email: "alam@mcnultycw.com",
+    relationship: "Clinician: Alam Naqvi",
+    waitlist: "No",
+  },
+  {
+    id: 3,
+    name: "Jamie D. Appleseed",
+    type: "Adult",
+    status: "Active",
+    phone: "7275101326",
+    email: "alam@mcnultycw.com",
+    relationship: "Clinician: Alam Naqvi",
+    waitlist: "No",
+  },
+  {
+    id: 4,
+    name: "Jamie D. Appleseed",
+    type: "Adult",
+    status: "Active",
+    phone: "7275101326",
+    email: "alam@mcnultycw.com",
+    relationship: "Clinician: Alam Naqvi",
+    waitlist: "No",
+  },
+];
 
-const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
+// TODO: Add right type
+const ClientTable = (props: { onRowClick: (id: string) => void }) => {
   const columns = [
     {
       key: "name",
       label: "Name",
-      formatter: (row: {
-        legal_first_name: string;
-        legal_last_name: string;
-      }) => (
-        <div>
-          {row.legal_first_name} {row.legal_last_name}
-        </div>
-      ),
     },
     {
       key: "type",
       label: "Type",
-      formatter: (
-        row: Client & {
-          ClientGroupMembership: (ClientGroupMembership & {
-            ClientGroup: ClientGroup;
-          })[];
-        },
-      ) => {
-        return (
-          <div className="text-gray-500">
-            {row.ClientGroupMembership.length > 0
-              ? row.ClientGroupMembership[0].ClientGroup.name
-              : "No Group"}
-          </div>
-        );
-      },
     },
     {
       key: "status",
       label: "Status",
       // TODO: Add right type
-      formatter: (row: { is_active: boolean }) => (
+      formatter: (row: { status: string }) => (
         <Badge
           className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-50"
           variant="outline"
         >
-          {row.is_active ? "Active" : "Inactive"}
+          {row.status}
         </Badge>
       ),
     },
     {
       key: "phone",
       label: "Phone",
-      formatter: (row: Client & { ClientContact: ClientContact[] }) => {
-        return (
-          <div className="text-gray-500">
-            {
-              row.ClientContact.find(
-                (contact: ClientContact) => contact.contact_type === "PHONE",
-              )?.value
-            }
-          </div>
-        );
-      },
     },
     {
       key: "email",
       label: "Email",
       // TODO: Add right type
-      formatter: (row: Client & { ClientContact: ClientContact[] }) => {
-        return (
-          <div className="text-gray-500">
-            {
-              row.ClientContact.find(
-                (contact: ClientContact) => contact.contact_type === "EMAIL",
-              )?.value
-            }
-          </div>
-        );
-      },
+      formatter: (row: { email: string }) => (
+        <div className="text-gray-500">{row.email}</div>
+      ),
     },
     {
       key: "relationship",
@@ -98,8 +90,14 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
     {
       key: "waitlist",
       label: "Waitlist",
-      formatter: (row: { is_waitlist: boolean }) => (
-        <p>{row.is_waitlist ? "Yes" : "No"}</p>
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      formatter: () => (
+        <Button className="h-8 w-8" size="icon" variant="ghost">
+          <MoreHorizontal className="h-5 w-5" />
+        </Button>
       ),
     },
   ];
@@ -107,7 +105,7 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
   return (
     // TODO: Add right type
     // @ts-expect-error - TODO: Add right type
-    <DataTable columns={columns} rows={rows} onRowClick={onRowClick} />
+    <DataTable columns={columns} rows={rows} onRowClick={props.onRowClick} />
   );
 };
 

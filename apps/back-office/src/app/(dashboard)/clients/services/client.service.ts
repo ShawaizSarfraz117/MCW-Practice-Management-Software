@@ -1,5 +1,4 @@
 import { FETCH } from "@mcw/utils";
-import { Client } from "@prisma/client";
 
 interface Location {
   id: string;
@@ -13,30 +12,6 @@ interface ClientGroup {
   type: string;
   name: string;
 }
-
-interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-  };
-}
-
-export const fetchClients = async ({
-  searchParams = {},
-}): Promise<[PaginatedResponse<Client> | null, Error | null]> => {
-  try {
-    const response = (await FETCH.get({
-      url: "/client",
-      searchParams,
-    })) as PaginatedResponse<Client>;
-
-    return [response, null];
-  } catch (error) {
-    return [null, error instanceof Error ? error : new Error("Unknown error")];
-  }
-};
 
 export const createClient = async ({ body = {} }) => {
   try {

@@ -16,7 +16,7 @@ We leverage AI to generate high-quality production code with maximum efficiency.
 - **Authentication**: Secure login system using NextAuth.js
 - **Role-based Authorization**: Different access levels for BackOffice and FrontOffice roles
 - **Modern UI**: Clean, responsive interface built with Tailwind CSS
-- **Database Integration**: Prisma ORM with SQL Server for both development and production
+- **Database Integration**: Prisma ORM with SQLite for development/testing and SQL Server for production
 - **Separate Hosting**: BackOffice and FrontOffice can be deployed on independent servers
 
 ## Tools and Frameworks
@@ -26,11 +26,10 @@ We leverage AI to generate high-quality production code with maximum efficiency.
 - **Component Library**: ShadCN for streamlined UI development
 - **AI Design-to-Code**: Figma + V0.dev for high-quality code generation
 - **ORM**: Prisma for structured database access
-- **Database**: MS SQL Server (both production and local development)
+- **Database**: MS SQL Server (production), SQLite (local/test environments)
 - **Backend**: Next.js API Routes
 - **Authentication**: NextAuth.js for secure login and role-based access
 - **Development**: Cursor.AI with actively maintained CursorRules to ensure high code quality
-- **Testing**: Vitest with faker-js for efficient test data generation
 
 ## Development Flow
 
@@ -38,12 +37,16 @@ We leverage AI to generate high-quality production code with maximum efficiency.
 2. **Generate Figma Wireframes**: AI-assisted designs reviewed and annotated by business users
 3. **Define Data Model**: ER diagram aligned through review with Figma screens and converted to a SQL-based Prisma schema
 4. **Database Integration**:
-   - **Production & Local Development**: MS SQL Server for cost efficiency, high availability, security, and point-in-time recovery
-   - **Testing**: Comprehensive test coverage with both mock and integration tests
-5. **Testing Strategy**:
-   - No feature is finalized without proper test coverage
-   - We leverage Cursor rules for testing and continuously improve these rules for efficiency
-   - Both mock and integration tests are used to validate system behavior
+   - **Production & QA**: MS SQL Server for cost efficiency, high availability, security, and point-in-time recovery on Azure
+   - **Development**: SQLite for quick local setup and faster iteration
+   - **Testing**: SQLite in-memory for accelerated integration tests
+5. **Automated Schema Conversion**:
+   - SQL Server schema is manually maintained
+   - A tool automatically converts SQL Server schema to SQLite for local development
+   - From the SQLite schema, we generate local database migrations
+6. **Testing Strategy**:
+   - Integration tests validate database interactions
+   - SQLite in-memory is used to speed up integration tests on developer machines
 
 ## Why This Works
 
@@ -56,26 +59,8 @@ We leverage AI to generate high-quality production code with maximum efficiency.
 
 ### Prerequisites
 
-- Node.js 22.14
-- SQL Server (for both production and local development)
-
-### SQL Server Setup
-
-If you have SQL Server installed locally, you can use that. Otherwise, you can run SQL Server in Docker:
-
-```bash
-# Run SQL Server in Docker
-docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourStrongPassword123!" -p 1433:1433 --name sql-server -d mcr.microsoft.com/mssql/server:2022-latest
-
-# Check container status
-docker ps
-
-# Stop SQL Server container
-docker stop sql-server
-
-# Start SQL Server container
-docker start sql-server
-```
+- Node.js 18+ and npm/yarn
+- SQL Server (for production) or SQLite (for development)
 
 ### Environment Setup
 
@@ -87,7 +72,8 @@ cp .env.example .env.local
 ```
 
 3. Update the database connection string in .env.local:
-   - For local development and production with SQL Server: `DATABASE_URL="sqlserver://localhost:1433;database=mcw;user=sa;password=YourStrongPassword123!;trustServerCertificate=true"`
+   - For development with SQLite: `DATABASE_URL="file:./dev.db"`
+   - For production with SQL Server: `DATABASE_URL="sqlserver://localhost:1433;database=mcw;user=sa;password=YourPassword;trustServerCertificate=true"`
 
 ### Installation
 
@@ -100,6 +86,9 @@ npx prisma generate --schema=./packages/database/prisma/schema.prisma
 
 # Run database migrations
 npx prisma migrate dev
+
+# Seed the database with initial data
+npm run seed
 ```
 
 ### Running the Application
@@ -117,6 +106,8 @@ npm start
 
 ### Testing Environment
 
+The application is configured to use SQLite in-memory database for testing, providing fast and isolated test runs without affecting your development or production databases.
+
 The application uses two main testing approaches:
 
 1. **Integration Tests**: Test the interaction between components and modules in a more realistic environment
@@ -126,7 +117,6 @@ The application uses two main testing approaches:
 2. **Mock Tests**: Use mock objects to isolate the unit being tested from its dependencies
 
 - Use `UserFactory` and `ClinicianFactory` and other factories to create mock data for testing outside the database
-- We use faker-js for generating realistic test data
 
 ### Running Tests
 
@@ -168,7 +158,7 @@ MCW/
 │   │   │   │   └── api/                     # API routes for client operations
 │   │   │   └── __tests__/                   # Tests for front-office
 │   │   │
-│   │   ├── vitest.config.js                 # Vitest config for front-office
+│   │   ├── jest.config.js                   # Jest config for front-office
 │   │   ├── next.config.js                   # Next.js configuration
 │   │   ├── tsconfig.json                    # TypeScript config
 │   │   └── package.json                     # Dependencies for front-office
@@ -184,7 +174,7 @@ MCW/
 │       │   └── __tests__/                   # Tests for back-office
 │       │       ├── unit/
 │       │       └── integration/
-│       ├── vitest.config.js
+│       ├── jest.config.js
 │       ├── next.config.js
 │       ├── tsconfig.json
 │       └── package.json
@@ -226,7 +216,7 @@ MCW/
 │       └── package.json
 │
 ├── turbo.json                               # Turborepo configuration
-├── vitest.config.base.js                    # Base Vitest configuration
+├── jest.config.base.js                      # Base Jest configuration
 ├── tsconfig.base.json                       # Base TypeScript configuration
 ├── package.json                             # Root package.json with workspaces
 └── README.md                                # Project documentation
@@ -256,6 +246,7 @@ This application uses a unified logging system based on Pino for consistent log 
 1. **Basic Usage**:
 
 ```bash
+
 import { logger } from '@mcw/logger';
 
 // Simple logging
@@ -264,11 +255,13 @@ logger.error('Something went wrong');
 
 // Structured logging
 logger.info({ userId: '123', action: 'login' }, 'User logged in');
+
 ```
 
 2. **Request Context (API Routes)**:
 
 ```bash
+
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mcw/logger';
 
@@ -286,11 +279,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Error occurred' }, { status: 500 });
   }
 }
+
 ```
 
 3. **Component-Specific Logging**:
 
 ```bash
+
 import { logger } from '@mcw/logger';
 
 // Create a component-specific logger
@@ -300,6 +295,7 @@ const componentLogger = logger.child({
 
 // Use it in your component
 componentLogger.info('Component initialized');
+
 ```
 
 Logs are stored in the logs directory of each application as daily files (app-YYYY-MM-DD.log).
@@ -313,4 +309,4 @@ The following questions need to be addressed by the team:
    - Should we split backoffice and frontoffice into two separate apps, especially due their API as in the futures they probably will end up on separate servers. The remaining questions is code reuse
 
 2. **Testing strategy**:
-   - for what should we write integration tests, and for what should we write normal mocked tests. Where are our mocking boundaries (repository, services, interfaces?)
+   - for what shold we write integration tests, and for what should we write , normal mocked tests. Where are our mocking boundries (repository, services, interfaces ?)

@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
-import "./globals.css";
-import "@mcw/ui/styles.css";
+import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
   title: "Front Office | Client Portal",
   description: "Client-facing application",
 };
 
-export default function RootLayout({
+export default function AuthLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
+  return <SessionProvider>{children}</SessionProvider>;
 }

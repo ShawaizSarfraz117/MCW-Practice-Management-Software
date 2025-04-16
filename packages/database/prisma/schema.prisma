@@ -326,3 +326,12 @@ model UserRole {
 
   @@id([user_id, role_id], map: "PK_UserRole_ID")
 }
+
+model Template {
+  id        String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  type      String   @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

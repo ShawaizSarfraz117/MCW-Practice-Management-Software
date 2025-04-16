@@ -18,3 +18,6 @@ export * from "./components/radio-group";
 export * from "./components/password-input";
 export * from "./components/dropdown-menu";
 export * from "./components/switch";
+export * from "./components/popover";
+export * from "./components/calendar";
+export * from "./components/date-range-picker";

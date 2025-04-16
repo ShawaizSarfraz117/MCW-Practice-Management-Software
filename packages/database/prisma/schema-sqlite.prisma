@@ -247,7 +247,7 @@ model PracticeService {
 
 model Role {
   id       String     @id @default(uuid())
-  name     String
+  name     String     @unique
   UserRole UserRole[]
 }
 
@@ -318,4 +318,13 @@ model UserRole {
   User    User   @relation(fields: [user_id], references: [id])
 
   @@id([user_id, role_id])
+}
+
+model Template {
+  id        String   @id @default(uuid())
+  type      String
+  name      String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
