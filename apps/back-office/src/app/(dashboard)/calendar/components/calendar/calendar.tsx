@@ -156,6 +156,8 @@ export function CalendarView({
       client?: string;
       startDate: Date;
       endDate: Date;
+      startTime?: string;
+      endTime?: string;
       location?: string;
       clinician?: string;
       recurring?: boolean;
@@ -212,6 +214,8 @@ export function CalendarView({
       client?: string;
       startDate: Date;
       endDate: Date;
+      startTime?: string;
+      endTime?: string;
       location?: string;
       clinician?: string;
       recurring?: boolean;
@@ -220,6 +224,37 @@ export function CalendarView({
     },
     clientName?: string,
   ) => {
+    // Parse and combine date and time values
+    const getDateTimeISOString = (date: Date, timeStr?: string) => {
+      if (values.allDay || !timeStr) return date.toISOString();
+
+      const [timeValue, period] = timeStr.split(" ");
+      const [hours, minutes] = timeValue.split(":").map(Number);
+
+      // Convert 12-hour format to 24-hour
+      let hours24 = hours;
+      if (period === "PM" && hours !== 12) hours24 += 12;
+      if (period === "AM" && hours === 12) hours24 = 0;
+
+      // Create a new date with the correct local time
+      const newDate = new Date(date);
+      newDate.setHours(hours24, minutes, 0, 0);
+
+      // Create an ISO string but adjust for timezone offset to preserve local time
+      // Format: YYYY-MM-DDTHH:MM:SS.sssZ
+      const tzOffset = newDate.getTimezoneOffset() * 60000; // offset in milliseconds
+      const localISOTime = new Date(newDate.getTime() - tzOffset).toISOString();
+
+      return localISOTime;
+    };
+
+    // Create start and end dates with the correct times
+    const startDateTime = getDateTimeISOString(
+      values.startDate,
+      values.startTime,
+    );
+    const endDateTime = getDateTimeISOString(values.endDate, values.endTime);
+
     return {
       type: values.type || "APPOINTMENT",
       title:
@@ -229,8 +264,8 @@ export function CalendarView({
             ? `Appointment with ${clientName || "Client"}`
             : "New Appointment",
       is_all_day: values.allDay || false,
-      start_date: values.startDate.toISOString(),
-      end_date: values.endDate.toISOString(),
+      start_date: startDateTime,
+      end_date: endDateTime,
       location_id: values.location || "",
       client_id: values.client || null,
       clinician_id: values.clinician || selectedResource || "",
