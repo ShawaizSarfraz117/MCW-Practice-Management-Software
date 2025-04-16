@@ -47,6 +47,7 @@
   "devDependencies": {
     "@swc/core": "^1.11.11",
     "@types/node": "^20.11.17",
+    "@types/nodemailer": "^6.4.17",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "eslint": "^9.22.0",
