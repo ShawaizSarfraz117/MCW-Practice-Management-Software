@@ -10,9 +10,9 @@ interface DateTimeControlsProps {
 
 export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
   const { form, forceUpdate, duration } = useFormContext();
-  const allDay = form.getFieldValue("allDay");
-  const startDate = form.getFieldValue("startDate");
-  const endDate = form.getFieldValue("endDate");
+  const allDay = form.getFieldValue<boolean>("allDay");
+  const startDate = form.getFieldValue<Date>("startDate");
+  const endDate = form.getFieldValue<Date>("endDate");
 
   const handleDateChange = (
     field: "startDate" | "endDate",
@@ -46,7 +46,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
         <DatePicker
           className="border-gray-200"
-          value={startDate}
+          value={startDate as Date}
           onChange={(date) => {
             handleDateChange("startDate", date);
             forceUpdate(); // Ensure UI updates
@@ -56,14 +56,17 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
         <div className="flex items-center gap-2">
           <DatePicker
             className="border-gray-200"
-            value={endDate}
+            value={endDate as Date}
             onChange={(date) => {
               handleDateChange("endDate", date);
               forceUpdate(); // Ensure UI updates
             }}
           />
           <span className="text-sm text-muted-foreground whitespace-nowrap">
-            {differenceInDays(endDate || new Date(), startDate || new Date())}{" "}
+            {differenceInDays(
+              (endDate as Date) || new Date(),
+              (startDate as Date) || new Date(),
+            )}{" "}
             days
           </span>
         </div>
@@ -75,7 +78,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
     <div className="space-y-2">
       <DatePicker
         className="border-gray-200"
-        value={startDate}
+        value={startDate as Date}
         onChange={(date) => {
           handleDateChange("startDate", date);
           forceUpdate(); // Ensure UI updates
@@ -86,7 +89,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
-            value={form.getFieldValue("startTime")}
+            value={form.getFieldValue<string>("startTime")}
             onChange={(time) => {
               handleTimeChange("startTime", time);
               forceUpdate(); // Ensure UI updates
@@ -96,7 +99,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
-            value={form.getFieldValue("endTime")}
+            value={form.getFieldValue<string>("endTime")}
             onChange={(time) => {
               handleTimeChange("endTime", time);
               forceUpdate(); // Ensure UI updates
@@ -128,7 +131,7 @@ export function CheckboxControl({ id, field, label }: CheckboxControlProps) {
   return (
     <div className="flex items-start space-x-2">
       <Checkbox
-        checked={form.getFieldValue(field)}
+        checked={!!form.getFieldValue(field)}
         className="data-[state=checked]:bg-[#16A34A] data-[state=checked]:border-[#16A34A] mt-0.5"
         id={id}
         onCheckedChange={(checked) => handleCheckboxChange(!!checked)}

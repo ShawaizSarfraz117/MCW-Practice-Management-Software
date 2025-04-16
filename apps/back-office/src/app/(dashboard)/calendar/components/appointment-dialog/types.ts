@@ -88,8 +88,24 @@ export interface FormValues {
   };
 }
 
+export interface FormInterface {
+  // Make this more generic to be compatible with ReactFormExtendedApi
+  getFieldValue: <T = unknown>(field: string | keyof FormValues) => T;
+  setFieldValue: (
+    field: string | keyof FormValues,
+    value: unknown,
+    options?: unknown,
+  ) => void;
+  reset: (values?: Partial<FormValues>) => void;
+  handleSubmit?: () => void;
+  state?: {
+    values: FormValues;
+  };
+  [key: string]: unknown;
+}
+
 export interface FormContextType {
-  form: Record<string, unknown>;
+  form: FormInterface;
   validationErrors: Record<string, boolean>;
   setValidationErrors: (errors: Record<string, boolean>) => void;
   setGeneralError: (error: string | null) => void;
@@ -104,6 +120,7 @@ export interface FormContextType {
 export interface AppointmentTabProps {
   onCreateClient?: (date: string, time: string) => void;
   selectedDate?: Date | null;
+  _selectedDate?: Date | null;
 }
 
 export interface EventTabProps {
@@ -120,5 +137,5 @@ export interface UseAppointmentDataProps {
   setAppointmentFormValues: (values: FormValues) => void;
   setEventFormValues: (values: FormValues) => void;
   setActiveTab: (tab: "appointment" | "event" | "out") => void;
-  form: Record<string, unknown>;
+  form: FormInterface;
 }
