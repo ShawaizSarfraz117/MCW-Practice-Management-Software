@@ -2,7 +2,7 @@
 
 import { Input, SearchSelect } from "@mcw/ui";
 import { useQuery } from "@tanstack/react-query";
-import { Clinician, Location } from "./Types";
+import { Clinician, Location } from "./types";
 
 import { useFormContext } from "./context/FormContext";
 import { CheckboxControl, DateTimeControls } from "./components/FormControls";

@@ -11,7 +11,7 @@ import {
   Clinician,
   Location,
   Service,
-} from "./Types";
+} from "./types";
 import { cn } from "@mcw/utils";
 import { ValidationError } from "./components/ValidationError";
 import { useFormContext } from "./context/FormContext";
