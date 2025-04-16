@@ -22,7 +22,7 @@ import { calculateDuration } from "./appointment-dialog/utils/CalculateDuration"
 import {
   AppointmentDialogProps,
   FormInterface,
-} from "./appointment-dialog/Types";
+} from "./appointment-dialog/types";
 
 // Helper function to adapt the form to our interface using type assertion
 function adaptFormToInterface(originalForm: unknown): FormInterface {

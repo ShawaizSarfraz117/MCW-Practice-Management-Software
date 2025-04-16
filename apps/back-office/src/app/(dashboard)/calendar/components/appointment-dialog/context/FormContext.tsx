@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
-import { FormContextType, FormInterface } from "../Types";
+import { FormContextType, FormInterface } from "../types";
 
 // Create a more permissive type for the form context
 const FormContext = createContext<FormContextType | undefined>(undefined);

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { format, addMinutes } from "date-fns";
-import { UseAppointmentDataProps } from "../Types";
+import { UseAppointmentDataProps } from "../types";
 
 export function useAppointmentData({
   open,
