@@ -55,7 +55,9 @@ export default function ActivityPage() {
       location: "Madrid, Spain",
       clientId: "4",
       clientName: "Maria Garcia",
-      type: "appointment",
+      clientId: "4",
+      clientName: "Maria Garcia",
+      type: "client-update",
     },
     {
       date: "02/25/2025",
