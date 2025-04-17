@@ -12,14 +12,21 @@ import { DELETE, GET, POST, PUT } from "@/api/client/route";
 // eslint-disable-next-line max-lines-per-function
 describe("Client API Integration Tests", () => {
   beforeEach(async () => {
-    await prisma.clientReminderPreference.deleteMany();
-    await prisma.clientContact.deleteMany();
-    await prisma.clientGroupMembership.deleteMany();
-    await prisma.client.deleteMany();
-    await prisma.clinician.deleteMany();
-    await prisma.userRole.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.clientGroup.deleteMany();
+    // Clean up data in correct order to respect foreign key constraints
+    await prisma.payment.deleteMany({});
+    await prisma.invoice.deleteMany({});
+    await prisma.appointment.deleteMany({}); // Delete appointments first
+    await prisma.surveyAnswers.deleteMany({});
+    await prisma.clientReminderPreference.deleteMany({});
+    await prisma.clientContact.deleteMany({});
+    await prisma.creditCard.deleteMany({});
+    await prisma.clinicianClient.deleteMany({});
+    await prisma.clientGroupMembership.deleteMany({});
+    await prisma.client.deleteMany({});
+    await prisma.clinician.deleteMany({});
+    await prisma.userRole.deleteMany({});
+    await prisma.user.deleteMany({});
+    await prisma.clientGroup.deleteMany({});
   });
 
   it("GET /api/client should return all clients", async () => {

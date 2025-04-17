@@ -97,10 +97,13 @@ export const ClinicianPrismaFactory = defineClinicianFactory({
 export const ClientFactory = {
   build: <T extends Partial<Client>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    name: faker.company.name(),
-    address: faker.location.streetAddress(),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
+    legal_first_name: faker.person.firstName(),
+    legal_last_name: faker.person.lastName(),
+    is_waitlist: false,
+    is_active: true,
+    preferred_name: faker.person.firstName(),
+    date_of_birth: faker.date.past(),
+    referred_by: faker.person.fullName(),
     ...overrides,
   }),
 };
