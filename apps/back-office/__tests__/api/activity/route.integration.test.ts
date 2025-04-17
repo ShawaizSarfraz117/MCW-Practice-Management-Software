@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prisma } from "@mcw/database";
-import type { Audit } from "@mcw/database";
 import { GET } from "@/api/activity/route";
 import {
   UserPrismaFactory,
@@ -8,7 +7,8 @@ import {
 } from "@mcw/database/mock-data";
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
-import { AuditEventTypes } from "../../../src/utils/audit";
+import { AuditEventTypes } from "@/utils/audit";
+import { ActivityResponse } from "@/types/auditTypes";
 
 // Mock next-auth
 vi.mock("next-auth", () => ({
@@ -19,27 +19,6 @@ vi.mock("next-auth", () => ({
 vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
   backofficeAuthOptions: {},
 }));
-
-interface TransformedAudit extends Omit<Audit, "Id"> {
-  id: string;
-  Client?: {
-    legal_first_name: string;
-    legal_last_name: string;
-  };
-  User?: {
-    email: string;
-  };
-}
-
-interface ActivityResponse {
-  data: TransformedAudit[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  };
-}
 
 describe("Activity API Integration Tests", () => {
   beforeEach(async () => {

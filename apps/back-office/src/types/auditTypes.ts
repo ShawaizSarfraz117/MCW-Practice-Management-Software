@@ -54,3 +54,13 @@ export interface ActivityTableProps {
   searchQuery: string;
   timeRange: string;
 }
+
+export interface ActivityResponse {
+  data: TransformedAudit[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
