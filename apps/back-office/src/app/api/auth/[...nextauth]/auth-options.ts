@@ -27,6 +27,7 @@ export type UserWithRoles = PrismaUser & {
   })[];
 };
 
+
 export const backofficeAuthOptions: AuthOptions = {
   providers: [
     Credentials({
@@ -61,8 +62,8 @@ export const backofficeAuthOptions: AuthOptions = {
     },
   },
   pages: {
-    signIn: "/auth/login",
-    error: "/auth/login",
+    signIn: "/login",
+    error: "/login",
   },
   session: {
     strategy: "jwt",

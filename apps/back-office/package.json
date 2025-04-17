@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env PORT=3001 next dev",
+    "dev": "cross-env PORT=3002 next dev",
     "build": "next build",
-    "start": "cross-env PORT=3001 next start",
+    "start": "cross-env PORT=3002 next start",
     "lint": "eslint .",
     "clean": "rm -rf .next",
     "format": "prettier --write src",

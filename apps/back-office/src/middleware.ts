@@ -1,62 +1,52 @@
 import { NextResponse } from "next/server";
-import type { NextRequestWithAuth } from "next-auth/middleware";
-
 import { withAuth } from "next-auth/middleware";
-// This function can be marked `async` if using `await` inside
-// export function middleware(request: NextRequest) {
-//   return NextResponse.redirect(new URL("/home", request.url));
-// }
 
+// The middleware function
 export default withAuth(
-  async function middleware(request: NextRequestWithAuth) {
-    console.log(
-      "🚀 ~ middleware ~ isGuestRoute(request.nextUrl.pathname):",
-      request.nextUrl.pathname,
-    );
+  async function middleware(request) {
+    console.log("🚀 ~ middleware ~ Pathname:", request.nextUrl.pathname);
 
-    // if (!request.nextauth?.token && !isGuestRoute(request.nextUrl.pathname)) {
-    //   return NextResponse.redirect(new URL('/sign-in', request.url));
-    // }
-
-    console.log("🚀 ~ middleware ~ request.nextauth:", request.nextauth);
+    // If user is not authenticated and trying to access a private route
     if (!request.nextauth?.token && isPrivateRoute(request.nextUrl.pathname)) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
+    // If user is authenticated and trying to access a guest route (e.g., login page)
     if (request.nextauth?.token && isGuestRoute(request.nextUrl.pathname)) {
       return NextResponse.redirect(new URL("/clients", request.url));
     }
 
+    // Allow request to proceed
     return NextResponse.next();
   },
   {
     callbacks: {
       authorized: () => {
+        // You can implement custom authorization logic here
         return true;
       },
     },
-  },
+  }
 );
 
+// Guest and Private Routes
 const guestRoutes = ["/login"];
-function isGuestRoute(pathname: string) {
+const privateRoutes = ["/clients", "/dashboard", "/settings"]; // Example private routes
+
+// Check if the route is a guest route (e.g., login)
+function isGuestRoute(pathname:string) {
   return guestRoutes.some((route) => pathname.includes(route));
 }
-const privateRoutes = ["/clients"];
-function isPrivateRoute(pathname: string) {
+
+// Check if the route is a private route (e.g., clients dashboard)
+function isPrivateRoute(pathname:string) {
   return privateRoutes.some((route) => pathname.includes(route));
 }
 
-// Function to check if a route is the root page
-// function isRootPage(pathname: string) {
-//   return pathname === '/'
-// }
-
+// Config for middleware matcher (apply middleware to all routes except static and API)
 export const config = {
-  // matcher: "/about/:path*"
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|header.png|cache-control.js|.*\\.svg$).*)",
-    // ...guestRoutes,...privateRoutes`
-    // "/dashboard/:path*", "/leads/:path*", "/settings/:path*", "/sign-in", "/sign-up"
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    // Add any other paths as needed (e.g., '/admin/:path*', '/user/:path*')
   ],
 };
