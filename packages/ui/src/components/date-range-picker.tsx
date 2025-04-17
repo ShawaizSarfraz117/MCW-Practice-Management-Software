@@ -78,18 +78,18 @@ function DateRangePicker({
 
   return (
     <div className="*:not-first:mt-2">
-      <Label htmlFor={id} className="sr-only">
+      <Label className="sr-only" htmlFor={id}>
         Date range picker
       </Label>
       <Popover>
         <PopoverTrigger asChild>
           <Button
-            id={id}
-            variant={"outline"}
             className={cn(
               "group bg-background hover:bg-background border-input w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]",
               !date && "text-muted-foreground",
             )}
+            id={id}
+            variant={"outline"}
           >
             <span className={cn("truncate", !date && "text-muted-foreground")}>
               {date?.from ? (
@@ -106,9 +106,9 @@ function DateRangePicker({
               )}
             </span>
             <ChevronDown
-              size={16}
-              className="text-muted-foreground/80 group-hover:text-foreground shrink-0 transition-colors"
               aria-hidden="true"
+              className="text-muted-foreground/80 group-hover:text-foreground shrink-0 transition-colors"
+              size={16}
             />
             {/* <CalendarIcon
                             size={16}
@@ -117,15 +117,15 @@ function DateRangePicker({
                         /> */}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto flex flex-col gap-4" align="start">
+        <PopoverContent align="start" className="w-auto flex flex-col gap-4">
           <div className="flex max-sm:flex-col">
             <div className="relative py-4 max-sm:order-1 max-sm:border-t sm:w-32">
               <div className="h-full sm:border-e">
                 <div className="flex flex-col px-2 gap-2">
                   <Button
-                    variant="ghost"
-                    size="sm"
                     className="w-full justify-start px-2 text-muted-foreground/80 hover:text-white hover:bg-accent-foreground"
+                    size="sm"
+                    variant="ghost"
                     onClick={() => {
                       setDate(undefined);
                       setMonth(today);
@@ -134,51 +134,50 @@ function DateRangePicker({
                     All Time
                   </Button>
                   {dateRangePresets?.length &&
-{dateRangePresets?.length &&
-  dateRangePresets.map((item) => (
-    <Button
-      key={item.label}
-      variant="ghost"
-      size="sm"
-      className="w-full justify-start px-2 text-muted-foreground/80 hover:text-white hover:bg-accent-foreground"
-      onClick={() => {
-        setDate(item?.duration || undefined);
-        setMonth(item?.duration?.to || today);
-      }}
-    >
-      {item?.label}
-    </Button>
-  ))}
+                    dateRangePresets.map((item) => (
+                      <Button
+                        key={item.label}
+                        className="w-full justify-start px-2 text-muted-foreground/80 hover:text-white hover:bg-accent-foreground"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setDate(item?.duration || undefined);
+                          setMonth(item?.duration?.to || today);
+                        }}
+                      >
+                        {item?.label}
+                      </Button>
+                    ))}
                 </div>
               </div>
             </div>
             <Calendar
+              className="p-2"
               mode="range"
+              month={month}
               numberOfMonths={2}
               selected={date}
+              onMonthChange={setMonth}
               onSelect={(newDate) => {
                 if (newDate) {
                   setDate(newDate);
                 }
               }}
-              month={month}
-              onMonthChange={setMonth}
-              className="p-2"
             />
           </div>
           <div className="flex gap-4 border-t pt-4">
             <div className="flex items-center gap-2">
               <Label>From</Label>
               <Input
-                value={date?.from ? format(date?.from, "LLL dd, y") : ""}
                 disabled
+                value={date?.from ? format(date?.from, "LLL dd, y") : ""}
               />
             </div>
             <div className="flex items-center gap-2">
               <Label>To</Label>
               <Input
-                value={date?.to ? format(date?.to, "LLL dd, y") : ""}
                 disabled
+                value={date?.to ? format(date?.to, "LLL dd, y") : ""}
               />
             </div>
           </div>
