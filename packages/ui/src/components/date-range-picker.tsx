@@ -122,9 +122,17 @@ function DateRangePicker({
             <div className="relative py-4 max-sm:order-1 max-sm:border-t sm:w-32">
               <div className="h-full sm:border-e">
                 <div className="flex flex-col px-2 gap-2">
-                  <Label className="p-2 hover:bg-accent-foreground rounded-md hover:text-white">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start px-2 text-muted-foreground/80 hover:text-white hover:bg-accent-foreground"
+                    onClick={() => {
+                      setDate(undefined);
+                      setMonth(today);
+                    }}
+                  >
                     All Time
-                  </Label>
+                  </Button>
                   {dateRangePresets?.length &&
                     dateRangePresets?.map((item) => (
                       <Button
