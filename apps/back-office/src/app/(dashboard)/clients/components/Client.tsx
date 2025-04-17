@@ -6,9 +6,8 @@ import { Search, ChevronDown, Filter } from "lucide-react";
 import { Button, Input, Card, Checkbox } from "@mcw/ui";
 import ClientTable from "./ClientTable";
 import { useRouter } from "next/navigation";
-import { CreateClientDrawer } from "@/(dashboard)/clients/components/CreateClientDrawer";
 import { fetchClients } from "../services/client.service";
-import { Client } from "@prisma/client";
+import { CreateClientDrawer } from "./CreateClientDrawer";
 
 export default function Clients() {
   const [sortBy, setSortBy] = useState("legal_last_name");

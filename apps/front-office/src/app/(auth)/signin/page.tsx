@@ -17,7 +17,7 @@ export default function SignIn() {
     try {
       await signIn("email", {
         email,
-        callbackUrl: "/verify",
+        callbackUrl: "/dashboard",
       });
     } catch (error) {
       console.error("Error signing in:", error);

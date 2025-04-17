@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Sidebar from "@/components/layouts/Sidebar";
-import { NextAuthProvider } from "@/contexts/NextAuthProvider";
+import { NextAuthProvider } from "../contexts/NextAuthProvider";
+import Sidebar from "../components/layouts/Sidebar";
 
 export const metadata: Metadata = {
   title: "Back Office | Admin Portal",

@@ -1,7 +1,7 @@
 "use client";
 
+import DataTable from "@/app/components/table/DataTable";
 import { Badge } from "@mcw/ui";
-import DataTable from "@/components/table/DataTable";
 import {
   Client,
   ClientContact,

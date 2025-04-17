@@ -1,4 +1,4 @@
-import TopBar from "@/components/layouts/Topbar";
+import TopBar from "@/app/components/layouts/Topbar";
 import BillingTabs from "./components/BillingTabs";
 
 export default function BillingLayout({
