@@ -255,40 +255,19 @@ export function InvoiceDialog({ open, onOpenChange }: InvoiceDialogProps) {
                   </div>
                 </div>
 
-                {invoice.items && invoice.items.length > 0 ? (
-                  invoice.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-12 border-b border-gray-100 py-3"
-                    >
-                      <div className="col-span-3 text-sm">
-                        {item.date
-                          ? new Date(item.date).toLocaleDateString()
-                          : "N/A"}
-                      </div>
-                      <div className="col-span-6 text-sm">
-                        {item.description || "Service"}
-                      </div>
-                      <div className="col-span-3 text-sm text-right">
-                        ${item.amount || "0.00"}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="grid grid-cols-12 border-b border-gray-100 py-3">
-                    <div className="col-span-3 text-sm">
-                      {invoice.created_at
-                        ? new Date(invoice.created_at).toLocaleDateString()
-                        : "N/A"}
-                    </div>
-                    <div className="col-span-6 text-sm">
-                      Professional Services
-                    </div>
-                    <div className="col-span-3 text-sm text-right">
-                      ${String(invoice.amount) || "0.00"}
-                    </div>
+                <div className="grid grid-cols-12 border-b border-gray-100 py-3">
+                  <div className="col-span-3 text-sm">
+                    {invoice.issued_date
+                      ? new Date(invoice.issued_date).toLocaleDateString()
+                      : "N/A"}
                   </div>
-                )}
+                  <div className="col-span-6 text-sm">
+                    Professional Services
+                  </div>
+                  <div className="col-span-3 text-sm text-right">
+                    ${String(invoice.amount) || "0.00"}
+                  </div>
+                </div>
               </div>
 
               {/* Invoice Summary */}
