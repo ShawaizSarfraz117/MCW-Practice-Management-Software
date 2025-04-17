@@ -52,6 +52,9 @@ export function ActivityTable({
       <div className="divide-y">
         {activities.map((activity, index) => (
           <div
+            key={`${activity.date}-${activity.time}-${index}`}
+            className="grid grid-cols-[1fr_1fr_3fr] gap-4 p-4 text-sm"
+          >
             key={index}
             className="grid grid-cols-[1fr_1fr_3fr] gap-4 p-4 text-sm"
           >
