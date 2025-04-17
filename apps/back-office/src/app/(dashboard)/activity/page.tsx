@@ -33,7 +33,9 @@ export default function ActivityPage() {
       location: "New York, USA",
       clientId: "2",
       clientName: "John Smith",
-      type: "appointment",
+      clientId: "2",
+      clientName: "John Smith",
+      type: "client-update",
     },
     {
       date: "02/26/2025",
@@ -43,7 +45,7 @@ export default function ActivityPage() {
       location: "London, UK",
       clientId: "3",
       clientName: "Emma Wilson",
-      type: "appointment",
+      type: "payment",
     },
     {
       date: "02/25/2025",
