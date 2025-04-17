@@ -27,7 +27,7 @@ export default function VerifyRequest() {
           <p className="text-sm text-gray-500">
             Didn't get the link?{" "}
             <Link
-              href="/auth/signin"
+              href="/signin"
               className="text-green-600 hover:text-green-500"
             >
               Try again
