@@ -94,27 +94,41 @@ const handler = NextAuth({
       return true;
     },
     async session({ session, user }) {
+      // Skip query if email is missing
+      if (!user.email) {
+        return session;
+      }
+
       // Add client ID to session
-      const client = await prisma.user.findFirst({
-        where: {
-          email: user.email!,
-          UserRole: {
-            some: {
-              Role: {
-                name: "CLIENT",
+      try {
+        // Optimize query to only fetch the ID
+        const client = await prisma.user.findFirst({
+          where: {
+            email: user.email,
+            UserRole: {
+              some: {
+                Role: {
+                  name: "CLIENT",
+                },
               },
             },
           },
-        },
-      });
+          select: {
+            id: true,
+          },
+        });
 
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          clientId: client?.id,
-        },
-      };
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            clientId: client?.id,
+          },
+        };
+      } catch (error) {
+        console.error(`Error fetching client ID for session ${user.email}:`, error);
+        return session; // Return session without clientId on error
+      }
     },
   },
   session: {
