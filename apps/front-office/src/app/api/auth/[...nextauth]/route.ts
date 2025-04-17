@@ -30,34 +30,52 @@ const handler = NextAuth({
       from: process.env.EMAIL_FROM,
       maxAge: 24 * 60 * 60, // 24 hours
       async sendVerificationRequest({ identifier: email, url }) {
-        // Get email template from database
-        const template = await prisma.template.findFirst({
-          where: {
-            type: "EMAIL",
-            name: "MAGIC_LINK",
-          },
-        });
+        try {
+          const template = await prisma.template.findFirst({
+            where: {
+              type: "EMAIL",
+              name: "MAGIC_LINK",
+            },
+          });
 
-        if (!template) {
-          throw new Error("Email template not found");
+          if (!template) {
+            console.error("Email template not found");
+            throw new Error("Email template not found");
+          }
+          // Replace placeholders in template
+          const html = template.content
+            .replace("{{magic_link}}", url)
+            .replace("{{email}}", email);
+
+          await transporter.sendMail({
+            from: process.env.EMAIL_FROM,
+            to: email,
+            subject: "Sign in to McNulty Counseling and Wellness",
+            html,
+          });
+        } catch (error) {
+          console.error("Error fetching email template:", error);
+          throw new Error("Failed to fetch email template");
         }
-
-        // Replace placeholders in template
-        const html = template.content
-          .replace("{{magic_link}}", url)
-          .replace("{{email}}", email);
-
-        await transporter.sendMail({
-          from: process.env.EMAIL_FROM,
-          to: email,
-          subject: "Sign in to McNulty Counseling and Wellness",
-          html,
-        });
       },
     }),
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId:
+        process.env.GOOGLE_CLIENT_ID ||
+        (() => {
+          console.error("Missing GOOGLE_CLIENT_ID environment variable");
+          throw new Error(
+            "Missing required environment variable GOOGLE_CLIENT_ID",
+          );
+        })(),
+      clientSecret:
+        process.env.GOOGLE_CLIENT_SECRET ||
+        (() => {
+          console.error("Missing GOOGLE_CLIENT_SECRET environment variable");
+          throw new Error(
+            "Missing required environment variable GOOGLE_CLIENT_SECRET",
+          );
+        })(),
       authorization: {
         params: {
           prompt: "consent",
@@ -126,7 +144,10 @@ const handler = NextAuth({
           },
         };
       } catch (error) {
-        console.error(`Error fetching client ID for session ${user.email}:`, error);
+        console.error(
+          `Error fetching client ID for session ${user.email}:`,
+          error,
+        );
         return session; // Return session without clientId on error
       }
     },

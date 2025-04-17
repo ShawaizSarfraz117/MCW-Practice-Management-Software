@@ -1,15 +1,12 @@
 import Image from "next/image";
-import Link from "next/link";
-import { Button } from "@mcw/ui";
 
 export default function VerifyRequest() {
-  return (
-export default function VerifyRequest() {
   // Get email from URL search params
-  const searchParams = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search)
-    : new URLSearchParams('');
-  const email = searchParams.get('email') || '';
+  const searchParams =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : new URLSearchParams("");
+  const email = searchParams.get("email") || "";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -26,35 +23,10 @@ export default function VerifyRequest() {
             Your link is on the way
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            A sign-in link has been sent to {email ? <strong>{email}</strong> : 'your email address'}. The link will
-            expire in 24 hours.
+            A sign-in link has been sent to{" "}
+            {email ? <strong>{email}</strong> : "your email address"}. The link
+            will expire in 24 hours.
           </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-        <div className="mt-4">
-          <p className="text-sm text-gray-500">
-            Didn't get the link?{" "}
-            <Link
-              href="/signin"
-              className="text-green-600 hover:text-green-500"
-            >
-              Try again
-            </Link>
-          </p>
-        </div>
-
-        <div className="mt-6">
-          <Button
-            type="button"
-            onClick={() => (window.location.href = "mailto:")}
-            className="w-full"
-          >
-            Open email app
-          </Button>
         </div>
       </div>
     </div>

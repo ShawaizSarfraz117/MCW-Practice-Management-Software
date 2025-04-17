@@ -19,7 +19,7 @@ vi.mock("next/link", () => ({
 
 describe("ActivityTabs", () => {
   const usePathname = vi.fn();
-  vi.mock("next/navigation", () => ({ usePathname }));
+  // vi.mock("next/navigation", () => ({ usePathname }));
 
   it("renders all navigation links", () => {
     usePathname.mockReturnValue("/activity");

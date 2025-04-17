@@ -1,7 +1,6 @@
 "use client";
 import { Button } from "@mcw/ui";
 import { signIn } from "next-auth/react";
-import Image from "next/image";
 import { useState } from "react";
 
 export default function SignIn() {
@@ -11,7 +10,6 @@ export default function SignIn() {
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
 
     try {
       await signIn("email", {
@@ -81,13 +79,6 @@ export default function SignIn() {
               onClick={handleGoogleSignIn}
               className="w-full flex items-center justify-center"
             >
-              <Image
-                src="/google.svg"
-                alt="Google"
-                width={20}
-                height={20}
-                className="mr-2"
-              />
               Sign in with Google
             </Button>
           </div>

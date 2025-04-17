@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ActivityTable } from "./components/ActivityTable";
 import { ActivityFilters } from "./components/ActivityFilters";
 import { ActivityTabs } from "./components/ActivityTabs";
+import { parse } from "date-fns";
 
 export default function ActivityPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -100,8 +101,10 @@ export default function ActivityPage() {
     // Date range filter
     let matchesDateRange = true;
     if (dateRange.from || dateRange.to) {
-      const activityDate = new Date(
-        activity.date + " " + activity.time.split(" ")[0],
+      const activityDate = parse(
+        `${activity.date} ${activity.time.split(" ")[0]}`,
+        "MM/dd/yyyy hh:mm",
+        new Date(),
       );
 
       if (dateRange.from) {
