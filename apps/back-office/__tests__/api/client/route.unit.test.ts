@@ -32,6 +32,7 @@ describe("Client API Unit Tests", () => {
     const clients = [client1, client2];
 
     prismaMock.client.findMany.mockResolvedValueOnce(clients);
+    prismaMock.client.count.mockResolvedValueOnce(clients.length);
 
     const req = createRequest("/api/client");
     const response = await GET(req);
@@ -39,9 +40,12 @@ describe("Client API Unit Tests", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
 
-    expect(json).toHaveLength(clients.length);
-    expect(json[0]).toHaveProperty("id", client1.id);
-    expect(json[1]).toHaveProperty("id", client2.id);
+    expect(json).toHaveProperty("data");
+    expect(json).toHaveProperty("pagination");
+    expect(json.data).toHaveLength(clients.length);
+    expect(json.data[0]).toHaveProperty("id", client1.id);
+    expect(json.data[1]).toHaveProperty("id", client2.id);
+    expect(json.pagination).toHaveProperty("total", clients.length);
 
     expect(prismaMock.client.findMany).toHaveBeenCalledWith({
       include: {
@@ -54,6 +58,12 @@ describe("Client API Unit Tests", () => {
           },
         },
       },
+      orderBy: {
+        legal_last_name: "asc",
+      },
+      skip: 0,
+      take: 20,
+      where: {},
     });
   });
 
