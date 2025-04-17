@@ -22,3 +22,35 @@ export interface AuditWithRelations extends Audit {
     email: string;
   };
 }
+
+export interface ActivityEvent {
+  id: string;
+  datetime: string;
+  event_text: string;
+  event_type: string;
+  is_hipaa: boolean;
+  Client?: {
+    legal_first_name: string;
+    legal_last_name: string;
+  };
+  User?: {
+    email: string;
+    Clinician?: {
+      first_name: string;
+      last_name: string;
+    };
+  };
+}
+
+export interface PaginationData {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface ActivityTableProps {
+  showDetails: boolean;
+  searchQuery: string;
+  timeRange: string;
+}

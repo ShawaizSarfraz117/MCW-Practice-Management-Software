@@ -1,38 +1,8 @@
 "use client";
 
+import { PaginationData } from "@/types/auditTypes";
+import { ActivityEvent, ActivityTableProps } from "@/types/auditTypes";
 import { useEffect, useState } from "react";
-
-interface ActivityEvent {
-  id: string;
-  datetime: string;
-  event_text: string;
-  event_type: string;
-  is_hipaa: boolean;
-  Client?: {
-    legal_first_name: string;
-    legal_last_name: string;
-  };
-  User?: {
-    email: string;
-    Clinician?: {
-      first_name: string;
-      last_name: string;
-    };
-  };
-}
-
-interface PaginationData {
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
-}
-
-interface ActivityTableProps {
-  showDetails: boolean;
-  searchQuery: string;
-  timeRange: string;
-}
 
 export default function ActivityTable({
   showDetails,
@@ -174,16 +144,16 @@ export default function ActivityTable({
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => fetchEvents(pagination.page - 1)}
-            disabled={pagination.page === 1}
             className="px-3 py-1 text-sm bg-white border rounded-md disabled:opacity-50"
+            disabled={pagination.page === 1}
+            onClick={() => fetchEvents(pagination.page - 1)}
           >
             Previous
           </button>
           <button
-            onClick={() => fetchEvents(pagination.page + 1)}
-            disabled={pagination.page === pagination.pages}
             className="px-3 py-1 text-sm bg-white border rounded-md disabled:opacity-50"
+            disabled={pagination.page === pagination.pages}
+            onClick={() => fetchEvents(pagination.page + 1)}
           >
             Next
           </button>
