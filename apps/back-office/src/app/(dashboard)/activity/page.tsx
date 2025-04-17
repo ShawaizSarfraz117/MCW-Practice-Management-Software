@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ActivityTable } from "./components/ActivityTable";
 import { ActivityFilters } from "./components/ActivityFilters";
 import { ActivityTabs } from "./components/ActivityTabs";
@@ -23,6 +23,7 @@ export default function ActivityPage() {
       location: "Lahore, Pakistan",
       clientId: "1",
       clientName: "Shawaiz Sarfraz",
+      type: "appointment",
     },
     {
       date: "02/26/2025",
@@ -32,6 +33,7 @@ export default function ActivityPage() {
       location: "New York, USA",
       clientId: "2",
       clientName: "John Smith",
+      type: "appointment",
     },
     {
       date: "02/26/2025",
@@ -41,6 +43,7 @@ export default function ActivityPage() {
       location: "London, UK",
       clientId: "3",
       clientName: "Emma Wilson",
+      type: "appointment",
     },
     {
       date: "02/25/2025",
@@ -50,6 +53,7 @@ export default function ActivityPage() {
       location: "Madrid, Spain",
       clientId: "4",
       clientName: "Maria Garcia",
+      type: "appointment",
     },
     {
       date: "02/25/2025",
@@ -59,6 +63,7 @@ export default function ActivityPage() {
       location: "Toronto, Canada",
       clientId: "5",
       clientName: "David Chen",
+      type: "appointment",
     },
   ];
 
@@ -82,48 +87,56 @@ export default function ActivityPage() {
   };
 
   // Filter activities based on search query, event type, and date range
-  const filteredActivities = activities.filter((activity) => {
-    // Search filter
-    const matchesSearch = activity.event
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+  // Memoize filtered activities to avoid unnecessary recalculations
+  const filteredActivities = useMemo(() => {
+    return activities.filter((activity) => {
+      // Search filter
+      const matchesSearch = activity.event
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-    // Event type filter
-    const matchesType =
-      selectedEventType === "all-events" ||
-      (selectedEventType === "appointments" &&
-        activity.event.toLowerCase().includes("appointment")) ||
-      (selectedEventType === "payments" &&
-        activity.event.toLowerCase().includes("payment")) ||
-      (selectedEventType === "client-updates" &&
-        activity.event.toLowerCase().includes("client"));
+      // Event type filter
+      const matchesType =
+        selectedEventType === "all-events" ||
+        (selectedEventType === "appointments" &&
+          activity.type === "appointment") ||
+        (selectedEventType === "payments" && activity.type === "payment") ||
+        (selectedEventType === "client-updates" &&
+          activity.type === "client-update");
 
-    // Date range filter
-    let matchesDateRange = true;
-    if (dateRange.from || dateRange.to) {
-      const activityDate = parse(
-        `${activity.date} ${activity.time.split(" ")[0]}`,
-        "MM/dd/yyyy hh:mm",
-        new Date(),
-      );
+      // Date range filter
+      let matchesDateRange = true;
+      if (dateRange.from || dateRange.to) {
+        const activityDate = parse(
+          `${activity.date} ${activity.time.split(" ")[0]}`,
+          "MM/dd/yyyy hh:mm",
+          new Date(),
+        );
 
-      if (dateRange.from) {
-        // Set from date to start of day
-        const fromDate = new Date(dateRange.from);
-        fromDate.setHours(0, 0, 0, 0);
-        matchesDateRange = matchesDateRange && activityDate >= fromDate;
+        if (dateRange.from) {
+          // Set from date to start of day
+          const fromDate = new Date(dateRange.from);
+          fromDate.setHours(0, 0, 0, 0);
+          matchesDateRange = matchesDateRange && activityDate >= fromDate;
+        }
+
+        if (dateRange.to) {
+          // Set to date to end of day
+          const toDate = new Date(dateRange.to);
+          toDate.setHours(23, 59, 59, 999);
+          matchesDateRange = matchesDateRange && activityDate <= toDate;
+        }
       }
 
-      if (dateRange.to) {
-        // Set to date to end of day
-        const toDate = new Date(dateRange.to);
-        toDate.setHours(23, 59, 59, 999);
-        matchesDateRange = matchesDateRange && activityDate <= toDate;
-      }
-    }
-
-    return matchesSearch && matchesType && matchesDateRange;
-  });
+      return matchesSearch && matchesType && matchesDateRange;
+    });
+  }, [
+    activities,
+    searchQuery,
+    selectedEventType,
+    dateRange.from,
+    dateRange.to,
+  ]);
 
   return (
     <div className="space-y-6 p-6">

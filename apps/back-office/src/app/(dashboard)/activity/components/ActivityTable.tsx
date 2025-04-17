@@ -24,18 +24,18 @@ export function ActivityTable({
   ) => {
     if (!clientName) return event;
 
-    const parts = event.split(clientName);
-    if (parts.length === 2) {
+    const regex = new RegExp(`(\\b${clientName}\\b)`, "i");
+    if (regex.test(event)) {
       return (
         <>
-          {parts[0]}
+          {event.split(regex)[0]}
           <Link
             href={`/clients/${clientId}`}
             className="text-[#2d8467] hover:underline"
           >
             {clientName}
           </Link>
-          {parts[1]}
+          {event.split(regex)[2] || ""}
         </>
       );
     }
@@ -66,7 +66,10 @@ export function ActivityTable({
                 )}
               </div>
               {showDetails && activity.ipAddress && activity.location && (
-                <div className="mt-1 text-xs text-gray-500">
+                <div
+                  className="mt-1 text-xs text-gray-500"
+                  aria-label={`Activity details: IP Address ${activity.ipAddress} in ${activity.location}`}
+                >
                   IP Address {activity.ipAddress} • {activity.location}
                 </div>
               )}

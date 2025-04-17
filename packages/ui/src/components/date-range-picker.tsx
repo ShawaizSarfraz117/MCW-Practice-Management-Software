@@ -5,6 +5,7 @@ import {
   endOfMonth,
   endOfYear,
   format,
+  isSameDay,
   startOfMonth,
   startOfYear,
   subDays,
@@ -79,7 +80,7 @@ function DateRangePicker({
   return (
     <div className="*:not-first:mt-2">
       <Label className="sr-only" htmlFor={id}>
-        Date range picker
+        Select a date range for filtering
       </Label>
       <Popover>
         <PopoverTrigger asChild>
@@ -93,7 +94,7 @@ function DateRangePicker({
           >
             <span className={cn("truncate", !date && "text-muted-foreground")}>
               {date?.from ? (
-                date.to ? (
+                date.to && !isSameDay(date.from, date.to) ? (
                   <>
                     {format(date.from, "LLL dd, y")} -{" "}
                     {format(date.to, "LLL dd, y")}
@@ -110,11 +111,6 @@ function DateRangePicker({
               className="text-muted-foreground/80 group-hover:text-foreground shrink-0 transition-colors"
               size={16}
             />
-            {/* <CalendarIcon
-                            size={16}
-                            className="text-muted-foreground/80 group-hover:text-foreground shrink-0 transition-colors"
-                            aria-hidden="true"
-                        /> */}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-auto flex flex-col gap-4">
