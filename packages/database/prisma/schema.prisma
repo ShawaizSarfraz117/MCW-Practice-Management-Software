@@ -327,11 +327,28 @@ model UserRole {
   @@id([user_id, role_id], map: "PK_UserRole_ID")
 }
 
+/// Predefined categories for templates.
+enum TemplateType {
+  EMAIL
+  // Add other template types here
+}
+
 model Template {
-  id        String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  type      String   @db.VarChar(50)
-  name      String   @db.VarChar(100)
-  content   String   @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  /// Unique identifier for the template.
+  id        String         @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+
+  /// Category of the template, restricted to predefined types.
+  type      TemplateType   @db.VarChar(50)
+
+  /// Human-readable name for the template.
+  name      String         @db.VarChar(100)
+  /// The template’s content (HTML, text, etc.).
+  content   String         @db.Text
+  /// When this template was created.
+  createdAt DateTime       @default(now())
+  /// When this template was last updated.
+  updatedAt DateTime       @updatedAt
+
+  /// Ensure no two templates share the same type + name.
+  @@unique([type, name])
 }
