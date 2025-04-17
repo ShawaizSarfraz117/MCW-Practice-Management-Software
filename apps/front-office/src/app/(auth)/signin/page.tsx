@@ -12,7 +12,6 @@ export default function SignIn() {
     e.preventDefault();
     setIsLoading(true);
 
-    console.log({ email });
 
     try {
       await signIn("email", {
