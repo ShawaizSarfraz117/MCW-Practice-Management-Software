@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { prisma } from "@mcw/database";
-import { createAuditLog, AuditEventTypes } from "../../src/utils/audit";
+import { createAuditLog, AuditEventTypes } from "@/utils/index";
 import {
   UserPrismaFactory,
   ClientPrismaFactory,

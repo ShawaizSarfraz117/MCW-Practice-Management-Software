@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET } from "@/api/activity/route";
 import { prisma } from "@mcw/database";
-import type { Audit } from "@mcw/database";
 import {
   AuditFactory,
   UserFactory,
@@ -9,6 +8,7 @@ import {
 } from "@mcw/database/mock-data";
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
+import { AuditWithRelations, TransformedAudit } from "@/types/auditTypes";
 // Mock next-auth
 vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),
@@ -23,28 +23,6 @@ vi.mock("@mcw/database", () => ({
     },
   },
 }));
-
-// Interface for the transformed response data
-interface TransformedAudit extends Omit<Audit, "Id"> {
-  id: string;
-  Client?: {
-    legal_first_name: string | null;
-    legal_last_name: string | null;
-  };
-  User?: {
-    email: string;
-  };
-}
-
-interface AuditWithRelations extends Audit {
-  Client?: {
-    legal_first_name: string | null;
-    legal_last_name: string | null;
-  };
-  User?: {
-    email: string;
-  };
-}
 
 describe("Activity API Unit Tests", () => {
   const mockSession = {
