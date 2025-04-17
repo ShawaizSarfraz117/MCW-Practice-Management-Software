@@ -134,19 +134,21 @@ function DateRangePicker({
                     All Time
                   </Button>
                   {dateRangePresets?.length &&
-                    dateRangePresets?.map((item) => (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start px-2 text-muted-foreground/80 hover:text-white hover:bg-accent-foreground"
-                        onClick={() => {
-                          setDate(item?.duration || undefined);
-                          setMonth(item?.duration?.to || today);
-                        }}
-                      >
-                        {item?.label}
-                      </Button>
-                    ))}
+{dateRangePresets?.length &&
+  dateRangePresets.map((item) => (
+    <Button
+      key={item.label}
+      variant="ghost"
+      size="sm"
+      className="w-full justify-start px-2 text-muted-foreground/80 hover:text-white hover:bg-accent-foreground"
+      onClick={() => {
+        setDate(item?.duration || undefined);
+        setMonth(item?.duration?.to || today);
+      }}
+    >
+      {item?.label}
+    </Button>
+  ))}
                 </div>
               </div>
             </div>
