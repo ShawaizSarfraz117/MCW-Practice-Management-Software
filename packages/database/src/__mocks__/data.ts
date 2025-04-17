@@ -97,10 +97,14 @@ export const ClinicianPrismaFactory = defineClinicianFactory({
 export const ClientFactory = {
   build: <T extends Partial<Client>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    name: faker.company.name(),
-    address: faker.location.streetAddress(),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
+    legal_first_name: faker.person.firstName(),
+    legal_last_name: faker.person.lastName(),
+    preferred_name: faker.person.firstName(),
+    is_active: true,
+    is_waitlist: false,
+    created_at: faker.date.recent(),
+    date_of_birth: faker.date.past(),
+    referred_by: faker.person.fullName(),
     ...overrides,
   }),
 };
@@ -143,19 +147,25 @@ export const AppointmentFactory = {
 
 export const AuditFactory = {
   build: <T extends Partial<Audit>>(overrides: T = {} as T) => ({
-    id: faker.string.uuid(),
-    action: faker.helpers.arrayElement(["create", "update", "delete"]),
-    table_name: faker.helpers.arrayElement([
-      "client",
-      "appointment",
-      "payment",
+    Id: faker.string.uuid(),
+    client_id: null,
+    user_id: null,
+    datetime: new Date(),
+    event_type: faker.helpers.arrayElement([
+      "LOGIN",
+      "VIEW",
+      "CLIENT_CREATE",
+      "CLIENT_UPDATE",
     ]),
-    old_values: JSON.stringify({}),
-    new_values: JSON.stringify({}),
-    created_at: faker.date.recent(),
+    event_text: faker.lorem.sentence(),
+    is_hipaa: faker.datatype.boolean(),
     ...overrides,
   }),
 };
+    ...overrides,
+  }),
+};
+
 
 export const ClientContactFactory = {
   build: <T extends Partial<ClientContact>>(overrides: T = {} as T) => ({
