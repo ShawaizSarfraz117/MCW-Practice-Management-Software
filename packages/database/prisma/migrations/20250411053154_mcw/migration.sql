@@ -37,7 +37,7 @@ CREATE TABLE "AppointmentTag" (
 
 -- CreateTable
 CREATE TABLE "Audit" (
-    "Id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL PRIMARY KEY,
     "client_id" TEXT,
     "user_id" TEXT,
     "datetime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
