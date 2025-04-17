@@ -33,8 +33,6 @@ export default function ActivityPage() {
       location: "New York, USA",
       clientId: "2",
       clientName: "John Smith",
-      clientId: "2",
-      clientName: "John Smith",
       type: "client-update",
     },
     {
@@ -53,8 +51,6 @@ export default function ActivityPage() {
       event: "New client intake form completed by Maria Garcia",
       ipAddress: "10.0.0.50",
       location: "Madrid, Spain",
-      clientId: "4",
-      clientName: "Maria Garcia",
       clientId: "4",
       clientName: "Maria Garcia",
       type: "client-update",
