@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Badge } from "@mcw/ui";
 import { InvoiceWithPayments } from "./ClientProfile";
-
+import { useSearchParams } from "next/navigation";
 interface InvoicesDocumentsCardProps {
   invoices: InvoiceWithPayments[];
   onInvoiceClick: () => void;
@@ -22,7 +22,7 @@ export function InvoicesDocumentsCard({
   onInvoiceClick,
 }: InvoicesDocumentsCardProps) {
   const [invoicesCollapsed, setInvoicesCollapsed] = useState(false);
-
+  const searchParams = useSearchParams();
   return (
     <div className="p-4 sm:p-6 border border-[#e5e7eb] rounded-md">
       {/* Invoices Section */}
@@ -46,7 +46,7 @@ export function InvoicesDocumentsCard({
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-blue-500">
                     <Link
-                      href={`${window.location.pathname}?invoiceId=${invoice.id}`}
+                      href={`${window.location.pathname}?tab=${searchParams.get("tab")}&invoiceId=${invoice.id}&type=payment`}
                       onClick={onInvoiceClick}
                     >
                       {invoice.invoice_number}

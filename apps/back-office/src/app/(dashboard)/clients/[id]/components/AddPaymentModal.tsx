@@ -169,7 +169,9 @@ export function AddPaymentModal({
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen && searchParams.has("invoiceId")) {
       // Remove invoiceId from URL when closing modal
-      router.replace(window.location.pathname);
+      router.replace(
+        `${window.location.pathname}?tab=${searchParams.get("tab")}`,
+      );
     }
     onOpenChange(isOpen);
   };

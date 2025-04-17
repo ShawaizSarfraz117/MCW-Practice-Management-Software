@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,7 +16,7 @@ import FilesTab from "./tabs/FilesTab";
 import { AddPaymentModal } from "./AddPaymentModal";
 import { fetchInvoices } from "@/(dashboard)/clients/services/client.service";
 import { Invoice, Payment } from "@prisma/client";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
 
@@ -30,11 +31,14 @@ export interface InvoiceWithPayments extends Invoice {
 export default function ClientProfile({
   clientId: _clientId,
 }: ClientProfileProps) {
-  const [activeTab, setActiveTab] = useState("measures");
+  const [activeTab, setActiveTab] = useState("overview");
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceWithPayments[]>([]);
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Calculate totals for invoice and payments
   const totalInvoiceAmount = invoices.reduce(
@@ -64,6 +68,42 @@ export default function ClientProfile({
     fetchInvoicesData();
   }, [id]);
 
+  useEffect(() => {
+    // Handle invoice related URL parameters
+    const invoiceId = searchParams.get("invoiceId");
+    const type = searchParams.get("type");
+    if (invoiceId && type === "payment") {
+      setAddPaymentModalOpen(true);
+    }
+    if (invoiceId && type === "invoice") {
+      setInvoiceDialogOpen(true);
+    }
+
+    // Handle tab URL parameter
+    const tabParam = searchParams.get("tab");
+    if (
+      tabParam &&
+      ["overview", "billing", "measures", "files"].includes(tabParam)
+    ) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+
+    // Create a new URLSearchParams object from the current searchParams
+    const params = new URLSearchParams(searchParams.toString());
+    // Set or update the tab parameter
+    params.set("tab", value);
+
+    // Update the URL without refreshing the page
+    router.push(`${window.location.pathname}?${params.toString()}`, {
+      scroll: false,
+    });
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Breadcrumb */}
@@ -79,7 +119,6 @@ export default function ClientProfile({
           onOpenChange={setAddPaymentModalOpen}
         />
       )}
-
       <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
         <Link className="hover:text-gray-700" href="/clients">
           Clients and contacts
@@ -87,7 +126,6 @@ export default function ClientProfile({
         <span className="mx-1">/</span>
         <span>Jamie D. Appleseed&apos;s profile</span>
       </div>
-
       {/* Client Header */}
       <div className="px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
@@ -115,7 +153,6 @@ export default function ClientProfile({
           </Button>
         </div>
       </div>
-
       {/* Main Content */}
       <div className="grid grid-cols-12 flex-1">
         {/* Left Side - Tabs */}
@@ -132,12 +169,11 @@ export default function ClientProfile({
               </Button>
             </div>
           </div>
-
           <Tabs
             className="w-full"
             defaultValue="measures"
             value={activeTab}
-            onValueChange={setActiveTab}
+            onValueChange={handleTabChange}
           >
             <div className="border-b border-[#e5e7eb] overflow-x-auto">
               <div className="px-4 sm:px-6">
@@ -169,13 +205,16 @@ export default function ClientProfile({
                 </TabsList>
               </div>
             </div>
-
             <TabsContent value="overview">
               <OverviewTab />
             </TabsContent>
 
             <TabsContent value="billing">
-              <BillingTab />
+              <BillingTab
+                addPaymentModalOpen={addPaymentModalOpen}
+                invoiceDialogOpen={invoiceDialogOpen}
+                setInvoiceDialogOpen={setInvoiceDialogOpen}
+              />
             </TabsContent>
 
             <TabsContent value="measures">

@@ -55,7 +55,7 @@ export const fetchAppointments = async ({
 
 export const fetchInvoices = async ({
   searchParams = {},
-}): Promise<[Invoice[] | null, Error | null]> => {
+}): Promise<[Invoice[] | null, Error | null | Invoice]> => {
   try {
     const response = (await FETCH.get({
       url: "/invoice",

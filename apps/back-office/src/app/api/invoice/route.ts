@@ -18,9 +18,21 @@ export async function GET(request: NextRequest) {
       const invoice = await prisma.invoice.findUnique({
         where: { id },
         include: {
-          ClientGroupMembership: true,
+          ClientGroupMembership: {
+            include: {
+              Client: {
+                include: {
+                  ClientContact: true,
+                },
+              },
+            },
+          },
           Appointment: true,
-          Clinician: true,
+          Clinician: {
+            include: {
+              User: true,
+            },
+          },
           Payment: true,
         },
       });
