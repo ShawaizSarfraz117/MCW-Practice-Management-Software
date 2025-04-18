@@ -1,15 +1,25 @@
 "use client";
 
-import { SetStateAction, useState } from "react";
+import { SetStateAction, useState, useEffect } from "react";
 import { ChevronLeft, Search } from "lucide-react";
 import { Button } from "@mcw/ui";
 import { Input } from "@mcw/ui";
 import { RadioGroup, RadioGroupItem } from "@mcw/ui";
+import { fetchClients } from "../services/client.service";
+
+export interface ClientContact {
+  id: string;
+  type: string;
+  contact_type: string;
+  value: string;
+}
 
 export interface Client {
   id: string;
-  name: string;
-  email: string;
+  legal_first_name: string;
+  legal_last_name: string;
+  preferred_name?: string | null;
+  ClientContact?: ClientContact[];
 }
 
 interface SelectExistingClientProps {
@@ -23,23 +33,57 @@ export function SelectExistingClient({
   onSelect,
   onBack,
 }: SelectExistingClientProps) {
-  console.log("🚀 ~ SelectExistingClient ~ selectedClient:", selectedClient);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(
     selectedClient?.id || "client-1",
   );
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample client data
-  const clients: Client[] = [
-    { id: "client-1", name: "Jamie D. Appleseed", email: "alam@mcnultycw.com" },
-    { id: "client-2", name: "Karen Appleseed", email: "alam@mcnultycw.com" },
-    { id: "client-3", name: "Shawaiz Sarfraz", email: "alam@mcnultycw.com" },
-  ];
+  useEffect(() => {
+    const getClients = async () => {
+      setLoading(true);
+      const [response, error] = await fetchClients({});
+      if (response && !error) {
+        setClients(response.data);
+      }
+      setLoading(false);
+    };
+
+    getClients();
+  }, []);
+
+  const getClientName = (client: Client) => {
+    return (
+      client.preferred_name ||
+      `${client.legal_first_name} ${client.legal_last_name}`
+    );
+  };
+
+  const getContactInfo = (client: Client) => {
+    if (!client.ClientContact || client.ClientContact.length === 0) {
+      return "";
+    }
+
+    // Try to find email first
+    const emailContact = client.ClientContact.find(
+      (contact) => contact.contact_type === "EMAIL",
+    );
+    if (emailContact) return emailContact.value;
+
+    // If no email, try to find phone
+    const phoneContact = client.ClientContact.find(
+      (contact) => contact.contact_type === "PHONE",
+    );
+    if (phoneContact) return phoneContact.value;
+
+    return "";
+  };
 
   const filteredClients = clients.filter(
     (client) =>
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchQuery.toLowerCase()),
+      getClientName(client).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getContactInfo(client).toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleSelect = () => {
@@ -86,29 +130,35 @@ export function SelectExistingClient({
           />
         </div>
 
-        <RadioGroup
-          value={selectedClientId || ""}
-          onValueChange={setSelectedClientId}
-        >
-          <div className="space-y-4">
-            {filteredClients.map((client) => (
-              <div
-                key={client.id}
-                className="flex items-center justify-between p-4 border-b"
-              >
-                <div>
-                  <div className="font-medium">{client.name}</div>
-                  <div className="text-sm text-gray-500">{client.email}</div>
+        {loading ? (
+          <div className="text-center py-4">Loading clients...</div>
+        ) : (
+          <RadioGroup
+            value={selectedClientId || ""}
+            onValueChange={setSelectedClientId}
+          >
+            <div className="space-y-4">
+              {filteredClients.map((client) => (
+                <div
+                  key={client.id}
+                  className="flex items-center justify-between p-4 border-b"
+                >
+                  <div>
+                    <div className="font-medium">{getClientName(client)}</div>
+                    <div className="text-sm text-gray-500">
+                      {getContactInfo(client)}
+                    </div>
+                  </div>
+                  <RadioGroupItem
+                    checked={selectedClientId === client.id}
+                    id={client.id}
+                    value={client.id}
+                  />
                 </div>
-                <RadioGroupItem
-                  checked={selectedClientId === client.id}
-                  id={client.id}
-                  value={client.id}
-                />
-              </div>
-            ))}
-          </div>
-        </RadioGroup>
+              ))}
+            </div>
+          </RadioGroup>
+        )}
       </div>
     </div>
   );

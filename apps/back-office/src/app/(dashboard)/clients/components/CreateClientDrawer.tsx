@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@mcw/ui";
 import { Label } from "@mcw/ui";
 import { ClientTabs } from "./ClientTabs";
 import { ClientForm } from "./ClientForm";
-import { SelectExistingClient } from "./SelectExistingClient";
+import { SelectExistingClient, Client } from "./SelectExistingClient";
 import { fetchClientGroups, createClient } from "../services/client.service";
 import { ClientGroup } from "@prisma/client";
 import {
@@ -37,13 +37,8 @@ export interface PhoneEntry {
   permission: string;
 }
 
-interface Client {
-  id: string;
-  name: string;
-  email: string;
-}
-
 export interface FormState {
+  is_contact_only?: boolean;
   clientType: string;
   legalFirstName: string;
   legalLastName: string;
@@ -65,6 +60,8 @@ export interface FormState {
     voice: boolean;
   };
   is_responsible_for_billing?: boolean;
+  isExisting?: boolean;
+  clientId?: string;
 }
 
 interface FormValues {
@@ -287,6 +284,8 @@ export function CreateClientDrawer({
         if (value && Object.keys(value).length > 0) {
           const clientNum = key.split("-")[1] || "1";
           acc[`client${clientNum}`] = value;
+          acc[`client${clientNum}`].is_contact_only =
+            clientNum == "2" && clientType === "minor";
         }
         return acc;
       },
@@ -305,25 +304,44 @@ export function CreateClientDrawer({
       [activeTab]: selectedClientParam,
     }));
 
-    const [firstName, lastName] = selectedClientParam.name.split(" ");
+    // Get email from ClientContact array if it exists
+    const emailContact = selectedClientParam.ClientContact?.find(
+      (contact) => contact.contact_type === "EMAIL",
+    );
+
+    // Get phone from ClientContact array if it exists
+    const phoneContact = selectedClientParam.ClientContact?.find(
+      (contact) => contact.contact_type === "PHONE",
+    );
+
     const mappedClient: FormState = {
       clientType: clientType,
-      legalFirstName: firstName || "",
-      legalLastName: lastName || "",
-      preferredName: "",
+      legalFirstName: selectedClientParam.legal_first_name || "",
+      legalLastName: selectedClientParam.legal_last_name || "",
+      preferredName: selectedClientParam.preferred_name || "",
       dob: "",
       status: "active",
       addToWaitlist: false,
       primaryClinicianId: "",
       locationId: "",
-      emails: [
-        {
-          value: selectedClientParam.email,
-          type: "primary",
-          permission: "allowed",
-        },
-      ],
-      phones: [],
+      emails: emailContact
+        ? [
+            {
+              value: emailContact.value,
+              type: "primary",
+              permission: "allowed",
+            },
+          ]
+        : [],
+      phones: phoneContact
+        ? [
+            {
+              value: phoneContact.value,
+              type: "primary",
+              permission: "allowed",
+            },
+          ]
+        : [],
       notificationOptions: {
         upcomingAppointments: true,
         incompleteDocuments: false,
@@ -333,6 +351,8 @@ export function CreateClientDrawer({
         text: true,
         voice: false,
       },
+      isExisting: true,
+      clientId: selectedClientParam.id,
     };
 
     // Clear validation errors for populated fields
@@ -341,9 +361,11 @@ export function CreateClientDrawer({
       if (updatedErrors[activeTab]) {
         const tabErrors = { ...updatedErrors[activeTab] };
         // Remove errors for fields that now have values
-        if (firstName) delete tabErrors.legalFirstName;
-        if (lastName) delete tabErrors.legalLastName;
-        if (selectedClientParam.email) delete tabErrors.emails;
+        if (selectedClientParam.legal_first_name)
+          delete tabErrors.legalFirstName;
+        if (selectedClientParam.legal_last_name) delete tabErrors.legalLastName;
+        if (emailContact) delete tabErrors.emails;
+        if (phoneContact) delete tabErrors.phones;
         updatedErrors[activeTab] = tabErrors;
       }
       return updatedErrors;

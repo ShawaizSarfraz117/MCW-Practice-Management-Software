@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger, config } from "@mcw/logger";
@@ -23,6 +24,8 @@ interface ClientData {
   isResponsibleForBilling?: boolean;
   role?: string;
   is_contact_only?: boolean;
+  isExisting?: boolean;
+  clientId?: string;
 }
 
 // GET - Retrieve all clients or a specific client by ID
@@ -171,103 +174,203 @@ export async function POST(request: NextRequest) {
       const createdClients = [];
 
       for (const data of clientDataArray) {
-        // Create the client
-        const client = await prisma.client.create({
-          data: {
-            legal_first_name: data.legalFirstName,
-            legal_last_name: data.legalLastName,
-            preferred_name: data.preferredName,
-            date_of_birth: data.dob ? new Date(data.dob) : null,
-            is_waitlist: data.addToWaitlist || false,
-            primary_clinician_id: data.primaryClinicianId || null,
-            primary_location_id: data.locationId || null,
-            is_active: data.status === "active",
-          },
-        });
+        let clientId: string;
 
-        // Create ClientGroupMembership
-        await prisma.clientGroupMembership.create({
-          data: {
-            client_group_id: requestData.clientGroupId,
-            client_id: client.id,
-            role: data.role || null,
-            is_contact_only: data.is_contact_only || false,
-            is_responsible_for_billing: data.isResponsibleForBilling || false,
-          },
-        });
+        // Check if this is an existing client
+        if (data.isExisting && data.clientId) {
+          // Use existing client ID
+          clientId = data.clientId;
 
-        // Create email contacts
-        const emailContacts = (data.emails || []).map(
-          (
-            email: { value: string; type: string; permission: string },
-            index: number,
-          ) => ({
-            client_id: client.id,
-            contact_type: "EMAIL",
-            type: email.type,
-            value: email.value,
-            permission: email.permission,
-            is_primary: index === 0,
-          }),
-        );
-
-        // Create phone contacts
-        const phoneContacts = (data.phones || []).map(
-          (
-            phone: { value: string; type: string; permission: string },
-            index: number,
-          ) => ({
-            client_id: client.id,
-            contact_type: "PHONE",
-            type: phone.type,
-            value: phone.value,
-            permission: phone.permission,
-            is_primary: index === 0,
-          }),
-        );
-
-        // Create all contacts
-        if (emailContacts.length > 0 || phoneContacts.length > 0) {
-          await prisma.clientContact.createMany({
-            data: [...emailContacts, ...phoneContacts],
+          // Fetch existing client to check against later
+          const existingClient = await prisma.client.findUnique({
+            where: { id: clientId },
+            include: { ClientContact: true },
           });
+
+          if (!existingClient) {
+            throw new Error(`Existing client with ID ${clientId} not found`);
+          }
+
+          // Create ClientGroupMembership for the existing client
+          await prisma.clientGroupMembership.create({
+            data: {
+              client_group_id: requestData.clientGroupId,
+              client_id: clientId,
+              role: data.role || null,
+              is_contact_only: data.is_contact_only || false,
+              is_responsible_for_billing: data.isResponsibleForBilling || false,
+            },
+          });
+
+          // For existing clients, only create contacts that don't exist yet
+          if (data.emails && data.emails.length > 0) {
+            // Filter out emails that already exist for this client
+            const existingEmailValues = existingClient.ClientContact.filter(
+              (contact) => contact.contact_type === "EMAIL",
+            ).map((contact) => contact.value.toLowerCase());
+
+            const newEmails = data.emails.filter(
+              (email) =>
+                !existingEmailValues.includes(email.value.toLowerCase()),
+            );
+
+            // Create new email contacts
+            const emailContacts = newEmails.map((email, index) => ({
+              client_id: clientId,
+              contact_type: "EMAIL",
+              type: email.type,
+              value: email.value,
+              permission: email.permission,
+              is_primary: index === 0 && existingEmailValues.length === 0, // Only set primary if no existing emails
+            }));
+
+            // Create new email contacts if any
+            if (emailContacts.length > 0) {
+              await prisma.clientContact.createMany({
+                data: emailContacts,
+              });
+            }
+          }
+
+          // Handle phone contacts for existing client
+          if (data.phones && data.phones.length > 0) {
+            // Filter out phones that already exist for this client
+            const existingPhoneValues = existingClient.ClientContact.filter(
+              (contact) => contact.contact_type === "PHONE",
+            ).map((contact) => contact.value.replace(/\D/g, "")); // Strip non-digits for comparison
+
+            const newPhones = data.phones.filter(
+              (phone) =>
+                !existingPhoneValues.includes(phone.value.replace(/\D/g, "")),
+            );
+
+            // Create new phone contacts
+            const phoneContacts = newPhones.map((phone, index) => ({
+              client_id: clientId,
+              contact_type: "PHONE",
+              type: phone.type,
+              value: phone.value,
+              permission: phone.permission,
+              is_primary: index === 0 && existingPhoneValues.length === 0, // Only set primary if no existing phones
+            }));
+
+            // Create new phone contacts if any
+            if (phoneContacts.length > 0) {
+              await prisma.clientContact.createMany({
+                data: phoneContacts,
+              });
+            }
+          }
+        } else {
+          // Create a new client
+          const client = await prisma.client.create({
+            data: {
+              legal_first_name: data.legalFirstName,
+              legal_last_name: data.legalLastName,
+              preferred_name: data.preferredName,
+              date_of_birth: data.dob ? new Date(data.dob) : null,
+              is_waitlist: data.addToWaitlist || false,
+              primary_clinician_id: data.primaryClinicianId || null,
+              primary_location_id: data.locationId || null,
+              is_active: data.status === "active",
+            },
+          });
+
+          clientId = client.id;
+
+          // Create ClientGroupMembership
+          await prisma.clientGroupMembership.create({
+            data: {
+              client_group_id: requestData.clientGroupId,
+              client_id: clientId,
+              role: data.role || null,
+              is_contact_only: data.is_contact_only || false,
+              is_responsible_for_billing: data.isResponsibleForBilling || false,
+            },
+          });
+
+          // Create email contacts
+          const emailContacts = (data.emails || []).map(
+            (
+              email: { value: string; type: string; permission: string },
+              index: number,
+            ) => ({
+              client_id: clientId,
+              contact_type: "EMAIL",
+              type: email.type,
+              value: email.value,
+              permission: email.permission,
+              is_primary: index === 0,
+            }),
+          );
+
+          // Create phone contacts
+          const phoneContacts = (data.phones || []).map(
+            (
+              phone: { value: string; type: string; permission: string },
+              index: number,
+            ) => ({
+              client_id: clientId,
+              contact_type: "PHONE",
+              type: phone.type,
+              value: phone.value,
+              permission: phone.permission,
+              is_primary: index === 0,
+            }),
+          );
+
+          // Create all contacts
+          if (emailContacts.length > 0 || phoneContacts.length > 0) {
+            await prisma.clientContact.createMany({
+              data: [...emailContacts, ...phoneContacts],
+            });
+          }
         }
 
-        // Create reminder preferences if provided
+        // Create reminder preferences if provided (for both new and existing clients)
         if (data.notificationOptions) {
-          const reminderPreferences = [];
-          if (data.notificationOptions.upcomingAppointments !== undefined) {
-            reminderPreferences.push({
-              client_id: client.id,
-              reminder_type: "UPCOMING_APPOINTMENTS",
-              is_enabled: data.notificationOptions.upcomingAppointments,
+          // First check if reminder preferences already exist for this client
+          const existingPreferences =
+            await prisma.clientReminderPreference.findMany({
+              where: { client_id: clientId },
             });
-          }
-          if (data.notificationOptions.incompleteDocuments !== undefined) {
-            reminderPreferences.push({
-              client_id: client.id,
-              reminder_type: "INCOMPLETE_DOCUMENTS",
-              is_enabled: data.notificationOptions.incompleteDocuments,
-            });
-          }
-          if (data.notificationOptions.cancellations !== undefined) {
-            reminderPreferences.push({
-              client_id: client.id,
-              reminder_type: "CANCELLATIONS",
-              is_enabled: data.notificationOptions.cancellations,
-            });
-          }
 
-          if (reminderPreferences.length > 0) {
-            await prisma.clientReminderPreference.createMany({
-              data: reminderPreferences,
-            });
+          // Only create if none exist
+          if (existingPreferences.length === 0) {
+            const reminderPreferences = [];
+            if (data.notificationOptions.upcomingAppointments !== undefined) {
+              reminderPreferences.push({
+                client_id: clientId,
+                reminder_type: "UPCOMING_APPOINTMENTS",
+                is_enabled: data.notificationOptions.upcomingAppointments,
+              });
+            }
+            if (data.notificationOptions.incompleteDocuments !== undefined) {
+              reminderPreferences.push({
+                client_id: clientId,
+                reminder_type: "INCOMPLETE_DOCUMENTS",
+                is_enabled: data.notificationOptions.incompleteDocuments,
+              });
+            }
+            if (data.notificationOptions.cancellations !== undefined) {
+              reminderPreferences.push({
+                client_id: clientId,
+                reminder_type: "CANCELLATIONS",
+                is_enabled: data.notificationOptions.cancellations,
+              });
+            }
+
+            if (reminderPreferences.length > 0) {
+              await prisma.clientReminderPreference.createMany({
+                data: reminderPreferences,
+              });
+            }
           }
         }
 
-        // Get the created client with all related data
-        const createdClient = await prisma.client.findUnique({
-          where: { id: client.id },
+        // Get the created or updated client with all related data
+        const resultClient = await prisma.client.findUnique({
+          where: { id: clientId },
           include: {
             ClientContact: true,
             ClientReminderPreference: true,
@@ -281,8 +384,8 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        if (createdClient) {
-          createdClients.push(createdClient);
+        if (resultClient) {
+          createdClients.push(resultClient);
         }
       }
 
@@ -299,7 +402,10 @@ export async function POST(request: NextRequest) {
       console.error("Error creating clients:", error);
     }
     return NextResponse.json(
-      { error: "Failed to create clients" },
+      {
+        error: "Failed to create clients",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 },
     );
   }

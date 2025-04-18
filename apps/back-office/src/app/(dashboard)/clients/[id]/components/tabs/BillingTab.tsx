@@ -54,6 +54,7 @@ export default function BillingTab({
     from: new Date(2025, 0, 8), // Jan 8, 2025
     to: new Date(2025, 8, 6), // Sep 6, 2025
   });
+  const [statusFilter, setStatusFilter] = useState<string>("billable");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -62,6 +63,7 @@ export default function BillingTab({
     queryKey: [
       "appointments",
       dateRange,
+      statusFilter,
       addPaymentModalOpen,
       invoiceDialogOpen,
     ],
@@ -70,6 +72,7 @@ export default function BillingTab({
         searchParams: {
           startDate: dateRange?.from?.toISOString(),
           endDate: dateRange?.to?.toISOString(),
+          status: statusFilter !== "billable" ? statusFilter : undefined,
         },
       }),
   });
@@ -108,15 +111,14 @@ export default function BillingTab({
             value={dateRange}
             onChange={setDateRange}
           />
-          <Select defaultValue="billable">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">
               <SelectValue placeholder="Billable Items" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="billable">Billable Items</SelectItem>
-              <SelectItem value="all">All Items</SelectItem>
-              <SelectItem value="invoices">Invoices</SelectItem>
-              <SelectItem value="payments">Payments</SelectItem>
+              <SelectItem value="billable">All Items</SelectItem>
+              <SelectItem value="PAID">Paid</SelectItem>
+              <SelectItem value="UNPAID">Unpaid</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -174,14 +176,18 @@ export default function BillingTab({
                     </TableCell>
                     <TableCell>${appointment.appointment_fee}</TableCell>
                     <TableCell>
-                      <div className="flex justify-between items-center">
-                        ${unpaidAmount}{" "}
-                        <span className="text-sm text-red-500">Unpaid</span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        ${totalPaid}{" "}
-                        <span className="text-sm text-green-500">Paid</span>
-                      </div>
+                      {unpaidAmount > 0 && (
+                        <div className="flex justify-between items-center">
+                          ${unpaidAmount}{" "}
+                          <span className="text-sm text-red-500">Unpaid</span>
+                        </div>
+                      )}
+                      {totalPaid > 0 && (
+                        <div className="flex justify-between items-center mt-2">
+                          ${totalPaid}{" "}
+                          <span className="text-sm text-green-500">Paid</span>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>--</TableCell>
                     <TableCell>

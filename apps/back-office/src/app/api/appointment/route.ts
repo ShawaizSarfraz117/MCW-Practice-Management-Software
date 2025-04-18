@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get("clientId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const status = searchParams.get("status");
 
     if (id) {
       logger.info("Retrieving specific appointment");
@@ -58,6 +59,15 @@ export async function GET(request: NextRequest) {
         if (endDate) {
           whereClause.start_date.lte = new Date(endDate);
         }
+      }
+
+      // Add invoice status filtering to the whereClause directly
+      if (status && status !== "undefined") {
+        whereClause.Invoice = {
+          some: {
+            status: status, // Filter directly on the invoice status field
+          },
+        };
       }
 
       // List appointments with filters
