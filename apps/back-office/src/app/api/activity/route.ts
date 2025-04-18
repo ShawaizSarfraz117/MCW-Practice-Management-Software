@@ -1,17 +1,10 @@
 import { prisma } from "@mcw/database";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 import { type NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(backofficeAuthOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     // Parse query parameters
     const searchParams = new URL(request.url).searchParams;
     const eventType = searchParams.get("eventType");
