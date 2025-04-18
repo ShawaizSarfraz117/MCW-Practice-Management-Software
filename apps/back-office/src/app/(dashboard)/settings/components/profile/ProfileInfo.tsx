@@ -5,7 +5,6 @@ const ProfileInfo = ({
   isEditing,
   setIsEditing,
   handleSave,
-  form,
 }: {
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
@@ -50,31 +49,6 @@ const ProfileInfo = ({
               >
                 Edit
               </button>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-600">Date of birth</label>
-            {isEditing ? (
-              form.Field({
-                name: "dateOfBirth",
-                children: (field) => (
-                  <input
-                    type="date"
-                    value={form.getFieldValue("dateOfBirth") as string}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                ),
-              })
-            ) : (
-              <span className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm text-gray-700">
-                {new Date(
-                  form.getFieldValue("dateOfBirth") as string,
-                ).toLocaleDateString()}
-              </span>
             )}
           </div>
         </div>

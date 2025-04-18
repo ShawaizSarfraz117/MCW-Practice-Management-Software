@@ -3,8 +3,15 @@
 import { useDropzone } from "react-dropzone";
 import Image from "next/image";
 import { useForm } from "@tanstack/react-form";
+import profile from "@/public/uploads/profile.png";
 
-const ProfilePhoto = ({ form }: { form: ReturnType<typeof useForm> }) => {
+const ProfilePhoto = ({
+  form,
+  isEditing,
+}: {
+  form: ReturnType<typeof useForm>;
+  isEditing: boolean;
+}) => {
   const profilePhoto = form.getFieldValue("profilePhoto");
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -32,37 +39,45 @@ const ProfilePhoto = ({ form }: { form: ReturnType<typeof useForm> }) => {
         {...getRootProps()}
         className="border border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center"
       >
-        <input {...getInputProps()} />
-        <div className="mb-4">
-          {profilePhoto ? (
-            <div className="relative w-16 h-16 rounded-full overflow-hidden">
+        {isEditing ? (
+          <div
+            {...getRootProps()}
+            className="border border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center"
+          >
+            <input {...getInputProps()} />
+            <p className="text-sm text-gray-600">
+              {isDragActive
+                ? "Drop the file here"
+                : "Choose image or drag and drop image"}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Upload .jpg or .png image
+              <br />
+              Max upload size: 10MB
+            </p>
+          </div>
+        ) : (
+          <div className="mb-4">
+            {profilePhoto ? (
+              <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                <Image
+                  fill
+                  alt="Profile"
+                  className="object-cover"
+                  src={profile}
+                />
+              </div>
+            ) : (
               <Image
-                fill
                 alt="Profile"
-                className="object-cover"
-                src={(profilePhoto as string) || "/placeholder.png"}
+                className="h-16 w-16 text-gray-300"
+                height={64}
+                src={profile}
+                width={64}
               />
-            </div>
-          ) : (
-            <Image
-              alt="Profile"
-              className="h-16 w-16 text-gray-300"
-              height={64}
-              src={"/placeholder.png"}
-              width={64}
-            />
-          )}
-        </div>
-        <p className="text-sm text-gray-600">
-          {isDragActive
-            ? "Drop the file here"
-            : "Choose image or drag and drop image"}
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          Upload .jpg or .png image
-          <br />
-          Max upload size: 10MB
-        </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,11 +7,19 @@ import ProfileInfo from "./profile/ProfileInfo";
 import SecurityInfo from "./profile/SecurityInfo";
 import ProfilePhoto from "./profile/ProfilePhoto";
 import { useProfile } from "./profile/hooks/useProfile";
+import { toast } from "sonner";
 
 export const profileSchema = z.object({
   dateOfBirth: z.string().optional().nullable(),
-  phone: z.string().min(10).max(20).optional().nullable(),
-  profilePhoto: z.string().url().max(500).optional().nullable(),
+  phone: z
+    .string()
+    .regex(
+      /^(\+?\d{1,4}[\s-]?)?(\(?\d{3}\)?[\s-]?)?[\d\s-]{7,14}$/,
+      "Invalid phone number format",
+    )
+    .optional()
+    .nullable(),
+  profilePhoto: z.string().max(500).optional().nullable(),
 });
 
 export type ProfileFormData = {
@@ -25,12 +33,17 @@ export default function Profile() {
   const { data } = useProfile();
 
   const form = useForm({
-    defaultValues: () => ({
-      dateOfBirth: data?.date_of_birth,
-      phone: data?.phone,
-      profilePhoto: data?.profile_photo,
-    }),
     onSubmit: async ({ value }) => {
+      const result = profileSchema.safeParse(value);
+      if (!result.success) {
+        // Set form errors if validation fails
+        result.error.errors.forEach((error) => {
+          // form.setFieldError(error.path[0], error.message);
+          console.log(error.path[0]);
+          console.log(error.message);
+        });
+        return; // Stop submission
+      }
       try {
         const response = await fetch("/api/profile", {
           method: "PUT",
@@ -43,6 +56,11 @@ export default function Profile() {
         if (!response.ok) {
           throw new Error("Failed to update profile");
         }
+
+        toast.success("Profile updated successfully", {
+          duration: 4000,
+          position: "top-center", // you can adjust this if needed
+        });
 
         setIsEditing(false);
         form.reset(value);
@@ -58,7 +76,7 @@ export default function Profile() {
       form.setFieldValue("phone", data.phone);
       form.setFieldValue("profilePhoto", data.profile_photo);
     }
-  }, [data]);
+  }, [data, form]);
 
   const { handleSubmit } = form;
 
@@ -78,7 +96,10 @@ export default function Profile() {
         form={form as ReturnType<typeof useForm>}
         isEditing={isEditing}
       />
-      <ProfilePhoto form={form as ReturnType<typeof useForm>} />
+      <ProfilePhoto
+        isEditing={isEditing}
+        form={form as ReturnType<typeof useForm>}
+      />
     </div>
   );
 }

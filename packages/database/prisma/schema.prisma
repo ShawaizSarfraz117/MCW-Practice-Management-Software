@@ -307,17 +307,6 @@ model Tag {
   AppointmentTag AppointmentTag[]
 }
 
-model ProfileDetails {
-  id            String    @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  user_id       String    @unique @db.UniqueIdentifier
-  date_of_birth DateTime? @db.Date
-  phone         String?   @db.VarChar(20)
-  profile_photo String?   @db.VarChar(500)
-  created_at    DateTime  @default(now()) @db.DateTime
-  updated_at    DateTime  @updatedAt @db.DateTime
-  user          User      @relation(fields: [user_id], references: [id])
-}
-
 model User {
   id            String         @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   email         String         @unique @db.VarChar(255)
@@ -327,7 +316,9 @@ model User {
   Audit         Audit[]
   Clinician     Clinician?
   UserRole      UserRole[]
-  ProfileDetails ProfileDetails?
+ date_of_birth  DateTime? @db.Date
+  phone         String?   @db.VarChar(20)
+  profile_photo String?   @db.VarChar(500)
 }
 
 model UserRole {

@@ -29,29 +29,20 @@ export async function PUT(request: NextRequest) {
         { status: 422 },
       );
     }
-    // Update profile
-    const updatedProfile = await prisma.profileDetails.upsert({
-      where: { user_id: session.user.id },
-      update: {
+
+    // Update user profile directly
+    const updatedUser = await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
         date_of_birth: validationResult.data.dateOfBirth
           ? new Date(validationResult.data.dateOfBirth)
           : null,
         phone: validationResult.data.phone,
         profile_photo: validationResult.data.profilePhoto,
-      },
-      create: {
-        user_id: session.user.id,
-        date_of_birth: validationResult.data.dateOfBirth
-          ? new Date(validationResult.data.dateOfBirth)
-          : null,
-        phone: validationResult.data.phone,
-        profile_photo: validationResult.data.profilePhoto,
-        created_at: new Date(),
-        updated_at: new Date(),
       },
     });
 
-    return NextResponse.json(updatedProfile);
+    return NextResponse.json(updatedUser);
   } catch (error) {
     console.error("Error updating profile:", error);
     return NextResponse.json(
@@ -68,12 +59,16 @@ export async function GET() {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
     const user = await prisma.user.findUnique({
       where: {
         id: session.user.id,
       },
       select: {
         email: true,
+        date_of_birth: true,
+        phone: true,
+        profile_photo: true,
       },
     });
 
@@ -81,13 +76,7 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const profile = await prisma.profileDetails.findUnique({
-      where: {
-        user_id: session.user.id,
-      },
-    });
-
-    return NextResponse.json(profile || {});
+    return NextResponse.json(user);
   } catch (error) {
     console.error("Error fetching profile:", error);
     return NextResponse.json(
