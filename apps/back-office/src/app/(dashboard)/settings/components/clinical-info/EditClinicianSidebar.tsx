@@ -1,16 +1,75 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { useState } from "react";
 
 interface EditClinicianSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  clinicalInfoState: {
+    speciality: string;
+    taxonomy_code: string;
+    NPI_number: number;
+  };
+  setClinicalInfoState: (clinicalInfoState: {
+    speciality: string;
+    taxonomy_code: string;
+    NPI_number: number;
+  }) => void;
 }
 
 export default function EditClinicianSidebar({
   isOpen,
   onClose,
+  clinicalInfoState: defaultClinicalInfoState,
+  setClinicalInfoState: defaultSetClinicalInfoState,
 }: EditClinicianSidebarProps) {
+  const [clinicalInfoState, setClinicalInfoState] = useState({
+    speciality: defaultClinicalInfoState.speciality,
+    taxonomy_code: defaultClinicalInfoState.taxonomy_code,
+    NPI_number: defaultClinicalInfoState.NPI_number,
+  });
+
+  // Function to update clinical info
+  const updateClinicalInfo = async () => {
+    const response = await fetch("/api/clinicalInfo", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        speciality: clinicalInfoState.speciality,
+        taxonomyCode: clinicalInfoState.taxonomy_code,
+        NPInumber: clinicalInfoState.NPI_number,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update clinical information");
+    }
+
+    return response.json();
+  };
+
+  const { mutate } = useMutation({
+    mutationFn: updateClinicalInfo,
+    onSuccess: () => {
+      // Optionally handle success (e.g., show a success message)
+      console.log("Clinical information updated successfully");
+      defaultSetClinicalInfoState(clinicalInfoState);
+      onClose(); // Close the sidebar after successful update
+    },
+    onError: (error) => {
+      // Optionally handle error (e.g., show an error message)
+      console.error("Error updating clinical information:", error);
+    },
+  });
+
+  const handleSave = () => {
+    mutate(); // Call the mutation function on save button click
+  };
+
   return (
     <div
       className={`fixed inset-y-0 right-0 w-96 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
@@ -36,8 +95,21 @@ export default function EditClinicianSidebar({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Specialty
               </label>
-              <select className="w-full border-gray-300 rounded-md shadow-sm">
-                <option>Behavioral health therapy</option>
+              <select
+                className="w-full border-gray-300 rounded-md shadow-sm"
+                value={clinicalInfoState.speciality}
+                onChange={(e) =>
+                  setClinicalInfoState({
+                    ...clinicalInfoState,
+                    speciality: e.target.value,
+                  })
+                }
+              >
+                <option>Speciality 1</option>
+                <option>Speciality 2</option>
+                <option>Speciality 3</option>
+                <option>Speciality 4</option>
+                <option>Speciality 5</option>
                 {/* Add more options */}
               </select>
             </div>
@@ -47,10 +119,15 @@ export default function EditClinicianSidebar({
                 Taxonomy code
               </label>
               <input
-                readOnly
                 className="w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
                 type="text"
-                value="101YM0800X"
+                value={clinicalInfoState.taxonomy_code}
+                onChange={(e) =>
+                  setClinicalInfoState({
+                    ...clinicalInfoState,
+                    taxonomy_code: e.target.value,
+                  })
+                }
               />
             </div>
 
@@ -61,7 +138,14 @@ export default function EditClinicianSidebar({
               <input
                 className="w-full border-gray-300 rounded-md shadow-sm"
                 placeholder="Enter NPI number"
-                type="text"
+                type="number"
+                value={clinicalInfoState.NPI_number}
+                onChange={(e) =>
+                  setClinicalInfoState({
+                    ...clinicalInfoState,
+                    NPI_number: parseInt(e.target.value),
+                  })
+                }
               />
             </div>
           </div>
@@ -71,7 +155,7 @@ export default function EditClinicianSidebar({
         <div className="border-t p-4">
           <button
             className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
-            onClick={onClose}
+            onClick={handleSave}
           >
             Save
           </button>

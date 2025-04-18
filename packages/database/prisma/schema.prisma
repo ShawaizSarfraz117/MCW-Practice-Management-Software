@@ -319,6 +319,7 @@ model User {
  date_of_birth  DateTime? @db.Date
   phone         String?   @db.VarChar(20)
   profile_photo String?   @db.VarChar(500)
+  clinicalInfos ClinicalInfo[]
 }
 
 model UserRole {
@@ -328,4 +329,13 @@ model UserRole {
   User    User   @relation(fields: [user_id], references: [id], map: "FK_UserRole_User")
 
   @@id([user_id, role_id], map: "PK_UserRole_ID")
+}
+
+model ClinicalInfo {
+  id           Int    @id @default(autoincrement())
+  speciality   String
+  taxonomy_code String
+  NPI_number    Float
+  user_id       String @db.UniqueIdentifier
+  User User @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
 }

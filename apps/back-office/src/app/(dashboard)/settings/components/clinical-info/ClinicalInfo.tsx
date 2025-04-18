@@ -1,40 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Info, PlayCircle } from "lucide-react";
-import Link from "next/link";
 import EditClinicianSidebar from "./EditClinicianSidebar";
 import AddLicenseSidebar from "./AddLicenseSidebar";
+import { useQuery } from "@tanstack/react-query";
 
 export default function ClinicalInfo() {
   const [isEditSidebarOpen, setIsEditSidebarOpen] = useState(false);
   const [isAddLicenseSidebarOpen, setIsAddLicenseSidebarOpen] = useState(false);
 
+  const { data: clinicalInfo } = useQuery({
+    queryKey: ["clinicalInfo"],
+    queryFn: () => fetch("/api/clinicalInfo").then((res) => res.json()),
+  });
+  const [clinicalInfoState, setClinicalInfoState] = useState(
+    clinicalInfo || {
+      speciality: "N/A",
+      taxonomy_code: "N/A",
+      NPI_number: "",
+    },
+  );
+
   return (
     <div className="relative w-full">
-      {/* Video Link - Centered */}
-      <div className="flex justify-center mb-8">
-        <Link
-          className="flex items-center text-blue-600 text-sm font-medium hover:text-blue-700"
-          href="#"
-        >
-          <PlayCircle className="w-4 h-4 mr-2" />
-          Watch a quick video about Clinical info
-        </Link>
-      </div>
-
-      {/* Pre-licensed clinician note */}
-      <div className="bg-blue-50 p-4 rounded-md mb-8 flex items-start">
-        <Info className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
-        <p className="text-sm text-gray-700">
-          If you or someone in your practice is a pre-licensed clinician,{" "}
-          <Link className="text-blue-600 hover:underline" href="#">
-            add a supervisor as a team member
-          </Link>
-          .
-        </p>
-      </div>
-
       {/* Main Content */}
       <div className="space-y-8 w-full">
         {/* Clinician Details Section */}
@@ -57,23 +45,27 @@ export default function ClinicalInfo() {
                 Specialty
               </label>
               <div className="text-sm text-gray-800">
-                Behavioral health therapy
+                {clinicalInfoState.speciality}
               </div>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-2">
                 Taxonomy code
               </label>
-              <div className="text-sm text-gray-800">101YM0800X</div>
+              <div className="text-sm text-gray-800">
+                {clinicalInfoState.taxonomy_code}
+              </div>
             </div>
             <div className="col-span-2">
               <label className="block text-sm text-gray-600 mb-2">
                 NPI number
               </label>
               <input
+                disabled
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter NPI number"
                 type="text"
+                value={clinicalInfoState.NPI_number}
               />
             </div>
           </div>
@@ -100,7 +92,9 @@ export default function ClinicalInfo() {
 
       {/* Sidebars */}
       <EditClinicianSidebar
+        clinicalInfoState={clinicalInfoState}
         isOpen={isEditSidebarOpen}
+        setClinicalInfoState={setClinicalInfoState}
         onClose={() => setIsEditSidebarOpen(false)}
       />
       <AddLicenseSidebar
