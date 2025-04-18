@@ -1,33 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GET, PUT } from "@/api/profile/route";
-import { prisma } from "@mcw/database";
-import {
-  ProfileFactory,
-  UserFactory,
-  ClientFactory,
-} from "@mcw/database/mock-data";
-import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-
-// Mock next-auth
-vi.mock("next-auth", () => ({
-  getServerSession: vi.fn(),
-}));
-
-// Mock the Prisma client
+// 🔁 Mock Prisma
 vi.mock("@mcw/database", () => ({
   prisma: {
-    profileDetails: {
-      upsert: vi.fn(),
-      findUnique: vi.fn(),
-    },
     user: {
       findUnique: vi.fn(),
     },
   },
 }));
 
-describe("Profile API Unit Tests", () => {
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { GET, PUT } from "@/api/profile/route";
+import { prisma } from "@mcw/database";
+import { UserFactory } from "@mcw/database/mock-data";
+import { getServerSession } from "next-auth";
+import { NextRequest } from "next/server";
+
+// 🔁 Mock next-auth
+vi.mock("next-auth", () => ({
+  getServerSession: vi.fn(),
+}));
+
+describe("GET /api/profile", () => {
   const mockSession = {
     user: {
       id: "test-user-id",
@@ -35,47 +27,134 @@ describe("Profile API Unit Tests", () => {
   };
 
   beforeEach(() => {
+    vi.resetAllMocks();
     vi.mocked(getServerSession).mockResolvedValue(mockSession);
   });
 
-  it("GET /api/profile should return the profile", async () => {
-    // Create mock data
-    const user = UserFactory.build();
-    const profile = ProfileFactory.build({ user_id: user.id });
+  it("should return the user profile", async () => {
+    const mockUser = UserFactory.build({
+      id: mockSession.user.id,
+      email: "admin@example.com",
+    });
 
-    // Mock the Prisma findUnique call
-    const mockFindUnique = prisma.profileDetails
-      .findUnique as unknown as ReturnType<typeof vi.fn>;
-    mockFindUnique.mockResolvedValueOnce(profile);
-
-    const request = new NextRequest(new URL("http://localhost/api/profile"));
-
-    const response = await GET(request);
-    expect(response.status).toBe(200);
-    const json = await response.json();
-
-    expect(json).toEqual(profile);
-  });
-
-  it("PUT /api/profile should update the profile", async () => {
-    // Create mock data
-    const user = UserFactory.build();
-    const updatedProfile = ProfileFactory.build({ user_id: user.id });
-
-    // Mock the Prisma upsert call
-    const mockUpsert = prisma.profileDetails.upsert as unknown as ReturnType<
+    const mockFindUnique = prisma.user.findUnique as unknown as ReturnType<
       typeof vi.fn
     >;
-    mockUpsert.mockResolvedValueOnce(updatedProfile);
+    mockFindUnique.mockResolvedValueOnce(mockUser);
+    const response = await GET();
 
-    const request = new NextRequest(new URL("http://localhost/api/profile"));
-    request.method = "PUT";
-    request.body = JSON.stringify(updatedProfile);
-
-    const response = await PUT(request);
     expect(response.status).toBe(200);
     const json = await response.json();
+    expect(json).toMatchObject({
+      id: mockUser.id,
+      email: mockUser.email,
+      phone: mockUser.phone,
+      profile_photo: mockUser.profile_photo,
 
-    expect(json).toEqual(updatedProfile);
+      // add only the relevant keys
+    });
+  });
+
+  it("should return 401 if session is invalid", async () => {
+    vi.mocked(getServerSession).mockResolvedValueOnce(null);
+
+    const response = await GET();
+
+    expect(response.status).toBe(401);
+  });
+
+  it("should handle database errors", async () => {
+    const mockFindUnique = prisma.user.findUnique as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    mockFindUnique.mockRejectedValueOnce(new Error("Database error"));
+
+    const response = await GET();
+
+    expect(response.status).toBe(500);
+    const json = await response.json();
+    expect(json).toEqual({ error: "Failed to fetch profile" }); // adjust to your actual error message
+  });
+});
+
+describe("PUT /api/profile", () => {
+  const mockSession = {
+    user: {
+      id: "test-user-id",
+    },
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(getServerSession).mockResolvedValue(mockSession);
+  });
+
+  it("should update birth date, phone, and profile photo", async () => {
+    const updateData = {
+      birth_date: "1990-01-01",
+      phone: "+1234567890",
+      profile_photo: "https://example.com/photo.jpg",
+    };
+
+    const mockUser = UserFactory.build({
+      id: mockSession.user.id,
+      ...updateData,
+    });
+
+    vi.mocked(prisma.user.update).mockResolvedValueOnce(mockUser);
+
+    const request = new NextRequest(new URL("http://localhost/api/profile"), {
+      method: "PUT",
+      body: JSON.stringify(updateData),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await PUT(request);
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(JSON.stringify(json)).toEqual(
+      JSON.stringify({
+        ...mockUser,
+        date_of_birth: mockUser.date_of_birth?.toISOString(),
+        phone: mockUser.phone,
+        profile_photo: mockUser.profile_photo,
+      }),
+    );
+  });
+
+  it("should return 401 if session is missing", async () => {
+    vi.mocked(getServerSession).mockResolvedValueOnce(null);
+
+    const request = new NextRequest(new URL("http://localhost/api/profile"), {
+      method: "PUT",
+      body: JSON.stringify({}),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await PUT(request);
+    expect(response.status).toBe(401);
+  });
+
+  it("should return 500 on database error", async () => {
+    const mockUpdate = prisma.user.update as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    mockUpdate?.mockRejectedValueOnce(new Error("DB error"));
+
+    const request = new NextRequest(new URL("http://localhost/api/profile"), {
+      method: "PUT",
+      body: JSON.stringify({
+        birth_date: "1990-01-01",
+        phone: "+1234567890",
+        profile_photo: "https://example.com/photo.jpg",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await PUT(request);
+    expect(response.status).toBe(500);
+    const json = await response.json();
+    expect(json).toEqual({ error: "Failed to update profile" });
   });
 });
