@@ -2,7 +2,9 @@
   "extends": "@mcw/tsconfig-config/next",
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/app/*"]
+      "@/*": ["./src/app/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/types/*": ["./src/types/*"]
     }
   },
   "include": [
@@ -11,7 +13,8 @@
     "src/**/*.tsx",
     ".next/types/**/*.ts",
     "__tests__/**/*.ts",
-    "__tests__/**/*.tsx"
+    "__tests__/**/*.tsx",
+    "../../packages/types/src/auditTypes.ts"
   ],
   "exclude": ["node_modules", ".next"]
 }
