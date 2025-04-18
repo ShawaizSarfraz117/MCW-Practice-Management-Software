@@ -2,19 +2,19 @@
 
 import { useDropzone } from "react-dropzone";
 import Image from "next/image";
-import { ProfileFormData } from "../Profile";
+import { useForm } from "@tanstack/react-form";
 
-const ProfilePhoto = ({
-  onDrop,
-  watch,
-  defaultValues,
-}: {
-  onDrop: (acceptedFiles: File[]) => void;
-  watch: (key: keyof ProfileFormData) => string | null;
-  defaultValues: ProfileFormData;
-}) => {
+const ProfilePhoto = ({ form }: { form: ReturnType<typeof useForm> }) => {
+  const profilePhoto = form.getFieldValue("profilePhoto");
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+    onDrop: (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (file) {
+        const filePath = `/uploads/${file.name}`;
+        form.setFieldValue("profilePhoto", filePath);
+      }
+    },
     accept: {
       "image/*": [".jpeg", ".jpg", ".png"],
     },
@@ -34,13 +34,13 @@ const ProfilePhoto = ({
       >
         <input {...getInputProps()} />
         <div className="mb-4">
-          {watch("profilePhoto") ? (
+          {profilePhoto ? (
             <div className="relative w-16 h-16 rounded-full overflow-hidden">
               <Image
                 fill
                 alt="Profile"
                 className="object-cover"
-                src={watch("profilePhoto") || "/placeholder.png"}
+                src={(profilePhoto as string) || "/placeholder.png"}
               />
             </div>
           ) : (
@@ -48,7 +48,7 @@ const ProfilePhoto = ({
               alt="Profile"
               className="h-16 w-16 text-gray-300"
               height={64}
-              src={defaultValues?.profilePhoto || "/placeholder.png"}
+              src={"/placeholder.png"}
               width={64}
             />
           )}
