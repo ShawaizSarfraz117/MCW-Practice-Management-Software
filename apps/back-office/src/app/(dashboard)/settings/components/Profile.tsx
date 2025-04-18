@@ -6,7 +6,7 @@ import { useState, useCallback, useEffect } from "react";
 import ProfileInfo from "./profile/ProfileInfo";
 import SecurityInfo from "./profile/SecurityInfo";
 import ProfilePhoto from "./profile/ProfilePhoto";
-import { useProfile } from "./hooks/useProfile";
+import { useProfile } from "./profile/hooks/useProfile";
 
 export const profileSchema = z.object({
   dateOfBirth: z.string().optional().nullable(),
