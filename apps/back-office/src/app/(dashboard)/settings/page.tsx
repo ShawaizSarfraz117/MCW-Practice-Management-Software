@@ -40,7 +40,7 @@ export default function SettingsPage() {
         onSectionChange={setActiveSection}
       />
       <div className="flex-1">
-        <TopBar />
+        <TopBar showMenuBar={false} showSearch={false} />
         <div className="bg-white p-6">{renderContent()}</div>
       </div>
     </div>
