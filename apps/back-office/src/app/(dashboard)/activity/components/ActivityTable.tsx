@@ -75,7 +75,7 @@ export default function ActivityTable({
     return <div className="text-center py-8">Loading activity...</div>;
   }
 
-  if (events.length === 0) {
+  if (events?.length === 0) {
     return (
       <div className="text-center py-8">
         No activity events found
@@ -96,7 +96,7 @@ export default function ActivityTable({
           </tr>
         </thead>
         <tbody className="divide-y">
-          {events.map((event) => {
+          {events?.map((event) => {
             const date = new Date(event.datetime);
 
             return (
@@ -140,19 +140,19 @@ export default function ActivityTable({
       {/* Pagination Controls */}
       <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
         <div className="text-sm text-gray-500">
-          Showing {events.length} of {pagination.total} results
+          Showing {events?.length} of {pagination?.total} results
         </div>
         <div className="flex gap-2">
           <button
             className="px-3 py-1 text-sm bg-white border rounded-md disabled:opacity-50"
-            disabled={pagination.page === 1}
-            onClick={() => fetchEvents(pagination.page - 1)}
+            disabled={pagination?.page === 1}
+            onClick={() => fetchEvents(pagination?.page - 1)}
           >
             Previous
           </button>
           <button
             className="px-3 py-1 text-sm bg-white border rounded-md disabled:opacity-50"
-            disabled={pagination.page === pagination.pages}
+            disabled={pagination?.page === pagination?.pages}
             onClick={() => fetchEvents(pagination.page + 1)}
           >
             Next
