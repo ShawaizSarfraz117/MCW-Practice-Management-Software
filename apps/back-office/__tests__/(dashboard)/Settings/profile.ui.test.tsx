@@ -2,7 +2,6 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SettingsPage from "@/(dashboard)/settings/page";
-import Profile from "@/(dashboard)/settings/components/Profile";
 
 afterEach(() => {
   vi.clearAllMocks();
