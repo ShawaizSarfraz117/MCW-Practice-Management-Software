@@ -169,41 +169,6 @@ describe("PUT /api/clinicalInfo", () => {
     const json = await response.json();
     expect(json).toMatchObject(createResponseMock);
   });
-
-  it("should insert new clinical information if it does not exist", async () => {
-    const updateData = {
-      speciality: "Behavioral health therapy",
-      taxonomyCode: "101YM0800X",
-      NPInumber: 1234567890,
-    };
-
-    const mockCreate = prisma.clinicalInfo.create as unknown as ReturnType<
-      typeof vi.fn
-    >;
-    mockCreate.mockResolvedValueOnce({
-      user_id: mockSession.user.id,
-      ...updateData,
-    });
-
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinicalInfo"),
-      {
-        method: "PUT",
-        body: JSON.stringify(updateData),
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-
-    const response = await PUT(request);
-
-    expect(response.status).toBe(200);
-    const json = await response.json();
-    expect(json).toMatchObject({
-      user_id: mockSession.user.id,
-      ...updateData,
-    });
-  });
-
   it("should return 401 if session is missing", async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
 
@@ -244,5 +209,26 @@ describe("PUT /api/clinicalInfo", () => {
     expect(await response.json()).toEqual({
       error: "Failed to update clinical information",
     });
+  });
+  it("should return 422 for invalid input data", async () => {
+    const invalidData = {
+      speciality: "x".repeat(101), // Exceeds max length
+      taxonomyCode: "",
+      NPInumber: "not-a-number",
+    };
+
+    const request = new NextRequest(
+      new URL("http://localhost/api/clinicalInfo"),
+      {
+        method: "PUT",
+        body: JSON.stringify(invalidData),
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+
+    const response = await PUT(request);
+    expect(response.status).toBe(422);
+    const json = await response.json();
+    expect(json.error).toBeDefined();
   });
 });

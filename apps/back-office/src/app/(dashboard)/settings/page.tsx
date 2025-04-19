@@ -8,8 +8,33 @@ import ClinicalInfo from "./components/clinical-info/ClinicalInfo";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("profile-security");
+  const [isLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <p className="font-medium">Error</p>
+          <p className="text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-sm text-red-500 hover:text-red-700"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
+
     switch (activeSection) {
       case "profile-security":
         return <Profile />;

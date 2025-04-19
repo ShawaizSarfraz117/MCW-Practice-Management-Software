@@ -145,17 +145,20 @@ describe("POST /api/licenses", () => {
     },
   ];
 
-  const createResponseMock = {
-    id: 1,
-    clinical_info_id: 1,
-    ...createData,
-  };
-
   it("should create a new license", async () => {
     const mockCreate = prisma.license.create as unknown as ReturnType<
       typeof vi.fn
     >;
-    mockCreate.mockResolvedValueOnce(createResponseMock);
+    mockCreate.mockResolvedValueOnce({
+      id: 1,
+      clinical_info_id: 1,
+      ...createData[0],
+    });
+    mockCreate.mockResolvedValueOnce({
+      id: 2,
+      clinical_info_id: 1,
+      ...createData[1],
+    });
 
     const request = new NextRequest(new URL("http://localhost/api/licenses"), {
       method: "POST",
@@ -166,6 +169,16 @@ describe("POST /api/licenses", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(200);
+
+    // Verify response data
+    const responseData = await response.json();
+    expect(responseData).toHaveLength(2);
+    expect(responseData[0]).toMatchObject({
+      id: 1,
+      clinical_info_id: 1,
+      license_type: createData[0].license_type,
+      license_number: createData[0].license_number,
+    });
   });
 
   it("should return 401 if session is missing", async () => {
@@ -202,5 +215,36 @@ describe("POST /api/licenses", () => {
 
     const response = await POST(request);
     expect(response.status).toBe(500);
+  });
+  it("should return 422 for invalid license data", async () => {
+    const request = new NextRequest(new URL("http://localhost/api/licenses"), {
+      method: "POST",
+      // Invalid data: empty array
+      body: JSON.stringify([]),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(422);
+    const json = await response.json();
+    expect(json.error).toBe(
+      "Invalid request payload: expected an array of licenses",
+    );
+  });
+
+  it("should return 404 when clinical info not found", async () => {
+    // Override the mock to return null for clinical info
+    vi.mocked(prisma.clinicalInfo.findFirst).mockResolvedValueOnce(null);
+
+    const request = new NextRequest(new URL("http://localhost/api/licenses"), {
+      method: "POST",
+      body: JSON.stringify(createData),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(404);
+    const json = await response.json();
+    expect(json.error).toBe("Clinical information not found");
   });
 });

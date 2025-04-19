@@ -35,7 +35,15 @@ export async function PUT(request: NextRequest) {
       where: { id: session.user.id },
       data: {
         date_of_birth: validationResult.data.dateOfBirth
-          ? new Date(validationResult.data.dateOfBirth)
+          ? (() => {
+              try {
+                const date = new Date(validationResult.data.dateOfBirth!);
+                return isNaN(date.getTime()) ? null : date;
+              } catch (e) {
+                console.error("Invalid date format:", e);
+                return null;
+              }
+            })()
           : null,
         phone: validationResult.data.phone,
         profile_photo: validationResult.data.profilePhoto,
