@@ -63,6 +63,7 @@
   },
   "packageManager": "npm@10.9.0",
   "dependencies": {
+    "@fullcalendar/core": "^6.1.17",
     "@prisma/client": "^6.5.0",
     "@testing-library/dom": "^10.4.0",
     "react-dropzone": "^14.3.8"
