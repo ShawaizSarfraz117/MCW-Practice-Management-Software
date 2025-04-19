@@ -337,5 +337,16 @@ model ClinicalInfo {
   taxonomy_code String
   NPI_number    Float
   user_id       String @db.UniqueIdentifier
+  licenses      License[]
   User User @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
+}
+
+model License {
+  id              Int      @id @default(autoincrement())
+  clinical_info_id Int
+  license_type    String   // License type
+  license_number  String   // License number
+  expiration_date DateTime     // Use Date type for expiration date
+  state           String   // State
+  clinicalInfo    ClinicalInfo @relation(fields: [clinical_info_id], references: [id]) // Establishing the relation
 }
