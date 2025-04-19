@@ -2,12 +2,40 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 
-export async function GET() {
+export async function GET(request?: NextRequest) {
   try {
-    logger.info("Retrieving all locations");
-    const locations = await prisma.location.findMany({});
+    // Check if request exists (to support tests that call GET without parameters)
+    const searchParams = request?.nextUrl?.searchParams;
+    const clinicianId = searchParams?.get("clinicianId");
 
-    return NextResponse.json(locations);
+    if (clinicianId) {
+      logger.info(`Retrieving locations for clinician: ${clinicianId}`);
+
+      // Get location IDs from clinicianLocation table for this clinician
+      const clinicianLocations = await prisma.clinicianLocation.findMany({
+        where: { clinician_id: clinicianId },
+        select: { location_id: true },
+      });
+
+      // Extract location IDs
+      const locationIds = clinicianLocations.map((cl) => cl.location_id);
+
+      // If clinician has associated locations, fetch them
+      if (locationIds.length > 0) {
+        const locations = await prisma.location.findMany({
+          where: { id: { in: locationIds } },
+        });
+        return NextResponse.json(locations);
+      } else {
+        // Return empty array if clinician has no locations
+        return NextResponse.json([]);
+      }
+    } else {
+      // Original behavior - return all locations
+      logger.info("Retrieving all locations");
+      const locations = await prisma.location.findMany({});
+      return NextResponse.json(locations);
+    }
   } catch (error) {
     console.error("Error fetching locations:", error);
     return NextResponse.json(
