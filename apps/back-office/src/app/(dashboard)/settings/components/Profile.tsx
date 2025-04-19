@@ -97,8 +97,8 @@ export default function Profile() {
         isEditing={isEditing}
       />
       <ProfilePhoto
-        isEditing={isEditing}
         form={form as ReturnType<typeof useForm>}
+        isEditing={isEditing}
       />
     </div>
   );

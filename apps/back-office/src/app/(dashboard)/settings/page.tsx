@@ -15,7 +15,7 @@ export default function SettingsPage() {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+          {/* <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div> */}
         </div>
       );
     }
@@ -26,8 +26,8 @@ export default function SettingsPage() {
           <p className="font-medium">Error</p>
           <p className="text-sm">{error}</p>
           <button
-            onClick={() => setError(null)}
             className="mt-2 text-sm text-red-500 hover:text-red-700"
+            onClick={() => setError(null)}
           >
             Try again
           </button>

@@ -147,9 +147,10 @@ export default function AddLicenseSidebar({
                 </label>
                 <input
                   className="w-full border-gray-300 rounded-md shadow-sm"
+                  min={new Date().toISOString().split("T")[0]}
                   type="date"
                   value={license.expiration_date}
-                  min={new Date().toISOString().split("T")[0]} // Set minimum date to today
+                  // Set minimum date to today
                   onChange={(e) =>
                     handleChange(index, "expiration_date", e.target.value)
                   }
