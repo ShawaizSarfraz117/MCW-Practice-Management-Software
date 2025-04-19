@@ -54,6 +54,9 @@ export const UserFactory = {
     email: faker.internet.email(),
     password_hash: bcrypt.hashSync(faker.internet.password(), 10),
     last_login: faker.date.recent(),
+    date_of_birth: faker.date.past(),
+    phone: faker.phone.number(),
+    profile_photo: faker.image.url(),
     ...overrides,
   }),
 };

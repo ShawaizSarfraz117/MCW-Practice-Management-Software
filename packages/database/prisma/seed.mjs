@@ -1,15 +1,15 @@
 /* global console */
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
-import process from 'process';
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
+import process from "process";
 
 const prisma = new PrismaClient();
 
 async function main() {
   // First try to find the existing role
   let backOfficeRole = await prisma.role.findUnique({
-    where: { name: 'BACKOFFICE' }
+    where: { name: "BACKOFFICE" },
   });
 
   // If it doesn't exist, create it
@@ -17,19 +17,19 @@ async function main() {
     backOfficeRole = await prisma.role.create({
       data: {
         id: uuidv4(),
-        name: 'BACKOFFICE',
+        name: "BACKOFFICE",
       },
     });
   }
 
-  console.log('Role created or found:', backOfficeRole);
+  console.log("Role created or found:", backOfficeRole);
 
   // Create client groups
   const clientGroupTypes = [
-    { type: 'adult', name: 'Adult' },
-    { type: 'minor', name: 'Minor' },
-    { type: 'couple', name: 'Couple' },
-    { type: 'family', name: 'Family' }
+    { type: "adult", name: "Adult" },
+    { type: "minor", name: "Minor" },
+    { type: "couple", name: "Couple" },
+    { type: "family", name: "Family" },
   ];
 
   for (const groupData of clientGroupTypes) {
@@ -37,13 +37,13 @@ async function main() {
     const existingGroup = await prisma.clientGroup.findFirst({
       where: {
         type: groupData.type,
-        name: groupData.name
+        name: groupData.name,
       },
       select: {
         id: true,
         type: true,
-        name: true
-      }
+        name: true,
+      },
     });
 
     if (!existingGroup) {
@@ -51,52 +51,64 @@ async function main() {
         data: {
           id: uuidv4(),
           type: groupData.type,
-          name: groupData.name
-        }
+          name: groupData.name,
+        },
       });
-      console.log(`Created client group: ${groupData.name} (${groupData.type})`);
+      console.log(
+        `Created client group: ${groupData.name} (${groupData.type})`,
+      );
     } else {
-      console.log(`Client group already exists: ${groupData.name} (${groupData.type})`);
+      console.log(
+        `Client group already exists: ${groupData.name} (${groupData.type})`,
+      );
     }
   }
 
   // Create a test backoffice user
-  const adminPassword = await bcrypt.hash('admin123', 10);
+  const adminPassword = await bcrypt.hash("admin123", 10);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
+    where: { email: "admin@example.com" },
     update: {},
     create: {
       id: uuidv4(),
-      email: 'admin@example.com',
+      email: "admin@example.com",
       password_hash: adminPassword,
       UserRole: {
         create: {
           role_id: backOfficeRole.id,
         },
       },
+      date_of_birth: new Date("1985-06-15"),
+      phone: "+1 (555) 987-6543",
+      profile_photo:
+        "https://ui-avatars.com/api/?name=Clinician&background=2d8467&color=fff",
     },
   });
 
-  console.log('BackOffice user created:', admin);
+  console.log("BackOffice user and profile created:", admin);
 
   // Create another test backoffice user (previously clinician)
-  const clinicianPassword = await bcrypt.hash('clinician123', 10);
+  const clinicianPassword = await bcrypt.hash("clinician123", 10);
   const clinician = await prisma.user.upsert({
-    where: { email: 'clinician@example.com' },
+    where: { email: "clinician@example.com" },
     update: {},
     create: {
       id: uuidv4(),
-      email: 'clinician@example.com',
+      email: "clinician@example.com",
       password_hash: clinicianPassword,
       UserRole: {
         create: {
           role_id: backOfficeRole.id,
         },
       },
+      date_of_birth: new Date("1985-06-15"),
+      phone: "+1 (555) 987-6543",
+      profile_photo:
+        "https://ui-avatars.com/api/?name=Clinician&background=2d8467&color=fff",
     },
   });
 
-  console.log('BackOffice user created:', clinician);
+  console.log("BackOffice user and profile created:", clinician);
 }
 
 main()
@@ -106,4 +118,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });
