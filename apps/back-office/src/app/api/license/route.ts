@@ -12,31 +12,25 @@ const licensePayload = z.object({
 });
 
 // PUT route to add or update licenses
-export async function PUT(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(backofficeAuthOptions);
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const data = await request.json();
-    // Validate request body
-    const validationResult = licensePayload.safeParse(data);
-    if (!validationResult.success) {
+
+    if (!Array.isArray(data) || data.length === 0) {
       return NextResponse.json(
-        {
-          error: "Invalid request payload",
-          details: validationResult.error.message,
-        },
+        { error: "Invalid request payload: expected an array of licenses" },
         { status: 422 },
       );
     }
 
-    // Check if clinical info exists
     const existingClinicalInfo = await prisma.clinicalInfo.findFirst({
-      where: {
-        user_id: session.user.id,
-      },
+      where: { user_id: session.user.id },
     });
 
     if (!existingClinicalInfo) {
@@ -46,22 +40,47 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Create or update licenses
-    const newLicense = await prisma.license.create({
-      data: {
-        clinical_info_id: existingClinicalInfo.id, // Link to clinical info
-        license_type: validationResult.data.license_type ?? "",
-        license_number: validationResult.data.license_number ?? "",
-        expiration_date: validationResult.data.expiration_date ?? new Date(),
-        state: validationResult.data.state ?? "",
-      },
-    });
+    const createdLicenses = [];
 
-    return NextResponse.json(newLicense);
-  } catch (error) {
-    console.error("Error updating licenses:", error);
+    for (const license of data) {
+      // Preprocess expiration_date to ensure it's a Date object
+      const normalizedLicense = {
+        ...license,
+        expiration_date:
+          typeof license.expiration_date === "string"
+            ? new Date(license.expiration_date)
+            : license.expiration_date,
+      };
+
+      const validationResult = licensePayload.safeParse(normalizedLicense);
+      if (!validationResult.success) {
+        return NextResponse.json(
+          {
+            error: "Validation error",
+            details: validationResult.error.format(),
+          },
+          { status: 422 },
+        );
+      }
+
+      const created = await prisma.license.create({
+        data: {
+          clinical_info_id: existingClinicalInfo.id,
+          license_type: validationResult.data.license_type ?? "",
+          license_number: validationResult.data.license_number ?? "",
+          expiration_date: validationResult.data.expiration_date ?? new Date(),
+          state: validationResult.data.state ?? "",
+        },
+      });
+
+      createdLicenses.push(created);
+    }
+
+    return NextResponse.json(createdLicenses);
+  } catch (error: any) {
+    console.error("Error creating licenses:", error.message, error.stack);
     return NextResponse.json(
-      { error: "Failed to update licenses" },
+      { error: "Failed to create licenses" },
       { status: 500 },
     );
   }
@@ -93,6 +112,12 @@ export async function GET() {
         clinical_info_id: clinicalInfo.id, // Fetch licenses linked to the clinical info
       },
     });
+    if (licenses.length === 0) {
+      return NextResponse.json(
+        { error: "Licenses not found" },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json(licenses);
   } catch (error) {

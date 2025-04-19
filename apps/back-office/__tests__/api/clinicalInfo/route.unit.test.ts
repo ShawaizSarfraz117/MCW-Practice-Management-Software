@@ -20,69 +20,69 @@ vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),
 }));
 
-// describe("GET /api/clinicalInfo", () => {
-//   const mockSession = {
-//     user: {
-//       id: "test-user-id",
-//     },
-//   };
+describe("GET /api/clinicalInfo", () => {
+  const mockSession = {
+    user: {
+      id: "test-user-id",
+    },
+  };
 
-//   beforeEach(() => {
-//     vi.resetAllMocks();
-//     vi.mocked(getServerSession).mockResolvedValue(mockSession);
-//   });
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(getServerSession).mockResolvedValue(mockSession);
+  });
 
-//   it("should return clinical information", async () => {
-//     const mockClinicalInfo = {
-//       user_id: mockSession.user.id,
-//       speciality: "Behavioral health therapy",
-//       taxonomy_code: "101YM0800X",
-//       NPI_number: 1234567890,
-//     };
+  it("should return clinical information", async () => {
+    const mockClinicalInfo = {
+      user_id: mockSession.user.id,
+      speciality: "Behavioral health therapy",
+      taxonomy_code: "101YM0800X",
+      NPI_number: 1234567890,
+    };
 
-//     const mockFindFirst = prisma.clinicalInfo
-//       .findFirst as unknown as ReturnType<typeof vi.fn>;
-//     mockFindFirst.mockResolvedValueOnce(mockClinicalInfo);
-//     const response = await GET();
+    const mockFindFirst = prisma.clinicalInfo
+      .findFirst as unknown as ReturnType<typeof vi.fn>;
+    mockFindFirst.mockResolvedValueOnce(mockClinicalInfo);
+    const response = await GET();
 
-//     expect(response.status).toBe(200);
-//     const json = await response.json();
-//     expect(json).toMatchObject(mockClinicalInfo);
-//   });
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json).toMatchObject(mockClinicalInfo);
+  });
 
-//   it("should return 401 if session is invalid", async () => {
-//     vi.mocked(getServerSession).mockResolvedValueOnce(null);
+  it("should return 401 if session is invalid", async () => {
+    vi.mocked(getServerSession).mockResolvedValueOnce(null);
 
-//     const response = await GET();
+    const response = await GET();
 
-//     expect(response.status).toBe(401);
-//   });
+    expect(response.status).toBe(401);
+  });
 
-//   it("should return 404 if clinical information is not found", async () => {
-//     const mockFindFirst = prisma.clinicalInfo
-//       .findFirst as unknown as ReturnType<typeof vi.fn>;
-//     mockFindFirst.mockResolvedValueOnce(null);
+  it("should return 404 if clinical information is not found", async () => {
+    const mockFindFirst = prisma.clinicalInfo
+      .findFirst as unknown as ReturnType<typeof vi.fn>;
+    mockFindFirst.mockResolvedValueOnce(null);
 
-//     const response = await GET();
+    const response = await GET();
 
-//     expect(response.status).toBe(404);
-//     const json = await response.json();
-//     expect(json).toEqual({ error: "Clinical information not found" });
-//   });
+    expect(response.status).toBe(404);
+    const json = await response.json();
+    expect(json).toEqual({ error: "Clinical information not found" });
+  });
 
-//   it("should handle database errors", async () => {
-//     const mockFindFirst = prisma.clinicalInfo
-//       .findFirst as unknown as ReturnType<typeof vi.fn>;
-//     mockFindFirst.mockRejectedValueOnce(new Error("Database error"));
+  it("should handle database errors", async () => {
+    const mockFindFirst = prisma.clinicalInfo
+      .findFirst as unknown as ReturnType<typeof vi.fn>;
+    mockFindFirst.mockRejectedValueOnce(new Error("Database error"));
 
-//     const response = await GET();
+    const response = await GET();
 
-//     expect(response.status).toBe(500);
-//     expect(await response.json()).toEqual({
-//       error: "Failed to fetch clinical information",
-//     });
-//   });
-// });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "Failed to fetch clinical information",
+    });
+  });
+});
 
 describe("PUT /api/clinicalInfo", () => {
   const mockSession = {
