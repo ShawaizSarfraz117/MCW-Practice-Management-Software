@@ -77,8 +77,12 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(createdLicenses);
-  } catch (error: any) {
-    console.error("Error creating licenses:", error.message, error.stack);
+  } catch (error) {
+    console.error(
+      "Error creating licenses:",
+      (error as Error).message,
+      (error as Error).stack,
+    );
     return NextResponse.json(
       { error: "Failed to create licenses" },
       { status: 500 },
