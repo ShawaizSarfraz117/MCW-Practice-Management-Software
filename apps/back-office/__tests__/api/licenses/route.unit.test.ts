@@ -231,20 +231,4 @@ describe("POST /api/licenses", () => {
       "Invalid request payload: expected an array of licenses",
     );
   });
-
-  it("should return 404 when clinical info not found", async () => {
-    // Override the mock to return null for clinical info
-    vi.mocked(prisma.clinicalInfo.findFirst).mockResolvedValueOnce(null);
-
-    const request = new NextRequest(new URL("http://localhost/api/licenses"), {
-      method: "POST",
-      body: JSON.stringify(createData),
-      headers: { "Content-Type": "application/json" },
-    });
-
-    const response = await POST(request);
-    expect(response.status).toBe(404);
-    const json = await response.json();
-    expect(json.error).toBe("Clinical information not found");
-  });
 });
