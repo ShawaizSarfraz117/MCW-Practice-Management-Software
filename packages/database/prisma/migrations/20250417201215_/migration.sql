@@ -5,7 +5,6 @@ BEGIN TRAN;
 -- AlterTable
 ALTER TABLE [dbo].[User] DROP CONSTRAINT [PK_User_ID];
 ALTER TABLE [dbo].[User] ADD CONSTRAINT [User_id_df] DEFAULT newid() FOR [id];
-ALTER TABLE [dbo].[User] ADD CONSTRAINT [PK_User_ID] PRIMARY KEY CLUSTERED ([id]);
 
 -- CreateTable
 CREATE TABLE [dbo].[ProfileDetails] (
