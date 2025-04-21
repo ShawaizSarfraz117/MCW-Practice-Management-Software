@@ -153,21 +153,7 @@ export function EditAppointmentTab({
           searchable={false}
           showPagination={false}
           icon={<Check className="h-4 w-4 text-green-700 font-bold" />}
-          className={cn(
-            "border-0 w-[200px] rounded-[24px] px-3 py-1 font-medium focus:outline-none focus:ring-0",
-            form.getFieldValue("status") === "SCHEDULED" &&
-              "bg-green-100 text-green-700",
-            form.getFieldValue("status") === "SHOW" &&
-              "bg-blue-100 text-blue-700",
-            form.getFieldValue("status") === "NO_SHOW" &&
-              "bg-red-100 text-red-700",
-            form.getFieldValue("status") === "CANCELLED" &&
-              "bg-gray-100 text-gray-700",
-            form.getFieldValue("status") === "LATE_CANCELLED" &&
-              "bg-orange-100 text-orange-700",
-            form.getFieldValue("status") === "CLINICIAN_CANCELLED" &&
-              "bg-purple-100 text-purple-700",
-          )}
+          className="border-0 bg-green-100 w-[200px] rounded-[24px] px-3 py-1 font-medium text-green-700 focus:outline-none focus:ring-0"
           options={appointmentStatusOptions}
           placeholder="Select Status"
           value={form.getFieldValue("status")}
@@ -343,6 +329,7 @@ export function EditAppointmentTab({
         open={isConfirmationOpen}
         onOpenChange={setIsConfirmationOpen}
         onConfirm={handleUpdateConfirm}
+        status={form.getFieldValue("status")}
       />
 
       <DeleteConfirmationModal
