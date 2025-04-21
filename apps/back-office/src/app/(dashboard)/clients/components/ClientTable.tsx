@@ -34,7 +34,7 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
       value: "name",
       formatter: (value: unknown) => {
         const row = value as ClientWithRelations;
-        return <div>{row.name}</div>;
+        return <div className="text-blue-500 hover:underline">{row.name}</div>;
       },
     },
     {

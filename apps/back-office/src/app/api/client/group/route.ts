@@ -9,6 +9,10 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get("id");
     const search = searchParams.get("search");
     const sortBy = searchParams.get("sortBy") || "name";
+    const status = searchParams.get("status");
+
+    // Parse status parameter (could be a comma-separated list)
+    const statusArray = status ? status.split(",") : ["all"];
 
     // Validate the sortBy field - only allow fields that exist in ClientGroup
     // or special cases for first_name and last_name
@@ -64,6 +68,45 @@ export async function GET(request: NextRequest) {
             { name: { contains: searchTerm } },
             { type: { contains: searchTerm } },
           ],
+        };
+      }
+
+      // Add status filtering for clients in the group
+      if (statusArray.length > 0 && !statusArray.includes("all")) {
+        // Create status filter condition for nested clients
+        const statusFilter: Prisma.ClientGroupWhereInput = {
+          ClientGroupMembership: {
+            some: {
+              Client: {
+                OR: statusArray.map((status) => {
+                  switch (status) {
+                    case "active":
+                      return { is_active: true };
+                    case "inactive":
+                      return { is_active: false };
+                    case "waitlist":
+                      return { is_waitlist: true };
+                    case "contacts":
+                      return {
+                        ClientGroupMembership: {
+                          some: {
+                            is_contact_only: true,
+                          },
+                        },
+                      };
+                    default:
+                      return {};
+                  }
+                }),
+              },
+            },
+          },
+        };
+
+        // Combine with existing where conditions
+        whereCondition = {
+          ...whereCondition,
+          ...statusFilter,
         };
       }
 

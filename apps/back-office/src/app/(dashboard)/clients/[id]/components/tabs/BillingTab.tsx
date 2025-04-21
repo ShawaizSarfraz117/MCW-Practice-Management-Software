@@ -22,7 +22,12 @@ import { useQuery } from "@tanstack/react-query";
 import Loading from "@/components/Loading";
 import { format } from "date-fns";
 import { InvoiceDialog } from "../InvoiceDialogue";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import {
+  useRouter,
+  usePathname,
+  useSearchParams,
+  useParams,
+} from "next/navigation";
 
 // Type definitions
 type Invoice = {
@@ -57,6 +62,7 @@ export default function BillingTab({
   const [statusFilter, setStatusFilter] = useState<string>("billable");
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams();
   const searchParams = useSearchParams();
 
   const { data, isLoading } = useQuery({
@@ -70,6 +76,7 @@ export default function BillingTab({
     queryFn: () =>
       fetchAppointments({
         searchParams: {
+          clientGroupId: params.id,
           startDate: dateRange?.from?.toISOString(),
           endDate: dateRange?.to?.toISOString(),
           status: statusFilter !== "billable" ? statusFilter : undefined,

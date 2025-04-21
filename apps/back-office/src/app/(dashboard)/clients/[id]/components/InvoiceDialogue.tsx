@@ -3,7 +3,7 @@ import { X, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent } from "@mcw/ui";
 import { Button } from "@mcw/ui";
 import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, useParams } from "next/navigation";
 import { fetchInvoices } from "@/(dashboard)/clients/services/client.service";
 import Loading from "@/components/Loading";
 import { Invoice } from "@prisma/client";
@@ -14,15 +14,19 @@ interface ExtendedInvoice extends Invoice {
     id: string;
     amount: string;
   }>;
-  ClientGroupMembership?: {
-    Client?: {
-      legal_first_name?: string;
-      legal_last_name?: string;
-      ClientContact: Array<{
-        id: string;
-        value?: string;
-      }>;
-    };
+  ClientGroup?: {
+    name?: string;
+    type: string;
+    ClientGroupMembership: Array<{
+      Client: {
+        legal_first_name?: string;
+        legal_last_name?: string;
+        ClientContact: Array<{
+          id: string;
+          value?: string;
+        }>;
+      };
+    }>;
   };
   Clinician?: {
     first_name?: string;
@@ -44,6 +48,10 @@ interface ExtendedInvoice extends Invoice {
   client?: {
     name?: string;
   };
+  Appointment?: {
+    start_date?: Date | string;
+    title?: string;
+  };
 }
 
 interface InvoiceDialogProps {
@@ -58,7 +66,7 @@ export function InvoiceDialog({ open, onOpenChange }: InvoiceDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const router = useRouter();
-
+  const params = useParams();
   const totalPaid =
     invoice?.Payment?.reduce(
       (sum: number, payment) => sum + parseFloat(payment.amount),
@@ -75,7 +83,7 @@ export function InvoiceDialog({ open, onOpenChange }: InvoiceDialogProps) {
         setIsLoading(true);
         try {
           const [data, err] = await fetchInvoices({
-            searchParams: { id: invoiceId },
+            searchParams: { id: invoiceId, clientGroupId: params.id },
           });
           if (err instanceof Error) {
             setError(err);
@@ -118,7 +126,7 @@ export function InvoiceDialog({ open, onOpenChange }: InvoiceDialogProps) {
             </button>
             <h1 className="text-xl font-medium">
               {invoice
-                ? `Invoice #${invoice.invoice_number} for ${invoice.client?.name || invoice.ClientGroupMembership?.Client?.legal_first_name || "Client"}`
+                ? `Invoice #${invoice.invoice_number} for ${invoice.ClientGroup?.ClientGroupMembership[0]?.Client?.legal_first_name || "Client"}`
                 : "Invoice Details"}
             </h1>
           </div>
@@ -175,12 +183,12 @@ export function InvoiceDialog({ open, onOpenChange }: InvoiceDialogProps) {
                     Bill To
                   </p>
                   <p className="font-medium">
-                    {invoice.ClientGroupMembership?.Client?.legal_first_name ||
-                      "Client"}{" "}
-                    {invoice.ClientGroupMembership?.Client?.legal_last_name ||
-                      ""}
+                    {invoice.ClientGroup?.ClientGroupMembership[0]?.Client
+                      ?.legal_first_name || "Client"}{" "}
+                    {invoice.ClientGroup?.ClientGroupMembership[0]?.Client
+                      ?.legal_last_name || ""}
                   </p>
-                  {invoice.ClientGroupMembership?.Client?.ClientContact?.map(
+                  {invoice.ClientGroup?.ClientGroupMembership[0]?.Client?.ClientContact?.map(
                     (contact) => (
                       <p key={contact.id} className="text-sm">
                         {contact?.value || "N/A"}
@@ -214,12 +222,12 @@ export function InvoiceDialog({ open, onOpenChange }: InvoiceDialogProps) {
                     Client
                   </p>
                   <p className="font-medium">
-                    {invoice.ClientGroupMembership?.Client?.legal_first_name ||
-                      "Client"}{" "}
-                    {invoice.ClientGroupMembership?.Client?.legal_last_name ||
-                      ""}
+                    {invoice.ClientGroup?.ClientGroupMembership[0]?.Client
+                      ?.legal_first_name || "Client"}{" "}
+                    {invoice.ClientGroup?.ClientGroupMembership[0]?.Client
+                      ?.legal_last_name || ""}
                   </p>
-                  {invoice.ClientGroupMembership?.Client?.ClientContact?.map(
+                  {invoice.ClientGroup?.ClientGroupMembership[0]?.Client?.ClientContact?.map(
                     (contact) => (
                       <p key={contact.id} className="text-sm">
                         {contact?.value || "N/A"}
@@ -257,12 +265,14 @@ export function InvoiceDialog({ open, onOpenChange }: InvoiceDialogProps) {
 
                 <div className="grid grid-cols-12 border-b border-gray-100 py-3">
                   <div className="col-span-3 text-sm">
-                    {invoice.issued_date
-                      ? new Date(invoice.issued_date).toLocaleDateString()
+                    {invoice.Appointment?.start_date
+                      ? new Date(
+                          invoice.Appointment.start_date,
+                        ).toLocaleDateString()
                       : "N/A"}
                   </div>
                   <div className="col-span-6 text-sm">
-                    Professional Services
+                    {invoice.Appointment?.title || "N/A"}
                   </div>
                   <div className="col-span-3 text-sm text-right">
                     ${String(invoice.amount) || "0.00"}

@@ -8,9 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
-    const client_group_membership_id = searchParams.get(
-      "client_group_membership_id",
-    );
+    const clientGroupId = searchParams.get("clientGroupId");
     const status = searchParams.get("status");
 
     if (id) {
@@ -18,11 +16,15 @@ export async function GET(request: NextRequest) {
       const invoice = await prisma.invoice.findUnique({
         where: { id },
         include: {
-          ClientGroupMembership: {
+          ClientGroup: {
             include: {
-              Client: {
+              ClientGroupMembership: {
                 include: {
-                  ClientContact: true,
+                  Client: {
+                    include: {
+                      ClientContact: true,
+                    },
+                  },
                 },
               },
             },
@@ -49,9 +51,8 @@ export async function GET(request: NextRequest) {
       logger.info("Retrieving all invoices");
       const whereCondition: Prisma.InvoiceWhereInput = {};
 
-      if (client_group_membership_id) {
-        whereCondition["client_group_membership_id"] =
-          client_group_membership_id;
+      if (clientGroupId) {
+        whereCondition["client_group_id"] = clientGroupId;
       }
       if (status) {
         whereCondition["status"] = status;
@@ -59,9 +60,21 @@ export async function GET(request: NextRequest) {
       const invoices = await prisma.invoice.findMany({
         where: whereCondition,
         include: {
-          ClientGroupMembership: true,
+          ClientGroup: {
+            include: {
+              ClientGroupMembership: {
+                include: {
+                  Client: {
+                    select: {
+                      legal_first_name: true,
+                      legal_last_name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           Appointment: true,
-          Clinician: true,
           Payment: true,
         },
       });
@@ -100,7 +113,7 @@ export async function POST(request: NextRequest) {
     const newInvoice = await prisma.invoice.create({
       data: {
         invoice_number: invoiceNumber,
-        client_group_membership_id: data.client_group_membership_id,
+        client_group_id: data.client_group_id,
         appointment_id: data.appointment_id,
         clinician_id: data.clinician_id,
         issued_date: new Date(), // Current date
@@ -109,7 +122,7 @@ export async function POST(request: NextRequest) {
         status: data.status || "PENDING", // Default status
       },
       include: {
-        ClientGroupMembership: true,
+        ClientGroup: true,
         Appointment: true,
         Clinician: true,
       },

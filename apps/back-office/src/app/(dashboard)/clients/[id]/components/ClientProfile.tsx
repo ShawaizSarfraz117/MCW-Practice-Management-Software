@@ -8,6 +8,7 @@ import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
 
 import { Button } from "@mcw/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
+import { format } from "date-fns";
 
 import OverviewTab from "./tabs/OverviewTab";
 import BillingTab from "./tabs/BillingTab";
@@ -26,6 +27,21 @@ interface ClientProfileProps {
 
 export interface InvoiceWithPayments extends Invoice {
   Payment: Payment[];
+  ClientGroup?: {
+    name?: string;
+    type?: string;
+    ClientGroupMembership?: Array<{
+      id: string;
+      Client?: {
+        id: string;
+        legal_first_name?: string;
+        legal_last_name?: string;
+      };
+    }>;
+  };
+  Appointment?: {
+    start_date: Date;
+  };
 }
 
 export default function ClientProfile({
@@ -36,9 +52,25 @@ export default function ClientProfile({
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceWithPayments[]>([]);
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
+  const [clientName, setClientName] = useState("");
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Helper function to get the next appointment date
+  const getNextAppointmentDate = (): string | null => {
+    if (!invoices.length) return null;
+
+    const nextAppointment = invoices.find(
+      (inv) => inv.Appointment && inv.Appointment.start_date > new Date(),
+    );
+
+    if (nextAppointment?.Appointment?.start_date) {
+      return format(nextAppointment.Appointment.start_date, "MM/dd/yyyy");
+    }
+
+    return null;
+  };
 
   // Calculate totals for invoice and payments
   const totalInvoiceAmount = invoices.reduce(
@@ -57,10 +89,42 @@ export default function ClientProfile({
 
   const fetchInvoicesData = async () => {
     const [invoices, error] = await fetchInvoices({
-      searchParams: { client_group_membership_id: id },
+      searchParams: { clientGroupId: id },
     });
     if (!error && invoices?.length) {
-      setInvoices(invoices as InvoiceWithPayments[]);
+      const typedInvoices = invoices as InvoiceWithPayments[];
+      setInvoices(typedInvoices);
+      if (typedInvoices[0]?.ClientGroup?.ClientGroupMembership?.length) {
+        let name = "";
+        typedInvoices[0]?.ClientGroup?.ClientGroupMembership.forEach(
+          (
+            membership: {
+              id: string;
+              Client?: {
+                id: string;
+                legal_first_name?: string;
+                legal_last_name?: string;
+              };
+            },
+            index: number,
+            array: Array<{
+              id: string;
+              Client?: {
+                id: string;
+                legal_first_name?: string;
+                legal_last_name?: string;
+              };
+            }>,
+          ) => {
+            name +=
+              membership?.Client?.legal_first_name +
+              " " +
+              membership?.Client?.legal_last_name +
+              (index !== array.length - 1 ? " & " : "");
+          },
+        );
+        setClientName(name);
+      }
     }
   };
 
@@ -113,7 +177,7 @@ export default function ClientProfile({
       />
       {addPaymentModalOpen && (
         <AddPaymentModal
-          clientName="Jamie D. Appleseed"
+          clientName={clientName}
           fetchInvoicesData={fetchInvoicesData}
           open={addPaymentModalOpen}
           onOpenChange={setAddPaymentModalOpen}
@@ -124,20 +188,26 @@ export default function ClientProfile({
           Clients and contacts
         </Link>
         <span className="mx-1">/</span>
-        <span>Jamie D. Appleseed&apos;s profile</span>
+        <span>{clientName}&apos;s profile</span>
       </div>
       {/* Client Header */}
       <div className="px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold mb-1">
-            Jamie D. Appleseed
+            {clientName}
           </h1>
           <div className="text-sm text-gray-600 flex flex-wrap items-center gap-2">
-            <span>Adult</span>
+            <span>{invoices[0]?.ClientGroup?.type}</span>
             <span className="text-gray-300 hidden sm:inline">•</span>
-            <span>07/23/2009 (15)</span>
+            <span>
+              {invoices.length && invoices[0]?.Appointment?.start_date
+                ? format(invoices[0].Appointment.start_date, "MM/dd/yyyy")
+                : "-"}
+            </span>
             <span className="text-gray-300 hidden sm:inline">•</span>
-            <span>Next Appt: 02/07/2025 (1 left)</span>
+            {getNextAppointmentDate() && (
+              <span>Next Appt: {getNextAppointmentDate()}</span>
+            )}
             <button className="text-blue-500 hover:underline">Edit</button>
           </div>
         </div>

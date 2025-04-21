@@ -49,7 +49,7 @@ export function AddPaymentModal({
   useEffect(() => {
     const fetchInvoicesData = async () => {
       const [invoices, error] = await fetchInvoices({
-        searchParams: { client_group_membership_id: id, status: "UNPAID" },
+        searchParams: { clientGroupId: id, status: "UNPAID" },
       });
       if (!error && invoices?.length) {
         setInvoices(invoices as InvoiceWithPayments[]);

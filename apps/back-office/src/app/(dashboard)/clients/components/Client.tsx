@@ -36,7 +36,7 @@ export default function Clients() {
       client.ClientGroupMembership &&
       client.ClientGroupMembership.length > 0
     ) {
-      router.push(`/clients/${client.ClientGroupMembership[0].id}`);
+      router.push(`/clients/${client.id}`);
     }
   };
 

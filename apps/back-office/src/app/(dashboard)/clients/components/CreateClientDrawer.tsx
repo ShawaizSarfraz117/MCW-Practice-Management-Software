@@ -139,8 +139,12 @@ export function CreateClientDrawer({
 
   // Handle drawer close
   const handleDrawerOpenChange = (isOpen: boolean) => {
+    // If trying to close the drawer programmatically or with escape/clicking outside,
+    // we prevent it from closing by not calling onOpenChange
     if (!isOpen) {
-      resetFormState();
+      // We don't call onOpenChange here, which effectively prevents automatic closing
+      // The drawer will only close when the X button is clicked
+      return;
     } else {
       // Reset validation errors when opening the drawer
       setValidationErrors({});
@@ -209,7 +213,8 @@ export function CreateClientDrawer({
       const structuredData = structureData(value);
       await createClient({ body: structuredData });
       setIsLoading(false);
-      handleDrawerOpenChange(false);
+      resetFormState();
+      onOpenChange(false);
       fetchClientData();
     },
   });
@@ -420,7 +425,10 @@ export function CreateClientDrawer({
                   className="h-8 w-8"
                   size="icon"
                   variant="ghost"
-                  onClick={() => handleDrawerOpenChange(false)}
+                  onClick={() => {
+                    resetFormState();
+                    onOpenChange(false);
+                  }}
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>

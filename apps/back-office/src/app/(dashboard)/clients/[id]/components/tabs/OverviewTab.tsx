@@ -15,7 +15,7 @@ import { DateRangePicker } from "@mcw/ui";
 import { DateRange } from "react-day-picker";
 import Loading from "@/components/Loading";
 import { format } from "date-fns";
-
+import { useParams } from "next/navigation";
 // Type definitions
 type Appointment = {
   id: string;
@@ -30,14 +30,15 @@ export default function OverviewTab() {
     from: new Date(2025, 0, 8), // Jan 8, 2025
     to: new Date(2025, 8, 6), // Feb 6, 2025
   });
-
+  const params = useParams();
   const [filterType, setFilterType] = useState("all");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["appointments", dateRange],
+    queryKey: ["appointments", dateRange, params.id],
     queryFn: () =>
       fetchAppointments({
         searchParams: {
+          clientGroupId: params.id,
           startDate: dateRange?.from?.toISOString(),
           endDate: dateRange?.to?.toISOString(),
         },
@@ -123,7 +124,9 @@ export default function OverviewTab() {
                     {appointment.title ||
                       `Appointment #${appointment.id.slice(-1)}`}
                   </div>
-                  <div className="text-sm text-gray-500">GAD-7</div>
+                  <div className="text-sm text-gray-500">
+                    {appointment.type}
+                  </div>
                   <button className="text-blue-500 hover:underline text-sm mt-1">
                     + Progress Note
                   </button>

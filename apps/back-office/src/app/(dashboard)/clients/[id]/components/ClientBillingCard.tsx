@@ -102,12 +102,24 @@ export function ClientBillingCard({
 
       {/* Client Info */}
       <div>
-        <div className="flex justify-between mb-4">
+        <div className="flex justify-between mb-2">
           <h3 className="font-medium">Client info</h3>
+
           <button className="text-blue-500 hover:underline text-sm">
             Edit
           </button>
         </div>
+        {invoices[0]?.ClientGroup?.ClientGroupMembership?.map((membership) => (
+          <div
+            key={membership.id}
+            className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0"
+          >
+            <div className="text-sm text-blue-500">
+              {membership?.Client?.legal_first_name}{" "}
+              {membership?.Client?.legal_last_name}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
