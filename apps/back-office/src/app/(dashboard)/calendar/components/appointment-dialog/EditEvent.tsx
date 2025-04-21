@@ -25,10 +25,10 @@ import DeleteIcon from "../../../../../../public/images/delete-icon.svg";
 
 interface RecurringInfo {
   period: string;
+  endType?: string;
   frequency?: string;
   selectedDays?: string[];
   monthlyPattern?: string;
-  endType?: string;
   endValue?: string | number;
 }
 

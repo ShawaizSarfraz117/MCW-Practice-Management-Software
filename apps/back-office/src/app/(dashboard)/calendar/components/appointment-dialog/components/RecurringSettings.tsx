@@ -13,11 +13,13 @@ interface RecurringData {
 interface RecurringSettingsProps {
   recurringData: RecurringData;
   onSave: (data: RecurringData) => void;
+  activeDays?: string[];
 }
 
 export function RecurringSettings({
   recurringData,
   onSave,
+  activeDays = [],
 }: RecurringSettingsProps) {
   const [localData, setLocalData] = useState(recurringData);
 
@@ -27,29 +29,15 @@ export function RecurringSettings({
     onSave(newData);
   };
 
+  const enabledDays =
+    activeDays.length > 0
+      ? activeDays
+      : ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+
   return (
     <div className="mt-4 space-y-6">
       <div className="space-y-4">
         <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <label className="text-[13px] text-[#717171] font-medium">
-              Repeats
-            </label>
-            <select
-              className="mt-1 block w-full rounded-[5px] border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-              value={localData.period}
-              onChange={(e) =>
-                handleChange({
-                  period: e.target.value,
-                  selectedDays: e.target.value === "WEEKLY" ? ["MO"] : [],
-                })
-              }
-            >
-              <option value="DAILY">Daily</option>
-              <option value="WEEKLY">Weekly</option>
-              <option value="MONTHLY">Monthly</option>
-            </select>
-          </div>
           <div className="w-32">
             <label className="text-[13px] text-[#717171] font-medium">
               Every
@@ -61,6 +49,26 @@ export function RecurringSettings({
               value={localData.frequency}
               onChange={(e) => handleChange({ frequency: e.target.value })}
             />
+          </div>
+          <div className="flex-1">
+            <label className="text-[13px] text-[#717171] font-medium">
+              Repeats
+            </label>
+            <select
+              className="mt-1 block w-full rounded-[5px] border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              value={localData.period}
+              onChange={(e) =>
+                handleChange({
+                  period: e.target.value,
+                  selectedDays:
+                    e.target.value === "WEEKLY" ? [enabledDays[0]] : [],
+                })
+              }
+            >
+              <option value="DAILY">Daily</option>
+              <option value="WEEKLY">Weekly</option>
+              <option value="MONTHLY">Monthly</option>
+            </select>
           </div>
         </div>
 
@@ -78,25 +86,33 @@ export function RecurringSettings({
                 { code: "TH", label: "T" },
                 { code: "FR", label: "F" },
                 { code: "SA", label: "S" },
-              ].map(({ code, label }) => (
-                <button
-                  key={code}
-                  className={cn(
-                    "h-8 w-8 rounded-full text-sm font-medium transition-colors",
-                    localData.selectedDays.includes(code)
-                      ? "bg-[#0a96d4] text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200",
-                  )}
-                  onClick={() => {
-                    const days = localData.selectedDays.includes(code)
-                      ? localData.selectedDays.filter((d: string) => d !== code)
-                      : [...localData.selectedDays, code];
-                    handleChange({ selectedDays: days });
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+              ].map(({ code, label }) => {
+                const isEnabled = enabledDays.includes(code);
+                return (
+                  <button
+                    key={code}
+                    className={cn(
+                      "flex-1 h-8 text-sm rounded-none border",
+                      isEnabled
+                        ? "border-gray-200 "
+                        : "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed",
+                      localData.selectedDays.includes(code) &&
+                        isEnabled &&
+                        "bg-[#16A34A] text-white border-[#16A34A]",
+                    )}
+                    onClick={() => {
+                      if (!isEnabled) return;
+                      const days = localData.selectedDays.includes(code)
+                        ? localData.selectedDays.filter((d) => d !== code)
+                        : [...localData.selectedDays, code];
+                      handleChange({ selectedDays: days });
+                    }}
+                    disabled={!isEnabled}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

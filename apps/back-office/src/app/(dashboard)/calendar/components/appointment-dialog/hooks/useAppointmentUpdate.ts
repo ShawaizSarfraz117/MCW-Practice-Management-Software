@@ -219,8 +219,9 @@ export function useAppointmentUpdate({
   );
 
   const handleStatusChange = useCallback(
-    (value: string) => {
-      form.setFieldValue("status", value);
+    (status: string) => {
+      // Only update the form value, don't make API call
+      form.setFieldValue("status", status);
       forceUpdate();
     },
     [form, forceUpdate],
@@ -237,142 +238,72 @@ export function useAppointmentUpdate({
 
   const handleUpdateConfirm = useCallback(async () => {
     try {
-      const startDate = form.getFieldValue<Date>("startDate");
-      const endDate = form.getFieldValue<Date>("endDate");
-      const startTime = form.getFieldValue<string>("startTime");
-      const endTime = form.getFieldValue<string>("endTime");
-      const type = form.getFieldValue<string>("type") || "event";
-      const eventName = form.getFieldValue<string>("eventName");
-      const allDay = form.getFieldValue<boolean>("allDay");
-      const location = form.getFieldValue<string>("location");
-      const client = form.getFieldValue<string>("client");
-      const status = form.getFieldValue<string>("status");
-      const selectedServices =
-        form.getFieldValue<Array<{ serviceId: string; fee: number }>>(
-          "selectedServices",
-        );
-      const recurring = form.getFieldValue<boolean>("recurring");
-      const recurringInfo = form.getFieldValue<RecurringInfo>("recurringInfo");
-
-      // Validate required fields
-      if (!location) {
-        setValidationErrors({ ...validationErrors, location: true });
-        setGeneralError("Location is required");
+      if (!appointmentData?.id) {
+        setGeneralError("Cannot update: Appointment ID is missing");
         return;
       }
 
-      if (!startDate || !endDate || !startTime || !endTime) {
-        setGeneralError("Required date and time fields are missing");
-        return;
-      }
+      // Get all the current form values
+      const formValues = form.state.values;
 
-      // Process dates
-      const startDateTime = new Date(startDate);
-      const endDateTime = new Date(endDate);
-
-      const [startHours, startMinutes] = startTime.split(":");
-      const [endHours, endMinutes] = endTime.split(":");
-      const startPeriod = startTime.split(" ")[1];
-      const endPeriod = endTime.split(" ")[1];
-
-      let startHour = parseInt(startHours);
-      let endHour = parseInt(endHours);
-
-      if (startPeriod === "PM" && startHour !== 12) startHour += 12;
-      if (startPeriod === "AM" && startHour === 12) startHour = 0;
-      if (endPeriod === "PM" && endHour !== 12) endHour += 12;
-      if (endPeriod === "AM" && endHour === 12) endHour = 0;
-
-      startDateTime.setHours(
-        startHour,
-        parseInt(startMinutes.split(" ")[0]),
-        0,
-        0,
-      );
-      endDateTime.setHours(endHour, parseInt(endMinutes.split(" ")[0]), 0, 0);
-
-      const tzOffset = startDateTime.getTimezoneOffset() * 60000;
-      const startDateUTC = new Date(
-        startDateTime.getTime() - tzOffset,
-      ).toISOString();
-      const endDateUTC = new Date(
-        endDateTime.getTime() - tzOffset,
-      ).toISOString();
-
-      // Construct recurring rule if needed
-      const recurringRule =
-        recurring && recurringInfo
-          ? constructRecurringRule(recurringInfo, startDate)
-          : null;
-
-      const updateData = {
-        id: appointmentData?.id,
-        type: type,
-        title: eventName || appointmentData?.title || "Event",
-        is_all_day: allDay || false,
-        start_date: startDateUTC,
-        end_date: endDateUTC,
-        location_id: location,
-        client_id: client || appointmentData?.client_id || null,
-        clinician_id: appointmentData?.clinician_id || "",
+      // Prepare the update payload
+      const updatePayload = {
+        id: appointmentData.id,
+        type: formValues.type || appointmentData.type,
+        title: formValues.eventName || appointmentData.title,
+        is_all_day: formValues.allDay,
+        start_date: formValues.startDate,
+        end_date: formValues.endDate,
+        location_id: formValues.location || appointmentData.location_id,
+        status: formValues.status || appointmentData.status,
+        client_id: formValues.client || appointmentData.client_id,
+        clinician_id: formValues.clinician || appointmentData.clinician_id,
+        is_recurring: formValues.recurring,
+        recurring_rule: formValues.recurringInfo
+          ? constructRecurringRule(
+              formValues.recurringInfo,
+              formValues.startDate,
+            )
+          : appointmentData.recurring_rule,
         service_id:
-          selectedServices?.[0]?.serviceId ||
-          appointmentData?.PracticeService?.id ||
-          null,
+          formValues.selectedServices?.[0]?.serviceId ||
+          appointmentData.PracticeService?.id,
         appointment_fee:
-          selectedServices?.[0]?.fee ||
-          appointmentData?.PracticeService?.rate ||
-          0,
-        is_recurring: recurring || false,
-        recurring_rule: recurring ? recurringRule : null,
-        status: status || "SCHEDULED",
+          formValues.selectedServices?.[0]?.fee ||
+          appointmentData.appointment_fee,
       };
 
-      console.log("Updating event with data:", updateData);
-
+      // Call the API to update the appointment
       const response = await fetch("/api/appointment", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify(updatePayload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Server response:", errorData);
-        throw new Error(errorData.error || "Failed to update appointment");
+        throw new Error("Failed to update appointment");
       }
 
-      const updatedAppointment = await response.json();
-      console.log("Successfully updated appointment:", updatedAppointment);
-
-      window.dispatchEvent(
-        new CustomEvent("appointmentUpdated", {
-          detail: { appointment: updatedAppointment },
-        }),
-      );
-
+      // Update was successful
+      setGeneralError(null);
       setIsConfirmationOpen(false);
 
+      // If there's a callback, call it
       if (onDone) {
         onDone();
       }
     } catch (error) {
       console.error("Error updating appointment:", error);
-      setGeneralError(
-        error instanceof Error
-          ? error.message
-          : "Failed to update appointment. Please try again.",
-      );
+      setGeneralError("Failed to update appointment. Please try again.");
     }
   }, [
-    form,
     appointmentData,
-    setIsConfirmationOpen,
+    form.state.values,
     setGeneralError,
-    setValidationErrors,
-    validationErrors,
+    setIsConfirmationOpen,
+    onDone,
   ]);
 
   return {
