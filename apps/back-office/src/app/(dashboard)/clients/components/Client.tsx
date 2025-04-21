@@ -95,7 +95,7 @@ export default function Clients() {
 
   useEffect(() => {
     fetchClientData();
-  }, [statusFilter, sortBy]);
+  }, [statusFilter, sortBy, fetchClientData]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

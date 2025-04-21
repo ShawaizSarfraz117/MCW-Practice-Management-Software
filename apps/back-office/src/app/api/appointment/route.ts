@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
           Clinician: true,
           Location: true,
           User: true,
+          PracticeService: true,
         },
       });
 
@@ -108,8 +109,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    console.log("data", data);
-
     // Validate required fields based on type
     const isEventType = data.type === "event";
 
@@ -429,6 +428,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
+    console.log("Received update request with data:", data);
 
     if (!data.id) {
       return NextResponse.json(
@@ -449,25 +449,54 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Validate required fields
+    if (!data.location_id) {
+      return NextResponse.json(
+        { error: "Location is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!data.start_date || !data.end_date) {
+      return NextResponse.json(
+        { error: "Start date and end date are required" },
+        { status: 400 },
+      );
+    }
+
+    // Prepare update data
+    const updateData = {
+      type: data.type || existingAppointment.type,
+      title: data.title || existingAppointment.title,
+      is_all_day: data.is_all_day ?? existingAppointment.is_all_day,
+      start_date: new Date(data.start_date),
+      end_date: new Date(data.end_date),
+      location_id: data.location_id,
+      status: data.status || existingAppointment.status,
+      client_id:
+        data.client_id === null
+          ? null
+          : data.client_id || existingAppointment.client_id,
+      clinician_id: data.clinician_id || existingAppointment.clinician_id,
+      is_recurring: data.is_recurring ?? existingAppointment.is_recurring,
+      recurring_rule:
+        data.recurring_rule === null
+          ? null
+          : data.recurring_rule || existingAppointment.recurring_rule,
+      service_id:
+        data.service_id === null
+          ? null
+          : data.service_id || existingAppointment.service_id,
+      appointment_fee:
+        data.appointment_fee ?? existingAppointment.appointment_fee,
+    };
+
+    console.log("Updating appointment with data:", updateData);
+
     // Update appointment
     const updatedAppointment = await prisma.appointment.update({
       where: { id: data.id },
-      data: {
-        type: data.type,
-        title: data.title,
-        is_all_day: data.is_all_day,
-        start_date: data.start_date ? new Date(data.start_date) : undefined,
-        end_date: data.end_date ? new Date(data.end_date) : undefined,
-        location_id: data.location_id,
-        status: data.status,
-        client_id: data.client_id,
-        clinician_id: data.clinician_id,
-        is_recurring: data.is_recurring,
-        recurring_rule: data.recurring_rule || data.recurring_pattern,
-        service_id: data.service_id,
-        appointment_fee: data.appointment_fee,
-        recurring_appointment_id: data.recurring_appointment_id,
-      },
+      data: updateData,
       include: {
         Client: {
           select: {
@@ -494,11 +523,17 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    console.log("Successfully updated appointment:", updatedAppointment);
     return NextResponse.json(updatedAppointment);
   } catch (error) {
     console.error("Error updating appointment:", error);
     return NextResponse.json(
-      { error: "Failed to update appointment" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update appointment",
+      },
       { status: 500 },
     );
   }
@@ -509,7 +544,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
-    const _cancelReason = searchParams.get("cancelReason");
+    const deleteOption = searchParams.get("deleteOption"); // 'single', 'future', 'all'
 
     if (!id) {
       return NextResponse.json(
@@ -530,22 +565,50 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Update appointment status to CANCELLED
-    const cancelledAppointment = await prisma.appointment.update({
-      where: { id },
-      data: {
-        status: "CANCELLED",
-      },
-    });
+    if (!existingAppointment.is_recurring || deleteOption === "single") {
+      // Delete single appointment
+      await prisma.appointment.delete({
+        where: { id },
+      });
+
+      return NextResponse.json({
+        message: "Appointment deleted successfully",
+      });
+    }
+
+    // Handle recurring appointments
+    if (deleteOption === "all") {
+      // Delete all appointments in the series
+      const masterId = existingAppointment.recurring_appointment_id || id;
+      await prisma.appointment.deleteMany({
+        where: {
+          OR: [{ recurring_appointment_id: masterId }, { id: masterId }],
+        },
+      });
+    } else if (deleteOption === "future") {
+      // Delete this and future appointments
+      const currentDate = new Date(existingAppointment.start_date);
+      const masterId = existingAppointment.recurring_appointment_id || id;
+
+      await prisma.appointment.deleteMany({
+        where: {
+          AND: [
+            {
+              OR: [{ recurring_appointment_id: masterId }, { id: masterId }],
+            },
+            { start_date: { gte: currentDate } },
+          ],
+        },
+      });
+    }
 
     return NextResponse.json({
-      message: "Appointment cancelled successfully",
-      appointment: cancelledAppointment,
+      message: "Appointments deleted successfully",
     });
   } catch (error) {
-    console.error("Error cancelling appointment:", error);
+    console.error("Error deleting appointment:", error);
     return NextResponse.json(
-      { error: "Failed to cancel appointment" },
+      { error: "Failed to delete appointment" },
       { status: 500 },
     );
   }

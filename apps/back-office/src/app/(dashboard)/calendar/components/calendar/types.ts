@@ -1,5 +1,8 @@
 // Calendar component types
 export interface Clinician {
+  first_name?: string;
+  last_name?: string;
+  id?: string;
   value: string;
   label: string;
   group: string;

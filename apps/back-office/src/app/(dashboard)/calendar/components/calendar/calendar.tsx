@@ -14,7 +14,14 @@ import { AppointmentDialog } from "../AppointmentDialog";
 import { CalendarToolbar } from "./components/CalendarToolbar";
 import { useAppointmentHandler } from "./hooks/useAppointmentHandler";
 import { getHeaderDateFormat } from "./utils/date-utils";
-import { CalendarViewProps, Event, Clinician, Location } from "./types";
+import {
+  CalendarViewProps,
+  Event,
+  Clinician,
+  Location,
+  AppointmentData,
+} from "./types";
+import { EditAppointmentDialog } from "../EditAppointmentDialog";
 
 export function CalendarView({
   initialClinicians,
@@ -24,9 +31,9 @@ export function CalendarView({
   onAppointmentDone,
 }: CalendarViewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
-  const [isViewingAppointment, setIsViewingAppointment] = useState(false);
   const [events, setEvents] = useState<Event[]>(initialEvents);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
@@ -102,6 +109,99 @@ export function CalendarView({
       );
     };
   }, []);
+
+  // Listen for appointment updates
+  useEffect(() => {
+    const handleAppointmentUpdate = (event: CustomEvent) => {
+      const updatedAppointment = event.detail.appointment;
+
+      // Update the events array by replacing the old appointment with the updated one
+      setEvents((prevEvents) => {
+        return prevEvents.map((event) => {
+          if (event.id === updatedAppointment.id) {
+            return {
+              ...event,
+              ...updatedAppointment,
+              start: new Date(updatedAppointment.start_date),
+              end: new Date(updatedAppointment.end_date),
+            };
+          }
+          return event;
+        });
+      });
+
+      // Close the edit dialog
+      setIsEditDialogOpen(false);
+    };
+
+    const handleAppointmentDelete = async () => {
+      try {
+        // Get the current date range from the calendar
+        const calendarApi = calendarRef.current?.getApi();
+        if (!calendarApi) return;
+
+        const view = calendarApi.view;
+        const startDate = view.activeStart.toISOString().split("T")[0];
+        const endDate = view.activeEnd.toISOString().split("T")[0];
+
+        // Construct the URL with date range
+        let url = `/api/appointment?startDate=${startDate}&endDate=${endDate}`;
+
+        // If user is a clinician and not an admin, fetch only their appointments
+        if (!isAdmin && selectedClinicians.length > 0) {
+          url += `&clinicianId=${selectedClinicians[0]}`;
+        }
+
+        // Fetch updated appointments
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error("Failed to fetch appointments");
+        }
+
+        const appointments = await response.json();
+
+        // Format appointments for calendar
+        const formattedEvents = appointments.map(
+          (appointment: AppointmentData) => ({
+            id: appointment.id,
+            resourceId: appointment.clinician_id || "",
+            title: appointment.title,
+            start: appointment.start_date,
+            end: appointment.end_date,
+            location: appointment.location_id || "",
+          }),
+        );
+
+        // Update calendar events
+        setEvents(formattedEvents);
+      } catch (error) {
+        console.error("Error refreshing appointments:", error);
+      }
+
+      // Close the edit dialog
+      setIsEditDialogOpen(false);
+    };
+
+    window.addEventListener(
+      "appointmentUpdated",
+      handleAppointmentUpdate as EventListener,
+    );
+    window.addEventListener(
+      "appointmentDeleted",
+      handleAppointmentDelete as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "appointmentUpdated",
+        handleAppointmentUpdate as EventListener,
+      );
+      window.removeEventListener(
+        "appointmentDeleted",
+        handleAppointmentDelete as EventListener,
+      );
+    };
+  }, [calendarRef, isAdmin, selectedClinicians]);
 
   // Handle appointment dialog closing and form submission
   const handleAppointmentSubmit = async () => {
@@ -221,6 +321,14 @@ export function CalendarView({
       recurring?: boolean;
       allDay?: boolean;
       selectedServices?: Array<{ serviceId: string; fee: number }>;
+      recurringInfo?: {
+        frequency: string;
+        period: string;
+        selectedDays: string[];
+        monthlyPattern?: string;
+        endType: string;
+        endValue: string | undefined;
+      };
     },
     clientName?: string,
   ) => {
@@ -255,6 +363,73 @@ export function CalendarView({
     );
     const endDateTime = getDateTimeISOString(values.endDate, values.endTime);
 
+    // Format recurring rule in RFC5545 format if recurring is enabled
+    let recurringRule = null;
+    if (values.recurring && values.recurringInfo) {
+      const parts = [`FREQ=${values.recurringInfo.period}`];
+
+      // Add interval (frequency)
+      if (
+        values.recurringInfo.frequency &&
+        parseInt(values.recurringInfo.frequency) > 1
+      ) {
+        parts.push(`INTERVAL=${values.recurringInfo.frequency}`);
+      }
+
+      // Add weekdays for weekly recurrence
+      if (
+        values.recurringInfo.period === "WEEKLY" &&
+        values.recurringInfo.selectedDays?.length > 0
+      ) {
+        parts.push(`BYDAY=${values.recurringInfo.selectedDays.join(",")}`);
+      }
+
+      // Add monthly pattern if specified
+      if (
+        values.recurringInfo.period === "MONTHLY" &&
+        values.recurringInfo.monthlyPattern
+      ) {
+        if (values.recurringInfo.monthlyPattern === "onDateOfMonth") {
+          // Use BYMONTHDAY for same day each month
+          const dayOfMonth = values.startDate.getDate();
+          parts.push(`BYMONTHDAY=${dayOfMonth}`);
+        } else if (values.recurringInfo.monthlyPattern === "onWeekDayOfMonth") {
+          // Use BYDAY with ordinal for same weekday each month
+          const dayOfWeek = values.startDate.getDay();
+          const weekNumber = Math.ceil(values.startDate.getDate() / 7);
+          const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+          parts.push(`BYDAY=${weekNumber}${days[dayOfWeek]}`);
+        } else if (
+          values.recurringInfo.monthlyPattern === "onLastWeekDayOfMonth"
+        ) {
+          // Use BYDAY with -1 for last weekday of month
+          const dayOfWeek = values.startDate.getDay();
+          const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+          parts.push(`BYDAY=-1${days[dayOfWeek]}`);
+        }
+      }
+
+      // Add end condition
+      if (
+        values.recurringInfo.endType === "After" &&
+        values.recurringInfo.endValue
+      ) {
+        parts.push(`COUNT=${values.recurringInfo.endValue}`);
+      } else if (
+        values.recurringInfo.endType === "On Date" &&
+        values.recurringInfo.endValue
+      ) {
+        // Format the end date as YYYYMMDD for UNTIL
+        const endDate = new Date(values.recurringInfo.endValue);
+        const year = endDate.getFullYear();
+        const month = String(endDate.getMonth() + 1).padStart(2, "0");
+        const day = String(endDate.getDate()).padStart(2, "0");
+        parts.push(`UNTIL=${year}${month}${day}T235959Z`);
+      }
+
+      recurringRule = parts.join(";");
+    }
+
     return {
       type: values.type || "APPOINTMENT",
       title:
@@ -272,6 +447,7 @@ export function CalendarView({
       created_by: session?.user?.id || "",
       status: "SCHEDULED",
       is_recurring: values.recurring || false,
+      recurring_rule: recurringRule,
       service_id: values.selectedServices?.[0]?.serviceId || null,
       appointment_fee: values.selectedServices?.[0]?.fee || null,
     };
@@ -293,10 +469,20 @@ export function CalendarView({
         setSelectedResource(appointmentData.clinician_id);
       }
 
-      // Open the dialog in view mode
-      setIsViewingAppointment(true);
-      setIsDialogOpen(true);
+      // Store the time info for the appointment dialog
+      const eventData = {
+        startTime: format(new Date(appointmentData.start_date), "h:mm a"),
+        endTime: format(new Date(appointmentData.end_date), "h:mm a"),
+      };
+
+      window.sessionStorage.setItem(
+        "selectedTimeSlot",
+        JSON.stringify(eventData),
+      );
+
+      // Open the edit dialog
       setSelectedAppointment(appointmentData);
+      setIsEditDialogOpen(true);
     }
   };
 
@@ -307,7 +493,6 @@ export function CalendarView({
     resource?: { id: string };
   }) => {
     // Reset viewing mode when creating a new appointment
-    setIsViewingAppointment(false);
     setSelectedAppointment(null);
     setSelectedDate(selectInfo.start);
     setSelectedResource(selectInfo.resource?.id || null);
@@ -480,18 +665,28 @@ export function CalendarView({
       </div>
 
       <AppointmentDialog
-        appointmentData={
-          isViewingAppointment && selectedAppointment
-            ? (selectedAppointment as unknown as Record<string, unknown>)
-            : undefined
-        }
-        isViewMode={isViewingAppointment}
+        appointmentData={undefined}
+        isViewMode={false}
         open={isDialogOpen}
         selectedDate={selectedDate || new Date()}
         selectedResource={selectedResource}
         onCreateClient={(date, time) => onCreateClient?.(date, time)}
         onDone={handleAppointmentSubmit}
         onOpenChange={setIsDialogOpen}
+      />
+
+      <EditAppointmentDialog
+        appointmentData={selectedAppointment || undefined}
+        open={isEditDialogOpen}
+        selectedDate={selectedDate || new Date()}
+        selectedResource={selectedResource}
+        onDone={() => {
+          // Just close the dialog after update
+          setIsEditDialogOpen(false);
+          // If there's a callback, call it
+          if (onAppointmentDone) onAppointmentDone();
+        }}
+        onOpenChange={setIsEditDialogOpen}
       />
     </div>
   );

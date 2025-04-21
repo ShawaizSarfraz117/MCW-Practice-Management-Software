@@ -68,5 +68,5 @@ export const backofficeAuthOptions: AuthOptions = {
     strategy: "jwt",
   },
   debug: process.env.NODE_ENV === "development",
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: "00efb33779866729209c7d0db90e3abae0b5d06910626562581bb8a480365047",
 };

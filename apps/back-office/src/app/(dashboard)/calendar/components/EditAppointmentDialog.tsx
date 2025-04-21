@@ -1,35 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@mcw/ui";
+import { Dialog, DialogContent } from "@mcw/ui";
 import { useForm } from "@tanstack/react-form";
 
-import { AppointmentTab } from "./appointment-dialog/AppointmentTab";
-import { EventTab } from "./appointment-dialog/EventTab";
 import { useClinicianData } from "./appointment-dialog/hooks/useClinicianData";
 import { useAppointmentData } from "./appointment-dialog/hooks/useAppointmentData";
 import { FormProvider } from "./appointment-dialog/context/FormContext";
 import { useFormTabs } from "./appointment-dialog/hooks/useFormTabs";
 import { calculateDuration } from "./appointment-dialog/utils/CalculateDuration";
+
 import {
   AppointmentDialogProps,
   FormInterface,
 } from "./appointment-dialog/types";
+import { EditAppointmentTab } from "./appointment-dialog/EditAppointmentTab";
+import { EditEvent } from "./appointment-dialog/EditEvent";
 
-// Helper function to adapt the form to our interface using type assertion
 function adaptFormToInterface(originalForm: unknown): FormInterface {
   return originalForm as FormInterface;
 }
 
-export function AppointmentDialog({
+export function EditAppointmentDialog({
   open,
   onOpenChange,
   selectedDate,
@@ -40,6 +32,7 @@ export function AppointmentDialog({
 }: AppointmentDialogProps) {
   const [duration, setDuration] = useState<string>("50 mins");
   const [generalError, setGeneralError] = useState<string | null>(null);
+  console.log("🚀 ~ generalError:", generalError);
   const [validationErrors, setValidationErrors] = useState({});
 
   // Use custom hooks
@@ -69,57 +62,17 @@ export function AppointmentDialog({
     onSubmit: async ({ value }) => {
       // Reset validation errors
       setValidationErrors({});
-      setGeneralError(null);
 
-      // Validate required fields
-      const errors: Record<string, boolean> = {};
-      let hasErrors = false;
-
-      // Validate time fields format
-      if (!value.startTime || !value.endTime) {
-        setGeneralError("Time fields are required");
-        return;
-      }
-
-      // Time format validation
-      const timeRegex = /^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$/;
-      if (!timeRegex.test(value.startTime) || !timeRegex.test(value.endTime)) {
-        setGeneralError("Time must be in format '6:30 PM'");
-        return;
-      }
-
-      // Tab-specific validation
-      if (activeTab === "appointment") {
-        if (!value.client) errors.client = true;
-        if (!value.clinician) errors.clinician = true;
-        if (!value.location) errors.location = true;
+      // Only validate time format if time fields are provided
+      if (value.startTime || value.endTime) {
+        const timeRegex = /^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$/;
         if (
-          value.selectedServices?.length > 0 &&
-          !value.selectedServices[0].serviceId
-        )
-          errors.service = true;
-      } else if (activeTab === "event") {
-        if (!value.clinician) errors.clinician = true;
-        if (!value.location) errors.location = true;
+          !timeRegex.test(value.startTime) ||
+          !timeRegex.test(value.endTime)
+        ) {
+          return;
+        }
       }
-
-      hasErrors = Object.values(errors).some(Boolean);
-
-      if (hasErrors) {
-        setValidationErrors(errors);
-        setGeneralError("Please fill in all required fields marked with *");
-        return;
-      }
-
-      // Dispatch event and close dialog
-      window.dispatchEvent(
-        new CustomEvent("appointmentFormSubmit", {
-          detail: { formValues: value },
-        }),
-      );
-
-      onOpenChange(false);
-      if (onDone) onDone();
     },
   });
 
@@ -226,83 +179,21 @@ export function AppointmentDialog({
                 form.handleSubmit();
               }}
             >
-              <Tabs
-                className="w-full"
-                value={activeTab}
-                onValueChange={(value) => {
-                  if (activeTab === "appointment") {
-                    setAppointmentFormValues(form.state.values);
-                  } else if (activeTab === "event") {
-                    setEventFormValues(form.state.values);
-                  }
-
-                  setActiveTab(value as "appointment" | "event" | "out");
-                  form.setFieldValue(
-                    "type",
-                    value as "appointment" | "event" | "out",
-                  );
-
-                  if (value === "event") {
-                    form.reset(eventFormValues);
-                  } else if (value === "appointment") {
-                    form.reset(appointmentFormValues);
-                  }
-
-                  forceUpdate();
-                }}
-              >
-                <TabsList className="h-12 w-full rounded-none bg-transparent p-0 border-b">
-                  <TabsTrigger
-                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-[#16A34A] data-[state=active]:bg-transparent data-[state=active]:text-[#16A34A] flex-1 text-sm font-normal"
-                    disabled={isViewMode && activeTab !== "appointment"}
-                    value="appointment"
-                  >
-                    Appointment
-                  </TabsTrigger>
-                  <TabsTrigger
-                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-[#16A34A] data-[state=active]:bg-transparent data-[state=active]:text-[#16A34A] flex-1 text-sm font-normal"
-                    disabled={isViewMode && activeTab !== "event"}
-                    value="event"
-                  >
-                    Event
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-
               <div className="px-6 space-y-4">
                 {activeTab === "appointment" ? (
-                  <AppointmentTab
-                    appointmentData={appointmentData}
+                  <EditAppointmentTab
                     selectedDate={selectedDate}
                     onCreateClient={onCreateClient}
+                    appointmentData={appointmentData}
+                    onDone={onDone}
                   />
                 ) : (
-                  <EventTab />
+                  <EditEvent
+                    appointmentData={appointmentData}
+                    selectedDate={selectedDate}
+                  />
                 )}
               </div>
-
-              <DialogFooter className="px-6 py-4 border-t">
-                {generalError && (
-                  <p className="text-sm text-red-500 mr-auto">{generalError}</p>
-                )}
-                <Button
-                  className="h-9 px-4 rounded-none hover:bg-transparent"
-                  type="button"
-                  variant="ghost"
-                  onClick={() => onOpenChange(false)}
-                >
-                  {isViewMode ? "Close" : "Cancel"}
-                </Button>
-                {!isViewMode && (
-                  <Button
-                    className="h-9 px-4 bg-[#16A34A] hover:bg-[#16A34A]/90 rounded-none"
-                    disabled={sessionStatus !== "authenticated"}
-                    type="submit"
-                  >
-                    Done
-                  </Button>
-                )}
-              </DialogFooter>
             </form>
           </FormProvider>
         )}

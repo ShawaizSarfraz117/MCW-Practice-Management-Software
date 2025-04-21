@@ -93,7 +93,6 @@ export function useAppointmentCreation(
         }
 
         recurringRule = parts.join(";");
-        console.log("Generated recurring rule:", recurringRule);
       }
 
       // Create API payload
@@ -163,8 +162,6 @@ export function useAppointmentCreation(
         }
 
         const createdAppointment = await response.json();
-        console.log("Appointment created:", createdAppointment);
-
         // Handle recurring appointments - API may return an array of appointments
         const appointments = Array.isArray(createdAppointment)
           ? createdAppointment

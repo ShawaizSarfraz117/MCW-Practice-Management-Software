@@ -4,7 +4,7 @@ export type Service = {
   code: string;
   duration: number;
   description: string | null;
-  rate: number;
+  rate?: number;
 };
 
 export type Clinician = {
@@ -34,12 +34,20 @@ export type Client = {
 };
 
 export interface AppointmentData {
+  id?: string;
   start_date?: string;
+  recurring_rule: string;
+  status?: string;
+  notes?: string;
   end_date?: string;
   title?: string;
   type?: string;
   client_id?: string;
+  PracticeService?: Service;
+  appointment_fee?: number;
+  Clinician?: Clinician;
   clinician_id?: string;
+  Client?: Client;
   location_id?: string;
   is_recurring?: boolean;
   is_all_day?: boolean;
@@ -121,6 +129,8 @@ export interface AppointmentTabProps {
   onCreateClient?: (date: string, time: string) => void;
   selectedDate?: Date | null;
   _selectedDate?: Date | null;
+  appointmentData?: AppointmentData;
+  onDone?: () => void;
 }
 
 export interface EventTabProps {
@@ -138,4 +148,26 @@ export interface UseAppointmentDataProps {
   setEventFormValues: (values: FormValues) => void;
   setActiveTab: (tab: "appointment" | "event" | "out") => void;
   form: FormInterface;
+}
+
+export interface AppointmentFormData {
+  startDate: Date | null;
+  endDate: Date | null;
+  startTime: string | null;
+  endTime: string | null;
+  type?: string;
+  allDay?: boolean;
+  location?: string;
+  client?: string;
+  status?: string;
+  selectedServices?: Array<{ serviceId: string; fee: number }>;
+  recurring?: boolean;
+  recurringInfo?: {
+    period: string;
+    frequency?: string;
+    selectedDays?: string[];
+    monthlyPattern?: string;
+    endType?: string;
+    endValue?: string | number;
+  };
 }
