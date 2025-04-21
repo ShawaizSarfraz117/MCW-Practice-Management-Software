@@ -23,7 +23,7 @@ import {
   defineTagFactory,
   defineUserRoleFactory,
 } from "@mcw/database/fabbrica";
-
+import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcrypt";
 import { faker } from "@faker-js/faker";
 import {
@@ -46,6 +46,7 @@ import {
   SurveyTemplate,
   SurveyAnswers,
 } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 // User factory for generating mock data without Prisma
 export const UserFactory = {
@@ -460,3 +461,25 @@ export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
     SurveyTemplate: SurveyTemplatePrismaFactory,
   }),
 });
+// Helper to create a valid invoice object with proper UUID formats
+export const mockInvoice = (overrides = {}) => {
+  const issuedDate = new Date();
+  const dueDate = new Date(issuedDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+  return {
+    id: generateUUID(),
+    invoice_number: "INV-1234",
+    client_group_membership_id: generateUUID(),
+    appointment_id: null, // Set to null to avoid foreign key constraint
+    clinician_id: generateUUID(),
+    issued_date: issuedDate,
+    due_date: dueDate,
+    amount: new Decimal(100),
+    status: "PENDING",
+    ClientGroupMembership: null,
+    Appointment: null,
+    Clinician: null,
+    Payment: [],
+    ...overrides,
+  };
+};

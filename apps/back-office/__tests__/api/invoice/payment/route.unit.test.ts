@@ -2,7 +2,9 @@ import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import prismaMock from "@mcw/database/mock";
 import { Decimal } from "@prisma/client/runtime/library";
-
+import { createRequestWithBody } from "@mcw/utils";
+import { POST } from "@/api/invoice/payment/route";
+import { generateUUID } from "@mcw/utils";
 // Mock database module
 vi.mock("@mcw/database", () => ({
   prisma: prismaMock,
@@ -22,8 +24,6 @@ vi.mock("@prisma/client", () => ({
 }));
 
 // Import after mocks are defined
-import { createRequestWithBody } from "@mcw/utils";
-import { POST } from "../../../../src/app/api/invoice/payment/route";
 
 describe("Invoice Payment API Unit Tests", () => {
   beforeEach(() => {
@@ -31,16 +31,6 @@ describe("Invoice Payment API Unit Tests", () => {
   });
 
   // Generate valid UUID for testing
-  const generateUUID = () => {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-      /[xy]/g,
-      function (c) {
-        const r = (Math.random() * 16) | 0,
-          v = c === "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      },
-    );
-  };
 
   it("POST /api/invoice/payment should create a new payment", async () => {
     // Arrange

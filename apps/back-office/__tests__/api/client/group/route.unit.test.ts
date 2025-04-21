@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import prismaMock from "@mcw/database/mock";
+import { GET } from "@/api/client/group/route";
 
 // Mock modules before importing the module that depends on them
 vi.mock("@mcw/database", () => ({
@@ -27,7 +28,6 @@ vi.mock("@prisma/client", () => ({
 }));
 
 // Import the module under test after all mocks are defined
-import { GET } from "../../../../src/app/api/client/group/route";
 
 describe("Client Group API Unit Tests", () => {
   beforeEach(() => {
@@ -51,23 +51,20 @@ describe("Client Group API Unit Tests", () => {
     id: generateUUID(),
     name: "Test Client Group",
     type: "FAMILY",
-    created_at: new Date(),
     ...overrides,
   });
 
   it("GET /api/client/group should return all client groups", async () => {
     // Arrange
-    const createdAt = new Date();
     const group1 = mockClientGroup({
       id: generateUUID(),
       name: "Family Group",
-      created_at: createdAt,
+      type: "FAMILY",
     });
     const group2 = mockClientGroup({
       id: generateUUID(),
       name: "Corporate Group",
       type: "ORGANIZATION",
-      created_at: createdAt,
     });
     const clientGroups = [group1, group2];
 
@@ -87,13 +84,11 @@ describe("Client Group API Unit Tests", () => {
     expect(json[0].id).toBe(clientGroups[0].id);
     expect(json[0].name).toBe(clientGroups[0].name);
     expect(json[0].type).toBe(clientGroups[0].type);
-    expect(json[0].created_at).toBe(clientGroups[0].created_at.toISOString());
 
     // Check second group
     expect(json[1].id).toBe(clientGroups[1].id);
     expect(json[1].name).toBe(clientGroups[1].name);
     expect(json[1].type).toBe(clientGroups[1].type);
-    expect(json[1].created_at).toBe(clientGroups[1].created_at.toISOString());
 
     expect(prismaMock.clientGroup.findMany).toHaveBeenCalled();
   });

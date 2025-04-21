@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import prismaMock from "@mcw/database/mock";
 import { Decimal } from "@prisma/client/runtime/library";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
-
+import { mockInvoice } from "@mcw/database/mock-data";
 // Mock modules before importing the module that depends on them
 vi.mock("@mcw/database", () => ({
   prisma: prismaMock,
@@ -48,29 +48,6 @@ describe("Invoice API Unit Tests", () => {
         return v.toString(16);
       },
     );
-  };
-
-  // Helper to create a valid invoice object with proper UUID formats
-  const mockInvoice = (overrides = {}) => {
-    const issuedDate = new Date();
-    const dueDate = new Date(issuedDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
-
-    return {
-      id: generateUUID(),
-      invoice_number: "INV-1234",
-      client_group_membership_id: generateUUID(),
-      appointment_id: null, // Set to null to avoid foreign key constraint
-      clinician_id: generateUUID(),
-      issued_date: issuedDate,
-      due_date: dueDate,
-      amount: new Decimal(100),
-      status: "PENDING",
-      ClientGroupMembership: null,
-      Appointment: null,
-      Clinician: null,
-      Payment: [],
-      ...overrides,
-    };
   };
 
   it("GET /api/invoice should return all invoices", async () => {

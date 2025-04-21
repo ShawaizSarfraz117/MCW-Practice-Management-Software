@@ -1,11 +1,13 @@
 "use client";
 
-import { SetStateAction, useState, useEffect } from "react";
+import { SetStateAction, useState } from "react";
 import { ChevronLeft, Search } from "lucide-react";
 import { Button } from "@mcw/ui";
 import { Input } from "@mcw/ui";
 import { RadioGroup, RadioGroupItem } from "@mcw/ui";
 import { fetchClients } from "../services/client.service";
+import { useQuery } from "@tanstack/react-query";
+import Loading from "@/components/Loading";
 
 export interface ClientContact {
   id: string;
@@ -37,21 +39,17 @@ export function SelectExistingClient({
   const [selectedClientId, setSelectedClientId] = useState<string | null>(
     selectedClient?.id || "client-1",
   );
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const getClients = async () => {
-      setLoading(true);
-      const [response, error] = await fetchClients({});
-      if (response && !error) {
-        setClients(response.data);
-      }
-      setLoading(false);
-    };
+  const { data, isLoading } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const [clientsData, error] = await fetchClients({});
+      if (error) throw error;
+      return clientsData?.data;
+    },
+  });
 
-    getClients();
-  }, []);
+  const clients = data as Client[] | undefined;
 
   const getClientName = (client: Client) => {
     return (
@@ -80,7 +78,7 @@ export function SelectExistingClient({
     return "";
   };
 
-  const filteredClients = clients.filter(
+  const filteredClients = clients?.filter(
     (client) =>
       getClientName(client).toLowerCase().includes(searchQuery.toLowerCase()) ||
       getContactInfo(client).toLowerCase().includes(searchQuery.toLowerCase()),
@@ -88,7 +86,7 @@ export function SelectExistingClient({
 
   const handleSelect = () => {
     if (selectedClientId) {
-      const selectedClient = clients.find(
+      const selectedClient = clients?.find(
         (client) => client.id === selectedClientId,
       );
       if (selectedClient) {
@@ -130,15 +128,15 @@ export function SelectExistingClient({
           />
         </div>
 
-        {loading ? (
-          <div className="text-center py-4">Loading clients...</div>
+        {isLoading ? (
+          <Loading />
         ) : (
           <RadioGroup
             value={selectedClientId || ""}
             onValueChange={setSelectedClientId}
           >
             <div className="space-y-4">
-              {filteredClients.map((client) => (
+              {filteredClients?.map((client) => (
                 <div
                   key={client.id}
                   className="flex items-center justify-between p-4 border-b cursor-pointer hover:bg-gray-100"

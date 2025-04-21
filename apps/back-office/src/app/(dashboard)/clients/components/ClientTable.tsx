@@ -6,7 +6,7 @@ import { Client, ClientContact, ClientGroupMembership } from "@prisma/client";
 
 interface ClientTableProps {
   rows: Client[];
-  onRowClick: (row: unknown) => void;
+  onRowClick: (row: object) => void;
 }
 
 // Define the expected shape of client data from the API

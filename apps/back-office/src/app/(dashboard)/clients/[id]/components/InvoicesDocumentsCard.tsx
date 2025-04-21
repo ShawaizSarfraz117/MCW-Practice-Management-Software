@@ -4,18 +4,12 @@ import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Badge } from "@mcw/ui";
 import { InvoiceWithPayments } from "./ClientProfile";
 import { useSearchParams } from "next/navigation";
+import { formatDate } from "date-fns";
+
 interface InvoicesDocumentsCardProps {
   invoices: InvoiceWithPayments[];
   onInvoiceClick: () => void;
 }
-
-const formatDate = (date: Date) => {
-  const d = new Date(date);
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${month}/${day}/${year}`;
-};
 
 export function InvoicesDocumentsCard({
   invoices,
@@ -59,7 +53,7 @@ export function InvoicesDocumentsCard({
                       {invoice.status}
                     </Badge>
                     <div className="text-xs text-gray-500">
-                      {formatDate(invoice.issued_date)}
+                      {formatDate(invoice.issued_date, "MM/dd/yyyy")}
                     </div>
                   </div>
                 </div>

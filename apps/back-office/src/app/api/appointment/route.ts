@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     if (
       !data.title ||
       !data.start_date ||
-      (!isEventType && !data.client_id) ||
+      (!isEventType && !data.client_group_id) ||
       !data.clinician_id ||
       !data.location_id ||
       !data.created_by
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
       location_id: data.location_id,
       created_by: data.created_by,
       status: data.status || "SCHEDULED",
-      client_id: data.client_id,
+      client_group_id: data.client_group_id,
       clinician_id: data.clinician_id,
       service_id: data.service_id,
       appointment_fee: data.appointment_fee,
