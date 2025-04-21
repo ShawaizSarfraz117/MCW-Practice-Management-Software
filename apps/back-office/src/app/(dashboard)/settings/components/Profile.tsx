@@ -1,10 +1,10 @@
 "use client";
 
 import { z } from "zod";
-import { useForm } from "@tanstack/react-form";
+import { useForm } from "@mcw/ui";
 import { useState, useCallback, useEffect } from "react";
+import ProfileHeader from "./profile/ProfileHeader";
 import ProfileInfo from "./profile/ProfileInfo";
-import SecurityInfo from "./profile/SecurityInfo";
 import ProfilePhoto from "./profile/ProfilePhoto";
 import { useProfile } from "./profile/hooks/useProfile";
 import { toast } from "sonner";
@@ -33,7 +33,7 @@ export default function Profile() {
   const { data } = useProfile();
 
   const form = useForm({
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value }: { value: ProfileFormData }) => {
       const result = profileSchema.safeParse(value);
       if (!result.success) {
         // Set form errors if validation fails
@@ -86,13 +86,13 @@ export default function Profile() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <ProfileInfo
+      <ProfileHeader
         form={form as ReturnType<typeof useForm>}
         handleSave={handleSave}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
       />
-      <SecurityInfo
+      <ProfileInfo
         form={form as ReturnType<typeof useForm>}
         isEditing={isEditing}
       />

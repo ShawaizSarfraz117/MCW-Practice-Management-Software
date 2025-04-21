@@ -2,7 +2,7 @@
 
 import { useDropzone } from "react-dropzone";
 import Image from "next/image";
-import { useForm } from "@tanstack/react-form";
+import { useForm } from "@mcw/ui";
 import profile from "@/public/uploads/profile.png";
 
 const ProfilePhoto = ({
