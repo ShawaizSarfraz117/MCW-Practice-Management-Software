@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger, config } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
+import { v4 as uuidv4 } from "uuid";
 
 interface ClientData {
   legalFirstName: string;
@@ -20,7 +21,7 @@ interface ClientData {
     incompleteDocuments?: boolean;
     cancellations?: boolean;
   };
-  clientGroupId: string;
+  clientGroup: string;
   isResponsibleForBilling?: boolean;
   role?: string;
   is_contact_only?: boolean;
@@ -173,6 +174,20 @@ export async function POST(request: NextRequest) {
     const results = await prisma.$transaction(async (prisma) => {
       const createdClients = [];
 
+      const clientGroup = await prisma.clientGroup.create({
+        data: {
+          id: uuidv4(),
+          name:
+            requestData.clientGroup === "couple" ||
+            requestData.clientGroup === "minor"
+              ? `${clientDataArray[0].legalFirstName} & ${clientDataArray[1].legalFirstName}`
+              : requestData.clientGroup === "family"
+                ? `${clientDataArray[0].legalFirstName} Family`
+                : `${clientDataArray[0].legalFirstName} ${clientDataArray[0].legalLastName}`,
+          type: requestData.clientGroup,
+        },
+      });
+
       for (const data of clientDataArray) {
         let clientId: string;
 
@@ -194,9 +209,9 @@ export async function POST(request: NextRequest) {
           // Create ClientGroupMembership for the existing client
           await prisma.clientGroupMembership.create({
             data: {
-              client_group_id: requestData.clientGroupId,
+              client_group_id: clientGroup.id,
               client_id: clientId,
-              role: data.role || null,
+              role: requestData.clientGroup || null,
               is_contact_only: data.is_contact_only || false,
               is_responsible_for_billing: data.isResponsibleForBilling || false,
             },
@@ -281,9 +296,9 @@ export async function POST(request: NextRequest) {
           // Create ClientGroupMembership
           await prisma.clientGroupMembership.create({
             data: {
-              client_group_id: requestData.clientGroupId,
+              client_group_id: clientGroup.id,
               client_id: clientId,
-              role: data.role || null,
+              role: requestData.clientGroup || null,
               is_contact_only: data.is_contact_only || false,
               is_responsible_for_billing: data.isResponsibleForBilling || false,
             },

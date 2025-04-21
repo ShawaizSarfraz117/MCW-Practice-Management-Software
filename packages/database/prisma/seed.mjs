@@ -24,42 +24,6 @@ async function main() {
 
   console.log('Role created or found:', backOfficeRole);
 
-  // Create client groups
-  const clientGroupTypes = [
-    { type: 'adult', name: 'Adult' },
-    { type: 'minor', name: 'Minor' },
-    { type: 'couple', name: 'Couple' },
-    { type: 'family', name: 'Family' }
-  ];
-
-  for (const groupData of clientGroupTypes) {
-    // Check if group already exists
-    const existingGroup = await prisma.clientGroup.findFirst({
-      where: {
-        type: groupData.type,
-        name: groupData.name
-      },
-      select: {
-        id: true,
-        type: true,
-        name: true
-      }
-    });
-
-    if (!existingGroup) {
-      await prisma.clientGroup.create({
-        data: {
-          id: uuidv4(),
-          type: groupData.type,
-          name: groupData.name
-        }
-      });
-      console.log(`Created client group: ${groupData.name} (${groupData.type})`);
-    } else {
-      console.log(`Client group already exists: ${groupData.name} (${groupData.type})`);
-    }
-  }
-
   // Create a test backoffice user
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({

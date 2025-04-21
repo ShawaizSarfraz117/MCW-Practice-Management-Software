@@ -10,8 +10,7 @@ import { Label } from "@mcw/ui";
 import { ClientTabs } from "./ClientTabs";
 import { ClientForm } from "./ClientForm";
 import { SelectExistingClient, Client } from "./SelectExistingClient";
-import { fetchClientGroups, createClient } from "../services/client.service";
-import { ClientGroup } from "@prisma/client";
+import { createClient } from "../services/client.service";
 import {
   validateClient,
   hasErrors,
@@ -69,6 +68,12 @@ interface FormValues {
   clients: Record<string, FormState>;
 }
 
+const clientGroups: { type: string; name: string }[] = [
+  { type: "adult", name: "Adult" },
+  { type: "minor", name: "Minor" },
+  { type: "couple", name: "Couple" },
+  { type: "family", name: "Family" },
+];
 export function CreateClientDrawer({
   open,
   onOpenChange,
@@ -78,7 +83,7 @@ export function CreateClientDrawer({
   const [clientType, setClientType] = useState("adult");
   const [activeTab, setActiveTab] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
+
   const [selectedClients, setSelectedClients] = useState<
     Record<string, Client | null>
   >({});
@@ -92,17 +97,6 @@ export function CreateClientDrawer({
   const [showSelectExisting, setShowSelectExisting] = useState(false);
 
   const tabsRef = useRef<{ submit: () => void }>(null);
-
-  useEffect(() => {
-    const fetchGroups = async () => {
-      const [groups, error] = await fetchClientGroups();
-      if (!error && Array.isArray(groups)) {
-        setClientGroups(groups as ClientGroup[]);
-        setClientType(groups.length > 0 ? groups[0].type : "adult");
-      }
-    };
-    fetchGroups();
-  }, []);
 
   const defaultClientData: FormState = {
     clientType: clientType,
@@ -278,7 +272,6 @@ export function CreateClientDrawer({
 
   const structureData = (values: FormValues) => {
     // Filter out empty or undefined client objects
-    const clientGroup = clientGroups.find((group) => group.type === clientType);
     const filteredClients = Object.entries(values.clients).reduce(
       (acc, [key, value]) => {
         if (value && Object.keys(value).length > 0) {
@@ -292,7 +285,7 @@ export function CreateClientDrawer({
       {} as Record<string, FormState>,
     );
     return {
-      clientGroupId: clientGroup?.id,
+      clientGroup: clientType,
       ...filteredClients,
     };
   };
@@ -503,9 +496,14 @@ export function CreateClientDrawer({
                   }}
                 >
                   {clientGroups.map((group) => (
-                    <div key={group.id} className="flex items-center space-x-2">
-                      <RadioGroupItem id={group.id} value={group.type} />
-                      <Label htmlFor={group.id}>{group.name}</Label>
+                    <div
+                      key={group.type}
+                      className="flex items-center space-x-2"
+                    >
+                      <RadioGroupItem id={group.type} value={group.type} />
+                      <Label className="cursor-pointer" htmlFor={group.type}>
+                        {group.name}
+                      </Label>
                     </div>
                   ))}
                 </RadioGroup>

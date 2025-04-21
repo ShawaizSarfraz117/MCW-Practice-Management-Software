@@ -141,7 +141,8 @@ export function SelectExistingClient({
               {filteredClients.map((client) => (
                 <div
                   key={client.id}
-                  className="flex items-center justify-between p-4 border-b"
+                  className="flex items-center justify-between p-4 border-b cursor-pointer hover:bg-gray-100"
+                  onClick={() => setSelectedClientId(client.id)}
                 >
                   <div>
                     <div className="font-medium">{getClientName(client)}</div>

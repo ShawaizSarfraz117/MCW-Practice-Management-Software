@@ -8,12 +8,6 @@ interface Location {
   is_active?: boolean;
 }
 
-interface ClientGroup {
-  id: string;
-  type: string;
-  name: string;
-}
-
 interface PaginatedResponse<T> {
   data: T[];
   pagination: {
@@ -82,19 +76,21 @@ export const createClient = async ({ body = {} }) => {
   }
 };
 
-export const fetchClientGroups = async (): Promise<
-  [ClientGroup[] | null, Error | null]
-> => {
+export const fetchClientGroups = async ({
+  searchParams = {},
+}): Promise<[PaginatedResponse<Client> | null, Error | null]> => {
   try {
     const response = (await FETCH.get({
       url: "/client/group",
-    })) as ClientGroup[];
+      searchParams,
+    })) as PaginatedResponse<Client>;
 
     return [response, null];
   } catch (error) {
     return [null, error instanceof Error ? error : new Error("Unknown error")];
   }
 };
+
 export const fetchLocations = async (): Promise<
   [Location[] | null, Error | null]
 > => {
