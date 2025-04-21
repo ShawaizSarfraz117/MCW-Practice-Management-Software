@@ -1,6 +1,5 @@
 "use client";
-import { Button } from "@mcw/ui";
-import { useForm } from "@mcw/ui";
+import { Button, useForm } from "@mcw/ui";
 
 const ProfileHeader = ({
   isEditing,

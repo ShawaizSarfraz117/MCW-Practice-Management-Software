@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@mcw/ui";
 import { useMutation } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useState } from "react";
@@ -80,45 +90,48 @@ export default function EditClinicianSidebar({
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-medium">Edit clinician details</h2>
-          <button
+          <Button
             className="p-2 hover:bg-gray-100 rounded-full"
             onClick={onClose}
           >
             <X className="h-5 w-5 text-gray-500" />
-          </button>
+          </Button>
         </div>
 
         {/* Sidebar Content */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Label className="block text-sm font-medium text-gray-700 mb-1">
                 Specialty
-              </label>
-              <select
-                className="w-full border-gray-300 rounded-md shadow-sm"
+              </Label>
+              <Select
                 value={clinicalInfoState.speciality}
-                onChange={(e) =>
+                onValueChange={(value) =>
                   setClinicalInfoState({
                     ...clinicalInfoState,
-                    speciality: e.target.value,
+                    speciality: value,
                   })
                 }
               >
-                <option>Speciality 1</option>
-                <option>Speciality 2</option>
-                <option>Speciality 3</option>
-                <option>Speciality 4</option>
-                <option>Speciality 5</option>
-                {/* Add more options */}
-              </select>
+                <SelectTrigger className="rounded-none">
+                  <SelectValue placeholder={"Select speciality"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Speciality 1">Speciality 1</SelectItem>
+                  <SelectItem value="Speciality 2">Speciality 2</SelectItem>
+                  <SelectItem value="Speciality 3">Speciality 3</SelectItem>
+                  <SelectItem value="Speciality 4">Speciality 4</SelectItem>
+                  <SelectItem value="Speciality 5">Speciality 5</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Label className="block text-sm font-medium text-gray-700 mb-1">
                 Taxonomy code
-              </label>
-              <input
+              </Label>
+              <Input
                 className="w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
                 type="text"
                 value={clinicalInfoState.taxonomy_code}
@@ -132,10 +145,10 @@ export default function EditClinicianSidebar({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Label className="block text-sm font-medium text-gray-700 mb-1">
                 NPI number
-              </label>
-              <input
+              </Label>
+              <Input
                 className="w-full border-gray-300 rounded-md shadow-sm"
                 placeholder="Enter NPI number"
                 type="number"
@@ -153,12 +166,12 @@ export default function EditClinicianSidebar({
 
         {/* Sidebar Footer */}
         <div className="border-t p-4">
-          <button
+          <Button
             className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
             onClick={handleSave}
           >
             Save
-          </button>
+          </Button>
         </div>
       </div>
     </div>

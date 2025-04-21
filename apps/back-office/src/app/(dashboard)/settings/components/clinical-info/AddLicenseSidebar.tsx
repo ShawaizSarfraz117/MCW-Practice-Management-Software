@@ -3,6 +3,16 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@mcw/ui";
 
 interface AddLicenseSidebarProps {
   isOpen: boolean;
@@ -91,12 +101,13 @@ export default function AddLicenseSidebar({
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-medium">Add License</h2>
-          <button
+          <Button
             className="p-2 hover:bg-gray-100 rounded-full"
+            variant="ghost"
             onClick={onClose}
           >
             <X className="h-5 w-5 text-gray-500" />
-          </button>
+          </Button>
         </div>
 
         {/* Sidebar Content */}
@@ -105,35 +116,39 @@ export default function AddLicenseSidebar({
             {licenses.map((license, index) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">
                     License type
-                  </label>
-                  <button
+                  </Label>
+                  <Button
                     className="text-red-600"
+                    variant="ghost"
                     onClick={() => handleRemoveLicense(index)}
                   >
                     <X className="h-5 w-5" />
-                  </button>
+                  </Button>
                 </div>
-                <select
-                  className="w-full border-gray-300 rounded-md shadow-sm"
+                <Select
                   value={license.license_type}
-                  onChange={(e) =>
-                    handleChange(index, "license_type", e.target.value)
+                  onValueChange={(value) =>
+                    handleChange(index, "license_type", value)
                   }
                 >
-                  <option value="">Select License Type</option>
-                  <option value="Type 1">License type 1</option>
-                  <option value="Type 2">License type 2</option>
-                  <option value="Type 3">License type 3</option>
-                  <option value="Type 4">License type 4</option>
-                  <option value="Type 5">License type 5</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select License Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Type 1">License type 1</SelectItem>
+                    <SelectItem value="Type 2">License type 2</SelectItem>
+                    <SelectItem value="Type 3">License type 3</SelectItem>
+                    <SelectItem value="Type 4">License type 4</SelectItem>
+                    <SelectItem value="Type 5">License type 5</SelectItem>
+                  </SelectContent>
+                </Select>
 
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
                   License number
-                </label>
-                <input
+                </Label>
+                <Input
                   className="w-full border-gray-300 rounded-md shadow-sm"
                   type="text"
                   value={license.license_number}
@@ -142,10 +157,10 @@ export default function AddLicenseSidebar({
                   }
                 />
 
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
                   Expiration date
-                </label>
-                <input
+                </Label>
+                <Input
                   className="w-full border-gray-300 rounded-md shadow-sm"
                   min={new Date().toISOString().split("T")[0]}
                   type="date"
@@ -156,41 +171,45 @@ export default function AddLicenseSidebar({
                   }
                 />
 
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
                   State
-                </label>
-                <select
-                  className="w-full border-gray-300 rounded-md shadow-sm"
+                </Label>
+                <Select
                   value={license.state}
-                  onChange={(e) => handleChange(index, "state", e.target.value)}
+                  onValueChange={(value) => handleChange(index, "state", value)}
                 >
-                  <option value="">Select State</option>
-                  <option value="State 1">State 1</option>
-                  <option value="State 2">State 2</option>
-                  <option value="State 3">State 3</option>
-                  <option value="State 4">State 4</option>
-                  <option value="State 5">State 5</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select State" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="State 1">State 1</SelectItem>
+                    <SelectItem value="State 2">State 2</SelectItem>
+                    <SelectItem value="State 3">State 3</SelectItem>
+                    <SelectItem value="State 4">State 4</SelectItem>
+                    <SelectItem value="State 5">State 5</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             ))}
 
-            <button
+            <Button
               className="w-full text-blue-600 text-sm font-medium"
+              variant="outline"
               onClick={handleAddLicense}
             >
               + Add another license
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Sidebar Footer */}
         <div className="border-t p-4">
-          <button
+          <Button
             className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
             onClick={handleSave} // Call handleSave on button click
           >
             Save
-          </button>
+          </Button>
         </div>
       </div>
     </div>

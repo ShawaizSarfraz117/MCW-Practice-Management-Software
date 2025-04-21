@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import EditClinicianSidebar from "./EditClinicianSidebar";
 import AddLicenseSidebar from "./AddLicenseSidebar";
 import { useQuery } from "@tanstack/react-query";
+import { Button, Input, Label } from "@mcw/ui";
 
 interface LicenseInfo {
   license_number: string; // License number as a string
@@ -57,36 +58,37 @@ export default function ClinicalInfo() {
             <h2 className="text-base font-semibold text-gray-800">
               Clinician details
             </h2>
-            <button
+            <Button
               className="text-blue-600 text-sm font-medium hover:text-blue-700"
+              variant="outline"
               onClick={() => setIsEditSidebarOpen(true)}
             >
               Edit
-            </button>
+            </Button>
           </div>
 
           <div className="grid grid-cols-2 gap-x-8 gap-y-6">
             <div>
-              <label className="block text-sm text-gray-600 mb-2">
+              <Label className="block text-sm text-gray-600 mb-2">
                 Specialty
-              </label>
+              </Label>
               <div className="text-sm text-gray-800">
                 {clinicalInfoState.speciality}
               </div>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-2">
+              <Label className="block text-sm text-gray-600 mb-2">
                 Taxonomy code
-              </label>
+              </Label>
               <div className="text-sm text-gray-800">
                 {clinicalInfoState.taxonomy_code}
               </div>
             </div>
             <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-2">
+              <Label className="block text-sm text-gray-600 mb-2">
                 NPI number
-              </label>
-              <input
+              </Label>
+              <Input
                 disabled
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter NPI number"
@@ -172,12 +174,13 @@ export default function ClinicalInfo() {
           ) : (
             <p className="text-sm text-gray-600">No licenses added</p>
           )}
-          <button
+          <Button
             className="flex items-center text-blue-600 text-sm font-medium hover:text-blue-700 mt-5"
+            variant="outline"
             onClick={() => setIsAddLicenseSidebarOpen(true)}
           >
             + Add license
-          </button>
+          </Button>
         </div>
       </div>
 
