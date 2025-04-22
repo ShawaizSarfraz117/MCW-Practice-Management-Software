@@ -565,6 +565,41 @@ export function CalendarView({
       title: clinician.label,
     }));
 
+  // Add this effect to fetch appointments when view or date changes
+  useEffect(() => {
+    async function fetchAppointmentsForCurrentView() {
+      if (!calendarRef.current) return;
+      const calendarApi = calendarRef.current.getApi();
+      const view = calendarApi.view;
+      const startDate = view.activeStart.toISOString().split("T")[0];
+      const endDate = view.activeEnd.toISOString().split("T")[0];
+
+      let url = `/api/appointment?startDate=${startDate}&endDate=${endDate}`;
+      if (!isAdmin && selectedClinicians.length > 0) {
+        url += `&clinicianId=${selectedClinicians[0]}`;
+      }
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to fetch appointments");
+        const appointments = await response.json();
+        const formattedEvents = appointments.map(
+          (appointment: AppointmentData) => ({
+            id: appointment.id,
+            resourceId: appointment.clinician_id || "",
+            title: appointment.title,
+            start: appointment.start_date,
+            end: appointment.end_date,
+            location: appointment.location_id || "",
+          }),
+        );
+        setEvents(formattedEvents);
+      } catch (error) {
+        console.error("Error fetching appointments:", error);
+      }
+    }
+    fetchAppointmentsForCurrentView();
+  }, [currentView, currentDate, selectedClinicians, isAdmin]);
+
   return (
     <div className="flex h-full bg-background">
       <div className="flex-1 flex flex-col">
