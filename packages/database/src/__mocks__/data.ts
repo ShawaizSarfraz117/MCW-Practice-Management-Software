@@ -239,6 +239,28 @@ export const InvoiceFactory = {
     issued_date: faker.date.recent(),
     ...overrides,
   }),
+
+  buildComplete: (overrides = {}) => {
+    const issuedDate = new Date();
+    const dueDate = new Date(issuedDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+    return {
+      id: generateUUID(),
+      invoice_number: "INV-1234",
+      client_group_id: generateUUID(),
+      appointment_id: null, // Set to null to avoid foreign key constraint
+      clinician_id: generateUUID(),
+      issued_date: issuedDate,
+      due_date: dueDate,
+      amount: new Decimal(100),
+      status: "PENDING",
+      ClientGroupMembership: null,
+      Appointment: null,
+      Clinician: null,
+      Payment: [],
+      ...overrides,
+    };
+  },
 };
 
 export const PaymentFactory = {
@@ -461,25 +483,8 @@ export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
     SurveyTemplate: SurveyTemplatePrismaFactory,
   }),
 });
+
 // Helper to create a valid invoice object with proper UUID formats
 export const mockInvoice = (overrides = {}) => {
-  const issuedDate = new Date();
-  const dueDate = new Date(issuedDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
-
-  return {
-    id: generateUUID(),
-    invoice_number: "INV-1234",
-    client_group_membership_id: generateUUID(),
-    appointment_id: null, // Set to null to avoid foreign key constraint
-    clinician_id: generateUUID(),
-    issued_date: issuedDate,
-    due_date: dueDate,
-    amount: new Decimal(100),
-    status: "PENDING",
-    ClientGroupMembership: null,
-    Appointment: null,
-    Clinician: null,
-    Payment: [],
-    ...overrides,
-  };
+  return InvoiceFactory.buildComplete(overrides);
 };

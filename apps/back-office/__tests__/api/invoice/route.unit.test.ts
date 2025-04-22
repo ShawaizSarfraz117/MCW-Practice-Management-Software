@@ -31,7 +31,7 @@ vi.mock("@prisma/client", () => ({
 }));
 
 // Import the module under test after all mocks are defined
-import { GET, POST } from "../../../src/app/api/invoice/route";
+import { GET, POST } from "@/api/invoice/route";
 
 describe("Invoice API Unit Tests", () => {
   beforeEach(() => {
@@ -90,16 +90,16 @@ describe("Invoice API Unit Tests", () => {
     });
   });
 
-  it("GET /api/invoice should filter by client_group_membership_id and status", async () => {
+  it("GET /api/invoice should filter by client_group_id and status", async () => {
     // Arrange
     const membershipId = generateUUID();
-    const invoice = mockInvoice({ client_group_membership_id: membershipId });
+    const invoice = mockInvoice({ client_group_id: membershipId });
 
     prismaMock.invoice.findMany.mockResolvedValueOnce([invoice]);
 
     // Act
     const req = createRequest(
-      `/api/invoice?client_group_membership_id=${membershipId}&status=PENDING`,
+      `/api/invoice?client_group_id=${membershipId}&status=PENDING`,
     );
     const response = await GET(req);
 
@@ -114,7 +114,7 @@ describe("Invoice API Unit Tests", () => {
 
     expect(prismaMock.invoice.findMany).toHaveBeenCalledWith({
       where: {
-        client_group_membership_id: membershipId,
+        client_group_id: membershipId,
         status: "PENDING",
       },
       include: {
@@ -182,7 +182,7 @@ describe("Invoice API Unit Tests", () => {
 
     const newInvoiceData = {
       clinician_id: clinicianId,
-      client_group_membership_id: membershipId,
+      client_group_id: membershipId,
       appointment_id: null, // Set to null to avoid foreign key constraint
       amount: 150,
       due_date: dueDate.toISOString(),
@@ -192,7 +192,7 @@ describe("Invoice API Unit Tests", () => {
     const createdInvoice = {
       id: generateUUID(),
       invoice_number: "INV-1234567890",
-      client_group_membership_id: membershipId,
+      client_group_id: membershipId,
       appointment_id: null,
       clinician_id: clinicianId,
       issued_date: issuedDate,
@@ -238,7 +238,7 @@ describe("Invoice API Unit Tests", () => {
     // Arrange
     const invalidInvoiceData = {
       // Missing required fields: clinician_id, amount, due_date
-      client_group_membership_id: generateUUID(),
+      client_group_id: generateUUID(),
     };
 
     // Act
