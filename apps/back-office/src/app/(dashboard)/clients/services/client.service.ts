@@ -1,17 +1,11 @@
 import { FETCH } from "@mcw/utils";
-import { Client } from "@prisma/client";
+import { Appointment, Client, Invoice, Payment } from "@prisma/client";
 
 interface Location {
   id: string;
   name: string;
   address?: string;
   is_active?: boolean;
-}
-
-interface ClientGroup {
-  id: string;
-  type: string;
-  name: string;
 }
 
 interface PaginatedResponse<T> {
@@ -38,6 +32,36 @@ export const fetchClients = async ({
   }
 };
 
+export const fetchAppointments = async ({
+  searchParams = {},
+}): Promise<Appointment[] | Error> => {
+  try {
+    const response = (await FETCH.get({
+      url: "/appointment",
+      searchParams,
+    })) as Appointment[];
+
+    return response;
+  } catch (error) {
+    throw new Error(error as string);
+  }
+};
+
+export const fetchInvoices = async ({
+  searchParams = {},
+}): Promise<[Invoice[] | null, Error | null | Invoice]> => {
+  try {
+    const response = (await FETCH.get({
+      url: "/invoice",
+      searchParams,
+    })) as Invoice[];
+
+    return [response as Invoice[], null];
+  } catch (error) {
+    return [null, error instanceof Error ? error : new Error("Unknown error")];
+  }
+};
+
 export const createClient = async ({ body = {} }) => {
   try {
     const response: unknown = await FETCH.post({
@@ -52,19 +76,21 @@ export const createClient = async ({ body = {} }) => {
   }
 };
 
-export const fetchClientGroups = async (): Promise<
-  [ClientGroup[] | null, Error | null]
-> => {
+export const fetchClientGroups = async ({
+  searchParams = {},
+}): Promise<[PaginatedResponse<Client> | null, Error | null]> => {
   try {
     const response = (await FETCH.get({
       url: "/client/group",
-    })) as ClientGroup[];
+      searchParams,
+    })) as PaginatedResponse<Client>;
 
     return [response, null];
   } catch (error) {
     return [null, error instanceof Error ? error : new Error("Unknown error")];
   }
 };
+
 export const fetchLocations = async (): Promise<
   [Location[] | null, Error | null]
 > => {
@@ -87,5 +113,21 @@ export const fetchClinicians = async () => {
     return [response, null];
   } catch (error) {
     return [null, error];
+  }
+};
+
+export const createPayment = async ({
+  body = {},
+}): Promise<[Payment | null, Error | null]> => {
+  try {
+    const response = (await FETCH.post({
+      url: "/invoice/payment",
+      body,
+      isFormData: false,
+    })) as Payment;
+
+    return [response, null];
+  } catch (error) {
+    return [null, error instanceof Error ? error : new Error("Unknown error")];
   }
 };
