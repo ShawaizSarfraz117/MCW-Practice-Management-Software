@@ -5,6 +5,7 @@ import TopBar from "@/components/layouts/Topbar";
 import ProfileSidebar from "./components/sidebar";
 import Profile from "./components/Profile";
 import ClinicalInfo from "./components/clinical-info/ClinicalInfo";
+import PracticeDetails from "./components/practice-details";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("profile-security");
@@ -40,6 +41,8 @@ export default function SettingsPage() {
         return <Profile />;
       case "clinical-info":
         return <ClinicalInfo />;
+      case "practice-info":
+        return <PracticeDetails />;
       // Add more cases for other sections
       default:
         return (
@@ -59,14 +62,18 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <ProfileSidebar
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-      />
-      <div className="flex-1">
+    <div className="flex min-h-screen sticky top-0">
+      <div>
+        <ProfileSidebar
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+        />
+      </div>
+      <div className="flex-1" style={{ position: "sticky", top: 0 }}>
         <TopBar showMenuBar={false} showSearch={false} />
-        <div className="bg-white p-6">{renderContent()}</div>
+        <div className="bg-white p-6" style={{ overflow: "auto" }}>
+          {renderContent()}
+        </div>
       </div>
     </div>
   );

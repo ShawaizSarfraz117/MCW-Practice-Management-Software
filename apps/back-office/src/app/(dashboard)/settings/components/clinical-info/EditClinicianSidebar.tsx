@@ -92,6 +92,7 @@ export default function EditClinicianSidebar({
           <h2 className="text-lg font-medium">Edit clinician details</h2>
           <Button
             className="p-2 hover:bg-gray-100 rounded-full"
+            variant="ghost"
             onClick={onClose}
           >
             <X className="h-5 w-5 text-gray-500" />
@@ -149,7 +150,7 @@ export default function EditClinicianSidebar({
                 NPI number
               </Label>
               <Input
-                className="w-full border-gray-300 rounded-md shadow-sm"
+                className="w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
                 placeholder="Enter NPI number"
                 type="number"
                 value={clinicalInfoState.NPI_number}

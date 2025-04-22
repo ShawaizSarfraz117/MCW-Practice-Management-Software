@@ -55,9 +55,9 @@ export default function ClinicalInfo() {
         {/* Clinician Details Section */}
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-base font-semibold text-gray-800">
-              Clinician details
-            </h2>
+            <h1 className="text-2xl font-semibold text-gray-800">
+              Clinical Info
+            </h1>
             <Button
               className="text-blue-600 text-sm font-medium hover:text-blue-700"
               variant="outline"

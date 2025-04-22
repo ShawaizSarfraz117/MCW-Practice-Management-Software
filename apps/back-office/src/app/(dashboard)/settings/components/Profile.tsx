@@ -85,7 +85,7 @@ export default function Profile() {
   }, [handleSubmit]);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div>
       <ProfileHeader
         form={form as ReturnType<typeof useForm>}
         handleSave={handleSave}
