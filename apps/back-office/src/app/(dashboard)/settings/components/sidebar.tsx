@@ -1,14 +1,8 @@
 "use client";
 
+import { MenuItem, ProfileSidebarProps } from "@/types/profile";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-
-interface MenuItem {
-  label: string;
-  id?: string;
-  description?: string;
-  children?: MenuItem[];
-}
 
 const menuItems = {
   operations: [
@@ -87,11 +81,6 @@ const menuItems = {
     },
   ],
 };
-
-interface ProfileSidebarProps {
-  activeSection: string;
-  onSectionChange: (sectionId: string) => void;
-}
 
 export default function ProfileSidebar({
   activeSection,

@@ -2,16 +2,9 @@
 
 import { useEffect, useState } from "react";
 import EditClinicianSidebar from "./EditClinicianSidebar";
-import AddLicenseSidebar from "./AddLicenseSidebar";
+import AddLicenseSidebar, { LicenseInfo } from "./AddLicenseSidebar";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input, Label } from "@mcw/ui";
-
-interface LicenseInfo {
-  license_number: string; // License number as a string
-  expiration_date: string; // Expiration date as a string (consider using Date if you want to handle dates)
-  state: string; // State as a string
-  license_type: string; // License type as a string
-}
 
 export default function ClinicalInfo() {
   const [isEditSidebarOpen, setIsEditSidebarOpen] = useState(false);
