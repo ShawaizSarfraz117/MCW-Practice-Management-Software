@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
     const sortBy = searchParams.get("sortBy") || "legal_last_name";
+    const clinicianId = searchParams.get("clinicianId");
 
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -67,14 +68,47 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(client);
     } else {
-      logger.info("Retrieving all clients");
+      let clientIds: string[] | undefined;
+
+      // If clinicianId is provided, get all clients associated with this clinician
+      if (clinicianId) {
+        logger.info(`Retrieving clients for clinician: ${clinicianId}`);
+
+        // Get client IDs from clinicianClient table for this clinician
+        const clinicianClients = await prisma.clinicianClient.findMany({
+          where: { clinician_id: clinicianId },
+          select: { client_id: true },
+        });
+
+        // Extract client IDs
+        clientIds = clinicianClients.map((cc) => cc.client_id);
+
+        // If clinician has no clients, return empty result
+        if (clientIds.length === 0) {
+          return NextResponse.json({
+            data: [],
+            pagination: {
+              page,
+              limit,
+              total: 0,
+            },
+          });
+        }
+      } else {
+        logger.info("Retrieving all clients");
+      }
 
       const statusArray = status?.split(",") || [];
       let whereCondition: Prisma.ClientWhereInput = {};
 
+      // Add clinician filter if clientIds is available
+      if (clientIds) {
+        whereCondition.id = { in: clientIds };
+      }
+
       // Handle status filtering
       if (statusArray.length > 0 && !statusArray.includes("all")) {
-        whereCondition = {
+        const statusCondition = {
           OR: statusArray.map((status) => {
             switch (status) {
               case "active":
@@ -96,6 +130,11 @@ export async function GET(request: NextRequest) {
             }
           }),
         };
+
+        // Combine with existing clinician filter if any
+        whereCondition = clientIds
+          ? { AND: [whereCondition, statusCondition] }
+          : statusCondition;
       }
 
       // Add search condition if search query exists
@@ -108,9 +147,9 @@ export async function GET(request: NextRequest) {
           ],
         };
 
-        // Combine with existing conditions if they exist
+        // Combine with existing conditions
         whereCondition =
-          statusArray.length > 0 && !statusArray.includes("all")
+          Object.keys(whereCondition).length > 0
             ? { AND: [whereCondition, searchCondition] }
             : searchCondition;
       }

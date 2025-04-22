@@ -132,7 +132,6 @@ export function AppointmentTab({
         throw new Error("Failed to fetch clients");
       }
       const rawData = await response.json();
-      console.log("Client API raw response:", rawData);
 
       // Check if the data might be nested in a property
       let data = rawData;
@@ -166,11 +165,8 @@ export function AppointmentTab({
         typeof rawData === "object" &&
         Array.isArray(rawData.results)
       ) {
-        console.log("Found nested results property in response");
         data = rawData.results;
       }
-
-      console.log("Processed client data for component:", data);
       return data;
     },
     enabled: !!shouldFetchData,
@@ -180,7 +176,6 @@ export function AppointmentTab({
   const filteredClients = Array.isArray(clientsData)
     ? clientsData
         .map((client) => {
-          console.log("Processing client:", client);
           // Make the mapping more resilient with optional chaining and fallbacks
           return {
             label:
@@ -202,9 +197,6 @@ export function AppointmentTab({
           return matches;
         })
     : [];
-
-  console.log("Filtered clients:", filteredClients);
-  console.log("Client search term:", clientSearchTerm);
 
   const filteredClinicianOptions = Array.isArray(cliniciansData)
     ? cliniciansData
