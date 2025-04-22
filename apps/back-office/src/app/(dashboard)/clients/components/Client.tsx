@@ -7,12 +7,18 @@ import { Button, Input, Card, Checkbox } from "@mcw/ui";
 import ClientTable from "./ClientTable";
 import { useRouter } from "next/navigation";
 import { CreateClientDrawer } from "@/(dashboard)/clients/components/CreateClientDrawer";
-import { fetchClients } from "../services/client.service";
-import { Client } from "@prisma/client";
+import { fetchClientGroups } from "../services/client.service";
+import { Client as PrismaClient } from "@prisma/client";
+import Loading from "@/components/Loading";
+// Extended Client type that includes ClientGroupMembership
+interface Client extends PrismaClient {
+  ClientGroupMembership: { id: string }[];
+}
 
 export default function Clients() {
   const [sortBy, setSortBy] = useState("legal_last_name");
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [createClientOpen, setCreateClientOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string[]>(["all"]);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -24,13 +30,19 @@ export default function Clients() {
 
   const router = useRouter();
 
-  const handleRedirect = (id: string) => {
-    router.push(`/clients/${id}`);
+  const handleRedirect = (row: unknown) => {
+    const client = row as Client;
+    if (
+      client.ClientGroupMembership &&
+      client.ClientGroupMembership.length > 0
+    ) {
+      router.push(`/clients/${client.id}`);
+    }
   };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const [clients, error] = await fetchClients({
+    const [clients, error] = await fetchClientGroups({
       searchParams: {
         status: statusFilter,
         search: searchQuery,
@@ -61,8 +73,8 @@ export default function Clients() {
   };
 
   const sortOptions = [
-    { id: "legal_first_name", label: "First Name" },
-    { id: "legal_last_name", label: "Last Name" },
+    { id: "first_name", label: "First Name" },
+    { id: "last_name", label: "Last Name" },
   ];
 
   const handleSort = async (field: string) => {
@@ -72,7 +84,8 @@ export default function Clients() {
   };
 
   const fetchClientData = async (params = {}) => {
-    const [clients, error] = await fetchClients({
+    setIsLoading(true);
+    const [clients, error] = await fetchClientGroups({
       searchParams: {
         status: statusFilter,
         search: searchQuery,
@@ -88,6 +101,7 @@ export default function Clients() {
         },
       );
     }
+    setIsLoading(false);
   };
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -259,7 +273,11 @@ export default function Clients() {
             </div>
           </div>
         </div>
-        <ClientTable rows={clients.data} onRowClick={handleRedirect} />
+        {isLoading ? (
+          <Loading fullScreen message="Loading clients..." />
+        ) : (
+          <ClientTable rows={clients.data} onRowClick={handleRedirect} />
+        )}
       </main>
     </div>
   );
