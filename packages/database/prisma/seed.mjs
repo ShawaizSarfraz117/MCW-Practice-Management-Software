@@ -85,7 +85,7 @@ async function main() {
     },
   });
 
-  console.log("BackOffice user and profile created:", admin);
+  console.log("BackOffice user created:", admin);
 
   // Create another test backoffice user (previously clinician)
   const clinicianPassword = await bcrypt.hash("clinician123", 10);
@@ -108,7 +108,51 @@ async function main() {
     },
   });
 
-  console.log("BackOffice user and profile created:", clinician);
+  console.log("BackOffice user created:", clinician);
+
+  // Create sample audit entries
+  const auditEntries = [
+    {
+      id: uuidv4(),
+      event_type: "LOGIN",
+      event_text: "User logged into the system",
+      is_hipaa: false,
+      datetime: new Date(),
+      user_id: admin.id, // Link to admin user
+    },
+    {
+      id: uuidv4(),
+      event_type: "VIEW",
+      event_text: "Viewed client medical records",
+      is_hipaa: true,
+      datetime: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+      user_id: clinician.id, // Link to clinician user
+    },
+    {
+      id: uuidv4(),
+      event_type: "UPDATE",
+      event_text: "Updated appointment details",
+      is_hipaa: false,
+      datetime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      user_id: admin.id,
+    },
+    {
+      id: uuidv4(),
+      event_type: "ACCESS",
+      event_text: "Accessed billing information",
+      is_hipaa: true,
+      datetime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      user_id: clinician.id,
+    },
+  ];
+
+  for (const entry of auditEntries) {
+    await prisma.audit.create({
+      data: entry,
+    });
+  }
+
+  console.log("Created sample audit entries");
 }
 
 main()
