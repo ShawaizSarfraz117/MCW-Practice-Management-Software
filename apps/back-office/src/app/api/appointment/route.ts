@@ -483,6 +483,11 @@ export async function PUT(request: NextRequest) {
         data.recurring_rule === null
           ? null
           : data.recurring_rule || existingAppointment.recurring_rule,
+      recurring_appointment_id:
+        data.recurring_appointment_id === null
+          ? null
+          : data.recurring_appointment_id ||
+            existingAppointment.recurring_appointment_id,
       service_id:
         data.service_id === null
           ? null
@@ -493,7 +498,322 @@ export async function PUT(request: NextRequest) {
 
     console.log("Updating appointment with data:", updateData);
 
-    // Update appointment
+    // Handle recurring appointments
+    if (existingAppointment.is_recurring && data.updateOption) {
+      const updateOption = data.updateOption; // 'this' or 'future'
+
+      if (updateOption === "this") {
+        // If updating a parent appointment with "this appointment only" option
+        if (!existingAppointment.recurring_appointment_id) {
+          // This is a parent appointment, find all children
+          const childAppointments = await prisma.appointment.findMany({
+            where: { recurring_appointment_id: data.id },
+            orderBy: { start_date: "asc" },
+          });
+
+          if (childAppointments.length > 0) {
+            // Get the first child to make it the new parent
+            const newParent = childAppointments[0];
+            const remainingChildren = childAppointments.slice(1);
+
+            // Update the new parent to remove its recurring_appointment_id
+            await prisma.appointment.update({
+              where: { id: newParent.id },
+              data: {
+                recurring_appointment_id: null,
+                recurring_rule: existingAppointment.recurring_rule,
+              },
+            });
+
+            // Update all other children to point to the new parent
+            if (remainingChildren.length > 0) {
+              await prisma.appointment.updateMany({
+                where: {
+                  id: { in: remainingChildren.map((child) => child.id) },
+                },
+                data: { recurring_appointment_id: newParent.id },
+              });
+            }
+
+            // Update the original parent as a standalone appointment
+            updateData.is_recurring = false;
+            updateData.recurring_rule = null;
+
+            const updatedAppointment = await prisma.appointment.update({
+              where: { id: data.id },
+              data: updateData,
+              include: {
+                Client: {
+                  select: {
+                    id: true,
+                    legal_first_name: true,
+                    legal_last_name: true,
+                    preferred_name: true,
+                  },
+                },
+                Clinician: {
+                  select: {
+                    id: true,
+                    first_name: true,
+                    last_name: true,
+                  },
+                },
+                Location: {
+                  select: {
+                    id: true,
+                    name: true,
+                    address: true,
+                  },
+                },
+              },
+            });
+
+            return NextResponse.json({
+              ...updatedAppointment,
+              message: "Appointment updated and removed from recurring series",
+            });
+          }
+        }
+
+        // For child appointments or parents with no children, just update this one and make it non-recurring
+        if (existingAppointment.recurring_appointment_id) {
+          updateData.is_recurring = false;
+          updateData.recurring_rule = null;
+          updateData.recurring_appointment_id = null;
+        }
+
+        const updatedAppointment = await prisma.appointment.update({
+          where: { id: data.id },
+          data: updateData,
+          include: {
+            Client: {
+              select: {
+                id: true,
+                legal_first_name: true,
+                legal_last_name: true,
+                preferred_name: true,
+              },
+            },
+            Clinician: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+              },
+            },
+            Location: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+              },
+            },
+          },
+        });
+
+        return NextResponse.json({
+          ...updatedAppointment,
+          message: "Appointment updated and removed from recurring series",
+        });
+      } else if (updateOption === "future") {
+        // Handle updating this and all future appointments
+        const currentDate = new Date(existingAppointment.start_date);
+        const isParent = !existingAppointment.recurring_appointment_id;
+        const masterId =
+          existingAppointment.recurring_appointment_id || data.id;
+
+        if (isParent) {
+          // This is the parent - update it and all future children
+          // First update the parent
+          const updatedParent = await prisma.appointment.update({
+            where: { id: data.id },
+            data: updateData,
+            include: {
+              Client: {
+                select: {
+                  id: true,
+                  legal_first_name: true,
+                  legal_last_name: true,
+                  preferred_name: true,
+                },
+              },
+              Clinician: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                },
+              },
+              Location: {
+                select: {
+                  id: true,
+                  name: true,
+                  address: true,
+                },
+              },
+            },
+          });
+
+          // Then update all future child appointments
+          await prisma.appointment.updateMany({
+            where: {
+              recurring_appointment_id: data.id,
+              start_date: { gt: currentDate },
+            },
+            data: {
+              type: updateData.type,
+              title: updateData.title,
+              is_all_day: updateData.is_all_day,
+              location_id: updateData.location_id,
+              status: updateData.status,
+              client_id: updateData.client_id,
+              clinician_id: updateData.clinician_id,
+              service_id: updateData.service_id,
+              appointment_fee: updateData.appointment_fee,
+              // Don't update dates as they would disrupt the recurrence pattern
+            },
+          });
+
+          return NextResponse.json({
+            ...updatedParent,
+            message: "This and all future appointments updated",
+          });
+        } else {
+          // This is a child appointment
+          // First, get the parent appointment
+          const parentAppointment = await prisma.appointment.findUnique({
+            where: { id: masterId },
+          });
+
+          if (!parentAppointment) {
+            return NextResponse.json(
+              { error: "Parent appointment not found" },
+              { status: 404 },
+            );
+          }
+
+          // Check if parent is before or after/equal to current appointment
+          const parentDate = new Date(parentAppointment.start_date);
+
+          if (parentDate >= currentDate) {
+            // If parent is in the future too, update it
+            await prisma.appointment.update({
+              where: { id: masterId },
+              data: {
+                type: updateData.type,
+                title: updateData.title,
+                is_all_day: updateData.is_all_day,
+                location_id: updateData.location_id,
+                status: updateData.status,
+                client_id: updateData.client_id,
+                clinician_id: updateData.clinician_id,
+                service_id: updateData.service_id,
+                appointment_fee: updateData.appointment_fee,
+              },
+            });
+          } else {
+            // Parent is in the past, we need to split the series
+            // First create a new parent from the current appointment
+            const newParentData = {
+              ...updateData,
+              recurring_appointment_id: null,
+              recurring_rule: parentAppointment.recurring_rule,
+            };
+
+            // Update this appointment to be the new parent
+            const newParent = await prisma.appointment.update({
+              where: { id: data.id },
+              data: newParentData,
+            });
+
+            // Update all future appointments to point to this new parent
+            await prisma.appointment.updateMany({
+              where: {
+                recurring_appointment_id: masterId,
+                id: { not: data.id }, // exclude this appointment
+                start_date: { gte: currentDate },
+              },
+              data: {
+                recurring_appointment_id: data.id,
+                type: updateData.type,
+                title: updateData.title,
+                is_all_day: updateData.is_all_day,
+                location_id: updateData.location_id,
+                status: updateData.status,
+                client_id: updateData.client_id,
+                clinician_id: updateData.clinician_id,
+                service_id: updateData.service_id,
+                appointment_fee: updateData.appointment_fee,
+              },
+            });
+
+            // Return the updated appointment (new parent)
+            return NextResponse.json({
+              ...newParent,
+              message:
+                "Created new series with this and all future appointments",
+            });
+          }
+
+          // Update the current appointment
+          const updatedAppointment = await prisma.appointment.update({
+            where: { id: data.id },
+            data: updateData,
+            include: {
+              Client: {
+                select: {
+                  id: true,
+                  legal_first_name: true,
+                  legal_last_name: true,
+                  preferred_name: true,
+                },
+              },
+              Clinician: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                },
+              },
+              Location: {
+                select: {
+                  id: true,
+                  name: true,
+                  address: true,
+                },
+              },
+            },
+          });
+
+          // Update all future appointments
+          await prisma.appointment.updateMany({
+            where: {
+              recurring_appointment_id: masterId,
+              id: { not: data.id }, // exclude this appointment
+              start_date: { gt: currentDate },
+            },
+            data: {
+              type: updateData.type,
+              title: updateData.title,
+              is_all_day: updateData.is_all_day,
+              location_id: updateData.location_id,
+              status: updateData.status,
+              client_id: updateData.client_id,
+              clinician_id: updateData.clinician_id,
+              service_id: updateData.service_id,
+              appointment_fee: updateData.appointment_fee,
+            },
+          });
+
+          return NextResponse.json({
+            ...updatedAppointment,
+            message: "This and all future appointments updated",
+          });
+        }
+      }
+    }
+
+    // For non-recurring appointments or no update option specified, just update this one
     const updatedAppointment = await prisma.appointment.update({
       where: { id: data.id },
       data: updateData,
@@ -565,8 +885,57 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // For non-recurring appointments or deleting just a single occurrence
     if (!existingAppointment.is_recurring || deleteOption === "single") {
-      // Delete single appointment
+      // Check if it's a parent appointment (no recurring_appointment_id) and is recurring
+      if (
+        existingAppointment.is_recurring &&
+        !existingAppointment.recurring_appointment_id
+      ) {
+        // This is a parent appointment, find all children
+        const childAppointments = await prisma.appointment.findMany({
+          where: { recurring_appointment_id: id },
+          orderBy: { start_date: "asc" },
+        });
+
+        if (childAppointments.length > 0) {
+          // Get the first child to make it the new parent
+          const newParent = childAppointments[0];
+          const remainingChildren = childAppointments.slice(1);
+
+          // Update the new parent to remove its recurring_appointment_id
+          await prisma.appointment.update({
+            where: { id: newParent.id },
+            data: {
+              recurring_appointment_id: null,
+              // Copy any parent-specific recurring rules if needed
+              recurring_rule: existingAppointment.recurring_rule,
+            },
+          });
+
+          // Update all other children to point to the new parent
+          if (remainingChildren.length > 0) {
+            await prisma.appointment.updateMany({
+              where: {
+                id: { in: remainingChildren.map((child) => child.id) },
+              },
+              data: { recurring_appointment_id: newParent.id },
+            });
+          }
+
+          // Now delete the original parent
+          await prisma.appointment.delete({
+            where: { id },
+          });
+
+          return NextResponse.json({
+            message:
+              "Appointment deleted successfully and recurring series updated",
+          });
+        }
+      }
+
+      // Either not a parent or has no children, delete normally
       await prisma.appointment.delete({
         where: { id },
       });
@@ -577,28 +946,143 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Handle recurring appointments
+    // Determine if this is a parent or child appointment
+    const masterId = existingAppointment.recurring_appointment_id || id;
+    const isParent = !existingAppointment.recurring_appointment_id;
+    const currentDate = new Date(existingAppointment.start_date);
+
     if (deleteOption === "all") {
       // Delete all appointments in the series
-      const masterId = existingAppointment.recurring_appointment_id || id;
       await prisma.appointment.deleteMany({
         where: {
           OR: [{ recurring_appointment_id: masterId }, { id: masterId }],
         },
       });
-    } else if (deleteOption === "future") {
-      // Delete this and future appointments
-      const currentDate = new Date(existingAppointment.start_date);
-      const masterId = existingAppointment.recurring_appointment_id || id;
 
-      await prisma.appointment.deleteMany({
-        where: {
-          AND: [
-            {
-              OR: [{ recurring_appointment_id: masterId }, { id: masterId }],
+      return NextResponse.json({
+        message: "All appointments in the series deleted successfully",
+      });
+    } else if (deleteOption === "future") {
+      if (isParent) {
+        // This is the parent appointment
+        // Find all past child appointments (excluding the current/future ones)
+        const pastChildren = await prisma.appointment.findMany({
+          where: {
+            recurring_appointment_id: id,
+            start_date: { lt: currentDate },
+          },
+          orderBy: { start_date: "desc" }, // Most recent first
+        });
+
+        if (pastChildren.length > 0) {
+          // There are past appointments to preserve
+          // Promote the most recent past appointment as the new parent
+          const newParent = pastChildren[0];
+          const otherPastChildren = pastChildren.slice(1);
+
+          // Update the new parent to remove its recurring_appointment_id
+          await prisma.appointment.update({
+            where: { id: newParent.id },
+            data: {
+              recurring_appointment_id: null,
+              recurring_rule: existingAppointment.recurring_rule,
             },
-            { start_date: { gte: currentDate } },
-          ],
-        },
+          });
+
+          // Update other past children to point to the new parent
+          if (otherPastChildren.length > 0) {
+            await prisma.appointment.updateMany({
+              where: {
+                id: { in: otherPastChildren.map((child) => child.id) },
+              },
+              data: { recurring_appointment_id: newParent.id },
+            });
+          }
+
+          // Delete this appointment and all future appointments
+          await prisma.appointment.deleteMany({
+            where: {
+              AND: [
+                { recurring_appointment_id: id },
+                { start_date: { gte: currentDate } },
+              ],
+            },
+          });
+
+          // Delete the parent appointment
+          await prisma.appointment.delete({
+            where: { id },
+          });
+        } else {
+          // No past appointments, delete the entire series
+          await prisma.appointment.deleteMany({
+            where: {
+              OR: [{ recurring_appointment_id: id }, { id }],
+            },
+          });
+        }
+      } else {
+        // This is a child appointment
+        // Delete this appointment and future ones in the series
+        await prisma.appointment.deleteMany({
+          where: {
+            AND: [
+              { recurring_appointment_id: masterId },
+              { start_date: { gte: currentDate } },
+            ],
+          },
+        });
+
+        // Also delete the parent if this appointment date is the same or later than parent
+        const parentAppointment = await prisma.appointment.findUnique({
+          where: { id: masterId },
+        });
+
+        if (
+          parentAppointment &&
+          new Date(parentAppointment.start_date) <= currentDate
+        ) {
+          // Find past appointments before the parent
+          const pastAppointments = await prisma.appointment.findMany({
+            where: {
+              recurring_appointment_id: masterId,
+              start_date: { lt: new Date(parentAppointment.start_date) },
+            },
+            orderBy: { start_date: "desc" },
+          });
+
+          if (pastAppointments.length > 0) {
+            // Promote the most recent past appointment as new parent
+            const newParent = pastAppointments[0];
+            const otherPastAppointments = pastAppointments.slice(1);
+
+            await prisma.appointment.update({
+              where: { id: newParent.id },
+              data: {
+                recurring_appointment_id: null,
+                recurring_rule: parentAppointment.recurring_rule,
+              },
+            });
+
+            if (otherPastAppointments.length > 0) {
+              await prisma.appointment.updateMany({
+                where: {
+                  id: { in: otherPastAppointments.map((a) => a.id) },
+                },
+                data: { recurring_appointment_id: newParent.id },
+              });
+            }
+          }
+
+          // Delete the parent
+          await prisma.appointment.delete({
+            where: { id: masterId },
+          });
+        }
+      }
+
+      return NextResponse.json({
+        message: "Future appointments deleted successfully",
       });
     }
 
