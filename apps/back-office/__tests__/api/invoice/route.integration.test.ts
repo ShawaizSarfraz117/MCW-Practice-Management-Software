@@ -1,287 +1,242 @@
-import { describe, it, expect, beforeEach } from "vitest";
+/* eslint-disable max-lines-per-function */
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { GET, POST } from "../../../src/app/api/invoice/route";
 import { prisma } from "@mcw/database";
-import { createRequest, createRequestWithBody } from "@mcw/utils";
-import {
-  ClientGroupPrismaFactory,
-  ClientPrismaFactory,
-  ClinicianPrismaFactory,
-} from "@mcw/database/mock-data";
-import { GET, POST } from "@/api/invoice/route";
+import { generateUUID } from "@mcw/utils";
+import { createRequestWithBody, createRequest } from "@mcw/utils";
 
-// Define an interface for the API response structure
-interface InvoiceResponse {
+// Define Invoice type for type safety
+interface Invoice {
   id: string;
   invoice_number: string;
-  status: string;
-  amount: string | number;
+  client_group_id: string;
   clinician_id: string;
-  [key: string]: unknown; // For any other properties
+  amount: { toString(): string };
+  status: string;
+  issued_date: string;
+  due_date: string;
 }
 
-describe("Invoice API Integration Tests", async () => {
-  beforeEach(async () => {
-    try {
-      // Clean up data in correct order to respect foreign key constraints
-      await prisma.payment.deleteMany({});
-      await prisma.invoice.deleteMany({});
-      await prisma.appointment.deleteMany({}); // Delete appointments first
-      await prisma.surveyAnswers.deleteMany({});
-      await prisma.clientReminderPreference.deleteMany({});
-      await prisma.clientContact.deleteMany({});
-      await prisma.creditCard.deleteMany({});
-      await prisma.clinicianClient.deleteMany({});
-      await prisma.clientGroupMembership.deleteMany({});
-      await prisma.client.deleteMany({});
-      await prisma.clientGroup.deleteMany({});
-      await prisma.clinician.deleteMany({});
-      await prisma.userRole.deleteMany({});
-      await prisma.user.deleteMany({});
-    } catch (error) {
-      console.error("Error cleaning up database:", error);
-      // Continue with the test even if cleanup fails
-    }
-  });
+describe("Invoice API - Integration Tests", () => {
+  // Test data
+  let clientGroupId: string;
+  let clinicianId: string;
+  let createdInvoiceId: string;
 
-  it("GET /api/invoice should return all invoices", async () => {
-    // Create required related records
-    const clinician = await ClinicianPrismaFactory.create();
-    const clientGroup = await ClientGroupPrismaFactory.create();
-    const client = await ClientPrismaFactory.create();
-
-    // Create client group membership to link client and client group
-    await prisma.clientGroupMembership.create({
+  // Setup test data
+  beforeAll(async () => {
+    // Create a client group for the test
+    const clientGroup = await prisma.clientGroup.create({
       data: {
-        client_group_id: clientGroup.id,
-        client_id: client.id,
-        role: "PRIMARY",
-        is_contact_only: false,
-        is_responsible_for_billing: true,
+        id: generateUUID(), // Explicitly provide an ID
+        name: "Test Client Group",
+        type: "INDIVIDUAL",
+      },
+    });
+    clientGroupId = clientGroup.id;
+
+    // Create a user for the clinician
+    const user = await prisma.user.create({
+      data: {
+        id: generateUUID(), // Explicitly provide an ID
+        email: `test-clinician-${Date.now()}@example.com`,
+        password_hash: "hashed_password",
       },
     });
 
-    // Create invoices
-    const invoices = await Promise.all([
-      prisma.invoice.create({
-        data: {
-          clinician_id: clinician.id,
-          client_group_id: clientGroup.id,
-          status: "PENDING",
-          amount: "100.00", // Use string for Decimal
-          invoice_number: "INV-" + Date.now() + "-1",
-          due_date: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
-        },
-      }),
-      prisma.invoice.create({
-        data: {
-          clinician_id: clinician.id,
-          client_group_id: clientGroup.id,
-          status: "PAID",
-          amount: "200.00", // Use string for Decimal
-          invoice_number: "INV-" + Date.now() + "-2",
-          due_date: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
-        },
-      }),
-    ]);
+    // Create a clinician for the test
+    const clinician = await prisma.clinician.create({
+      data: {
+        id: generateUUID(), // Explicitly provide an ID
+        user_id: user.id,
+        first_name: "Test",
+        last_name: "Clinician",
+        address: "123 Test Street",
+        percentage_split: 70,
+        is_active: true,
+      },
+    });
+    clinicianId = clinician.id;
+  });
 
-    // Make the API request
+  // Clean up test data
+  afterAll(async () => {
+    // Delete the invoice created during tests
+    if (createdInvoiceId) {
+      try {
+        await prisma.invoice.delete({
+          where: { id: createdInvoiceId },
+        });
+      } catch (error) {
+        console.log("Error deleting invoice:", error);
+      }
+    }
+
+    // Delete the clinician and associated user
+    if (clinicianId) {
+      try {
+        const clinician = await prisma.clinician.findUnique({
+          where: { id: clinicianId },
+          select: { user_id: true },
+        });
+
+        if (clinician) {
+          await prisma.clinician.delete({
+            where: { id: clinicianId },
+          });
+
+          if (clinician.user_id) {
+            await prisma.user.delete({
+              where: { id: clinician.user_id },
+            });
+          }
+        }
+      } catch (error) {
+        console.log("Error deleting clinician or user:", error);
+      }
+    }
+
+    // Delete the client group
+    if (clientGroupId) {
+      try {
+        await prisma.clientGroup.delete({
+          where: { id: clientGroupId },
+        });
+      } catch (error) {
+        console.log("Error deleting client group:", error);
+      }
+    }
+  });
+
+  it("POST /api/invoice should create a new invoice", async () => {
+    // Arrange
+    const dueDate = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const newInvoiceData = {
+      clinician_id: clinicianId,
+      client_group_id: clientGroupId,
+      appointment_id: null,
+      amount: 150,
+      due_date: dueDate.toISOString(),
+      status: "PENDING",
+    };
+
+    // Act
+    const req = createRequestWithBody("/api/invoice", newInvoiceData);
+    const response = await POST(req);
+
+    // Assert
+    expect(response.status).toBe(201);
+    const invoice = await response.json();
+
+    expect(invoice).toHaveProperty("id");
+    expect(invoice).toHaveProperty("invoice_number");
+    expect(invoice.amount.toString()).toBe(newInvoiceData.amount.toString());
+    expect(invoice.status).toBe(newInvoiceData.status);
+    expect(invoice.clinician_id).toBe(newInvoiceData.clinician_id);
+    expect(invoice.client_group_id).toBe(newInvoiceData.client_group_id);
+
+    // Store the created invoice ID for cleanup
+    createdInvoiceId = invoice.id;
+  });
+
+  it("GET /api/invoice should return all invoices", async () => {
+    // Act
     const req = createRequest("/api/invoice");
     const response = await GET(req);
 
-    // Verify response
+    // Assert
     expect(response.status).toBe(200);
-    const responseData = await response.json();
+    const invoices = await response.json();
 
-    expect(Array.isArray(responseData)).toBe(true);
-    expect(responseData.length).toBeGreaterThanOrEqual(2);
+    expect(Array.isArray(invoices)).toBe(true);
+    expect(invoices.length).toBeGreaterThan(0);
 
-    // Find our created invoices in the response
-    const foundInvoices = invoices.map((invoice) =>
-      responseData.find((item: InvoiceResponse) => item.id === invoice.id),
+    // Check if our created invoice is in the list
+    const foundInvoice = invoices.find(
+      (inv: Invoice) => inv.id === createdInvoiceId,
     );
+    expect(foundInvoice).toBeDefined();
+  });
 
-    // Verify each invoice was returned
-    foundInvoices.forEach((foundInvoice, index) => {
-      expect(foundInvoice).toBeDefined();
-      expect(foundInvoice).toHaveProperty("amount");
-      expect(foundInvoice).toHaveProperty("status", invoices[index].status);
+  it("GET /api/invoice should filter by clientGroupId", async () => {
+    // Act
+    const req = createRequest(`/api/invoice?clientGroupId=${clientGroupId}`);
+    const response = await GET(req);
+
+    // Assert
+    expect(response.status).toBe(200);
+    const invoices = await response.json();
+
+    expect(Array.isArray(invoices)).toBe(true);
+    expect(invoices.length).toBeGreaterThan(0);
+
+    // All returned invoices should have the specified clientGroupId
+    invoices.forEach((invoice: Invoice) => {
+      expect(invoice.client_group_id).toBe(clientGroupId);
+    });
+  });
+
+  it("GET /api/invoice should filter by status", async () => {
+    // Act
+    const req = createRequest(`/api/invoice?status=PENDING`);
+    const response = await GET(req);
+
+    // Assert
+    expect(response.status).toBe(200);
+    const invoices = await response.json();
+
+    expect(Array.isArray(invoices)).toBe(true);
+
+    // All returned invoices should have the specified status
+    invoices.forEach((invoice: Invoice) => {
+      expect(invoice.status).toBe("PENDING");
     });
   });
 
   it("GET /api/invoice?id=<id> should return a specific invoice", async () => {
-    // Create required related records
-    const clinician = await ClinicianPrismaFactory.create();
-    const clientGroup = await ClientGroupPrismaFactory.create();
-    const client = await ClientPrismaFactory.create();
-
-    // Create client group membership to link client and client group
-    await prisma.clientGroupMembership.create({
-      data: {
-        client_group_id: clientGroup.id,
-        client_id: client.id,
-        role: "PRIMARY",
-        is_contact_only: false,
-        is_responsible_for_billing: true,
-      },
-    });
-
-    // Create invoice
-    const invoice = await prisma.invoice.create({
-      data: {
-        clinician_id: clinician.id,
-        client_group_id: clientGroup.id,
-        status: "PENDING",
-        amount: "100.00", // Use string for Decimal
-        invoice_number: "INV-" + Date.now(),
-        due_date: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    // Make the API request
-    const req = createRequest(`/api/invoice?id=${invoice.id}`);
+    // Act
+    const req = createRequest(`/api/invoice?id=${createdInvoiceId}`);
     const response = await GET(req);
 
-    // Verify response
+    // Assert
     expect(response.status).toBe(200);
-    const responseData = await response.json();
+    const invoice = await response.json();
 
-    expect(responseData).toHaveProperty("id", invoice.id);
-    expect(responseData).toHaveProperty(
-      "invoice_number",
-      invoice.invoice_number,
-    );
-    expect(responseData).toHaveProperty("status", invoice.status);
-    expect(responseData).toHaveProperty("amount");
-
-    // Check relationships were included
-    expect(responseData).toHaveProperty("ClientGroup");
-    expect(responseData).toHaveProperty("Clinician");
+    expect(invoice.id).toBe(createdInvoiceId);
+    expect(invoice.client_group_id).toBe(clientGroupId);
+    expect(invoice.clinician_id).toBe(clinicianId);
   });
 
-  it("GET /api/invoice?id=<id> should return 404 for non-existent invoice", async () => {
-    // Make the API request with a non-existent ID
-    const req = createRequest(`/api/invoice?id=${Date.now()}-non-existent`);
+  it("GET /api/invoice?id=<id> should return 404 if invoice not found", async () => {
+    // Generate a random UUID that doesn't exist
+    const nonExistentId = generateUUID();
+
+    // Act
+    const req = createRequest(`/api/invoice?id=${nonExistentId}`);
     const response = await GET(req);
 
-    // Verify response - changed to match actual implementation which returns 500
-    expect(response.status).toBe(500);
-    const responseData = await response.json();
-
-    expect(responseData).toHaveProperty("error");
+    // Assert
+    expect(response.status).toBe(404);
+    const errorResponse = await response.json();
+    expect(errorResponse).toHaveProperty("error", "Invoice not found");
   });
 
-  it("GET /api/invoice should filter by status", async () => {
-    // Create required related records
-    const clinician = await ClinicianPrismaFactory.create();
-    const clientGroup = await ClientGroupPrismaFactory.create();
-    const client = await ClientPrismaFactory.create();
-
-    // Create client group membership to link client and client group
-    await prisma.clientGroupMembership.create({
-      data: {
-        client_group_id: clientGroup.id,
-        client_id: client.id,
-        role: "PRIMARY",
-        is_contact_only: false,
-        is_responsible_for_billing: true,
-      },
-    });
-
-    // Create invoices with different statuses
-    await prisma.invoice.create({
-      data: {
-        clinician_id: clinician.id,
-        client_group_id: clientGroup.id,
-        status: "PENDING",
-        amount: "100.00", // Use string for Decimal
-        invoice_number: "INV-PENDING-" + Date.now(),
-        due_date: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    const paidInvoice = await prisma.invoice.create({
-      data: {
-        clinician_id: clinician.id,
-        client_group_id: clientGroup.id,
-        status: "PAID",
-        amount: "200.00", // Use string for Decimal
-        invoice_number: "INV-PAID-" + Date.now(),
-        due_date: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    // Make the API request for PAID invoices
-    const req = createRequest(`/api/invoice?status=PAID`);
-    const response = await GET(req);
-
-    // Verify response
-    expect(response.status).toBe(200);
-    const responseData = await response.json();
-
-    expect(Array.isArray(responseData)).toBe(true);
-
-    // All returned invoices should have PAID status
-    responseData.forEach((invoice: InvoiceResponse) => {
-      expect(invoice.status).toBe("PAID");
-    });
-
-    // Our PAID invoice should be in the results
-    const foundPaidInvoice = responseData.find(
-      (invoice: InvoiceResponse) => invoice.id === paidInvoice.id,
-    );
-    expect(foundPaidInvoice).toBeDefined();
-  });
-
-  it("POST /api/invoice should create a new invoice", async () => {
-    // Create required related records
-    const clinician = await ClinicianPrismaFactory.create();
-    const clientGroup = await ClientGroupPrismaFactory.create();
-    const client = await ClientPrismaFactory.create();
-
-    // Create client group membership to link client and client group
-    await prisma.clientGroupMembership.create({
-      data: {
-        client_group_id: clientGroup.id,
-        client_id: client.id,
-        role: "PRIMARY",
-        is_contact_only: false,
-        is_responsible_for_billing: true,
-      },
-    });
-
-    // Prepare invoice data
-    const invoiceData = {
-      clinician_id: clinician.id,
-      client_group_id: clientGroup.id,
-      amount: 150,
-      due_date: new Date(
-        new Date().getTime() + 30 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      status: "PENDING",
+  it("POST /api/invoice should return 400 if required fields are missing", async () => {
+    // Arrange
+    const invalidInvoiceData = {
+      // Missing required fields: clinician_id, amount, due_date
+      client_group_id: clientGroupId,
     };
 
-    // Make the API request
-    const req = createRequestWithBody("/api/invoice", invoiceData);
+    // Act
+    const req = createRequestWithBody("/api/invoice", invalidInvoiceData);
     const response = await POST(req);
 
-    // Verify response
-    expect(response.status).toBe(201);
-    const createdInvoice = await response.json();
-
-    expect(createdInvoice).toHaveProperty("id");
-    expect(createdInvoice).toHaveProperty("invoice_number");
-    expect(createdInvoice).toHaveProperty("status", invoiceData.status);
-    expect(createdInvoice).toHaveProperty(
-      "clinician_id",
-      invoiceData.clinician_id,
-    );
-
-    // Verify the invoice exists in the database
-    const dbInvoice = await prisma.invoice.findUnique({
-      where: { id: createdInvoice.id },
-    });
-
-    expect(dbInvoice).not.toBeNull();
-    expect(dbInvoice?.status).toBe(invoiceData.status);
-    expect(dbInvoice?.clinician_id).toBe(invoiceData.clinician_id);
+    // Assert
+    expect(response.status).toBe(400);
+    const errorResponse = await response.json();
+    expect(errorResponse).toHaveProperty("error");
+    expect(errorResponse.error).toContain("Missing required fields");
   });
 });

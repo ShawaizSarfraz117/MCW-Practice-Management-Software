@@ -30,7 +30,7 @@ export async function getClinicianInfo() {
       })
     : null;
 
-  const clinicianId = clinician?.id || null;
+  const clinicianId = clinician?.id ?? null;
 
   return { isClinician, clinicianId };
 }
