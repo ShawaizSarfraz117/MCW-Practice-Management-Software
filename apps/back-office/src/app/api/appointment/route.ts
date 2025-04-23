@@ -501,10 +501,10 @@ export async function PUT(request: NextRequest) {
       end_date: new Date(data.end_date),
       location_id: data.location_id,
       status: data.status || existingAppointment.status,
-      client_id:
-        data.client_id === null
+      client_group_id:
+        data.client_group_id === null
           ? null
-          : data.client_id || existingAppointment.client_id,
+          : data.client_group_id || existingAppointment.client_group_id,
       clinician_id: data.clinician_id || existingAppointment.clinician_id,
       is_recurring: data.is_recurring ?? existingAppointment.is_recurring,
       recurring_rule:
@@ -571,12 +571,11 @@ export async function PUT(request: NextRequest) {
               where: { id: data.id },
               data: updateData,
               include: {
-                Client: {
+                ClientGroup: {
                   select: {
                     id: true,
-                    legal_first_name: true,
-                    legal_last_name: true,
-                    preferred_name: true,
+                    name: true,
+                    type: true,
                   },
                 },
                 Clinician: {
@@ -614,12 +613,11 @@ export async function PUT(request: NextRequest) {
           where: { id: data.id },
           data: updateData,
           include: {
-            Client: {
+            ClientGroup: {
               select: {
                 id: true,
-                legal_first_name: true,
-                legal_last_name: true,
-                preferred_name: true,
+                name: true,
+                type: true,
               },
             },
             Clinician: {
@@ -657,12 +655,11 @@ export async function PUT(request: NextRequest) {
             where: { id: data.id },
             data: updateData,
             include: {
-              Client: {
+              ClientGroup: {
                 select: {
                   id: true,
-                  legal_first_name: true,
-                  legal_last_name: true,
-                  preferred_name: true,
+                  name: true,
+                  type: true,
                 },
               },
               Clinician: {
@@ -694,7 +691,7 @@ export async function PUT(request: NextRequest) {
               is_all_day: updateData.is_all_day,
               location_id: updateData.location_id,
               status: updateData.status,
-              client_id: updateData.client_id,
+              client_group_id: updateData.client_group_id,
               clinician_id: updateData.clinician_id,
               service_id: updateData.service_id,
               appointment_fee: updateData.appointment_fee,
@@ -733,7 +730,7 @@ export async function PUT(request: NextRequest) {
                 is_all_day: updateData.is_all_day,
                 location_id: updateData.location_id,
                 status: updateData.status,
-                client_id: updateData.client_id,
+                client_group_id: updateData.client_group_id,
                 clinician_id: updateData.clinician_id,
                 service_id: updateData.service_id,
                 appointment_fee: updateData.appointment_fee,
@@ -768,7 +765,7 @@ export async function PUT(request: NextRequest) {
                 is_all_day: updateData.is_all_day,
                 location_id: updateData.location_id,
                 status: updateData.status,
-                client_id: updateData.client_id,
+                client_group_id: updateData.client_group_id,
                 clinician_id: updateData.clinician_id,
                 service_id: updateData.service_id,
                 appointment_fee: updateData.appointment_fee,
@@ -788,12 +785,11 @@ export async function PUT(request: NextRequest) {
             where: { id: data.id },
             data: updateData,
             include: {
-              Client: {
+              ClientGroup: {
                 select: {
                   id: true,
-                  legal_first_name: true,
-                  legal_last_name: true,
-                  preferred_name: true,
+                  name: true,
+                  type: true,
                 },
               },
               Clinician: {
@@ -826,7 +822,7 @@ export async function PUT(request: NextRequest) {
               is_all_day: updateData.is_all_day,
               location_id: updateData.location_id,
               status: updateData.status,
-              client_id: updateData.client_id,
+              client_group_id: updateData.client_group_id,
               clinician_id: updateData.clinician_id,
               service_id: updateData.service_id,
               appointment_fee: updateData.appointment_fee,
