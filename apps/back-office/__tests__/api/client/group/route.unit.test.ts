@@ -60,11 +60,13 @@ describe("Client Group API Unit Tests", () => {
     const group1 = mockClientGroup({
       id: generateUUID(),
       name: "Family Group",
+      is_active: true,
       type: "FAMILY",
     });
     const group2 = mockClientGroup({
       id: generateUUID(),
       name: "Corporate Group",
+      is_active: true,
       type: "ORGANIZATION",
       clinician_id: generateUUID(),
     });
