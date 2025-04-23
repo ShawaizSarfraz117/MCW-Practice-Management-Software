@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@mcw/ui";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useState } from "react";
 
@@ -22,23 +22,18 @@ interface EditClinicianSidebarProps {
     taxonomy_code: string;
     NPI_number: number;
   };
-  setClinicalInfoState: (clinicalInfoState: {
-    speciality: string;
-    taxonomy_code: string;
-    NPI_number: number;
-  }) => void;
 }
 
 export default function EditClinicianSidebar({
   isOpen,
   onClose,
   clinicalInfoState: defaultClinicalInfoState,
-  setClinicalInfoState: defaultSetClinicalInfoState,
 }: EditClinicianSidebarProps) {
+  const queryClient = useQueryClient();
   const [clinicalInfoState, setClinicalInfoState] = useState({
-    speciality: defaultClinicalInfoState.speciality,
-    taxonomy_code: defaultClinicalInfoState.taxonomy_code,
-    NPI_number: defaultClinicalInfoState.NPI_number,
+    speciality: defaultClinicalInfoState?.speciality,
+    taxonomy_code: defaultClinicalInfoState?.taxonomy_code,
+    NPI_number: defaultClinicalInfoState?.NPI_number,
   });
 
   // Function to update clinical info
@@ -66,8 +61,8 @@ export default function EditClinicianSidebar({
     mutationFn: updateClinicalInfo,
     onSuccess: () => {
       // Optionally handle success (e.g., show a success message)
+      queryClient.refetchQueries({ queryKey: ["clinicalInfo"] });
       console.log("Clinical information updated successfully");
-      defaultSetClinicalInfoState(clinicalInfoState);
       onClose(); // Close the sidebar after successful update
     },
     onError: (error) => {

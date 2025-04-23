@@ -11,8 +11,8 @@ import {
 import { prisma } from "@mcw/database";
 import { GET, PUT } from "@/api/profile/route";
 import { UserPrismaFactory } from "@mcw/database/mock-data";
-import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
+import { createRequestWithBody } from "@mcw/utils";
 
 // Mock next-auth
 vi.mock("next-auth", () => ({
@@ -26,7 +26,6 @@ describe("Profile API Integration Tests", () => {
     // Create a test user before all tests
     const user = await UserPrismaFactory.create();
     userId = user.id;
-    console.log("userId", userId);
   });
 
   afterAll(async () => {
@@ -62,8 +61,6 @@ describe("Profile API Integration Tests", () => {
     // Step 4: Validate
     expect(response.status).toBe(200);
     const json = await response.json();
-    console.log("json", json);
-    console.log("mock", mockUser);
 
     // Step 5: Compare actual response to the user created
     expect(json).toMatchObject({
@@ -111,11 +108,10 @@ describe("Profile API Integration Tests", () => {
     const originalUpdate = prisma.user.update;
     prisma.user.update = vi.fn().mockResolvedValueOnce(updatedUser);
 
-    const request = new NextRequest(new URL("http://localhost/api/profile"), {
-      method: "PUT",
-      body: JSON.stringify(updateData),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody(
+      "/api/profile",
+      updateData as unknown as Record<string, unknown>,
+    );
 
     const response = await PUT(request);
 
@@ -139,11 +135,10 @@ describe("Profile API Integration Tests", () => {
     // Mock the session as null to simulate an invalid session
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
 
-    const request = new NextRequest(new URL("http://localhost/api/profile"), {
-      method: "PUT",
-      body: JSON.stringify({}),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody(
+      "/api/profile",
+      {} as unknown as Record<string, unknown>,
+    );
 
     const response = await PUT(request);
     expect(response.status).toBe(401);
@@ -155,15 +150,11 @@ describe("Profile API Integration Tests", () => {
       new Error("Database error"),
     );
 
-    const request = new NextRequest(new URL("http://localhost/api/profile"), {
-      method: "PUT",
-      body: JSON.stringify({
-        birth_date: "1990-01-01",
-        phone: "+1234567890",
-        profile_photo: "https://example.com/photo.jpg",
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody("/api/profile", {
+      birth_date: "1990-01-01",
+      phone: "+1234567890",
+      profile_photo: "https://example.com/photo.jpg",
+    } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
     expect(response.status).toBe(500);

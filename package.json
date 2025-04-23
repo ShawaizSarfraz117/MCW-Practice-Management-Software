@@ -63,16 +63,6 @@
   },
   "packageManager": "npm@10.9.0",
   "dependencies": {
-    "@fullcalendar/core": "^6.1.17",
-    "@fullcalendar/daygrid": "^6.1.17",
-    "@fullcalendar/interaction": "^6.1.17",
-    "@fullcalendar/react": "^6.1.17",
-    "@fullcalendar/resource": "^6.1.17",
-    "@fullcalendar/resource-daygrid": "^6.1.17",
-    "@fullcalendar/resource-timegrid": "^6.1.17",
-    "@fullcalendar/timegrid": "^6.1.17",
-    "@prisma/client": "^6.5.0",
-    "@testing-library/dom": "^10.4.0",
-    "react-dropzone": "^14.3.8"
+    "@prisma/client": "^6.5.0"
   }
 }

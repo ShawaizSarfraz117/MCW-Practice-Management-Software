@@ -12,7 +12,7 @@ import { GET, PUT } from "@/api/profile/route";
 import { prisma } from "@mcw/database";
 import { UserFactory } from "@mcw/database/mock-data";
 import { getServerSession } from "next-auth";
-import { NextRequest } from "next/server";
+import { createRequestWithBody } from "@mcw/utils";
 
 // 🔁 Mock next-auth
 vi.mock("next-auth", () => ({
@@ -103,11 +103,10 @@ describe("PUT /api/profile", () => {
 
     vi.mocked(prisma.user.update).mockResolvedValueOnce(mockUser);
 
-    const request = new NextRequest(new URL("http://localhost/api/profile"), {
-      method: "PUT",
-      body: JSON.stringify(updateData),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody(
+      "/api/profile",
+      updateData as unknown as Record<string, unknown>,
+    );
 
     const response = await PUT(request);
 
@@ -126,11 +125,10 @@ describe("PUT /api/profile", () => {
   it("should return 401 if session is missing", async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
 
-    const request = new NextRequest(new URL("http://localhost/api/profile"), {
-      method: "PUT",
-      body: JSON.stringify({}),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody(
+      "/api/profile",
+      {} as unknown as Record<string, unknown>,
+    );
 
     const response = await PUT(request);
     expect(response.status).toBe(401);
@@ -142,15 +140,11 @@ describe("PUT /api/profile", () => {
     >;
     mockUpdate?.mockRejectedValueOnce(new Error("DB error"));
 
-    const request = new NextRequest(new URL("http://localhost/api/profile"), {
-      method: "PUT",
-      body: JSON.stringify({
-        birth_date: "1990-01-01",
-        phone: "+1234567890",
-        profile_photo: "https://example.com/photo.jpg",
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody("/api/profile", {
+      birth_date: "1990-01-01",
+      phone: "+1234567890",
+      profile_photo: "https://example.com/photo.jpg",
+    } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
     expect(response.status).toBe(500);

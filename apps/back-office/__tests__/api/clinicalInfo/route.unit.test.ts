@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, PUT } from "@/api/clinicalInfo/route"; // Adjust the import path as necessary
 import { prisma } from "@mcw/database";
 import { getServerSession } from "next-auth";
-import { NextRequest } from "next/server";
+import { createRequestWithBody } from "@mcw/utils";
 
 // 🔁 Mock next-auth
 vi.mock("next-auth", () => ({
@@ -125,13 +125,9 @@ describe("PUT /api/clinicalInfo", () => {
     >;
     mockUpdate.mockResolvedValueOnce({ count: 1 });
 
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinicalInfo"),
-      {
-        method: "PUT",
-        body: JSON.stringify(updateData),
-        headers: { "Content-Type": "application/json" },
-      },
+    const request = createRequestWithBody(
+      "/api/clinicalInfo",
+      updateData as unknown as Record<string, unknown>,
     );
 
     const response = await PUT(request);
@@ -153,14 +149,9 @@ describe("PUT /api/clinicalInfo", () => {
       typeof vi.fn
     >;
     mockCreate.mockResolvedValueOnce(createResponseMock);
-
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinicalInfo"),
-      {
-        method: "PUT",
-        body: JSON.stringify(updateData),
-        headers: { "Content-Type": "application/json" },
-      },
+    const request = createRequestWithBody(
+      "/api/clinicalInfo",
+      updateData as unknown as Record<string, unknown>,
     );
 
     const response = await PUT(request);
@@ -172,13 +163,9 @@ describe("PUT /api/clinicalInfo", () => {
   it("should return 401 if session is missing", async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
 
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinicalInfo"),
-      {
-        method: "PUT",
-        body: JSON.stringify({}),
-        headers: { "Content-Type": "application/json" },
-      },
+    const request = createRequestWithBody(
+      "/api/clinicalInfo",
+      {} as unknown as Record<string, unknown>,
     );
 
     const response = await PUT(request);
@@ -191,17 +178,9 @@ describe("PUT /api/clinicalInfo", () => {
     >;
     mockUpdate.mockRejectedValueOnce(new Error("DB error"));
 
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinicalInfo"),
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          speciality: "Behavioral health therapy",
-          taxonomyCode: "101YM0800X",
-          NPInumber: 1234567890,
-        }),
-        headers: { "Content-Type": "application/json" },
-      },
+    const request = createRequestWithBody(
+      "/api/clinicalInfo",
+      updateData as unknown as Record<string, unknown>,
     );
 
     const response = await PUT(request);
@@ -217,13 +196,9 @@ describe("PUT /api/clinicalInfo", () => {
       NPInumber: "not-a-number",
     };
 
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinicalInfo"),
-      {
-        method: "PUT",
-        body: JSON.stringify(invalidData),
-        headers: { "Content-Type": "application/json" },
-      },
+    const request = createRequestWithBody(
+      "/api/clinicalInfo",
+      invalidData as unknown as Record<string, unknown>,
     );
 
     const response = await PUT(request);

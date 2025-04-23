@@ -12,7 +12,7 @@ import { prisma } from "@mcw/database";
 import { GET, POST } from "@/api/license/route";
 import { UserPrismaFactory } from "@mcw/database/mock-data";
 import { getServerSession } from "next-auth";
-import { NextRequest } from "next/server";
+import { createRequestWithBody } from "@mcw/utils";
 
 // Mock next-auth
 vi.mock("next-auth", () => ({
@@ -111,12 +111,10 @@ describe("License API Integration Tests", () => {
       },
     ];
 
-    const request = new NextRequest(new URL("http://localhost/api/license"), {
-      method: "POST",
-      body: JSON.stringify(payload),
-      headers: { "Content-Type": "application/json" },
-    });
-
+    const request = createRequestWithBody(
+      "/api/license",
+      payload as unknown as Record<string, unknown>,
+    );
     const response = await POST(request);
 
     expect(response.status).toBe(200);
@@ -130,12 +128,7 @@ describe("License API Integration Tests", () => {
   });
 
   it("POST /api/license should return 422 for invalid payload", async () => {
-    const request = new NextRequest(new URL("http://localhost/api/license"), {
-      method: "POST",
-      body: JSON.stringify({ not: "an array" }),
-      headers: { "Content-Type": "application/json" },
-    });
-
+    const request = createRequestWithBody("/api/license", { not: "an array" });
     const response = await POST(request);
     expect(response.status).toBe(422);
   });
@@ -146,18 +139,14 @@ describe("License API Integration Tests", () => {
       user: { id: user.id },
     });
 
-    const request = new NextRequest(new URL("http://localhost/api/license"), {
-      method: "POST",
-      body: JSON.stringify([
-        {
-          license_type: "NP",
-          license_number: "NP123",
-          expiration_date: "2032-01-01",
-          state: "TX",
-        },
-      ]),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody("/api/license", [
+      {
+        license_type: "NP",
+        license_number: "NP123",
+        expiration_date: "2032-01-01",
+        state: "TX",
+      },
+    ] as unknown as Record<string, unknown>);
 
     const response = await POST(request);
     expect(response.status).toBe(404);
@@ -166,11 +155,10 @@ describe("License API Integration Tests", () => {
   it("POST /api/license should return 401 if not authenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
 
-    const request = new NextRequest(new URL("http://localhost/api/license"), {
-      method: "POST",
-      body: JSON.stringify([]),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody(
+      "/api/license",
+      [] as unknown as Record<string, unknown>,
+    );
 
     const response = await POST(request);
     expect(response.status).toBe(401);
@@ -181,18 +169,14 @@ describe("License API Integration Tests", () => {
       new Error("DB Error"),
     );
 
-    const request = new NextRequest(new URL("http://localhost/api/license"), {
-      method: "POST",
-      body: JSON.stringify([
-        {
-          license_type: "MD",
-          license_number: "123456",
-          expiration_date: "2030-01-01",
-          state: "CA",
-        },
-      ]),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody("/api/license", [
+      {
+        license_type: "MD",
+        license_number: "123456",
+        expiration_date: "2030-01-01",
+        state: "CA",
+      },
+    ] as unknown as Record<string, unknown>);
 
     const response = await POST(request);
     expect(response.status).toBe(500);

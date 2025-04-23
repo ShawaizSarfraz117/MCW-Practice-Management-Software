@@ -15,7 +15,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, POST } from "@/api/license/route"; // Adjust the import path as necessary
 import { prisma } from "@mcw/database";
 import { getServerSession } from "next-auth";
-import { NextRequest } from "next/server";
+import { createRequestWithBody } from "@mcw/utils";
+// import { NextRequest } from "next/server";
 
 // 🔁 Mock next-auth
 vi.mock("next-auth", () => ({
@@ -160,11 +161,10 @@ describe("POST /api/licenses", () => {
       ...createData[1],
     });
 
-    const request = new NextRequest(new URL("http://localhost/api/licenses"), {
-      method: "POST",
-      body: JSON.stringify(createData),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody(
+      "/api/license",
+      createData as unknown as Record<string, unknown>,
+    );
 
     const response = await POST(request);
 
@@ -184,11 +184,10 @@ describe("POST /api/licenses", () => {
   it("should return 401 if session is missing", async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
 
-    const request = new NextRequest(new URL("http://localhost/api/licenses"), {
-      method: "POST",
-      body: JSON.stringify({}),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody(
+      "/api/license",
+      {} as unknown as Record<string, unknown>,
+    );
 
     const response = await POST(request);
     expect(response.status).toBe(401);
@@ -200,30 +199,23 @@ describe("POST /api/licenses", () => {
     >;
     mockCreate.mockRejectedValueOnce(new Error("DB error"));
 
-    const request = new NextRequest(new URL("http://localhost/api/licenses"), {
-      method: "POST",
-      body: JSON.stringify([
-        {
-          license_type: "Medical",
-          license_number: "1234567890",
-          expiration_date: "2025-12-31",
-          state: "Active",
-        },
-      ]),
-      headers: { "Content-Type": "application/json" },
-    });
+    const request = createRequestWithBody("/api/license", [
+      {
+        license_type: "Medical",
+        license_number: "1234567890",
+        expiration_date: "2025-12-31",
+        state: "Active",
+      },
+    ] as unknown as Record<string, unknown>);
 
     const response = await POST(request);
     expect(response.status).toBe(500);
   });
   it("should return 422 for invalid license data", async () => {
-    const request = new NextRequest(new URL("http://localhost/api/licenses"), {
-      method: "POST",
-      // Invalid data: empty array
-      body: JSON.stringify([]),
-      headers: { "Content-Type": "application/json" },
-    });
-
+    const request = createRequestWithBody(
+      "/api/license",
+      [] as unknown as Record<string, unknown>,
+    );
     const response = await POST(request);
     expect(response.status).toBe(422);
     const json = await response.json();

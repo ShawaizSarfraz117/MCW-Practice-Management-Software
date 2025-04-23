@@ -11,8 +11,8 @@ import {
 import { prisma } from "@mcw/database";
 import { GET, PUT } from "@/api/clinicalInfo/route"; // <-- adjust to correct path
 import { UserPrismaFactory } from "@mcw/database/mock-data";
-import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
+import { createRequestWithBody } from "@mcw/utils";
 
 // Mock next-auth
 vi.mock("next-auth", () => ({
@@ -79,18 +79,11 @@ describe("Clinical Info API Integration Tests", () => {
   it("PUT /api/clinical-info should create new clinical info if not exists", async () => {
     await prisma.clinicalInfo.deleteMany({ where: { user_id: userId } });
 
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinical-info"),
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          speciality: "Dermatology",
-          taxonomyCode: "207N00000X",
-          NPInumber: 9876543210,
-        }),
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    const request = createRequestWithBody("/api/clinical-info", {
+      speciality: "Dermatology",
+      taxonomyCode: "207N00000X",
+      NPInumber: 9876543210,
+    } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
 
@@ -107,36 +100,22 @@ describe("Clinical Info API Integration Tests", () => {
   it("PUT /api/clinical-info should return 401 if session is missing", async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
 
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinical-info"),
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          speciality: "Oncology",
-          taxonomyCode: "207R00000X",
-          NPInumber: 1002003004,
-        }),
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    const request = createRequestWithBody("/api/clinical-info", {
+      speciality: "Oncology",
+      taxonomyCode: "207R00000X",
+      NPInumber: 1002003004,
+    } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
     expect(response.status).toBe(401);
   });
 
   it("PUT /api/clinical-info should return 422 for invalid payload", async () => {
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinical-info"),
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          speciality: "A".repeat(101), // Invalid: exceeds max length
-          taxonomyCode: "123",
-          NPInumber: "invalid-npi", // Should be number
-        }),
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    const request = createRequestWithBody("/api/clinical-info", {
+      speciality: "A".repeat(101), // Invalid: exceeds max length
+      taxonomyCode: "123",
+      NPInumber: "invalid-npi", // Should be number
+    } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
     expect(response.status).toBe(422);
@@ -146,19 +125,11 @@ describe("Clinical Info API Integration Tests", () => {
     vi.spyOn(prisma.clinicalInfo, "findFirst").mockRejectedValueOnce(
       new Error("DB fail"),
     );
-
-    const request = new NextRequest(
-      new URL("http://localhost/api/clinical-info"),
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          speciality: "Pediatrics",
-          taxonomyCode: "208000000X",
-          NPInumber: 1003004005,
-        }),
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    const request = createRequestWithBody("/api/clinical-info", {
+      speciality: "Pediatrics",
+      taxonomyCode: "208000000X",
+      NPInumber: 1003004005,
+    } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
     expect(response.status).toBe(500);

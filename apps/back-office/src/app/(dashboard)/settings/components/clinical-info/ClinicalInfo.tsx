@@ -1,45 +1,17 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import EditClinicianSidebar from "./EditClinicianSidebar";
 import AddLicenseSidebar, { LicenseInfo } from "./AddLicenseSidebar";
-import { useQuery } from "@tanstack/react-query";
 import { Button, Input, Label } from "@mcw/ui";
+import { useClinicalInfo, useLicenses } from "./hooks/useClinicalInfo";
+import { PlusIcon } from "lucide-react";
 
 export default function ClinicalInfo() {
+  const clinicalInfo = useClinicalInfo();
+  const licenses = useLicenses();
+
   const [isEditSidebarOpen, setIsEditSidebarOpen] = useState(false);
   const [isAddLicenseSidebarOpen, setIsAddLicenseSidebarOpen] = useState(false);
-  const [licenseState, setLicenseState] = useState<LicenseInfo[]>([]);
-
-  const { data: clinicalInfo } = useQuery({
-    queryKey: ["clinicalInfo"],
-    queryFn: () => fetch("/api/clinicalInfo").then((res) => res.json()),
-  });
-  const { data: licenses } = useQuery({
-    queryKey: ["license"],
-    queryFn: () => fetch("/api/license").then((res) => res.json()),
-  });
-  const [clinicalInfoState, setClinicalInfoState] = useState({
-    speciality: "N/A",
-    taxonomy_code: "N/A",
-    NPI_number: 0,
-  });
-
-  useEffect(() => {
-    if (clinicalInfo) {
-      setClinicalInfoState({
-        speciality: clinicalInfo.speciality,
-        taxonomy_code: clinicalInfo.taxonomy_code,
-        NPI_number: clinicalInfo.NPI_number,
-      });
-    }
-  }, [clinicalInfo]);
-
-  useEffect(() => {
-    if (licenses) {
-      setLicenseState(licenses);
-    }
-  }, [licenses]);
 
   return (
     <div className="relative w-full">
@@ -66,7 +38,7 @@ export default function ClinicalInfo() {
                 Specialty
               </Label>
               <div className="text-sm text-gray-800">
-                {clinicalInfoState.speciality}
+                {clinicalInfo?.speciality}
               </div>
             </div>
             <div>
@@ -74,7 +46,7 @@ export default function ClinicalInfo() {
                 Taxonomy code
               </Label>
               <div className="text-sm text-gray-800">
-                {clinicalInfoState.taxonomy_code}
+                {clinicalInfo?.taxonomy_code}
               </div>
             </div>
             <div className="col-span-2">
@@ -86,7 +58,7 @@ export default function ClinicalInfo() {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter NPI number"
                 type="text"
-                value={clinicalInfoState.NPI_number}
+                value={clinicalInfo?.NPI_number}
               />
             </div>
           </div>
@@ -102,7 +74,7 @@ export default function ClinicalInfo() {
               Add license type, number, expiration date, and state
             </p>
           </div>
-          {licenseState.length > 0 ? (
+          {licenses?.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -135,7 +107,7 @@ export default function ClinicalInfo() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {/* Dynamically generated rows for licenses */}
-                  {licenseState.map((license) => (
+                  {licenses?.map((license: LicenseInfo) => (
                     <tr key={license.license_number}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
@@ -172,22 +144,19 @@ export default function ClinicalInfo() {
             variant="outline"
             onClick={() => setIsAddLicenseSidebarOpen(true)}
           >
-            + Add license
+            <PlusIcon className="w-4 h-4 mr-2" /> Add license
           </Button>
         </div>
       </div>
 
       {/* Sidebars */}
       <EditClinicianSidebar
-        clinicalInfoState={clinicalInfoState}
+        clinicalInfoState={clinicalInfo}
         isOpen={isEditSidebarOpen}
-        setClinicalInfoState={setClinicalInfoState}
         onClose={() => setIsEditSidebarOpen(false)}
       />
       <AddLicenseSidebar
         isOpen={isAddLicenseSidebarOpen}
-        licenseState={licenseState}
-        setLicenseState={setLicenseState}
         onClose={() => setIsAddLicenseSidebarOpen(false)}
       />
 

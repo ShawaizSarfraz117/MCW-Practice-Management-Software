@@ -4,6 +4,7 @@ import { ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useForm, Input } from "@mcw/ui";
+import { useProfile } from "./hooks/useProfile";
 
 const ProfileInfo = ({
   isEditing,
@@ -13,6 +14,7 @@ const ProfileInfo = ({
   form: ReturnType<typeof useForm>;
 }) => {
   const { data: session } = useSession();
+  const { data: profileInfo } = useProfile();
 
   return (
     <>
@@ -33,10 +35,8 @@ const ProfileInfo = ({
             })
           ) : (
             <span className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm text-gray-700">
-              {form.getFieldValue("dateOfBirth")
-                ? new Date(
-                    form.getFieldValue("dateOfBirth") as string,
-                  ).toLocaleDateString()
+              {profileInfo?.date_of_birth
+                ? new Date(profileInfo.date_of_birth).toLocaleDateString()
                 : "NOT SET"}
             </span>
           )}
@@ -87,7 +87,7 @@ const ProfileInfo = ({
                 })
               ) : (
                 <span className="text-right block">
-                  {(form.getFieldValue("phone") as string) || "Not set"}
+                  {profileInfo?.phone || "Not set"}
                 </span>
               )}
             </div>

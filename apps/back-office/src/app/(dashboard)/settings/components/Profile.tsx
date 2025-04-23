@@ -2,11 +2,10 @@
 
 import { z } from "zod";
 import { useForm } from "@mcw/ui";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import ProfileHeader from "./profile/ProfileHeader";
 import ProfileInfo from "./profile/ProfileInfo";
 import ProfilePhoto from "./profile/ProfilePhoto";
-import { useProfile } from "./profile/hooks/useProfile";
 import { toast } from "sonner";
 
 export const profileSchema = z.object({
@@ -30,7 +29,6 @@ export type ProfileFormData = {
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
-  const { data } = useProfile();
 
   const form = useForm({
     onSubmit: async ({ value }: { value: ProfileFormData }) => {
@@ -69,14 +67,6 @@ export default function Profile() {
       }
     },
   });
-
-  useEffect(() => {
-    if (data) {
-      form.setFieldValue("dateOfBirth", data.date_of_birth);
-      form.setFieldValue("phone", data.phone);
-      form.setFieldValue("profilePhoto", data.profile_photo);
-    }
-  }, [data, form]);
 
   const { handleSubmit } = form;
 

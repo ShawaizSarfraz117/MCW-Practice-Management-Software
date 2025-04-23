@@ -1,8 +1,9 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, PlusIcon } from "lucide-react";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
 import {
   Button,
   Input,
@@ -12,13 +13,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  useToast,
 } from "@mcw/ui";
 
 interface AddLicenseSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  setLicenseState: (licenses: LicenseInfo[]) => void; // Change here
-  licenseState: LicenseInfo[];
 }
 
 export interface LicenseInfo {
@@ -31,9 +31,9 @@ export interface LicenseInfo {
 export default function AddLicenseSidebar({
   isOpen,
   onClose,
-  setLicenseState,
-  licenseState,
 }: AddLicenseSidebarProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [licenses, setLicenses] = useState<LicenseInfo[]>([
     { license_type: "", license_number: "", expiration_date: "", state: "" },
   ]);
@@ -78,8 +78,12 @@ export default function AddLicenseSidebar({
       return response.json();
     },
     onSuccess: () => {
-      console.log("Licenses saved successfully");
-      setLicenseState([...licenseState, ...licenses]);
+      queryClient.refetchQueries({ queryKey: ["license"] });
+      toast({
+        title: "Licenses saved successfully",
+        description: "Licenses have been saved successfully",
+        variant: "success",
+      });
       onClose(); // Close the sidebar after successful save
     },
     onError: (error: Error) => {
@@ -113,7 +117,7 @@ export default function AddLicenseSidebar({
         {/* Sidebar Content */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-4">
-            {licenses.map((license, index) => (
+            {licenses?.map((license, index) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="block text-sm font-medium text-gray-700 mb-1">
@@ -197,7 +201,7 @@ export default function AddLicenseSidebar({
               variant="outline"
               onClick={handleAddLicense}
             >
-              + Add another license
+              <PlusIcon className="w-4 h-4 mr-2" /> Add another license
             </Button>
           </div>
         </div>
