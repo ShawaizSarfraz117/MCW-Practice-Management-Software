@@ -1,0 +1,23 @@
+BEGIN TRY
+
+BEGIN TRAN;
+
+-- AlterTable
+ALTER TABLE [dbo].[ClientGroup] ADD [clinician_id] UNIQUEIDENTIFIER,
+[is_active] BIT NOT NULL CONSTRAINT [DF_ClientGroup_IsActive] DEFAULT 1;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[ClientGroup] ADD CONSTRAINT [FK_ClientGroup_Clinician] FOREIGN KEY ([clinician_id]) REFERENCES [dbo].[Clinician]([id]) ON DELETE SET NULL ON UPDATE NO ACTION;
+
+COMMIT TRAN;
+
+END TRY
+BEGIN CATCH
+
+IF @@TRANCOUNT > 0
+BEGIN
+    ROLLBACK TRAN;
+END;
+THROW
+
+END CATCH

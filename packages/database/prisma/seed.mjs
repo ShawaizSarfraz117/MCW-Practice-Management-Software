@@ -9,7 +9,11 @@ const prisma = new PrismaClient();
 async function main() {
   // First try to find the existing role
   let backOfficeRole = await prisma.role.findUnique({
-    where: { name: "BACKOFFICE" },
+    where: { name: "CLINICIAN" },
+  });
+
+  let adminRole = await prisma.role.findUnique({
+    where: { name: "ADMIN" },
   });
 
   // If it doesn't exist, create it
@@ -17,7 +21,15 @@ async function main() {
     backOfficeRole = await prisma.role.create({
       data: {
         id: uuidv4(),
-        name: "BACKOFFICE",
+        name: "CLINICIAN",
+      },
+    });
+  }
+  if (!adminRole) {
+    adminRole = await prisma.role.create({
+      data: {
+        id: uuidv4(),
+        name: "ADMIN",
       },
     });
   }
@@ -35,7 +47,7 @@ async function main() {
       password_hash: adminPassword,
       UserRole: {
         create: {
-          role_id: backOfficeRole.id,
+          role_id: adminRole.id,
         },
       },
       date_of_birth: new Date("1985-06-15"),

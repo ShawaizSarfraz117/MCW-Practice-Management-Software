@@ -1,9 +1,11 @@
+/* eslint-disable max-lines-per-function */
 import { describe, it, expect, beforeEach } from "vitest";
 import { prisma } from "@mcw/database";
 import { createRequestWithBody } from "@mcw/utils";
 import {
   CreditCardPrismaFactory,
-  ClientGroupMembershipPrismaFactory,
+  ClientGroupPrismaFactory,
+  ClientPrismaFactory,
   ClinicianPrismaFactory,
 } from "@mcw/database/mock-data";
 import { POST } from "@/api/invoice/payment/route";
@@ -35,15 +37,27 @@ describe("Invoice Payment API Integration Tests", async () => {
   it("POST /api/invoice/payment should create a new payment", async () => {
     // Create required related records
     const clinician = await ClinicianPrismaFactory.create();
-    const clientGroupMembership =
-      await ClientGroupMembershipPrismaFactory.create();
+    const clientGroup = await ClientGroupPrismaFactory.create();
+    const client = await ClientPrismaFactory.create();
+
+    // Create client group membership to link client and client group
+    await prisma.clientGroupMembership.create({
+      data: {
+        client_group_id: clientGroup.id,
+        client_id: client.id,
+        role: "PRIMARY",
+        is_contact_only: false,
+        is_responsible_for_billing: true,
+      },
+    });
+
     const creditCard = await CreditCardPrismaFactory.create();
 
     // Create invoice
     const invoice = await prisma.invoice.create({
       data: {
         clinician_id: clinician.id,
-        client_group_membership_id: clientGroupMembership.id,
+        client_group_id: clientGroup.id,
         status: "PENDING",
         amount: "100.00", // Use string for Decimal
         invoice_number: "INV-" + Date.now(),
@@ -90,14 +104,25 @@ describe("Invoice Payment API Integration Tests", async () => {
   it("POST /api/invoice/payment should update invoice status to PAID when fully paid", async () => {
     // Create required related records
     const clinician = await ClinicianPrismaFactory.create();
-    const clientGroupMembership =
-      await ClientGroupMembershipPrismaFactory.create();
+    const clientGroup = await ClientGroupPrismaFactory.create();
+    const client = await ClientPrismaFactory.create();
+
+    // Create client group membership to link client and client group
+    await prisma.clientGroupMembership.create({
+      data: {
+        client_group_id: clientGroup.id,
+        client_id: client.id,
+        role: "PRIMARY",
+        is_contact_only: false,
+        is_responsible_for_billing: true,
+      },
+    });
 
     // Create invoice
     const invoice = await prisma.invoice.create({
       data: {
         clinician_id: clinician.id,
-        client_group_membership_id: clientGroupMembership.id,
+        client_group_id: clientGroup.id,
         status: "PENDING",
         amount: "100.00", // Use string for Decimal
         invoice_number: "INV-" + Date.now(),
@@ -131,14 +156,25 @@ describe("Invoice Payment API Integration Tests", async () => {
   it("POST /api/invoice/payment should handle multiple partial payments correctly", async () => {
     // Create required related records
     const clinician = await ClinicianPrismaFactory.create();
-    const clientGroupMembership =
-      await ClientGroupMembershipPrismaFactory.create();
+    const clientGroup = await ClientGroupPrismaFactory.create();
+    const client = await ClientPrismaFactory.create();
+
+    // Create client group membership to link client and client group
+    await prisma.clientGroupMembership.create({
+      data: {
+        client_group_id: clientGroup.id,
+        client_id: client.id,
+        role: "PRIMARY",
+        is_contact_only: false,
+        is_responsible_for_billing: true,
+      },
+    });
 
     // Create invoice
     const invoice = await prisma.invoice.create({
       data: {
         clinician_id: clinician.id,
-        client_group_membership_id: clientGroupMembership.id,
+        client_group_id: clientGroup.id,
         status: "PENDING",
         amount: "100.00", // Use string for Decimal
         invoice_number: "INV-" + Date.now(),

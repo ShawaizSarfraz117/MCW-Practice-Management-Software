@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
+import { getClinicianInfo } from "@/utils/helpers";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +12,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get("sortBy") || "name";
     const status = searchParams.get("status");
 
+    const { clinicianId } = await getClinicianInfo();
     // Parse status parameter (could be a comma-separated list)
     const statusArray = status ? status.split(",") : ["all"];
 
@@ -85,7 +87,15 @@ export async function GET(request: NextRequest) {
                     case "inactive":
                       return { is_active: false };
                     case "waitlist":
-                      return { is_waitlist: true };
+                      return {
+                        ClientGroupMembership: {
+                          some: {
+                            Client: {
+                              is_waitlist: true,
+                            },
+                          },
+                        },
+                      };
                     case "contacts":
                       return {
                         ClientGroupMembership: {
@@ -107,6 +117,14 @@ export async function GET(request: NextRequest) {
         whereCondition = {
           ...whereCondition,
           ...statusFilter,
+        };
+      }
+      if (clinicianId) {
+        whereCondition = {
+          ...whereCondition,
+          ...{
+            clinician_id: clinicianId,
+          },
         };
       }
 

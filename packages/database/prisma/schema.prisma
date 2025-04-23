@@ -107,9 +107,12 @@ model ClientGroup {
   id                    String                  @id(map: "PK_ClientGroup_ID") @db.UniqueIdentifier
   type                  String                  @db.VarChar(150)
   name                  String                  @db.VarChar(250)
+  clinician_id          String?                 @db.UniqueIdentifier
+  is_active             Boolean                 @default(true, map: "DF_ClientGroup_IsActive")
+  Appointment           Appointment[]
   ClientGroupMembership ClientGroupMembership[]
   Invoice               Invoice[]
-  Appointment           Appointment[]
+  Clinician             Clinician?    @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
 }
 
 model ClientGroupMembership {
@@ -151,6 +154,7 @@ model Clinician {
   ClinicianLocation ClinicianLocation[]
   ClinicianServices ClinicianServices[]
   Invoice           Invoice[]
+  ClientGroup       ClientGroup[]
 }
 
 model ClinicianClient {
