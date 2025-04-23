@@ -1,10 +1,8 @@
 "use client";
 
 import { useDropzone } from "react-dropzone";
-import Image from "next/image";
 import { useForm } from "@mcw/ui";
-import profile from "@/public/uploads/profile.png";
-
+import { SquareUser } from "lucide-react";
 const ProfilePhoto = ({
   form,
   isEditing,
@@ -60,21 +58,10 @@ const ProfilePhoto = ({
           <div className="mb-4">
             {profilePhoto ? (
               <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                <Image
-                  fill
-                  alt="Profile"
-                  className="object-cover"
-                  src={profile}
-                />
+                <SquareUser className="h-16 w-16 text-gray-300" />
               </div>
             ) : (
-              <Image
-                alt="Profile"
-                className="h-16 w-16 text-gray-300"
-                height={64}
-                src={profile}
-                width={64}
-              />
+              <SquareUser className="h-16 w-16 text-gray-300" />
             )}
           </div>
         )}
