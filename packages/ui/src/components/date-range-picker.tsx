@@ -54,11 +54,11 @@ export function DateRangePicker({
       <PopoverContent align="start" className="w-auto p-0 rounded-none">
         <Calendar
           initialFocus
-          mode="range"
           defaultMonth={value?.from}
+          mode="range"
+          numberOfMonths={2}
           selected={value}
           onSelect={onChange}
-          numberOfMonths={2}
         />
       </PopoverContent>
     </Popover>
