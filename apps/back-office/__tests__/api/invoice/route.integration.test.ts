@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { prisma } from "@mcw/database";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import {
-  ClientGroupMembershipPrismaFactory,
+  ClientGroupPrismaFactory,
+  ClientPrismaFactory,
   ClinicianPrismaFactory,
 } from "@mcw/database/mock-data";
 import { GET, POST } from "@/api/invoice/route";
@@ -44,15 +45,26 @@ describe("Invoice API Integration Tests", async () => {
   it("GET /api/invoice should return all invoices", async () => {
     // Create required related records
     const clinician = await ClinicianPrismaFactory.create();
-    const clientGroupMembership =
-      await ClientGroupMembershipPrismaFactory.create();
+    const clientGroup = await ClientGroupPrismaFactory.create();
+    const client = await ClientPrismaFactory.create();
+
+    // Create client group membership to link client and client group
+    await prisma.clientGroupMembership.create({
+      data: {
+        client_group_id: clientGroup.id,
+        client_id: client.id,
+        role: "PRIMARY",
+        is_contact_only: false,
+        is_responsible_for_billing: true,
+      },
+    });
 
     // Create invoices
     const invoices = await Promise.all([
       prisma.invoice.create({
         data: {
           clinician_id: clinician.id,
-          client_group_membership_id: clientGroupMembership.id,
+          client_group_id: clientGroup.id,
           status: "PENDING",
           amount: "100.00", // Use string for Decimal
           invoice_number: "INV-" + Date.now() + "-1",
@@ -62,7 +74,7 @@ describe("Invoice API Integration Tests", async () => {
       prisma.invoice.create({
         data: {
           clinician_id: clinician.id,
-          client_group_membership_id: clientGroupMembership.id,
+          client_group_id: clientGroup.id,
           status: "PAID",
           amount: "200.00", // Use string for Decimal
           invoice_number: "INV-" + Date.now() + "-2",
@@ -98,14 +110,25 @@ describe("Invoice API Integration Tests", async () => {
   it("GET /api/invoice?id=<id> should return a specific invoice", async () => {
     // Create required related records
     const clinician = await ClinicianPrismaFactory.create();
-    const clientGroupMembership =
-      await ClientGroupMembershipPrismaFactory.create();
+    const clientGroup = await ClientGroupPrismaFactory.create();
+    const client = await ClientPrismaFactory.create();
+
+    // Create client group membership to link client and client group
+    await prisma.clientGroupMembership.create({
+      data: {
+        client_group_id: clientGroup.id,
+        client_id: client.id,
+        role: "PRIMARY",
+        is_contact_only: false,
+        is_responsible_for_billing: true,
+      },
+    });
 
     // Create invoice
     const invoice = await prisma.invoice.create({
       data: {
         clinician_id: clinician.id,
-        client_group_membership_id: clientGroupMembership.id,
+        client_group_id: clientGroup.id,
         status: "PENDING",
         amount: "100.00", // Use string for Decimal
         invoice_number: "INV-" + Date.now(),
@@ -130,8 +153,8 @@ describe("Invoice API Integration Tests", async () => {
     expect(responseData).toHaveProperty("amount");
 
     // Check relationships were included
+    expect(responseData).toHaveProperty("ClientGroup");
     expect(responseData).toHaveProperty("Clinician");
-    expect(responseData).toHaveProperty("ClientGroupMembership");
   });
 
   it("GET /api/invoice?id=<id> should return 404 for non-existent invoice", async () => {
@@ -149,14 +172,25 @@ describe("Invoice API Integration Tests", async () => {
   it("GET /api/invoice should filter by status", async () => {
     // Create required related records
     const clinician = await ClinicianPrismaFactory.create();
-    const clientGroupMembership =
-      await ClientGroupMembershipPrismaFactory.create();
+    const clientGroup = await ClientGroupPrismaFactory.create();
+    const client = await ClientPrismaFactory.create();
+
+    // Create client group membership to link client and client group
+    await prisma.clientGroupMembership.create({
+      data: {
+        client_group_id: clientGroup.id,
+        client_id: client.id,
+        role: "PRIMARY",
+        is_contact_only: false,
+        is_responsible_for_billing: true,
+      },
+    });
 
     // Create invoices with different statuses
     await prisma.invoice.create({
       data: {
         clinician_id: clinician.id,
-        client_group_membership_id: clientGroupMembership.id,
+        client_group_id: clientGroup.id,
         status: "PENDING",
         amount: "100.00", // Use string for Decimal
         invoice_number: "INV-PENDING-" + Date.now(),
@@ -167,7 +201,7 @@ describe("Invoice API Integration Tests", async () => {
     const paidInvoice = await prisma.invoice.create({
       data: {
         clinician_id: clinician.id,
-        client_group_membership_id: clientGroupMembership.id,
+        client_group_id: clientGroup.id,
         status: "PAID",
         amount: "200.00", // Use string for Decimal
         invoice_number: "INV-PAID-" + Date.now(),
@@ -200,13 +234,24 @@ describe("Invoice API Integration Tests", async () => {
   it("POST /api/invoice should create a new invoice", async () => {
     // Create required related records
     const clinician = await ClinicianPrismaFactory.create();
-    const clientGroupMembership =
-      await ClientGroupMembershipPrismaFactory.create();
+    const clientGroup = await ClientGroupPrismaFactory.create();
+    const client = await ClientPrismaFactory.create();
+
+    // Create client group membership to link client and client group
+    await prisma.clientGroupMembership.create({
+      data: {
+        client_group_id: clientGroup.id,
+        client_id: client.id,
+        role: "PRIMARY",
+        is_contact_only: false,
+        is_responsible_for_billing: true,
+      },
+    });
 
     // Prepare invoice data
     const invoiceData = {
       clinician_id: clinician.id,
-      client_group_membership_id: clientGroupMembership.id,
+      client_group_id: clientGroup.id,
       amount: 150,
       due_date: new Date(
         new Date().getTime() + 30 * 24 * 60 * 60 * 1000,
