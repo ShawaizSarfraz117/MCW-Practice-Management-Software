@@ -4,6 +4,7 @@ import { prisma } from "@mcw/database";
 import { logger, config } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
+import { getClinicianInfo } from "@/utils/helpers";
 
 interface ClientData {
   legalFirstName: string;
@@ -37,7 +38,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
     const sortBy = searchParams.get("sortBy") || "legal_last_name";
-    const clinicianId = searchParams.get("clinicianId");
+
+    const clinicianInfo = await getClinicianInfo();
+    const clinicianId = clinicianInfo?.clinicianId ?? null;
 
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -68,43 +71,10 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(client);
     } else {
-      let clientIds: string[] | undefined;
-
-      // If clinicianId is provided, get all clients associated with this clinician
-      if (clinicianId) {
-        logger.info(`Retrieving clients for clinician: ${clinicianId}`);
-
-        // Get client IDs from clinicianClient table for this clinician
-        const clinicianClients = await prisma.clinicianClient.findMany({
-          where: { clinician_id: clinicianId },
-          select: { client_id: true },
-        });
-
-        // Extract client IDs
-        clientIds = clinicianClients.map((cc) => cc.client_id);
-
-        // If clinician has no clients, return empty result
-        if (clientIds.length === 0) {
-          return NextResponse.json({
-            data: [],
-            pagination: {
-              page,
-              limit,
-              total: 0,
-            },
-          });
-        }
-      } else {
-        logger.info("Retrieving all clients");
-      }
-
       const statusArray = status?.split(",") || [];
       let whereCondition: Prisma.ClientWhereInput = {};
 
       // Add clinician filter if clientIds is available
-      if (clientIds) {
-        whereCondition.id = { in: clientIds };
-      }
 
       // Handle status filtering
       if (statusArray.length > 0 && !statusArray.includes("all")) {
@@ -132,9 +102,7 @@ export async function GET(request: NextRequest) {
         };
 
         // Combine with existing clinician filter if any
-        whereCondition = clientIds
-          ? { AND: [whereCondition, statusCondition] }
-          : statusCondition;
+        whereCondition = statusCondition;
       }
 
       // Add search condition if search query exists
@@ -155,7 +123,16 @@ export async function GET(request: NextRequest) {
       }
 
       const clients = await prisma.client.findMany({
-        where: whereCondition,
+        where: {
+          ...whereCondition,
+          ClinicianClient: clinicianId
+            ? {
+                some: {
+                  clinician_id: clinicianId,
+                },
+              }
+            : {},
+        },
         orderBy: {
           [sortBy]: "asc",
         },
@@ -195,6 +172,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const requestData = await request.json();
+    const { clinicianId } = await getClinicianInfo();
     // Extract client data from numbered keys (client1, client2, etc.)
     const clientDataArray = Object.entries(requestData)
       .filter(
@@ -224,6 +202,7 @@ export async function POST(request: NextRequest) {
                 ? `${clientDataArray[0].legalFirstName} Family`
                 : `${clientDataArray[0].legalFirstName} ${clientDataArray[0].legalLastName}`,
           type: requestData.clientGroup,
+          clinician_id: clinicianId || null,
         },
       });
 
@@ -460,178 +439,6 @@ export async function POST(request: NextRequest) {
         error: "Failed to create clients",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 },
-    );
-  }
-}
-
-// PUT - Update an existing client
-export async function PUT(request: NextRequest) {
-  try {
-    const data = await request.json();
-
-    if (!data.id) {
-      return NextResponse.json(
-        { error: "Client ID is required" },
-        { status: 400 },
-      );
-    }
-
-    // Check if client exists
-    const existingClient = await prisma.client.findUnique({
-      where: { id: data.id },
-      include: {
-        ClientGroupMembership: true,
-      },
-    });
-
-    if (!existingClient) {
-      return NextResponse.json({ error: "Client not found" }, { status: 404 });
-    }
-
-    // Update client and contacts in a transaction
-    const result = await prisma.$transaction(async (prisma) => {
-      // Update client
-      await prisma.client.update({
-        where: { id: data.id },
-        data: {
-          legal_first_name: data.legalFirstName,
-          legal_last_name: data.legalLastName,
-          preferred_name: data.preferredName,
-          date_of_birth: data.dob ? new Date(data.dob) : null,
-          is_waitlist: data.addToWaitlist,
-          primary_clinician_id: data.primaryClinicianId,
-          primary_location_id: data.locationId,
-          is_active: data.status === "active",
-        },
-      });
-
-      // Update ClientGroupMembership if provided
-      if (data.clientGroupId) {
-        // Delete existing membership if it exists
-        if (existingClient.ClientGroupMembership.length > 0) {
-          await prisma.clientGroupMembership.deleteMany({
-            where: { client_id: data.id },
-          });
-        }
-
-        // Create new membership
-        await prisma.clientGroupMembership.create({
-          data: {
-            client_group_id: data.clientGroupId,
-            client_id: data.id,
-            role: data.role,
-            is_contact_only: data.is_contact_only,
-            is_responsible_for_billing: data.isResponsibleForBilling || false,
-          },
-        });
-      }
-
-      // Update contacts if provided
-      if (data.emails || data.phones) {
-        // Delete existing contacts
-        await prisma.clientContact.deleteMany({
-          where: { client_id: data.id },
-        });
-
-        // Create new contacts
-        let emailContacts = (data.emails || []).map(
-          (
-            email: { value: string; type: string; permission: string },
-            index: number,
-          ) => ({
-            client_id: data.id,
-            contact_type: "EMAIL",
-            type: email.type,
-            value: email.value,
-            permission: email.permission,
-            is_primary: index === 0,
-          }),
-        );
-        emailContacts = [...emailContacts].filter(
-          (email: { value: string }) => email.value !== "",
-        );
-
-        let phoneContacts = (data.phones || []).map(
-          (
-            phone: { value: string; type: string; permission: string },
-            index: number,
-          ) => ({
-            client_id: data.id,
-            contact_type: "PHONE",
-            type: phone.type,
-            value: phone.value,
-            permission: phone.permission,
-            is_primary: index === 0,
-          }),
-        );
-        phoneContacts = [...phoneContacts].filter(
-          (phone: { value: string }) => phone.value !== "",
-        );
-        if (emailContacts.length > 0 || phoneContacts.length > 0) {
-          await prisma.clientContact.createMany({
-            data: [...emailContacts, ...phoneContacts],
-          });
-        }
-      }
-
-      // Update reminder preferences if provided
-      if (data.notificationOptions) {
-        await prisma.clientReminderPreference.deleteMany({
-          where: { client_id: data.id },
-        });
-
-        const reminderPreferences = [];
-        if (data.notificationOptions.upcomingAppointments !== undefined) {
-          reminderPreferences.push({
-            client_id: data.id,
-            reminder_type: "UPCOMING_APPOINTMENTS",
-            is_enabled: data.notificationOptions.upcomingAppointments,
-          });
-        }
-        if (data.notificationOptions.incompleteDocuments !== undefined) {
-          reminderPreferences.push({
-            client_id: data.id,
-            reminder_type: "INCOMPLETE_DOCUMENTS",
-            is_enabled: data.notificationOptions.incompleteDocuments,
-          });
-        }
-        if (data.notificationOptions.cancellations !== undefined) {
-          reminderPreferences.push({
-            client_id: data.id,
-            reminder_type: "CANCELLATIONS",
-            is_enabled: data.notificationOptions.cancellations,
-          });
-        }
-
-        if (reminderPreferences.length > 0) {
-          await prisma.clientReminderPreference.createMany({
-            data: reminderPreferences,
-          });
-        }
-      }
-
-      return prisma.client.findUnique({
-        where: { id: data.id },
-        include: {
-          ClientContact: true,
-          ClientReminderPreference: true,
-          Clinician: true,
-          Location: true,
-          ClientGroupMembership: {
-            include: {
-              ClientGroup: true,
-            },
-          },
-        },
-      });
-    });
-
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("Error updating client:", error);
-    return NextResponse.json(
-      { error: "Failed to update client" },
       { status: 500 },
     );
   }

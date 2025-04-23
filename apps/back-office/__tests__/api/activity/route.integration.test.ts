@@ -23,7 +23,14 @@ vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
 describe("Activity API Integration Tests", () => {
   beforeEach(async () => {
     await prisma.audit.deleteMany();
-    await prisma.client.deleteMany();
+    await prisma.clientReminderPreference.deleteMany({});
+    await prisma.clientContact.deleteMany({});
+    await prisma.clinicianClient.deleteMany({});
+    await prisma.clientGroupMembership.deleteMany({});
+    await prisma.client.deleteMany({});
+    await prisma.payment.deleteMany();
+    await prisma.invoice.deleteMany();
+    await prisma.clientGroup.deleteMany({});
     await prisma.clinician.deleteMany();
     await prisma.userRole.deleteMany();
     await prisma.user.deleteMany();
