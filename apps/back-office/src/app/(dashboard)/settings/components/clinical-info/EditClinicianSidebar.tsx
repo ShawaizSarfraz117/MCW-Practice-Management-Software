@@ -9,6 +9,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  toast,
 } from "@mcw/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
@@ -51,7 +52,13 @@ export default function EditClinicianSidebar({
     });
 
     if (!response.ok) {
-      throw new Error("Failed to update clinical information");
+      const errorData = await response.json();
+      toast({
+        title: "Error updating clinical information",
+        description: errorData?.error,
+        variant: "destructive",
+      });
+      throw new Error(errorData?.error);
     }
 
     return response.json();
@@ -63,6 +70,11 @@ export default function EditClinicianSidebar({
       // Optionally handle success (e.g., show a success message)
       queryClient.refetchQueries({ queryKey: ["clinicalInfo"] });
       console.log("Clinical information updated successfully");
+      toast({
+        title: "Clinical information updated successfully",
+        description: "Clinical information has been updated successfully",
+        variant: "success",
+      });
       onClose(); // Close the sidebar after successful update
     },
     onError: (error) => {

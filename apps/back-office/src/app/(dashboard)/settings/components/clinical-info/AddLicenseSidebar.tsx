@@ -72,7 +72,13 @@ export default function AddLicenseSidebar({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save licenses");
+        const errorData = await response.json();
+        toast({
+          title: "Error saving licenses",
+          description: errorData?.error,
+          variant: "destructive",
+        });
+        throw new Error(errorData?.error);
       }
 
       return response.json();
@@ -210,10 +216,11 @@ export default function AddLicenseSidebar({
         {/* Sidebar Footer */}
         <div className="border-t p-4">
           <Button
-            className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
+            className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 flex justify-center items-center"
+            disabled={mutation.isPending}
             onClick={handleSave} // Call handleSave on button click
           >
-            Save
+            {mutation.isPending ? <>Saving...</> : "Save"}
           </Button>
         </div>
       </div>
