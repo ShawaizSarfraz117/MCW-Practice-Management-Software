@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "figma": {
+      "command": "npx",
+      "args": [
+        "figma-developer-mcp",
+        "--figma-api-key=<REPLACE_WITH_FIGMA_API_KEY>",
+        "--stdio"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["@upstash/context7-mcp"]
+    }
+  }
+}
