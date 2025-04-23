@@ -2,7 +2,7 @@ import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import prismaMock from "@mcw/database/mock";
 import { GET } from "@/api/client/group/route";
-
+import { createRequest } from "@mcw/utils";
 // Mock modules before importing the module that depends on them
 vi.mock("@mcw/database", () => ({
   prisma: prismaMock,
@@ -51,6 +51,7 @@ describe("Client Group API Unit Tests", () => {
     id: generateUUID(),
     name: "Test Client Group",
     type: "FAMILY",
+    clinician_id: null,
     ...overrides,
   });
 
@@ -65,13 +66,14 @@ describe("Client Group API Unit Tests", () => {
       id: generateUUID(),
       name: "Corporate Group",
       type: "ORGANIZATION",
+      clinician_id: generateUUID(),
     });
     const clientGroups = [group1, group2];
 
     prismaMock.clientGroup.findMany.mockResolvedValueOnce(clientGroups);
 
     // Act
-    const response = await GET();
+    const response = await GET(createRequest("/api/client/group"));
 
     // Assert
     expect(response.status).toBe(200);
@@ -98,7 +100,7 @@ describe("Client Group API Unit Tests", () => {
     prismaMock.clientGroup.findMany.mockResolvedValueOnce([]);
 
     // Act
-    const response = await GET();
+    const response = await GET(createRequest("/api/client/group"));
 
     // Assert
     expect(response.status).toBe(200);
@@ -114,7 +116,7 @@ describe("Client Group API Unit Tests", () => {
     prismaMock.clientGroup.findMany.mockRejectedValueOnce(mockError);
 
     // Act
-    const response = await GET();
+    const response = await GET(createRequest("/api/client/group"));
 
     // Assert
     expect(response.status).toBe(500);

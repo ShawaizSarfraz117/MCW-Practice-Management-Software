@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { prisma } from "@mcw/database";
 import { ClientGroupPrismaFactory } from "@mcw/database/mock-data";
 import { GET } from "@/api/client/group/route";
+import { createRequest } from "@mcw/utils";
 
 // Define an interface for the API response structure
 interface ClientGroupResponse {
@@ -47,7 +48,7 @@ describe("Client Group API Integration Tests", async () => {
     ]);
 
     // Call the API endpoint
-    const response = await GET();
+    const response = await GET(createRequest("/api/client/group"));
 
     // Verify response
     expect(response.status).toBe(200);
@@ -72,7 +73,7 @@ describe("Client Group API Integration Tests", async () => {
     await prisma.clientGroup.deleteMany({});
 
     // Call the API endpoint
-    const response = await GET();
+    const response = await GET(createRequest("/api/client/group"));
 
     // Verify response
     expect(response.status).toBe(200);

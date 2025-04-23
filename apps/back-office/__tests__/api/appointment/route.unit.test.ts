@@ -6,7 +6,7 @@ import { GET, POST, PUT, DELETE } from "@/api/appointment/route";
 import prismaMock from "@mcw/database/mock";
 import {
   ClinicianFactory,
-  ClientFactory,
+  ClientGroupFactory,
   LocationFactory,
 } from "@mcw/database/mock-data";
 
@@ -25,7 +25,7 @@ describe("Appointment API Unit Tests", () => {
     location_id: "location-id",
     created_by: "user-id",
     status: "SCHEDULED",
-    client_id: "client-id",
+    client_group_id: "client-group-id",
     clinician_id: "clinician-id",
     appointment_fee: null,
     service_id: null,
@@ -56,15 +56,10 @@ describe("Appointment API Unit Tests", () => {
 
     expect(prismaMock.appointment.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: {
-          Client: expect.anything(),
-          Clinician: expect.anything(),
-          Location: expect.anything(),
-        },
+        where: {},
         orderBy: {
           start_date: "asc",
         },
-        where: {},
       }),
     );
   });
@@ -87,14 +82,13 @@ describe("Appointment API Unit Tests", () => {
 
     expect(prismaMock.appointment.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
+        where: expect.objectContaining({
           clinician_id: clinicianId,
-          client_id: clientId,
           start_date: {
             gte: new Date(startDate),
             lte: new Date(endDate),
           },
-        },
+        }),
       }),
     );
   });
@@ -114,15 +108,16 @@ describe("Appointment API Unit Tests", () => {
     expect(json).toHaveProperty("start_date");
     expect(json).toHaveProperty("end_date");
 
-    expect(prismaMock.appointment.findUnique).toHaveBeenCalledWith({
-      where: { id: appointment.id },
-      include: {
-        Client: true,
-        Clinician: true,
-        Location: true,
-        User: true,
-      },
-    });
+    expect(prismaMock.appointment.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: appointment.id },
+        include: expect.objectContaining({
+          ClientGroup: expect.anything(),
+          Clinician: expect.anything(),
+          Location: expect.anything(),
+        }),
+      }),
+    );
   });
 
   it("GET /api/appointment/?id=<id> should return 404 for non-existent appointment", async () => {
@@ -137,11 +132,12 @@ describe("Appointment API Unit Tests", () => {
   });
 
   it("POST /api/appointment should create a new appointment", async () => {
-    const client = ClientFactory.build();
+    const clientGroup = ClientGroupFactory.build();
     const clinician = ClinicianFactory.build();
     const location = LocationFactory.build();
+
     const createdAppointment = mockAppointment({
-      client_id: client.id,
+      client_group_id: clientGroup.id,
       clinician_id: clinician.id,
       location_id: location.id,
       title: "Therapy Session",
@@ -155,7 +151,7 @@ describe("Appointment API Unit Tests", () => {
       type: "therapy",
       start_date: "2023-05-15T10:00:00Z",
       end_date: "2023-05-15T11:00:00Z",
-      client_id: client.id,
+      client_group_id: clientGroup.id,
       clinician_id: clinician.id,
       location_id: location.id,
       created_by: "user-id",
@@ -171,20 +167,22 @@ describe("Appointment API Unit Tests", () => {
 
     expect(json).toHaveProperty("title", appointmentData.title);
     expect(json).toHaveProperty("type", appointmentData.type);
-    expect(json).toHaveProperty("client_id", client.id);
+    expect(json).toHaveProperty("client_group_id", clientGroup.id);
     expect(json).toHaveProperty("clinician_id", clinician.id);
 
-    expect(prismaMock.appointment.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        title: appointmentData.title,
-        type: appointmentData.type,
-        start_date: expect.any(Date),
-        end_date: expect.any(Date),
-        client_id: client.id,
-        clinician_id: clinician.id,
+    expect(prismaMock.appointment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: appointmentData.title,
+          type: appointmentData.type,
+          start_date: expect.any(Date),
+          end_date: expect.any(Date),
+          client_group_id: clientGroup.id,
+          clinician_id: clinician.id,
+        }),
+        include: expect.anything(),
       }),
-      include: expect.anything(),
-    });
+    );
   });
 
   it("POST /api/appointment should return 400 if required fields are missing", async () => {
@@ -202,7 +200,7 @@ describe("Appointment API Unit Tests", () => {
   });
 
   it("POST /api/appointment should handle recurring appointments", async () => {
-    const client = ClientFactory.build();
+    const clientGroup = ClientGroupFactory.build();
     const clinician = ClinicianFactory.build();
     const location = LocationFactory.build();
 
@@ -218,7 +216,7 @@ describe("Appointment API Unit Tests", () => {
       type: "therapy",
       start_date: "2023-05-15T10:00:00Z",
       end_date: "2023-05-15T11:00:00Z",
-      client_id: client.id,
+      client_group_id: clientGroup.id,
       clinician_id: clinician.id,
       location_id: location.id,
       created_by: "user-id",

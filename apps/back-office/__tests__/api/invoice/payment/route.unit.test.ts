@@ -43,7 +43,7 @@ describe("Invoice Payment API Unit Tests", () => {
     const invoice = {
       id: invoiceId,
       invoice_number: "INV-123",
-      client_group_membership_id: clientGroupId,
+      client_group_id: clientGroupId,
       appointment_id: null,
       clinician_id: clinicianId,
       issued_date: new Date(),
@@ -151,7 +151,7 @@ describe("Invoice Payment API Unit Tests", () => {
     const invoice = {
       id: invoiceId,
       invoice_number: "INV-123",
-      client_group_membership_id: clientGroupId,
+      client_group_id: clientGroupId,
       appointment_id: null,
       clinician_id: clinicianId,
       issued_date: new Date(),
@@ -192,7 +192,7 @@ describe("Invoice Payment API Unit Tests", () => {
     const invoice = {
       id: invoiceId,
       invoice_number: "INV-123",
-      client_group_membership_id: clientGroupId,
+      client_group_id: clientGroupId,
       appointment_id: null,
       clinician_id: clinicianId,
       issued_date: new Date(),
