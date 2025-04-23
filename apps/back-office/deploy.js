@@ -8,6 +8,7 @@ const nextAppDir = path.resolve(__dirname);
 const standaloneBuildDir = path.join(nextAppDir, ".next/standalone");
 const staticDir = path.join(nextAppDir, ".next/static");
 const publicDir = path.join(nextAppDir, "public");
+const sourcePrismaDir = path.join(nextAppDir, "packages/database/prisma");
 
 // Make sure Next.js config has output: 'standalone'
 // Create a backup of the original next.config file
@@ -117,6 +118,13 @@ if (fs.existsSync(publicDir)) {
       fs.copySync(srcPath, destPath, { overwrite: true });
     }
   });
+}
+
+// Copy prisma directory to deployment package
+if (fs.existsSync(sourcePrismaDir)) {
+  const nestedPrismaDirDest = path.join(deployDir, "packages/database/prisma");
+  fs.ensureDirSync(path.dirname(nestedPrismaDirDest));
+  fs.copySync(sourcePrismaDir, nestedPrismaDirDest, { overwrite: true });
 }
 
 // Handle native modules if they exist in node_modules
