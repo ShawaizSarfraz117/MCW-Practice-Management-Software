@@ -28,9 +28,9 @@ describe("Activity API Integration Tests", () => {
     await prisma.clinicianClient.deleteMany({});
     await prisma.clientGroupMembership.deleteMany({});
     await prisma.client.deleteMany({});
-    await prisma.clientGroup.deleteMany({});
     await prisma.payment.deleteMany();
     await prisma.invoice.deleteMany();
+    await prisma.clientGroup.deleteMany({});
     await prisma.clinician.deleteMany();
     await prisma.userRole.deleteMany();
     await prisma.user.deleteMany();
