@@ -51,6 +51,7 @@ describe("Client Group API Unit Tests", () => {
     id: generateUUID(),
     name: "Test Client Group",
     type: "FAMILY",
+    is_active: true,
     clinician_id: null,
     ...overrides,
   });
@@ -61,13 +62,14 @@ describe("Client Group API Unit Tests", () => {
       id: generateUUID(),
       name: "Family Group",
       is_active: true,
-      type: "FAMILY",
+      type: "family",
+      clinician_id: null,
     });
     const group2 = mockClientGroup({
       id: generateUUID(),
       name: "Corporate Group",
       is_active: true,
-      type: "ORGANIZATION",
+      type: "corporate",
       clinician_id: generateUUID(),
     });
     const clientGroups = [group1, group2];
