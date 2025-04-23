@@ -2,11 +2,10 @@
   "mcpServers": {
     "figma": {
       "command": "npx",
-      "args": [
-        "figma-developer-mcp",
-        "--figma-api-key=<REPLACE_WITH_FIGMA_API_KEY>",
-        "--stdio"
-      ]
+      "args": ["figma-developer-mcp", "--stdio"],
+      "env": {
+        "FIGMA_API_KEY": "${env:FIGMA_API_KEY}"
+      }
     },
     "context7": {
       "command": "npx",
