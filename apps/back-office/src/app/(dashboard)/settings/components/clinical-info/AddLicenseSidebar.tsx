@@ -165,11 +165,12 @@ export default function AddLicenseSidebar({
                   Expiration date
                 </Label>
                 <Input
+                  required
                   className="w-full border-gray-300 rounded-md shadow-sm"
                   min={new Date().toISOString().split("T")[0]}
+                  pattern="\d{4}-\d{2}-\d{2}"
                   type="date"
                   value={license.expiration_date}
-                  // Set minimum date to today
                   onChange={(e) =>
                     handleChange(index, "expiration_date", e.target.value)
                   }

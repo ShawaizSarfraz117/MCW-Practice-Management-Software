@@ -26,3 +26,9 @@ export interface LicenseInfo {
   state: string; // State as a string
   license_type: string; // License type as a string
 }
+
+export interface ClinicalInfo {
+  speciality: string;
+  taxonomy_code: string;
+  NPI_number: number;
+}

@@ -7,8 +7,8 @@ import { useClinicalInfo, useLicenses } from "./hooks/useClinicalInfo";
 import { PlusIcon } from "lucide-react";
 
 export default function ClinicalInfo() {
-  const clinicalInfo = useClinicalInfo();
-  const licenses = useLicenses();
+  const { clinicalInfo } = useClinicalInfo();
+  const { licenses } = useLicenses();
 
   const [isEditSidebarOpen, setIsEditSidebarOpen] = useState(false);
   const [isAddLicenseSidebarOpen, setIsAddLicenseSidebarOpen] = useState(false);
