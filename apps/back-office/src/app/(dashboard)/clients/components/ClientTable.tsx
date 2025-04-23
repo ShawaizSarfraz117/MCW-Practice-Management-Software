@@ -57,11 +57,7 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
             className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-50"
             variant="outline"
           >
-            {row.ClientGroupMembership.length > 0
-              ? row.ClientGroupMembership[0].Client.is_active
-                ? "Active"
-                : "Inactive"
-              : "Inactive"}
+            {row.is_active ? "Active" : "Inactive"}
           </Badge>
         );
       },

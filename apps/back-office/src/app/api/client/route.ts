@@ -4,6 +4,7 @@ import { prisma } from "@mcw/database";
 import { logger, config } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
+import { getClinicianInfo } from "@/utils/helpers";
 
 interface ClientData {
   legalFirstName: string;
@@ -37,7 +38,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
     const sortBy = searchParams.get("sortBy") || "legal_last_name";
-    const clinicianId = searchParams.get("clinicianId");
+
+    const { clinicianId } = await getClinicianInfo();
 
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -68,43 +70,10 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(client);
     } else {
-      let clientIds: string[] | undefined;
-
-      // If clinicianId is provided, get all clients associated with this clinician
-      if (clinicianId) {
-        logger.info(`Retrieving clients for clinician: ${clinicianId}`);
-
-        // Get client IDs from clinicianClient table for this clinician
-        const clinicianClients = await prisma.clinicianClient.findMany({
-          where: { clinician_id: clinicianId },
-          select: { client_id: true },
-        });
-
-        // Extract client IDs
-        clientIds = clinicianClients.map((cc) => cc.client_id);
-
-        // If clinician has no clients, return empty result
-        if (clientIds.length === 0) {
-          return NextResponse.json({
-            data: [],
-            pagination: {
-              page,
-              limit,
-              total: 0,
-            },
-          });
-        }
-      } else {
-        logger.info("Retrieving all clients");
-      }
-
       const statusArray = status?.split(",") || [];
       let whereCondition: Prisma.ClientWhereInput = {};
 
       // Add clinician filter if clientIds is available
-      if (clientIds) {
-        whereCondition.id = { in: clientIds };
-      }
 
       // Handle status filtering
       if (statusArray.length > 0 && !statusArray.includes("all")) {
@@ -132,9 +101,7 @@ export async function GET(request: NextRequest) {
         };
 
         // Combine with existing clinician filter if any
-        whereCondition = clientIds
-          ? { AND: [whereCondition, statusCondition] }
-          : statusCondition;
+        whereCondition = statusCondition;
       }
 
       // Add search condition if search query exists
@@ -155,7 +122,16 @@ export async function GET(request: NextRequest) {
       }
 
       const clients = await prisma.client.findMany({
-        where: whereCondition,
+        where: {
+          ...whereCondition,
+          ClinicianClient: clinicianId
+            ? {
+                some: {
+                  clinician_id: clinicianId,
+                },
+              }
+            : {},
+        },
         orderBy: {
           [sortBy]: "asc",
         },
@@ -195,6 +171,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const requestData = await request.json();
+    const { clinicianId } = await getClinicianInfo();
     // Extract client data from numbered keys (client1, client2, etc.)
     const clientDataArray = Object.entries(requestData)
       .filter(
@@ -224,6 +201,7 @@ export async function POST(request: NextRequest) {
                 ? `${clientDataArray[0].legalFirstName} Family`
                 : `${clientDataArray[0].legalFirstName} ${clientDataArray[0].legalLastName}`,
           type: requestData.clientGroup,
+          clinician_id: clinicianId || null,
         },
       });
 
