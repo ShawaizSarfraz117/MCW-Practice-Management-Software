@@ -48,12 +48,7 @@
     "recharts": "^2.15.1",
     "sonner": "^2.0.2",
     "vaul": "^1.1.2",
-    "zod": "^3.24.2",
-    "@fullcalendar/core": "^6.1.17",
-    "@fullcalendar/resource": "^6.1.17",
-    "@fullcalendar/resource-daygrid": "^6.1.17",
-    "@testing-library/dom": "^10.4.0",
-    "react-dropzone": "^14.3.8"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
