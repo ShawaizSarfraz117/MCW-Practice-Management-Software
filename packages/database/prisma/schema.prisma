@@ -24,7 +24,7 @@ model Appointment {
   location_id              String?          @db.UniqueIdentifier
   created_by               String           @db.UniqueIdentifier
   status                   String           @db.VarChar(100)
-  client_group_id          String?          @db.UniqueIdentifier
+  client_id                String?          @db.UniqueIdentifier
   clinician_id             String?          @db.UniqueIdentifier
   appointment_fee          Decimal?
   service_id               String?          @db.UniqueIdentifier
@@ -33,7 +33,7 @@ model Appointment {
   cancel_appointments      Boolean?
   notify_cancellation      Boolean?
   recurring_appointment_id String?          @db.UniqueIdentifier
-  ClientGroup              ClientGroup?     @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_ClientGroup")
+  Client                   Client?          @relation(fields: [client_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Client")
   Clinician                Clinician?       @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Clinician")
   User                     User             @relation(fields: [created_by], references: [id], map: "FK_Appointment_User")
   Location                 Location?        @relation(fields: [location_id], references: [id], map: "FK_Appointment_Location")
@@ -81,6 +81,7 @@ model Client {
   preferred_name           String?                    @db.VarChar(100)
   date_of_birth            DateTime?                  @db.Date
   referred_by              String?                    @db.VarChar(200)
+  Appointment              Appointment[]
   Audit                    Audit[]
   Clinician                Clinician?                 @relation(fields: [primary_clinician_id], references: [id], onUpdate: NoAction, map: "FK_Client_Clinician")
   Location                 Location?                  @relation(fields: [primary_location_id], references: [id], onUpdate: NoAction, map: "FK_Client_Location")
@@ -109,7 +110,6 @@ model ClientGroup {
   name                  String                  @db.VarChar(250)
   ClientGroupMembership ClientGroupMembership[]
   Invoice               Invoice[]
-  Appointment           Appointment[]
 }
 
 model ClientGroupMembership {

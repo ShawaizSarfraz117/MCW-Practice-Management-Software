@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: false
----
----
 description: Framework rules
 globs: 
 alwaysApply: false
@@ -49,14 +44,4 @@ alwaysApply: false
 - Use only for Web API access in small components.
 - Avoid for data fetching or state management.
 
-#UI
-
-- Use shadcn components from /packages/ui/
-- To install any new components go to /packages/ui/ and run npx shadcn@latest add "name of the component"
-
 Follow Next.js docs for Data Fetching, Rendering, and Routing.
-
-
-
-
-

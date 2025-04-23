@@ -9,8 +9,9 @@ import { RadioGroup, RadioGroupItem } from "@mcw/ui";
 import { Label } from "@mcw/ui";
 import { ClientTabs } from "./ClientTabs";
 import { ClientForm } from "./ClientForm";
-import { SelectExistingClient, Client } from "./SelectExistingClient";
-import { createClient } from "../services/client.service";
+import { SelectExistingClient } from "./SelectExistingClient";
+import { fetchClientGroups, createClient } from "../services/client.service";
+import { ClientGroup } from "@prisma/client";
 import {
   validateClient,
   hasErrors,
@@ -36,8 +37,13 @@ export interface PhoneEntry {
   permission: string;
 }
 
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface FormState {
-  is_contact_only?: boolean;
   clientType: string;
   legalFirstName: string;
   legalLastName: string;
@@ -59,8 +65,6 @@ export interface FormState {
     voice: boolean;
   };
   is_responsible_for_billing?: boolean;
-  isExisting?: boolean;
-  clientId?: string;
 }
 
 interface FormValues {
@@ -68,12 +72,6 @@ interface FormValues {
   clients: Record<string, FormState>;
 }
 
-const clientGroups: { type: string; name: string }[] = [
-  { type: "adult", name: "Adult" },
-  { type: "minor", name: "Minor" },
-  { type: "couple", name: "Couple" },
-  { type: "family", name: "Family" },
-];
 export function CreateClientDrawer({
   open,
   onOpenChange,
@@ -83,7 +81,7 @@ export function CreateClientDrawer({
   const [clientType, setClientType] = useState("adult");
   const [activeTab, setActiveTab] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
+  const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
   const [selectedClients, setSelectedClients] = useState<
     Record<string, Client | null>
   >({});
@@ -97,6 +95,17 @@ export function CreateClientDrawer({
   const [showSelectExisting, setShowSelectExisting] = useState(false);
 
   const tabsRef = useRef<{ submit: () => void }>(null);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      const [groups, error] = await fetchClientGroups();
+      if (!error && Array.isArray(groups)) {
+        setClientGroups(groups as ClientGroup[]);
+        setClientType(groups.length > 0 ? groups[0].type : "adult");
+      }
+    };
+    fetchGroups();
+  }, []);
 
   const defaultClientData: FormState = {
     clientType: clientType,
@@ -139,12 +148,8 @@ export function CreateClientDrawer({
 
   // Handle drawer close
   const handleDrawerOpenChange = (isOpen: boolean) => {
-    // If trying to close the drawer programmatically or with escape/clicking outside,
-    // we prevent it from closing by not calling onOpenChange
     if (!isOpen) {
-      // We don't call onOpenChange here, which effectively prevents automatic closing
-      // The drawer will only close when the X button is clicked
-      return;
+      resetFormState();
     } else {
       // Reset validation errors when opening the drawer
       setValidationErrors({});
@@ -213,8 +218,7 @@ export function CreateClientDrawer({
       const structuredData = structureData(value);
       await createClient({ body: structuredData });
       setIsLoading(false);
-      resetFormState();
-      onOpenChange(false);
+      handleDrawerOpenChange(false);
       fetchClientData();
     },
   });
@@ -277,20 +281,19 @@ export function CreateClientDrawer({
 
   const structureData = (values: FormValues) => {
     // Filter out empty or undefined client objects
+    const clientGroup = clientGroups.find((group) => group.type === clientType);
     const filteredClients = Object.entries(values.clients).reduce(
       (acc, [key, value]) => {
         if (value && Object.keys(value).length > 0) {
           const clientNum = key.split("-")[1] || "1";
           acc[`client${clientNum}`] = value;
-          acc[`client${clientNum}`].is_contact_only =
-            clientNum == "2" && clientType === "minor";
         }
         return acc;
       },
       {} as Record<string, FormState>,
     );
     return {
-      clientGroup: clientType,
+      clientGroupId: clientGroup?.id,
       ...filteredClients,
     };
   };
@@ -302,44 +305,25 @@ export function CreateClientDrawer({
       [activeTab]: selectedClientParam,
     }));
 
-    // Get email from ClientContact array if it exists
-    const emailContact = selectedClientParam.ClientContact?.find(
-      (contact) => contact.contact_type === "EMAIL",
-    );
-
-    // Get phone from ClientContact array if it exists
-    const phoneContact = selectedClientParam.ClientContact?.find(
-      (contact) => contact.contact_type === "PHONE",
-    );
-
+    const [firstName, lastName] = selectedClientParam.name.split(" ");
     const mappedClient: FormState = {
       clientType: clientType,
-      legalFirstName: selectedClientParam.legal_first_name || "",
-      legalLastName: selectedClientParam.legal_last_name || "",
-      preferredName: selectedClientParam.preferred_name || "",
+      legalFirstName: firstName || "",
+      legalLastName: lastName || "",
+      preferredName: "",
       dob: "",
       status: "active",
       addToWaitlist: false,
       primaryClinicianId: "",
       locationId: "",
-      emails: emailContact
-        ? [
-            {
-              value: emailContact.value,
-              type: "primary",
-              permission: "allowed",
-            },
-          ]
-        : [],
-      phones: phoneContact
-        ? [
-            {
-              value: phoneContact.value,
-              type: "primary",
-              permission: "allowed",
-            },
-          ]
-        : [],
+      emails: [
+        {
+          value: selectedClientParam.email,
+          type: "primary",
+          permission: "allowed",
+        },
+      ],
+      phones: [],
       notificationOptions: {
         upcomingAppointments: true,
         incompleteDocuments: false,
@@ -349,8 +333,6 @@ export function CreateClientDrawer({
         text: true,
         voice: false,
       },
-      isExisting: true,
-      clientId: selectedClientParam.id,
     };
 
     // Clear validation errors for populated fields
@@ -359,11 +341,9 @@ export function CreateClientDrawer({
       if (updatedErrors[activeTab]) {
         const tabErrors = { ...updatedErrors[activeTab] };
         // Remove errors for fields that now have values
-        if (selectedClientParam.legal_first_name)
-          delete tabErrors.legalFirstName;
-        if (selectedClientParam.legal_last_name) delete tabErrors.legalLastName;
-        if (emailContact) delete tabErrors.emails;
-        if (phoneContact) delete tabErrors.phones;
+        if (firstName) delete tabErrors.legalFirstName;
+        if (lastName) delete tabErrors.legalLastName;
+        if (selectedClientParam.email) delete tabErrors.emails;
         updatedErrors[activeTab] = tabErrors;
       }
       return updatedErrors;
@@ -425,10 +405,7 @@ export function CreateClientDrawer({
                   className="h-8 w-8"
                   size="icon"
                   variant="ghost"
-                  onClick={() => {
-                    resetFormState();
-                    onOpenChange(false);
-                  }}
+                  onClick={() => handleDrawerOpenChange(false)}
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>
@@ -504,14 +481,9 @@ export function CreateClientDrawer({
                   }}
                 >
                   {clientGroups.map((group) => (
-                    <div
-                      key={group.type}
-                      className="flex items-center space-x-2"
-                    >
-                      <RadioGroupItem id={group.type} value={group.type} />
-                      <Label className="cursor-pointer" htmlFor={group.type}>
-                        {group.name}
-                      </Label>
+                    <div key={group.id} className="flex items-center space-x-2">
+                      <RadioGroupItem id={group.id} value={group.type} />
+                      <Label htmlFor={group.id}>{group.name}</Label>
                     </div>
                   ))}
                 </RadioGroup>

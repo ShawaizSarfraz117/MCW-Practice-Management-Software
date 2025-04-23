@@ -20,7 +20,7 @@ interface TableProps {
   columns: Column[];
   // TODO: Add right type
   rows: Record<string, unknown>[];
-  onRowClick?: (id: object) => void;
+  onRowClick?: (id: string) => void;
 }
 
 const renderCellContent = (
@@ -61,7 +61,8 @@ const DataTable: React.FC<TableProps> = ({ rows, columns, onRowClick }) => {
               <TableRow
                 key={rowIndex}
                 className={`${onRowClick ? "cursor-pointer" : null}`}
-                onClick={() => (onRowClick ? onRowClick(row) : null)}
+                // @ts-expect-error - TODO: Add right type
+                onClick={() => (onRowClick ? onRowClick(row.id) : null)}
               >
                 {columns.map((column, colIndex) => (
                   <TableCell key={`${rowIndex}-${colIndex}`}>

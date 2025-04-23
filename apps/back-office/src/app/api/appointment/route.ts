@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
@@ -10,10 +9,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
     const clinicianId = searchParams.get("clinicianId");
-    const clientGroupId = searchParams.get("clientGroupId");
+    const clientId = searchParams.get("clientId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
-    const status = searchParams.get("status");
 
     if (id) {
       logger.info("Retrieving specific appointment");
@@ -21,17 +19,10 @@ export async function GET(request: NextRequest) {
       const appointment = await prisma.appointment.findUnique({
         where: { id },
         include: {
-          ClientGroup: {
-            include: {
-              ClientGroupMembership: {
-                include: {
-                  Client: true,
-                },
-              },
-            },
-          },
+          Client: true,
           Clinician: true,
           Location: true,
+          User: true,
         },
       });
 
@@ -52,8 +43,8 @@ export async function GET(request: NextRequest) {
         whereClause.clinician_id = clinicianId;
       }
 
-      if (clientGroupId) {
-        whereClause.client_group_id = clientGroupId;
+      if (clientId) {
+        whereClause.client_id = clientId;
       }
 
       // Handle date range filtering
@@ -69,31 +60,17 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Add invoice status filtering to the whereClause directly
-      if (status && status !== "undefined") {
-        whereClause.Invoice = {
-          some: {
-            status: status, // Filter directly on the invoice status field
-          },
-        };
-      }
-
       // List appointments with filters
       const appointments = await prisma.appointment.findMany({
         where: whereClause,
         include: {
-          Invoice: {
-            include: {
-              Payment: true,
-            },
-          },
-          ClientGroup: {
-            include: {
-              ClientGroupMembership: {
-                include: {
-                  Client: true,
-                },
-              },
+          Client: {
+            select: {
+              id: true,
+              legal_first_name: true,
+              legal_last_name: true,
+              preferred_name: true,
+              is_active: true,
             },
           },
           Clinician: {
@@ -140,7 +117,7 @@ export async function POST(request: NextRequest) {
     if (
       !data.title ||
       !data.start_date ||
-      (!isEventType && !data.client_group_id) ||
+      (!isEventType && !data.client_id) ||
       !data.clinician_id ||
       !data.location_id ||
       !data.created_by
@@ -159,7 +136,7 @@ export async function POST(request: NextRequest) {
       location_id: data.location_id,
       created_by: data.created_by,
       status: data.status || "SCHEDULED",
-      client_group_id: data.client_group_id,
+      client_id: data.client_id,
       clinician_id: data.clinician_id,
       service_id: data.service_id,
       appointment_fee: data.appointment_fee,
@@ -195,13 +172,12 @@ export async function POST(request: NextRequest) {
           recurring_rule: data.recurring_rule,
         },
         include: {
-          ClientGroup: {
-            include: {
-              ClientGroupMembership: {
-                include: {
-                  Client: true,
-                },
-              },
+          Client: {
+            select: {
+              id: true,
+              legal_first_name: true,
+              legal_last_name: true,
+              preferred_name: true,
             },
           },
           Clinician: {
@@ -304,13 +280,12 @@ export async function POST(request: NextRequest) {
                   recurring_appointment_id: masterAppointment.id,
                 },
                 include: {
-                  ClientGroup: {
-                    include: {
-                      ClientGroupMembership: {
-                        include: {
-                          Client: true,
-                        },
-                      },
+                  Client: {
+                    select: {
+                      id: true,
+                      legal_first_name: true,
+                      legal_last_name: true,
+                      preferred_name: true,
                     },
                   },
                   Clinician: {
@@ -373,13 +348,12 @@ export async function POST(request: NextRequest) {
               recurring_appointment_id: masterAppointment.id,
             },
             include: {
-              ClientGroup: {
-                include: {
-                  ClientGroupMembership: {
-                    include: {
-                      Client: true,
-                    },
-                  },
+              Client: {
+                select: {
+                  id: true,
+                  legal_first_name: true,
+                  legal_last_name: true,
+                  preferred_name: true,
                 },
               },
               Clinician: {
@@ -415,13 +389,12 @@ export async function POST(request: NextRequest) {
           recurring_rule: null,
         },
         include: {
-          ClientGroup: {
-            include: {
-              ClientGroupMembership: {
-                include: {
-                  Client: true,
-                },
-              },
+          Client: {
+            select: {
+              id: true,
+              legal_first_name: true,
+              legal_last_name: true,
+              preferred_name: true,
             },
           },
           Clinician: {
@@ -487,7 +460,7 @@ export async function PUT(request: NextRequest) {
         end_date: data.end_date ? new Date(data.end_date) : undefined,
         location_id: data.location_id,
         status: data.status,
-        client_group_id: data.client_group_id,
+        client_id: data.client_id,
         clinician_id: data.clinician_id,
         is_recurring: data.is_recurring,
         recurring_rule: data.recurring_rule || data.recurring_pattern,
@@ -496,13 +469,12 @@ export async function PUT(request: NextRequest) {
         recurring_appointment_id: data.recurring_appointment_id,
       },
       include: {
-        ClientGroup: {
-          include: {
-            ClientGroupMembership: {
-              include: {
-                Client: true,
-              },
-            },
+        Client: {
+          select: {
+            id: true,
+            legal_first_name: true,
+            legal_last_name: true,
+            preferred_name: true,
           },
         },
         Clinician: {

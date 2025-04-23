@@ -93,7 +93,7 @@ export function ClientForm({
     loadData();
   }, []);
 
-  const isContactTab = tabId === "client-2" && clientType === "minor";
+  const isContactTab = tabId === "client-2";
   const shouldShowClinicianAndLocation = clientType === "minor" && isContactTab;
 
   // Helper to handle input changes with validation clearing
