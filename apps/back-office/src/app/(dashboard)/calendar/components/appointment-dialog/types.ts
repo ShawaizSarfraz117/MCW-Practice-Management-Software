@@ -1,4 +1,5 @@
 export type Service = {
+  isDefault: boolean;
   id: string;
   type: string;
   code: string;
