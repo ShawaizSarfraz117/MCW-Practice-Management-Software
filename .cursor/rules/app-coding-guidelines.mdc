@@ -1,0 +1,30 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# General Application Coding Guidelines
+
+This document outlines the key conventions and libraries used in the applications within the [apps/](mdc:apps) directory. Adhering to these guidelines ensures consistency and maintainability across the monorepo.
+
+## Core Technologies
+
+-   **Framework**: Use Next.js (App Router) with TypeScript. Follow standard App Router conventions for file structure (layout.tsx, page.tsx, route groups).
+-   **UI Components**: Use shared UI components from the [packages/ui](mdc:packages/ui) library whenever possible. Reference components like [Button](mdc:packages/ui/src/components/Button), [Input](mdc:packages/ui/src/components/Input), etc. Do not create custom one-off components if a suitable shared component exists. If a needed component is missing from `packages/ui` but is available in the Shadcn UI library, add it to `packages/ui` using the `shadcn-ui` CLI (e.g., `npx shadcn-ui@latest add <component-name> --cwd ./packages/ui`). See [apps/back-office/src/app/(auth)/login/components/LoginForm.tsx](mdc:apps/back-office/src/app/(auth)/login/components/LoginForm.tsx) for an example implementation.
+-   **Styling**: Use Tailwind CSS for all styling. Define global styles in the application's `globals.css` file (e.g., [apps/back-office/src/app/globals.css](mdc:apps/back-office/src/app/globals.css)). 
+-   **State Management (API/Server)**: Use Tanstack Query (`@tanstack/react-query`) for fetching, caching, and managing server state. Set up the QueryClientProvider in a `providers.tsx` file within the root `app` directory (e.g., [apps/back-office/src/app/providers.tsx](mdc:apps/back-office/src/app/providers.tsx)).
+-   **State Management (Forms)**: Use standard React state (`useState`) or consider using Tanstack Form (`@tanstack/react-form`) for complex forms. See [apps/back-office/src/app/(auth)/login/components/LoginForm.tsx](mdc:apps/back-office/src/app/(auth)/login/components/LoginForm.tsx) for an example using `useState`.
+-   **Authentication**: Utilize `next-auth/react` for client-side authentication operations (e.g., `signIn`) and NextAuth.js for backend configuration. Implement route protection using `middleware.ts` (e.g., [apps/back-office/src/middleware.ts](mdc:apps/back-office/src/middleware.ts)).
+-   **Database**: Interact with the database via Prisma ORM. The schema is defined in [packages/database/prisma/schema.prisma](mdc:packages/database/prisma/schema.prisma). Use MS SQL Server for both development and production.
+-   **Logging**: Use the shared logger package (`@mcw/logger`). Refer to the [README.md](mdc:README.md#logging) for usage examples.
+-   **Testing**: Use Vitest for testing. Write integration tests (interacting with the database using Prisma factories like `UserPrismaFactory`) and unit tests (using mock factories like `UserFactory`). Place tests in the application's `__tests__` directory (e.g., [apps/back-office/src/__tests__](mdc:apps/back-office/src/__tests__)). Refer to the application's `vitest.config.*.ts` files for configuration.
+-   **API Routes**: Create API endpoints using Next.js Route Handlers within the `src/app/api` directory (e.g., `src/app/api/your-feature/route.ts`). Export async functions named `GET`, `POST`, `PUT`, `DELETE`, etc., accepting `NextRequest`. Use `NextResponse.json()` for responses, setting appropriate status codes. Handle errors using `try...catch` blocks and log errors using the shared `@mcw/logger`. Perform necessary request validation. Interact with the database using the shared Prisma client (`@mcw/database`). See [apps/back-office/src/app/api/client/route.ts](mdc:apps/back-office/src/app/api/client/route.ts) for a detailed example.
+
+## General Principles
+
+-   Follow the project structure outlined in the main [README.md](mdc:README.md#project-structure).
+-   Prioritize security, privacy, and HIPAA compliance in all development activities.
+-   Ensure features have adequate test coverage before considering them complete.
+-   **Code Consistency**: Before writing new code (components, hooks, API routes, utilities, etc.), search the existing codebase (`apps/`, `packages/`) for similar implementations. Follow the established patterns and structure found in those examples to maintain consistency.
+-   **Library Documentation**: When working with unfamiliar libraries or needing specific API details, utilize available documentation tools (e.g., Context7 MCP) to retrieve up-to-date documentation.
+-   Keep dependencies updated.
