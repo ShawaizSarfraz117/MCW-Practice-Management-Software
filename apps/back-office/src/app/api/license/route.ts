@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
-import { getServerSession } from "next-auth";
-import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 import { z } from "zod";
+import { getBackOfficeSession } from "@/utils/helpers";
 
 const licensePayload = z.object({
   license_type: z.string().max(100).optional().nullable(),
@@ -14,7 +13,7 @@ const licensePayload = z.object({
 // PUT route to add or update licenses
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(backofficeAuthOptions);
+    const session = await getBackOfficeSession();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -93,7 +92,7 @@ export async function POST(request: NextRequest) {
 // GET route to fetch licenses for a specific clinical info
 export async function GET() {
   try {
-    const session = await getServerSession(backofficeAuthOptions);
+    const session = await getBackOfficeSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

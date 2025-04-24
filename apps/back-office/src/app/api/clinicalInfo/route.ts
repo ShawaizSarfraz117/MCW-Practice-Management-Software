@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
-import { getServerSession } from "next-auth";
-import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 import { z } from "zod";
+import { getBackOfficeSession } from "@/utils/helpers";
 
 const clinicalInfoPayload = z.object({
   speciality: z.string().max(100).optional().nullable(),
@@ -12,7 +11,7 @@ const clinicalInfoPayload = z.object({
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(backofficeAuthOptions);
+    const session = await getBackOfficeSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -73,7 +72,7 @@ export async function PUT(request: NextRequest) {
 
 export async function GET() {
   try {
-    const session = await getServerSession(backofficeAuthOptions);
+    const session = await getBackOfficeSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
