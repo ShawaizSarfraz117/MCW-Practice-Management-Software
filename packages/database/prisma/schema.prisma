@@ -312,14 +312,18 @@ model Tag {
 }
 
 model User {
-  id            String        @id @default(dbgenerated("newid()"), map: "PK_User_ID") @db.UniqueIdentifier
-  email         String        @unique @db.VarChar(255)
-  password_hash String        @db.VarChar(255)
+  id            String         @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  email         String         @unique @db.VarChar(255)
+  password_hash String         @db.VarChar(255)
   last_login    DateTime?
   Appointment   Appointment[]
   Audit         Audit[]
   Clinician     Clinician?
   UserRole      UserRole[]
+ date_of_birth  DateTime? @db.Date
+  phone         String?   @db.VarChar(20)
+  profile_photo String?   @db.VarChar(500)
+  clinicalInfos ClinicalInfo[]
 }
 
 model UserRole {
@@ -329,4 +333,24 @@ model UserRole {
   User    User   @relation(fields: [user_id], references: [id], map: "FK_UserRole_User")
 
   @@id([user_id, role_id], map: "PK_UserRole_ID")
+}
+
+model ClinicalInfo {
+  id           Int    @id @default(autoincrement())
+  speciality   String
+  taxonomy_code String
+  NPI_number    Float
+  user_id       String @db.UniqueIdentifier
+  licenses      License[]
+  User User @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
+}
+
+model License {
+  id              Int      @id @default(autoincrement())
+  clinical_info_id Int
+  license_type    String   // License type
+  license_number  String   // License number
+  expiration_date DateTime     // Use Date type for expiration date
+  state           String   // State
+  clinicalInfo    ClinicalInfo @relation(fields: [clinical_info_id], references: [id]) // Establishing the relation
 }

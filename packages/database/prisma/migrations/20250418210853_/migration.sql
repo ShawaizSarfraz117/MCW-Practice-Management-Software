@@ -1,0 +1,29 @@
+BEGIN TRY
+
+BEGIN TRAN;
+
+-- CreateTable
+CREATE TABLE [dbo].[ClinicalInfo] (
+    [id] INT NOT NULL IDENTITY(1,1),
+    [speciality] NVARCHAR(1000) NOT NULL,
+    [taxonomyCode] NVARCHAR(1000) NOT NULL,
+    [NPInumber] FLOAT(53) NOT NULL,
+    [userId] UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT [ClinicalInfo_pkey] PRIMARY KEY CLUSTERED ([id])
+);
+
+-- AddForeignKey
+ALTER TABLE [dbo].[ClinicalInfo] ADD CONSTRAINT [FK_clinicalInfo_User] FOREIGN KEY ([userId]) REFERENCES [dbo].[User]([id]) ON DELETE NO ACTION ON UPDATE CASCADE;
+
+COMMIT TRAN;
+
+END TRY
+BEGIN CATCH
+
+IF @@TRANCOUNT > 0
+BEGIN
+    ROLLBACK TRAN;
+END;
+THROW
+
+END CATCH

@@ -50,6 +50,10 @@ async function main() {
           role_id: adminRole.id,
         },
       },
+      date_of_birth: new Date("1985-06-15"),
+      phone: "+1 (555) 987-6543",
+      profile_photo:
+        "https://ui-avatars.com/api/?name=Clinician&background=2d8467&color=fff",
     },
   });
 
@@ -69,6 +73,10 @@ async function main() {
           role_id: backOfficeRole.id,
         },
       },
+      date_of_birth: new Date("1985-06-15"),
+      phone: "+1 (555) 987-6543",
+      profile_photo:
+        "https://ui-avatars.com/api/?name=Clinician&background=2d8467&color=fff",
     },
   });
 
