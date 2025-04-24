@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import type React from "react";
 import {
   Button,

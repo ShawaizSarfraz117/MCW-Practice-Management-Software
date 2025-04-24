@@ -1,13 +1,17 @@
+/* eslint-disable max-lines-per-function */
 "use client";
 
 import type React from "react";
 // import { MainSidebar } from "./components/main-sidebar";
 import { CalendarView } from "./components/calendar/calendar";
-import { CreateClientForm } from "./components/client/CreateClientForm";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { IntakeForm } from "./components/intake/IntakeForm";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
+import { CreateClientDrawer } from "../clients/components/CreateClientDrawer";
+import { fetchClientGroups } from "../clients/services/client.service";
+import { Client } from "@prisma/client";
 
 // Types for API responses
 type Clinician = {
@@ -134,7 +138,7 @@ function determineLocationType(
 
 const CalendarPage: React.FC = () => {
   const [showCreateClient, setShowCreateClient] = useState(false);
-  const [appointmentDate, setAppointmentDate] = useState("");
+  const [_appointmentDate, setAppointmentDate] = useState("");
   const [showIntakeForm, setShowIntakeForm] = useState(false);
 
   // Use the custom hook to get clinician data
@@ -250,6 +254,43 @@ const CalendarPage: React.FC = () => {
       }))
     : [];
 
+  const [_isLoading, setIsLoading] = useState(true);
+  const [sortBy, _setSortBy] = useState("legal_last_name");
+  const [statusFilter, _setStatusFilter] = useState<string[]>(["all"]);
+  const [searchQuery, _setSearchQuery] = useState("");
+  const [_clients, setClients] = useState<{
+    data: Client[];
+    pagination: { page: number; limit: number; total: number };
+  }>({ data: [], pagination: { page: 1, limit: 20, total: 0 } });
+
+  const fetchClientData = useCallback(
+    async (params = {}) => {
+      setIsLoading(true);
+      const [clients, error] = await fetchClientGroups({
+        searchParams: {
+          status: statusFilter,
+          search: searchQuery,
+          sortBy,
+          ...params,
+        },
+      });
+      if (!error) {
+        setClients(
+          clients as {
+            data: Client[];
+            pagination: { page: number; limit: number; total: number };
+          },
+        );
+      }
+      setIsLoading(false);
+    },
+    [statusFilter, searchQuery, sortBy],
+  );
+
+  useEffect(() => {
+    fetchClientData(); // Now only called when statusFilter or sortBy change
+  }, [statusFilter, sortBy]);
+
   // Format appointments for the calendar
   const formattedAppointments = Array.isArray(appointmentsData)
     ? appointmentsData.map((appointment) => {
@@ -321,12 +362,12 @@ const CalendarPage: React.FC = () => {
           onCreateClient={handleCreateClient}
         />
 
-        {showCreateClient && (
-          <CreateClientForm
-            appointmentDate={appointmentDate}
-            onClose={() => setShowCreateClient(false)}
-          />
-        )}
+        <CreateClientDrawer
+          fetchClientData={fetchClientData}
+          open={showCreateClient}
+          onOpenChange={setShowCreateClient}
+        />
+
         {showIntakeForm && (
           <IntakeForm
             clientEmail="almir@example.com"

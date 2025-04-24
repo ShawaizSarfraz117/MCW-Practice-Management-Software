@@ -1,10 +1,11 @@
+/* eslint-disable max-lines-per-function */
 "use client";
 
 import { MapPin } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage, SearchSelect } from "@mcw/ui";
+import { format } from "date-fns";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import {
   AppointmentTabProps,
   Client,
@@ -121,7 +122,7 @@ export function AppointmentTab({
   >({
     queryKey: ["clients", effectiveClinicianId, isAdmin, isClinician],
     queryFn: async () => {
-      let url = "/api/client";
+      let url = "/api/client/group";
 
       if (isClinician && !isAdmin && effectiveClinicianId) {
         url += `?clinicianId=${effectiveClinicianId}`;
@@ -158,7 +159,6 @@ export function AppointmentTab({
         data = rawData.clients;
       }
 
-      // If data is an object with results property that's an array, use that
       if (
         !Array.isArray(rawData) &&
         rawData &&
@@ -172,25 +172,29 @@ export function AppointmentTab({
     enabled: !!shouldFetchData,
   });
 
-  // Filter and process options
   const filteredClients = Array.isArray(clientsData)
     ? clientsData
-        .map((client) => {
-          // Make the mapping more resilient with optional chaining and fallbacks
-          return {
-            label:
-              `${client?.legal_first_name || client?.firstName || client?.first_name || ""} ${client?.legal_last_name || client?.lastName || client?.last_name || ""}`.trim(),
-            value: client?.id || "",
-          };
+        .map((clientGroup) => {
+          if (Array.isArray(clientGroup?.ClientGroupMembership)) {
+            return clientGroup.ClientGroupMembership.map((membership) => {
+              const client = membership.Client;
+
+              return {
+                label:
+                  `${client?.legal_first_name || ""} ${client?.legal_last_name || ""}`.trim(),
+                value: client?.id || "",
+              };
+            });
+          }
+          return [];
         })
+        .flat()
         .filter((option) => {
-          // Filter out empty/invalid options
           if (!option.value) {
             console.log("Filtering out option with empty value:", option);
             return false;
           }
 
-          // Normal search term filtering
           const matches = option.label
             .toLowerCase()
             .includes(clientSearchTerm.toLowerCase());

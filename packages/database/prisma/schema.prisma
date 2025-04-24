@@ -11,7 +11,7 @@ generator fabbrica {
 datasource db {
   provider          = "sqlserver"
   url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model Appointment {
@@ -67,6 +67,21 @@ model Audit {
   is_hipaa   Boolean  @default(false, map: "DF_Audit_IsHipaa")
   Client     Client?  @relation(fields: [client_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Audit_Client")
   User       User?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Audit_User")
+}
+
+model Availability {
+  id            String    @id @default(dbgenerated("newid()"), map: "PK_Availability_ID") @db.UniqueIdentifier
+  clinician_id  String    @db.UniqueIdentifier
+  start_time    DateTime
+  end_time      DateTime
+  created_at    DateTime  @default(now(), map: "DF_Availability_CreatedAt")
+  updated_at    DateTime  @updatedAt
+  is_recurring  Boolean   @default(false, map: "DF_Availability_IsRecurring")
+  recurring_rule String?  @db.Text
+  Clinician     Clinician @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Availability_Clinician")
+
+  @@index([clinician_id], map: "IX_Availability_clinician_id")
+  @@index([start_time, end_time], map: "IX_Availability_time_range")
 }
 
 model Client {
@@ -151,6 +166,7 @@ model Clinician {
   ClinicianLocation ClinicianLocation[]
   ClinicianServices ClinicianServices[]
   Invoice           Invoice[]
+  Availability      Availability[]
 }
 
 model ClinicianClient {

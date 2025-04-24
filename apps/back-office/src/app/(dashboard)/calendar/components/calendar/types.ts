@@ -1,4 +1,7 @@
 // Calendar component types
+
+import { EventClickArg } from "@fullcalendar/core";
+
 export interface Clinician {
   first_name?: string;
   last_name?: string;
@@ -70,6 +73,12 @@ export interface CalendarViewProps {
   initialEvents: Event[];
   onCreateClient?: (date: string, time: string) => void;
   onAppointmentDone?: () => void;
+  onEventClick?: (info: EventClickArg) => void;
+  onDateSelect?: (selectInfo: {
+    start: Date;
+    end: Date;
+    resource?: { id: string };
+  }) => void;
 }
 
 // Define FormValues interface to match the appointment dialog's form values

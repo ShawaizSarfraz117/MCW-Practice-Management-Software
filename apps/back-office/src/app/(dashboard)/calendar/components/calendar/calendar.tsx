@@ -29,6 +29,8 @@ export function CalendarView({
   initialEvents,
   onCreateClient,
   onAppointmentDone,
+  onEventClick,
+  onDateSelect,
 }: CalendarViewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -455,6 +457,11 @@ export function CalendarView({
 
   // Handle event click to view appointment details
   const handleEventClick = async (info: EventClickArg) => {
+    if (onEventClick) {
+      onEventClick(info);
+      return;
+    }
+
     const appointmentId = info.event.id;
     const appointmentData = await fetchAppointmentDetails(appointmentId);
 
@@ -492,6 +499,11 @@ export function CalendarView({
     end: Date;
     resource?: { id: string };
   }) => {
+    if (onDateSelect) {
+      onDateSelect(selectInfo);
+      return;
+    }
+
     // Reset viewing mode when creating a new appointment
     setSelectedAppointment(null);
     setSelectedDate(selectInfo.start);
