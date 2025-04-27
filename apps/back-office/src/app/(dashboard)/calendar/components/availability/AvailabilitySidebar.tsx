@@ -21,9 +21,9 @@ import {
   AlertDialogTrigger,
 } from "@mcw/ui";
 import { X, Plus, Minus, Trash2 } from "lucide-react";
-import { DateTimeControls } from "../appointment-dialog/components/FormControls";
-import { FormProvider } from "../appointment-dialog/context/FormContext";
-import { useForm } from "@tanstack/react-form";
+import { DateTimeControls } from "./components/FormControls";
+import { AvailabilityFormProvider } from "./context/FormContext";
+import { useFormTabs } from "./hooks/useFormTabs";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -134,9 +134,12 @@ export function AvailabilitySidebar({
   const [services, setServices] = useState<Service[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
+  const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
+    useFormTabs(selectedResource, selectedDate);
+
   // Update state when availabilityData changes
   useEffect(() => {
-    if (availabilityData) {
+    if (open && availabilityData) {
       setAllowOnlineRequests(availabilityData.allow_online_requests || false);
       setIsRecurring(availabilityData.is_recurring || false);
       setTitle(availabilityData.title || "");
@@ -194,6 +197,33 @@ export function AvailabilitySidebar({
         setEndType("never");
         setEndValue("");
       }
+
+      // Update the unified form state for editing
+      setAvailabilityFormValues((prev) => ({
+        ...prev,
+        title: availabilityData.title || "",
+        startDate: availabilityData.start_date
+          ? new Date(availabilityData.start_date)
+          : prev.startDate,
+        endDate: availabilityData.end_date
+          ? new Date(availabilityData.end_date)
+          : prev.endDate,
+        startTime: availabilityData.start_date
+          ? format(new Date(availabilityData.start_date), "hh:mm a")
+          : prev.startTime,
+        endTime: availabilityData.end_date
+          ? format(new Date(availabilityData.end_date), "hh:mm a")
+          : prev.endTime,
+        type: "availability",
+        clinician: availabilityData.clinician_id || "",
+        location: availabilityData.location || "video",
+        allowOnlineRequests: availabilityData.allow_online_requests || false,
+        isRecurring: availabilityData.is_recurring || false,
+        recurringRule: availabilityData.recurring_rule || undefined,
+        selectedServices: availabilityData.service_id
+          ? [availabilityData.service_id]
+          : [],
+      }));
     } else {
       // Reset all values if no availabilityData
       setAllowOnlineRequests(false);
@@ -206,7 +236,7 @@ export function AvailabilitySidebar({
       setEndValue("");
       setSelectedLocation("video");
     }
-  }, [availabilityData]);
+  }, [open, availabilityData, setAvailabilityFormValues]);
 
   // Fetch services when component mounts
   useEffect(() => {
@@ -231,118 +261,6 @@ export function AvailabilitySidebar({
       fetchServices();
     }
   }, [session?.user?.id, selectedResource, isEditMode, availabilityData]);
-
-  // Initialize form with availability data if it exists
-  const startDate = availabilityData?.start_date
-    ? new Date(availabilityData.start_date)
-    : selectedDate;
-  const endDate = availabilityData?.end_date
-    ? new Date(availabilityData.end_date)
-    : selectedDate;
-
-  // Fetch clinicians with role-based permissions
-  // const { data: clinicians = [], isLoading: isLoadingClinicians } = useQuery({
-  //   queryKey: ["clinicians", selectedResource, session?.user?.isAdmin, session?.user?.isClinician],
-  //   queryFn: async () => {
-  //     let url = "/api/clinician";
-
-  //     // If user is a clinician and not an admin, fetch only their own data
-  //     if (session?.user?.isClinician && !session?.user?.isAdmin && session?.user?.id) {
-  //       url += `?id=${session.user.id}`;
-  //     }
-
-  //     const response = await fetch(url);
-  //     if (!response.ok) {
-  //       throw new Error("Failed to fetch clinicians");
-  //     }
-  //     const data = await response.json();
-  //     return Array.isArray(data) ? data : [data];
-  //   },
-  //   enabled: !!session?.user,
-  // });
-
-  const form = useForm({
-    defaultValues: {
-      startDate: startDate,
-      endDate: endDate,
-      startTime: format(startDate, "hh:mm a"),
-      endTime: format(endDate, "hh:mm a"),
-      allDay: false,
-      type: "availability",
-      clinician: availabilityData?.clinician_id || selectedResource || "",
-      location: selectedLocation,
-      eventName: availabilityData?.title || "",
-      recurring: availabilityData?.is_recurring || false,
-      service: availabilityData?.service_id || "",
-    },
-    onSubmit: async ({ value }) => {
-      try {
-        // Create the availability payload
-        const payload = {
-          title: title || "Availability",
-          is_all_day: value.allDay,
-          start_date: getDateTimeISOString(value.startDate, value.startTime),
-          end_date: getDateTimeISOString(value.endDate, value.endTime),
-          location: selectedLocation,
-          clinician_id: value.clinician,
-          allow_online_requests: allowOnlineRequests,
-          is_recurring: isRecurring,
-          recurring_rule: isRecurring ? createRecurringRule() : null,
-          service_id: selectedServices[0] || null,
-        };
-
-        // Call the API to create/update availability
-        const response = await fetch(
-          "/api/availability" +
-            (isEditMode && availabilityData?.id
-              ? `?id=${availabilityData.id}`
-              : ""),
-          {
-            method: isEditMode ? "PUT" : "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          },
-        );
-
-        const responseData = await response.json();
-
-        if (!response.ok) {
-          throw new Error(responseData.error || "Failed to save availability");
-        }
-
-        // Close sidebar first
-        onOpenChange(false);
-
-        // Invalidate and refetch with date range
-        await queryClient.invalidateQueries({
-          queryKey: ["availabilities", apiStartDate, apiEndDate],
-        });
-
-        // Trigger a new fetch with date range
-        await queryClient.fetchQuery({
-          queryKey: ["availabilities", apiStartDate, apiEndDate],
-          queryFn: async () => {
-            const response = await fetch(
-              `/api/availability?startDate=${apiStartDate}&endDate=${apiEndDate}`,
-            );
-            if (!response.ok) {
-              throw new Error("Failed to fetch availabilities");
-            }
-            return response.json();
-          },
-        });
-      } catch (error) {
-        console.error("Error saving availability:", error);
-        setGeneralError(
-          error instanceof Error
-            ? error.message
-            : "Failed to save availability",
-        );
-      }
-    },
-  });
 
   // Helper function to create recurring rule in RFC5545 format
   const createRecurringRule = () => {
@@ -447,6 +365,83 @@ export function AvailabilitySidebar({
     }
   };
 
+  // Save handler for both create and edit
+  const handleSave = async () => {
+    try {
+      // Validate required fields
+      if (!availabilityFormValues.clinician) {
+        setGeneralError("Please select a team member");
+        return;
+      }
+
+      // Construct the payload
+      const payload = {
+        title: title || "Availability",
+        start_date: getDateTimeISOString(
+          availabilityFormValues.startDate,
+          availabilityFormValues.startTime,
+        ),
+        end_date: getDateTimeISOString(
+          availabilityFormValues.endDate,
+          availabilityFormValues.endTime,
+        ),
+        location: selectedLocation,
+        clinician_id: availabilityFormValues.clinician,
+        allow_online_requests: allowOnlineRequests,
+        is_recurring: isRecurring,
+        recurring_rule: isRecurring ? createRecurringRule() : null,
+        service_id: selectedServices[0] || null,
+      };
+
+      // Call the API to create/update availability
+      const response = await fetch(
+        "/api/availability" +
+          (isEditMode && availabilityData?.id
+            ? `?id=${availabilityData.id}`
+            : ""),
+        {
+          method: isEditMode ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to save availability");
+      }
+
+      // Close sidebar first
+      onOpenChange(false);
+
+      // Invalidate and refetch with date range
+      await queryClient.invalidateQueries({
+        queryKey: ["availabilities", apiStartDate, apiEndDate],
+      });
+
+      // Trigger a new fetch with date range
+      await queryClient.fetchQuery({
+        queryKey: ["availabilities", apiStartDate, apiEndDate],
+        queryFn: async () => {
+          const response = await fetch(
+            `/api/availability?startDate=${apiStartDate}&endDate=${apiEndDate}`,
+          );
+          if (!response.ok) {
+            throw new Error("Failed to fetch availabilities");
+          }
+          return response.json();
+        },
+      });
+    } catch (error) {
+      setGeneralError(
+        error instanceof Error ? error.message : "Failed to save availability",
+      );
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -461,12 +456,37 @@ export function AvailabilitySidebar({
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
       ) : (
-        <FormProvider form={form}>
+        <AvailabilityFormProvider
+          form={{
+            ...availabilityFormValues,
+            setFieldValue: (field, value) =>
+              setAvailabilityFormValues((prev) => ({
+                ...prev,
+                [field]: value,
+              })),
+            getFieldValue: <T = unknown,>(field: string): T =>
+              availabilityFormValues[
+                field as keyof typeof availabilityFormValues
+              ] as T,
+            reset: (values) =>
+              setAvailabilityFormValues({
+                ...availabilityFormValues,
+                ...values,
+              }),
+            handleSubmit: handleSave,
+            state: { values: availabilityFormValues },
+          }}
+          duration={"1 hour"}
+          validationErrors={{}}
+          setValidationErrors={() => {}}
+          setGeneralError={() => {}}
+          forceUpdate={forceUpdate}
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              void form.handleSubmit();
+              handleSave();
             }}
             className="h-full flex flex-col"
           >
@@ -517,8 +537,8 @@ export function AvailabilitySidebar({
                   Cancel
                 </Button>
                 <Button
+                  type="submit"
                   className="bg-[#16A34A] hover:bg-[#16A34A]/90 text-white"
-                  onClick={() => form.handleSubmit()}
                 >
                   Save
                 </Button>
@@ -756,7 +776,7 @@ export function AvailabilitySidebar({
               </div>
             </div>
           </form>
-        </FormProvider>
+        </AvailabilityFormProvider>
       )}
     </div>
   );

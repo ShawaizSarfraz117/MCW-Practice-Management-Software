@@ -236,6 +236,43 @@ export async function POST(request: NextRequest) {
         ? parseDate(data.end_date)
         : parseDate(data.start_date);
 
+      // Check appointment limit for the day (single appointment)
+      const dayStart = new Date(startDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(startDate);
+      dayEnd.setHours(23, 59, 59, 999);
+      if (data.clinician_id) {
+        // Get the limit for this clinician and day
+        const limitRecord = await prisma.appointmentLimit.findFirst({
+          where: {
+            clinician_id: data.clinician_id,
+            date: {
+              gte: dayStart,
+              lte: dayEnd,
+            },
+          },
+        });
+        if (limitRecord && limitRecord.max_limit > 0) {
+          // Count existing appointments for this clinician on this day
+          const apptCount = await prisma.appointment.count({
+            where: {
+              clinician_id: data.clinician_id,
+              start_date: {
+                gte: dayStart,
+                lte: dayEnd,
+              },
+              status: { not: "CANCELLED" },
+            },
+          });
+          if (apptCount >= limitRecord.max_limit) {
+            return NextResponse.json(
+              { error: "Appointment limit reached for this day." },
+              { status: 400 },
+            );
+          }
+        }
+      }
+
       // Base appointment data
       const baseAppointmentData = {
         type: data.type || "APPOINTMENT",

@@ -13,13 +13,12 @@ import {
   SearchSelect,
 } from "@mcw/ui";
 import { X, Plus, Minus } from "lucide-react";
-import { DateTimeControls } from "../appointment-dialog/components/FormControls";
-import { FormProvider } from "../appointment-dialog/context/FormContext";
-import { useForm } from "@tanstack/react-form";
+import { DateTimeControls } from "./components/FormControls";
+import { AvailabilityFormProvider } from "./context/FormContext";
+import { useFormTabs } from "./hooks/useFormTabs";
 import {
   AppointmentData,
   Clinician,
-  FormInterface,
   Service,
 } from "../appointment-dialog/types";
 import { useSession } from "next-auth/react";
@@ -45,9 +44,9 @@ interface AppointmentSidebarProps {
   onClose: () => void;
 }
 
-function adaptFormToInterface(originalForm: unknown): FormInterface {
-  return originalForm as FormInterface;
-}
+// function adaptFormToInterface(originalForm: unknown): FormInterface {
+//   return originalForm as FormInterface;
+// }
 
 export function AppointmentSidebar({
   open,
@@ -75,86 +74,20 @@ export function AppointmentSidebar({
   const [endValue, setEndValue] = useState<string>("");
   const [selectedLocation, setSelectedLocation] = useState("video");
   const [services, setServices] = useState<Service[]>([]);
-  const [clinician, setClinician] = useState<Clinician[]>([]);
+  const [_clinician, setClinician] = useState<Clinician[]>([]);
 
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [clinicianPage, setClinicianPage] = useState(1);
   const [_clinicianSearchTerm, setClinicianSearchTerm] = useState("");
 
   // Get stored time slot from session storage
-  const timeSlot =
-    typeof window !== "undefined"
-      ? JSON.parse(window.sessionStorage.getItem("selectedTimeSlot") || "{}")
-      : {};
+  // const timeSlot =
+  //   typeof window !== "undefined"
+  //     ? JSON.parse(window.sessionStorage.getItem("selectedTimeSlot") || "{}")
+  //     : {};
 
-  const form = useForm({
-    defaultValues: {
-      startDate: selectedDate,
-      endDate: selectedDate,
-      startTime: timeSlot.startTime || format(selectedDate, "hh:mm a"),
-      endTime:
-        timeSlot.endTime ||
-        format(new Date(selectedDate.getTime() + 60 * 60 * 1000), "hh:mm a"),
-      allDay: false,
-      type: "availability",
-      clinician: clinician[0]?.id || "",
-      location: selectedLocation,
-      eventName: "",
-      recurring: false,
-    },
-    onSubmit: async ({ value }) => {
-      try {
-        // Validate clinician selection
-        if (!value.clinician) {
-          setValidationState((prev) => ({ ...prev, clinician: true }));
-          throw new Error("Please select a team member");
-        }
-
-        // Create the availability payload
-        const payload = {
-          title: title || "New Availability",
-          is_all_day: value.allDay,
-          start_date: getDateTimeISOString(value.startDate, value.startTime),
-          end_date: getDateTimeISOString(value.endDate, value.endTime),
-          location: selectedLocation,
-          clinician_id: value.clinician,
-          allow_online_requests: allowOnlineRequests,
-          is_recurring: isRecurring,
-          recurring_rule: isRecurring ? createRecurringRule() : null,
-        };
-
-        console.log("Submitting availability payload:", payload);
-
-        // Call the API to create availability
-        const response = await fetch("/api/availability", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-
-        const responseData = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            responseData.error || "Failed to create availability",
-          );
-        }
-
-        // Close the sidebar and refresh the calendar
-        onOpenChange(false);
-        onDone();
-      } catch (error) {
-        console.error("Error creating availability:", error);
-        setGeneralError(
-          error instanceof Error
-            ? error.message
-            : "Failed to create availability",
-        );
-      }
-    },
-  });
+  const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
+    useFormTabs(selectedResource, selectedDate);
 
   // Fetch clinicians with role-based permissions
   const { data: clinicians = [], isLoading: isLoadingClinicians } = useQuery({
@@ -260,32 +193,77 @@ export function AppointmentSidebar({
     return parts.join(";");
   };
 
-  // Helper function to convert date and time to ISO string
-  const getDateTimeISOString = (date: Date, timeStr?: string) => {
-    if (!timeStr) return date.toISOString();
+  // Helper function to convert date and time to local ISO string
+  const getDateTimeUTC = (date: Date, timeStr?: string) => {
+    const newDate = new Date(date);
+    if (timeStr) {
+      try {
+        const [timeValue, period] = timeStr.split(" ");
+        const [hours, minutes] = timeValue.split(":").map(Number);
+        let hours24 = hours;
+        if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
+        if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+        newDate.setHours(hours24, minutes, 0, 0);
+      } catch (error) {
+        console.error("Error converting date/time:", error);
+      }
+    }
+    // Always return UTC ISO string (with Z)
+    return newDate.toISOString();
+  };
 
+  // Handle save button click
+  const handleSave = async () => {
     try {
-      const [timeValue, period] = timeStr.split(" ");
-      const [hours, minutes] = timeValue.split(":").map(Number);
-
-      if (isNaN(hours) || isNaN(minutes)) {
-        throw new Error("Invalid time format");
+      // Validate required fields
+      if (!availabilityFormValues.clinician) {
+        setValidationState((prev) => ({ ...prev, clinician: true }));
+        setGeneralError("Please select a team member");
+        return;
       }
 
-      // Convert 12-hour format to 24-hour
-      let hours24 = hours;
-      if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
-      if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+      // Construct the payload
+      const payload = {
+        title: title || "New Availability",
+        start_date: getDateTimeUTC(
+          availabilityFormValues.startDate,
+          availabilityFormValues.startTime,
+        ),
+        end_date: getDateTimeUTC(
+          availabilityFormValues.endDate,
+          availabilityFormValues.endTime,
+        ),
+        location: selectedLocation,
+        clinician_id: availabilityFormValues.clinician,
+        allow_online_requests: allowOnlineRequests,
+        is_recurring: isRecurring,
+        recurring_rule: isRecurring ? createRecurringRule() : null,
+      };
 
-      // Create a new date with the correct time
-      const newDate = new Date(date);
-      newDate.setHours(hours24, minutes, 0, 0);
+      // Call the API to create availability
+      const response = await fetch("/api/availability", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-      // Return the ISO string
-      return newDate.toISOString();
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to create availability");
+      }
+
+      // Close the sidebar and refresh the calendar
+      onOpenChange(false);
+      onDone();
     } catch (error) {
-      console.error("Error converting date/time:", error);
-      return date.toISOString();
+      setGeneralError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create availability",
+      );
     }
   };
 
@@ -302,9 +280,9 @@ export function AppointmentSidebar({
     );
   };
 
-  const setValidationErrors = (errors: Record<string, boolean>) => {
-    setValidationState(errors);
-  };
+  // const setValidationErrors = (errors: Record<string, boolean>) => {
+  //   setValidationState(errors);
+  // };
 
   // Clear validation error for a specific field
   const clearValidationError = (field: string) => {
@@ -338,38 +316,44 @@ export function AppointmentSidebar({
             </Button>
             <Button
               className="bg-[#16A34A] hover:bg-[#16A34A]/90 text-white"
-              onClick={() => form.handleSubmit()}
+              onClick={handleSave}
             >
               Save
             </Button>
           </div>
         </div>
 
-        <FormProvider
-          form={adaptFormToInterface(form)}
-          duration={timeSlot?.duration || "1 hour"}
-          validationErrors={validationState}
-          setValidationErrors={setValidationErrors}
-          setGeneralError={setGeneralError}
-          isAdmin={session?.user?.isAdmin || false}
-          isClinician={session?.user?.isClinician || false}
-          effectiveClinicianId={selectedResource || session?.user?.id || ""}
-          shouldFetchData={!!session?.user}
-          forceUpdate={() => {
-            const currentValues = form.state.values;
-            form.reset({
-              ...currentValues,
-              startDate: selectedDate,
-              endDate: selectedDate,
-              startTime: timeSlot.startTime || format(selectedDate, "hh:mm a"),
-              endTime:
-                timeSlot.endTime ||
-                format(
-                  new Date(selectedDate.getTime() + 60 * 60 * 1000),
-                  "hh:mm a",
-                ),
-            });
+        <AvailabilityFormProvider
+          form={{
+            ...availabilityFormValues,
+            setFieldValue: (
+              field: string,
+              value: unknown,
+              _options?: unknown,
+            ) =>
+              setAvailabilityFormValues((prev) => ({
+                ...prev,
+                [field]: value,
+              })),
+            getFieldValue: <T = unknown,>(field: string): T =>
+              availabilityFormValues[
+                field as keyof typeof availabilityFormValues
+              ] as T,
+            reset: (values: Partial<typeof availabilityFormValues> = {}) =>
+              setAvailabilityFormValues({
+                ...availabilityFormValues,
+                ...values,
+              }),
+            handleSubmit: () => {
+              /* implement submit logic here */
+            },
+            state: { values: availabilityFormValues },
           }}
+          duration={"1 hour"}
+          validationErrors={{}}
+          setValidationErrors={() => {}}
+          setGeneralError={() => {}}
+          forceUpdate={forceUpdate}
         >
           <div className="p-6 space-y-6">
             <div className="flex items-start gap-3">
@@ -414,11 +398,14 @@ export function AppointmentSidebar({
                     ? "Loading team members..."
                     : "Search Team Members *"
                 }
-                value={form.getFieldValue("clinician")}
+                value={availabilityFormValues.clinician}
                 onPageChange={setClinicianPage}
                 onSearch={setClinicianSearchTerm}
                 onValueChange={(value) => {
-                  form.setFieldValue("clinician", value);
+                  setAvailabilityFormValues((prev) => ({
+                    ...prev,
+                    clinician: value,
+                  }));
                   clearValidationError("clinician");
                 }}
               />
@@ -490,7 +477,8 @@ export function AppointmentSidebar({
                                 selectedDays.includes(dayValue)
                                   ? "bg-[#16A34A] text-white"
                                   : "bg-white border text-gray-700"
-                              }`}
+                              }
+                            `}
                           >
                             {day}
                           </button>
@@ -628,8 +616,9 @@ export function AppointmentSidebar({
               <div className="text-red-500 text-sm">{generalError}</div>
             )}
           </div>
-        </FormProvider>
+        </AvailabilityFormProvider>
       </div>
     </div>
   );
 }
+// ... existing code ...

@@ -11,7 +11,6 @@ const availabilitySchema = z.object({
   clinician_id: z.string().uuid(),
   allow_online_requests: z.boolean().default(false),
   location: z.string().optional(),
-  is_all_day: z.boolean().default(false),
   start_date: z.string().datetime(),
   end_date: z.string().datetime(),
   is_recurring: z.boolean().default(false),
@@ -32,10 +31,9 @@ export async function POST(request: NextRequest) {
     // Convert string dates to Date objects and prepare data
     const data: Prisma.AvailabilityUncheckedCreateInput = {
       clinician_id: validatedData.clinician_id,
-      title: validatedData.title,
+      title: validatedData.title || "",
       allow_online_requests: validatedData.allow_online_requests,
       location: validatedData.location,
-      is_all_day: validatedData.is_all_day,
       start_date: new Date(validatedData.start_date),
       end_date: new Date(validatedData.end_date),
       is_recurring: validatedData.is_recurring,
@@ -156,12 +154,6 @@ export async function PUT(request: NextRequest) {
     // Convert date strings to Date objects if they exist
     const data = {
       ...validatedData,
-      start_date: validatedData.start_date
-        ? new Date(validatedData.start_date)
-        : undefined,
-      end_date: validatedData.end_date
-        ? new Date(validatedData.end_date)
-        : undefined,
       updated_at: new Date(),
       recurring_rule: validatedData.recurring_rule || null,
     };

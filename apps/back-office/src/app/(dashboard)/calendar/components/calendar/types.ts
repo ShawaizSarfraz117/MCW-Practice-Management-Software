@@ -46,7 +46,6 @@ export interface AppointmentData {
   client_id?: string;
   status: string;
   type: string;
-  is_all_day: boolean;
 }
 
 export interface AvailabilityData {

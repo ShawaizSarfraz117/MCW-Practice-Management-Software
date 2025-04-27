@@ -9,6 +9,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
+import { DayHeaderContentArg } from "@fullcalendar/core";
 
 import { AppointmentDialog } from "../AppointmentDialog";
 import { CalendarToolbar } from "./components/CalendarToolbar";
@@ -26,6 +27,7 @@ import { EditAppointmentDialog } from "../EditAppointmentDialog";
 import { AvailabilitySidebar } from "../availability/AvailabilitySidebar";
 import styles from "./calendar.module.css";
 import { ClientGroup } from "../appointment-dialog/types";
+import { toast } from "@mcw/ui";
 
 declare global {
   interface Window {
@@ -81,9 +83,23 @@ export function CalendarView({
   const [showAvailabilitySidebar, setShowAvailabilitySidebar] = useState(false);
   const [selectedAvailability, setSelectedAvailability] =
     useState<AvailabilityData | null>(null);
+  const [appointmentLimits, setAppointmentLimits] = useState<
+    Record<string, number | null>
+  >({});
+  const [addLimitDropdown, setAddLimitDropdown] = useState<{
+    open: boolean;
+    anchor: HTMLElement | null;
+    date: Date | null;
+  }>({ open: false, anchor: null, date: null });
+  const addLimitDropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   // Get session data to check if user is admin
   const { data: session } = useSession();
+  console.log("🚀 ~ session:", session);
   const isAdmin = session?.user?.isAdmin || false;
 
   // Set the view based on user role
@@ -362,10 +378,21 @@ export function CalendarView({
           sentPayload: appointmentData,
           originalFormValues: values,
         });
+        // Handle appointment limit error
+        if (errorData.error === "Appointment limit reached for this day.") {
+          toast({
+            title: "Appointment limit reached for this day",
+            // description: "Please select at least one invoice to make a payment.",
+            // variant: "destructive",
+          });
+
+          return [];
+        }
         throw new Error(errorData.error || "Failed to create appointment");
       }
 
       const responseData = await response.json();
+      console.log("🚀 ~ responseData:", responseData);
       console.log("API Success Response:", {
         status: response.status,
         data: responseData,
@@ -918,6 +945,104 @@ export function CalendarView({
       title: clinician.label,
     }));
 
+  // Fetch limits for all days in view
+  useEffect(() => {
+    if (
+      !isScheduledPage ||
+      selectedClinicians.length === 0 ||
+      !calendarRef.current
+    ) {
+      setAppointmentLimits({});
+      return;
+    }
+    const calendarApi = calendarRef.current.getApi();
+    const view = calendarApi.view;
+    const startDate = view.activeStart;
+    const endDate = view.activeEnd;
+    const clinicianId = selectedClinicians[0];
+
+    // Get all dates in range
+    const dates: string[] = [];
+    const d = new Date(startDate);
+    while (d <= endDate) {
+      dates.push(d.toISOString().split("T")[0]);
+      d.setDate(d.getDate() + 1);
+    }
+
+    // Fetch all limits in parallel
+    Promise.all(
+      dates.map((date) =>
+        fetch(`/api/appointment-limit?clinicianId=${clinicianId}&date=${date}`)
+          .then((res) => res.json())
+          .then((data) => ({ date, limit: data.limit ?? null }))
+          .catch(() => ({ date, limit: null })),
+      ),
+    ).then((results) => {
+      const limits: Record<string, number | null> = {};
+      results.forEach(({ date, limit }) => {
+        limits[date] = limit;
+      });
+      setAppointmentLimits(limits);
+    });
+  }, [isScheduledPage, selectedClinicians, currentView, currentDate]);
+
+  function handleAddLimit(
+    date: Date,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY,
+      left: rect.left + rect.width / 2 + window.scrollX,
+    });
+    setAddLimitDropdown({ open: true, anchor: event.currentTarget, date });
+  }
+
+  // Update only the selected date's limit after adding
+  async function handleSelectLimit(limit: number | null) {
+    if (!addLimitDropdown.date || selectedClinicians.length === 0) return;
+    const clinician_id = selectedClinicians[0];
+    const date = addLimitDropdown.date.toISOString().split("T")[0];
+    const apiLimit = limit === null ? 0 : limit;
+    try {
+      const res = await fetch("/api/appointment-limit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinician_id, date, max_limit: apiLimit }),
+      });
+      if (!res.ok) throw new Error("Failed to set limit");
+      setAppointmentLimits((prev) => ({ ...prev, [date]: apiLimit }));
+    } catch (_e) {
+      if (typeof window !== "undefined" && window.toast) {
+        window.toast.error("Failed to set limit");
+      } else {
+        alert("Failed to set limit");
+      }
+    } finally {
+      setAddLimitDropdown({ open: false, anchor: null, date: null });
+    }
+  }
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        addLimitDropdown.open &&
+        addLimitDropdownRef.current &&
+        !addLimitDropdownRef.current.contains(event.target as Node)
+      ) {
+        setAddLimitDropdown({ open: false, anchor: null, date: null });
+        setDropdownPosition(null);
+      }
+    }
+    if (addLimitDropdown.open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [addLimitDropdown.open]);
+
   return (
     <div className="flex h-full bg-background">
       <div className="flex-1 flex flex-col">
@@ -948,6 +1073,169 @@ export function CalendarView({
               day: "numeric",
               omitCommas: true,
             }}
+            dayHeaderContent={
+              isScheduledPage
+                ? (args: DayHeaderContentArg) => {
+                    const dateStr = args.date.toISOString().split("T")[0];
+                    const limit = appointmentLimits[dateStr];
+                    const isDropdownOpen =
+                      addLimitDropdown.open &&
+                      addLimitDropdown.date &&
+                      dropdownPosition &&
+                      addLimitDropdown.date.toDateString() ===
+                        args.date.toDateString();
+                    let buttonText = "+ Appt Limit";
+                    if (limit === 0) buttonText = "No Availability";
+                    else if (limit !== undefined && limit !== null)
+                      buttonText = `${limit} max appts`;
+                    return (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          position: "relative",
+                        }}
+                      >
+                        <span>{args.text}</span>
+                        <button
+                          style={{
+                            width: "100%",
+                            background: "#f5f6f7",
+                            color: "#222",
+                            fontWeight: 550,
+                            fontSize: "0.7rem",
+                            border: "none",
+                            borderRadius: "8px",
+                            padding: "3px 22px",
+                            marginTop: 4,
+                            marginBottom: 4,
+                            cursor: "pointer",
+                            textAlign: "center",
+                            boxShadow: "none",
+                            outline: "none",
+                            transition: "background 0.15s",
+                          }}
+                          onMouseOver={(e) =>
+                            (e.currentTarget.style.background = "#ececec")
+                          }
+                          onMouseOut={(e) =>
+                            (e.currentTarget.style.background = "#f5f6f7")
+                          }
+                          onClick={(e) => handleAddLimit(args.date, e)}
+                        >
+                          {buttonText}
+                        </button>
+                        {isDropdownOpen && (
+                          <div
+                            ref={addLimitDropdownRef}
+                            style={{
+                              position: "fixed",
+                              top: dropdownPosition.top,
+                              left: dropdownPosition.left,
+                              transform: "translate(-50%, 0)",
+                              background: "#fff",
+                              border: "1px solid #e0e0e0",
+                              fontSize: "0.9rem",
+                              borderRadius: 12,
+                              marginTop: 4,
+                              zIndex: 9999,
+                              boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+                              minWidth: 170,
+                              padding: 0,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              style={{
+                                padding: "10px 10px 6px 10px",
+                                borderBottom: "1px solid #f0f0f0",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: "0.6rem",
+                                  color: "#222",
+                                }}
+                              >
+                                Appt limit per day
+                              </div>
+                              <div
+                                style={{
+                                  fontWeight: 500,
+                                  fontSize: "0.5rem",
+                                  color: "#888",
+                                  marginTop: 2,
+                                }}
+                              >
+                                {addLimitDropdown.date
+                                  ? `All ${addLimitDropdown.date.toLocaleDateString(undefined, { weekday: "long" })}s`
+                                  : ""}
+                              </div>
+                            </div>
+                            <div
+                              style={{
+                                padding: "8px 0",
+                                maxHeight: 240,
+                                overflowY: "auto",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  padding: "12px 16px",
+                                  textAlign: "left",
+                                  cursor: "pointer",
+                                  color: "#222",
+                                  fontWeight: 700,
+                                  fontSize: "0.7rem",
+                                  background:
+                                    appointmentLimits[dateStr] === 0
+                                      ? "#f5f6f7"
+                                      : "transparent",
+                                  borderRadius: 8,
+                                  margin: "0 8px 4px 8px",
+                                }}
+                                onClick={() => handleSelectLimit(null)}
+                                onMouseDown={(e) => e.preventDefault()}
+                              >
+                                No appt limit
+                              </div>
+                              {[...Array(20)].map((_, i: number) => {
+                                const num = i + 1;
+                                return (
+                                  <div
+                                    key={num}
+                                    style={{
+                                      padding: "10px 16px",
+                                      textAlign: "left",
+                                      cursor: "pointer",
+                                      color: "#222",
+                                      fontWeight: 500,
+                                      fontSize: "0.7rem",
+                                      borderRadius: 8,
+                                      margin: "0 8px 4px 8px",
+                                      background:
+                                        appointmentLimits[dateStr] === num
+                                          ? "#f5f6f7"
+                                          : "transparent",
+                                      transition: "background 0.15s",
+                                    }}
+                                    onClick={() => handleSelectLimit(num)}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                  >
+                                    {num}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                : undefined
+            }
             eventClick={handleEventClick}
             events={filteredEvents}
             headerToolbar={false}

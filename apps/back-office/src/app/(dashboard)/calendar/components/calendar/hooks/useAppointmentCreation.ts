@@ -154,6 +154,7 @@ export function useAppointmentCreation(
           },
           body: JSON.stringify(appointmentData),
         });
+        console.log("🚀 ~ response:", response);
 
         if (!response.ok) {
           // Try to parse error message from response
@@ -191,14 +192,10 @@ export function useAppointmentCreation(
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
         setApiError(errorMessage);
-
-        // Show error notification to user with time zone info to help debugging
-        const timeZoneInfo = `Browser timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
-        alert(`Error: ${errorMessage}\n\n${timeZoneInfo}`);
         return [];
       }
     },
-    [],
+    [setApiError],
   );
 
   return { createAppointment };

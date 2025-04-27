@@ -9,8 +9,8 @@ generator fabbrica {
 }
 
 datasource db {
-  provider          = "sqlserver"
-  url               = env("DATABASE_URL")
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
   // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
@@ -35,7 +35,7 @@ model Appointment {
   recurring_appointment_id String?          @db.UniqueIdentifier
   ClientGroup              ClientGroup?     @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_ClientGroup")
   Clinician                Clinician?       @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Clinician")
-  User                     User             @relation(fields: [created_by], references: [id], map: "FK_Appointment_User")
+  User                     User?             @relation(fields: [created_by], references: [id], map: "FK_Appointment_User")
   Location                 Location?        @relation(fields: [location_id], references: [id], map: "FK_Appointment_Location")
   Appointment              Appointment?     @relation("AppointmentToAppointment", fields: [recurring_appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_RecurringAppointment")
   other_Appointment        Appointment[]    @relation("AppointmentToAppointment")
@@ -70,15 +70,20 @@ model Audit {
 }
 
 model Availability {
-  id            String    @id @default(dbgenerated("newid()"), map: "PK_Availability_ID") @db.UniqueIdentifier
-  clinician_id  String    @db.UniqueIdentifier
-  start_time    DateTime
-  end_time      DateTime
-  created_at    DateTime  @default(now(), map: "DF_Availability_CreatedAt")
-  updated_at    DateTime  @updatedAt
-  is_recurring  Boolean   @default(false, map: "DF_Availability_IsRecurring")
-  recurring_rule String?  @db.Text
-  Clinician     Clinician @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Availability_Clinician")
+  id                    String    @id @default(dbgenerated("newid()"), map: "PK_Availability_ID") @db.UniqueIdentifier
+  title                 String    @db.Text
+  clinician_id          String    @db.UniqueIdentifier
+  start_date            DateTime  @default(now(), map: "DF_Availability_StartDate")
+  end_date              DateTime  @default(now(), map: "DF_Availability_EndDate")
+  start_time            DateTime  @default(now(), map: "DF_Availability_StartTime")
+  end_time              DateTime  @default(now(), map: "DF_Availability_EndTime") // Default to now(), but handle this in your application logic for the correct end time
+  created_at            DateTime  @default(now(), map: "DF_Availability_CreatedAt")
+  updated_at            DateTime  @updatedAt
+  is_recurring          Boolean   @default(false, map: "DF_Availability_IsRecurring")
+  recurring_rule        String?   @db.Text
+  allow_online_requests Boolean   @default(false, map: "DF_Availability_AllowOnlineRequests")
+  location              String?   @db.VarChar(255)
+  Clinician             Clinician @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Availability_Clinician")
 
   @@index([clinician_id], map: "IX_Availability_clinician_id")
   @@index([start_time, end_time], map: "IX_Availability_time_range")
@@ -162,6 +167,7 @@ model Clinician {
   Appointment       Appointment[]
   Client            Client[]
   User              User                @relation(fields: [user_id], references: [id], map: "FK_Clinician_User")
+  appointmentLimits AppointmentLimit[]
   ClinicianClient   ClinicianClient[]
   ClinicianLocation ClinicianLocation[]
   ClinicianServices ClinicianServices[]
@@ -341,4 +347,18 @@ model UserRole {
   User    User   @relation(fields: [user_id], references: [id], map: "FK_UserRole_User")
 
   @@id([user_id, role_id], map: "PK_UserRole_ID")
+}
+
+model AppointmentLimit {
+  id           String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  date         DateTime @db.Date
+  max_limit    Int      @default(10)
+  clinician_id String   @db.UniqueIdentifier
+
+  // Relationships
+  Clinician Clinician @relation(fields: [clinician_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([date, clinician_id], name: "UQ_AppointmentLimit_Date_Clinician")
+  @@index([clinician_id], name: "IX_AppointmentLimit_clinician_id")
+  @@index([date], name: "IX_AppointmentLimit_date")
 }
