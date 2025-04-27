@@ -1,7 +1,6 @@
+import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
+
 // Calendar component types
-
-import { EventClickArg } from "@fullcalendar/core";
-
 export interface Clinician {
   first_name?: string;
   last_name?: string;
@@ -19,85 +18,79 @@ export interface Location {
 
 export interface Event {
   id: string;
-  resourceId: string;
+  resourceId?: string;
   title: string;
   start: string;
   end: string;
-  location: string;
+  location?: string;
+  allDay?: boolean;
+  status?: string;
+  display?: string;
+  backgroundColor?: string;
+  classNames?: string[];
+  extendedProps?: {
+    type: "appointment" | "availability";
+    allow_online_requests?: boolean;
+    is_recurring?: boolean;
+    recurring_rule?: string | null;
+  };
 }
 
 export interface AppointmentData {
   id: string;
-  type: string;
   title: string;
   start_date: string;
   end_date: string;
   location_id: string;
+  clinician_id: string;
   client_id?: string;
-  clinician_id?: string;
   status: string;
+  type: string;
   is_all_day: boolean;
+}
+
+export interface AvailabilityData {
+  id: string;
+  title: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  clinician_id: string;
+  allow_online_requests: boolean;
   is_recurring: boolean;
-  recurring_rule?: string;
-  service_id?: string;
-  appointment_fee?: number;
-  notes?: string;
-  Client?: {
-    id: string;
-    legal_first_name: string;
-    legal_last_name: string;
-    preferred_name?: string;
-  };
-  Clinician?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
-  Location?: {
-    id: string;
-    name: string;
-    address: string;
-  };
-  services?: Array<{
-    id: string;
-    name: string;
-    code: string;
-    rate: number;
-    duration: number;
-  }>;
+  recurring_rule: string | null;
 }
 
 export interface CalendarViewProps {
   initialClinicians: Clinician[];
   initialLocations: Location[];
   initialEvents: Event[];
-  onCreateClient?: (date: string, time: string) => void;
-  onAppointmentDone?: () => void;
+  onCreateClient: (date: string, time: string) => void;
+  onAppointmentDone: () => void;
   onEventClick?: (info: EventClickArg) => void;
-  onDateSelect?: (selectInfo: {
-    start: Date;
-    end: Date;
-    resource?: { id: string };
-  }) => void;
+  onDateSelect?: (info: DateSelectArg) => void;
+  isScheduledPage?: boolean;
 }
 
 // Define FormValues interface to match the appointment dialog's form values
 export interface FormValues {
-  type: string;
-  eventName: string;
   clientType: string;
-  client: string;
-  clinician: string;
-  selectedServices: Array<{ serviceId: string; fee: number }>;
+  type?: string;
+  eventName?: string;
+  client?: string;
+  clientGroup?: string;
   startDate: Date;
   endDate: Date;
-  startTime: string;
-  endTime: string;
-  location: string;
-  recurring: boolean;
-  allDay: boolean;
-  cancelAppointments: boolean;
-  notifyClients: boolean;
+  startTime?: string;
+  endTime?: string;
+  location?: string;
+  clinician?: string;
+  recurring?: boolean;
+  allDay?: boolean;
+  selectedServices?: Array<{
+    serviceId: string;
+    fee: number;
+  }>;
   recurringInfo?: {
     frequency: string;
     period: string;
@@ -137,4 +130,17 @@ export interface RecurringInfo {
   monthlyPattern?: string;
   endType: string;
   endValue: string | undefined;
+}
+
+export interface FormInterface {
+  startDate: Date;
+  endDate: Date;
+  startTime: string;
+  endTime: string;
+  allDay: boolean;
+  type: string;
+  clinician: string;
+  location: string;
+  eventName: string;
+  recurring: boolean;
 }

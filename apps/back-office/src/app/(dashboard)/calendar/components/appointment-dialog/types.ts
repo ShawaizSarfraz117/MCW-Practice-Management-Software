@@ -1,3 +1,5 @@
+import { RecurringInfo } from "../calendar/types";
+
 export type Service = {
   id: string;
   type: string;
@@ -32,6 +34,12 @@ export type Client = {
   is_active?: boolean;
   [key: string]: unknown;
 };
+export type ClientGroup = {
+  id: string;
+  name: string;
+  type: string;
+  [key: string]: unknown;
+};
 
 export interface AppointmentData {
   id?: string;
@@ -48,6 +56,7 @@ export interface AppointmentData {
   Clinician?: Clinician;
   clinician_id?: string;
   Client?: Client;
+  ClientGroup?: ClientGroup;
   location_id?: string;
   is_recurring?: boolean;
   is_all_day?: boolean;
@@ -71,10 +80,11 @@ export interface AppointmentDialogProps {
 }
 
 export interface FormValues {
-  type: string;
+  type: "appointment" | "event";
   eventName: string;
-  clientType: string;
-  client: string;
+  clientType: "individual" | "group";
+  client?: string | null;
+  clientGroup?: string | null;
   clinician: string;
   selectedServices: Array<{ serviceId: string; fee: number }>;
   startDate: Date;
@@ -86,14 +96,7 @@ export interface FormValues {
   allDay: boolean;
   cancelAppointments: boolean;
   notifyClients: boolean;
-  recurringInfo?: {
-    frequency: string;
-    period: string;
-    selectedDays: string[];
-    monthlyPattern?: string;
-    endType: string;
-    endValue: string | undefined;
-  };
+  recurringInfo?: RecurringInfo;
 }
 
 export interface FormInterface {
@@ -158,7 +161,6 @@ export interface AppointmentFormData {
   type?: string;
   allDay?: boolean;
   location?: string;
-  client?: string;
   status?: string;
   selectedServices?: Array<{ serviceId: string; fee: number }>;
   recurring?: boolean;

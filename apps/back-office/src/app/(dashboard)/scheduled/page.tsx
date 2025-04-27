@@ -2,12 +2,13 @@
 import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { CalendarView } from "../calendar/components/calendar/calendar";
 import { CreateClientForm } from "../calendar/components/client/CreateClientForm";
-import { IntakeForm } from "../calendar/components/intake/IntakeForm";
-import { AppointmentSidebar } from "../calendar/components/availability/AppointmentSidebar";
 import { EventClickArg } from "@fullcalendar/core";
-import { AppointmentData } from "../calendar/components/appointment-dialog/types";
+import { AppointmentSidebar } from "../calendar/components/availability/AppointmentSidebar";
+import { Button } from "@mcw/ui";
 
 // Helper function to determine location type
 function determineLocationType(
@@ -23,17 +24,14 @@ function determineLocationType(
 }
 
 const Scheduled = () => {
+  const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const [showCreateClient, setShowCreateClient] = useState(false);
-  const [showIntakeForm, setShowIntakeForm] = useState(false);
   const [appointmentDate, setAppointmentDate] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<
-    AppointmentData | undefined
-  >(undefined);
+
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
-  const [isViewingAppointment, setIsViewingAppointment] = useState(false);
 
   // Get user role information
   const isAdmin = session?.user?.isAdmin || false;
@@ -102,6 +100,40 @@ const Scheduled = () => {
       enabled: sessionStatus === "authenticated",
     });
 
+  // Fetch availabilities with role-based permissions
+  const { data: availabilitiesData = [], isLoading: isLoadingAvailabilities } =
+    useQuery({
+      queryKey: ["availabilities", effectiveClinicianId, isAdmin, isClinician],
+      queryFn: async () => {
+        let url = "/api/availability";
+
+        // If user is a clinician and not an admin, fetch only their availabilities
+        if (isClinician && !isAdmin && effectiveClinicianId) {
+          url += `?clinicianId=${effectiveClinicianId}`;
+        }
+
+        console.log("DEBUG: Fetching availabilities from URL:", url);
+        console.log("DEBUG: User context:", {
+          isClinician,
+          isAdmin,
+          effectiveClinicianId,
+        });
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error(
+            "DEBUG: Failed to fetch availabilities:",
+            response.status,
+            response.statusText,
+          );
+          throw new Error("Failed to fetch availabilities");
+        }
+        const data = await response.json();
+        return data;
+      },
+      enabled: sessionStatus === "authenticated",
+    });
+
   // Transform API data to match the format expected by CalendarView
   const formattedClinicians = Array.isArray(cliniciansData)
     ? cliniciansData.map((clinician) => ({
@@ -119,19 +151,40 @@ const Scheduled = () => {
       }))
     : [];
 
+  // Format availabilities for the calendar
+  const formattedAvailabilities = Array.isArray(availabilitiesData)
+    ? availabilitiesData.map((availability) => ({
+        id: availability.id,
+        title: availability.title || "Available",
+        start: new Date(availability.start_date).toISOString(),
+        end: new Date(availability.end_date).toISOString(),
+        resourceId: availability.clinician_id,
+        allDay: availability.is_all_day,
+        backgroundColor: "#E6F3FF",
+        borderColor: "#E6F3FF",
+        textColor: "#1E40AF",
+        display: "block",
+      }))
+    : [];
+
+  // Format appointments with consistent styling
   const formattedAppointments = Array.isArray(appointmentsData)
     ? appointmentsData.map((appointment) => ({
         id: appointment.id,
         title: appointment.title,
-        start: appointment.start_date,
-        end: appointment.end_date,
+        start: new Date(appointment.start_date).toISOString(),
+        end: new Date(appointment.end_date).toISOString(),
         resourceId: appointment.clinician_id,
-        location: appointment.location_id,
         allDay: appointment.is_all_day,
-        status: appointment.status,
-        type: appointment.type,
+        backgroundColor: "#E6F3FF",
+        borderColor: "#E6F3FF",
+        textColor: "#1E40AF",
+        display: "block",
       }))
     : [];
+
+  // Combine all events
+  const allEvents = [...formattedAvailabilities, ...formattedAppointments];
 
   // Handle appointment creation completion
   const handleAppointmentDone = () => {
@@ -147,41 +200,61 @@ const Scheduled = () => {
 
   // Handle event click to view appointment details
   const handleEventClick = async (info: EventClickArg) => {
-    const appointmentId = info.event.id;
-    const response = await fetch(`/api/appointment/${appointmentId}`);
-    const appointmentData = await response.json();
+    const eventId = info.event.id;
+    const eventType = info.event.extendedProps.type;
 
-    if (appointmentData) {
-      // Set selected date from appointment
-      if (appointmentData.start_date) {
-        setSelectedDate(new Date(appointmentData.start_date));
+    if (eventType === "availability") {
+      // Fetch availability details
+      const response = await fetch(`/api/availability?id=${eventId}`);
+      const availabilityData = await response.json();
+
+      if (availabilityData) {
+        // Set selected date from availability
+        if (availabilityData.start_date) {
+          setSelectedDate(new Date(availabilityData.start_date));
+        }
+
+        // Set selected resource (clinician) if available
+        if (availabilityData.clinician_id) {
+          setSelectedResource(availabilityData.clinician_id);
+        }
+
+        // Open the sidebar in view mode
+        setIsSidebarOpen(true);
       }
+    } else {
+      // Handle regular appointment click
+      const response = await fetch(`/api/appointment/${eventId}`);
+      const appointmentData = await response.json();
 
-      // Set selected resource (clinician) if available
-      if (appointmentData.clinician_id) {
-        setSelectedResource(appointmentData.clinician_id);
+      if (appointmentData) {
+        // Set selected date from appointment
+        if (appointmentData.start_date) {
+          setSelectedDate(new Date(appointmentData.start_date));
+        }
+
+        // Set selected resource (clinician) if available
+        if (appointmentData.clinician_id) {
+          setSelectedResource(appointmentData.clinician_id);
+        }
+
+        // Open the sidebar in view mode
+        setIsSidebarOpen(true);
       }
-
-      // Open the sidebar in view mode
-      setIsViewingAppointment(true);
-      setIsSidebarOpen(true);
-      setSelectedAppointment(appointmentData);
     }
   };
 
-  // Handle date selection to create a new appointment
+  // Handle date selection to create a new availability
   const handleDateSelect = (selectInfo: {
     start: Date;
     end: Date;
     resource?: { id: string };
   }) => {
-    // Reset viewing mode when creating a new appointment
-    setIsViewingAppointment(false);
-    setSelectedAppointment(undefined);
+    // Reset viewing mode when creating a new availability
     setSelectedDate(selectInfo.start);
     setSelectedResource(selectInfo.resource?.id || null);
 
-    // Save the selected time info for the appointment sidebar
+    // Save the selected time info for the availability sidebar
     const eventData = {
       startTime: new Date(selectInfo.start).toLocaleTimeString("en-US", {
         hour: "numeric",
@@ -209,7 +282,8 @@ const Scheduled = () => {
     sessionStatus === "loading" ||
     isLoadingClinicians ||
     isLoadingLocations ||
-    isLoadingAppointments
+    isLoadingAppointments ||
+    isLoadingAvailabilities
   ) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -222,43 +296,65 @@ const Scheduled = () => {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen flex-col">
+      <div className="bg-gray-50 px-6 py-2 border-b">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 mb-1">
+              Availability schedule
+            </h1>
+            <p className="text-gray-600 text-sm">
+              Use this schedule to show when you're available to meet with
+              clients.{" "}
+              <Link
+                href="/help/availability"
+                className="text-[#267356] hover:text-blue-700 text-sm"
+              >
+                Learn about managing availability
+              </Link>
+            </p>
+          </div>
+          <Button
+            onClick={() => router.push("/calendar")}
+            className="bg-[#2e8467] hover:bg-[#267356] text-white rounded-md px-4 py-2"
+          >
+            View calendar
+          </Button>
+        </div>
+      </div>
       <div className="flex-1">
         <CalendarView
           initialClinicians={formattedClinicians}
-          initialEvents={formattedAppointments}
           initialLocations={formattedLocations}
-          onAppointmentDone={handleAppointmentDone}
+          initialEvents={allEvents}
           onCreateClient={handleCreateClient}
+          onAppointmentDone={handleAppointmentDone}
           onEventClick={handleEventClick}
           onDateSelect={handleDateSelect}
+          isScheduledPage={true}
         />
-
-        {showCreateClient && (
-          <CreateClientForm
-            appointmentDate={appointmentDate}
-            onClose={() => setShowCreateClient(false)}
-          />
-        )}
-
-        {showIntakeForm && (
-          <IntakeForm
-            clientEmail=""
-            clientName=""
-            onClose={() => setShowIntakeForm(false)}
-          />
-        )}
 
         <AppointmentSidebar
           open={isSidebarOpen}
           onOpenChange={setIsSidebarOpen}
           selectedDate={selectedDate || new Date()}
           selectedResource={selectedResource}
-          onCreateClient={handleCreateClient}
-          onDone={handleAppointmentDone}
-          appointmentData={selectedAppointment}
-          isViewMode={isViewingAppointment}
+          onDone={() => {
+            setIsSidebarOpen(false);
+            handleAppointmentDone();
+          }}
+          onClose={() => setIsSidebarOpen(false)}
         />
+
+        {showCreateClient && (
+          <CreateClientForm
+            appointmentDate={appointmentDate}
+            onClose={() => setShowCreateClient(false)}
+            onClientCreated={() => {
+              setShowCreateClient(false);
+            }}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   Checkbox,
@@ -10,24 +10,39 @@ import {
   SelectTrigger,
   SelectValue,
   Input,
+  SearchSelect,
 } from "@mcw/ui";
-import { X } from "lucide-react";
+import { X, Plus, Minus } from "lucide-react";
 import { DateTimeControls } from "../appointment-dialog/components/FormControls";
 import { FormProvider } from "../appointment-dialog/context/FormContext";
 import { useForm } from "@tanstack/react-form";
-import { AppointmentData, FormInterface } from "../appointment-dialog/types";
+import {
+  AppointmentData,
+  Clinician,
+  FormInterface,
+  Service,
+} from "../appointment-dialog/types";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { cn } from "@mcw/utils";
+import { ValidationError } from "../appointment-dialog/components/ValidationError";
 
 interface AppointmentSidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate: Date;
   selectedResource: string | null;
-  onCreateClient: (date: string, time: string) => void;
+  onCreateClient?: (date: string, time: string) => void;
   onDone: () => void;
   appointmentData?: AppointmentData;
   isViewMode?: boolean;
+  timeSlot?: {
+    startTime: string;
+    endTime: string;
+    duration: string;
+  };
+  onClose: () => void;
 }
 
 function adaptFormToInterface(originalForm: unknown): FormInterface {
@@ -49,14 +64,22 @@ export function AppointmentSidebar({
     "WED",
     "FRI",
   ]);
-  const [_generalError, setGeneralError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [validationState, setValidationState] = useState<
+    Record<string, boolean>
+  >({});
   const [title, setTitle] = useState("");
   const [frequency, setFrequency] = useState("1");
   const [period, setPeriod] = useState("week");
   const [endType, setEndType] = useState("never");
   const [endValue, setEndValue] = useState<string>("");
   const [selectedLocation, setSelectedLocation] = useState("video");
+  const [services, setServices] = useState<Service[]>([]);
+  const [clinician, setClinician] = useState<Clinician[]>([]);
+
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [clinicianPage, setClinicianPage] = useState(1);
+  const [_clinicianSearchTerm, setClinicianSearchTerm] = useState("");
 
   // Get stored time slot from session storage
   const timeSlot =
@@ -68,33 +91,39 @@ export function AppointmentSidebar({
     defaultValues: {
       startDate: selectedDate,
       endDate: selectedDate,
-      startTime: timeSlot.startTime || "08:00 AM",
-      endTime: timeSlot.endTime || "09:00 AM",
+      startTime: timeSlot.startTime || format(selectedDate, "hh:mm a"),
+      endTime:
+        timeSlot.endTime ||
+        format(new Date(selectedDate.getTime() + 60 * 60 * 1000), "hh:mm a"),
       allDay: false,
       type: "availability",
-      clinician: selectedResource || "",
+      clinician: clinician[0]?.id || "",
       location: selectedLocation,
       eventName: "",
       recurring: false,
     },
     onSubmit: async ({ value }) => {
       try {
+        // Validate clinician selection
+        if (!value.clinician) {
+          setValidationState((prev) => ({ ...prev, clinician: true }));
+          throw new Error("Please select a team member");
+        }
+
         // Create the availability payload
         const payload = {
           title: title || "New Availability",
-          type: "AVAILABILITY",
           is_all_day: value.allDay,
           start_date: getDateTimeISOString(value.startDate, value.startTime),
           end_date: getDateTimeISOString(value.endDate, value.endTime),
-          location_id: selectedLocation,
-          clinician_id: "C48497C5-D3BE-4DD5-A99B-2829A84FF900",
-          status: "ACTIVE",
+          location: selectedLocation,
+          clinician_id: value.clinician,
           allow_online_requests: allowOnlineRequests,
           is_recurring: isRecurring,
           recurring_rule: isRecurring ? createRecurringRule() : null,
         };
 
-        console.log("Submitting payload:", payload); // Debug log
+        console.log("Submitting availability payload:", payload);
 
         // Call the API to create availability
         const response = await fetch("/api/availability", {
@@ -115,7 +144,7 @@ export function AppointmentSidebar({
 
         // Close the sidebar and refresh the calendar
         onOpenChange(false);
-        if (onDone) onDone();
+        onDone();
       } catch (error) {
         console.error("Error creating availability:", error);
         setGeneralError(
@@ -126,6 +155,79 @@ export function AppointmentSidebar({
       }
     },
   });
+
+  // Fetch clinicians with role-based permissions
+  const { data: clinicians = [], isLoading: isLoadingClinicians } = useQuery({
+    queryKey: [
+      "clinicians",
+      selectedResource,
+      session?.user?.isAdmin,
+      session?.user?.isClinician,
+    ],
+    queryFn: async () => {
+      let url = "/api/clinician";
+
+      // If user is a clinician and not an admin, fetch only their own data
+      if (
+        session?.user?.isClinician &&
+        !session?.user?.isAdmin &&
+        session?.user?.id
+      ) {
+        url += `?id=${session.user.id}`;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch clinicians");
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [data];
+    },
+    enabled: !!session?.user,
+  });
+
+  // Format clinician options for the SearchSelect
+  const formattedClinicianOptions = clinicians.map((clinician) => ({
+    label: `${clinician.first_name} ${clinician.last_name}`,
+    value: clinician.id,
+  }));
+
+  // Fetch services when component mounts
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await fetch(`/api/service`);
+        if (response.ok) {
+          const data = await response.json();
+          setServices(data);
+        }
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+
+    if (session?.user?.id || selectedResource) {
+      fetchServices();
+    }
+  }, [session?.user?.id, selectedResource]);
+
+  useEffect(() => {
+    const fetchClinician = async () => {
+      try {
+        const response = await fetch(`/api/clinician`);
+        if (response.ok) {
+          const data = await response.json();
+          setClinician(data);
+        }
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+
+    if (session?.user?.id || selectedResource) {
+      fetchClinician();
+    }
+  }, [session?.user?.id, selectedResource]);
 
   // Helper function to create recurring rule in RFC5545 format
   const createRecurringRule = () => {
@@ -162,20 +264,29 @@ export function AppointmentSidebar({
   const getDateTimeISOString = (date: Date, timeStr?: string) => {
     if (!timeStr) return date.toISOString();
 
-    const [timeValue, period] = timeStr.split(" ");
-    const [hours, minutes] = timeValue.split(":").map(Number);
+    try {
+      const [timeValue, period] = timeStr.split(" ");
+      const [hours, minutes] = timeValue.split(":").map(Number);
 
-    // Convert 12-hour format to 24-hour
-    let hours24 = hours;
-    if (period === "PM" && hours !== 12) hours24 += 12;
-    if (period === "AM" && hours === 12) hours24 = 0;
+      if (isNaN(hours) || isNaN(minutes)) {
+        throw new Error("Invalid time format");
+      }
 
-    const newDate = new Date(date);
-    newDate.setHours(hours24, minutes, 0, 0);
+      // Convert 12-hour format to 24-hour
+      let hours24 = hours;
+      if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
+      if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
 
-    // Adjust for timezone
-    const tzOffset = newDate.getTimezoneOffset() * 60000;
-    return new Date(newDate.getTime() - tzOffset).toISOString();
+      // Create a new date with the correct time
+      const newDate = new Date(date);
+      newDate.setHours(hours24, minutes, 0, 0);
+
+      // Return the ISO string
+      return newDate.toISOString();
+    } catch (error) {
+      console.error("Error converting date/time:", error);
+      return date.toISOString();
+    }
   };
 
   // Handle background click to close sidebar
@@ -189,6 +300,18 @@ export function AppointmentSidebar({
     setSelectedDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
     );
+  };
+
+  const setValidationErrors = (errors: Record<string, boolean>) => {
+    setValidationState(errors);
+  };
+
+  // Clear validation error for a specific field
+  const clearValidationError = (field: string) => {
+    setValidationState((prev) => ({
+      ...prev,
+      [field]: false,
+    }));
   };
 
   if (!open) return null;
@@ -224,15 +347,29 @@ export function AppointmentSidebar({
 
         <FormProvider
           form={adaptFormToInterface(form)}
-          duration=""
-          validationErrors={validationErrors}
+          duration={timeSlot?.duration || "1 hour"}
+          validationErrors={validationState}
           setValidationErrors={setValidationErrors}
           setGeneralError={setGeneralError}
-          isAdmin={false}
-          isClinician={true}
+          isAdmin={session?.user?.isAdmin || false}
+          isClinician={session?.user?.isClinician || false}
           effectiveClinicianId={selectedResource || session?.user?.id || ""}
-          shouldFetchData={false}
-          forceUpdate={() => {}}
+          shouldFetchData={!!session?.user}
+          forceUpdate={() => {
+            const currentValues = form.state.values;
+            form.reset({
+              ...currentValues,
+              startDate: selectedDate,
+              endDate: selectedDate,
+              startTime: timeSlot.startTime || format(selectedDate, "hh:mm a"),
+              endTime:
+                timeSlot.endTime ||
+                format(
+                  new Date(selectedDate.getTime() + 60 * 60 * 1000),
+                  "hh:mm a",
+                ),
+            });
+          }}
         >
           <div className="p-6 space-y-6">
             <div className="flex items-start gap-3">
@@ -259,7 +396,37 @@ export function AppointmentSidebar({
               />
             </div>
 
-            <DateTimeControls id="" />
+            <DateTimeControls id="availability-date-time" />
+
+            <div>
+              <label className="block mb-2">Team member</label>
+              <SearchSelect
+                searchable
+                showPagination
+                className={cn(
+                  "border-gray-200",
+                  validationState.clinician && "border-red-500",
+                )}
+                currentPage={clinicianPage}
+                options={formattedClinicianOptions}
+                placeholder={
+                  isLoadingClinicians
+                    ? "Loading team members..."
+                    : "Search Team Members *"
+                }
+                value={form.getFieldValue("clinician")}
+                onPageChange={setClinicianPage}
+                onSearch={setClinicianSearchTerm}
+                onValueChange={(value) => {
+                  form.setFieldValue("clinician", value);
+                  clearValidationError("clinician");
+                }}
+              />
+              <ValidationError
+                message="Team member is required"
+                show={!!validationState.clinician}
+              />
+            </div>
 
             <div className="bg-gray-50 p-6 space-y-4">
               <div className="flex items-start gap-3">
@@ -388,8 +555,77 @@ export function AppointmentSidebar({
               </Select>
             </div>
 
-            {_generalError && (
-              <div className="text-red-500 text-sm">{_generalError}</div>
+            {/* Services Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-medium">Services</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-[#16A34A] hover:text-[#16A34A]/90"
+                  onClick={() => {
+                    if (
+                      services.length > 0 &&
+                      !selectedServices.includes(services[0].id)
+                    ) {
+                      setSelectedServices([
+                        ...selectedServices,
+                        services[0].id,
+                      ]);
+                    }
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add service
+                </Button>
+              </div>
+
+              <div className="text-sm text-gray-600">
+                Add services that are set up for online requests.{" "}
+                <button
+                  className="text-[#16A34A] hover:underline"
+                  onClick={() => {
+                    /* Add manage service settings handler */
+                  }}
+                >
+                  Manage service settings
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {services.map((service) => {
+                  return (
+                    <div
+                      key={service?.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div>
+                        <div className="font-medium">
+                          {service.code} {service.type}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {service.duration} min • ${service.rate}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedServices(
+                            selectedServices.filter((id) => id !== service.id),
+                          );
+                        }}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {generalError && (
+              <div className="text-red-500 text-sm">{generalError}</div>
             )}
           </div>
         </FormProvider>

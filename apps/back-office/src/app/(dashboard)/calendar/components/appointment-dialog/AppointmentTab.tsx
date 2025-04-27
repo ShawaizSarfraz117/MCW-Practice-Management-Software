@@ -53,7 +53,8 @@ export function AppointmentTab({
   const [serviceSearchTerm, setServiceSearchTerm] = useState("");
 
   // Form values
-  const selectedClient = form.getFieldValue<string>("client");
+  const selectedClient = form.getFieldValue<string>("clientGroup");
+  console.log("🚀 ~ selectedClient:", selectedClient);
   const isRecurring = form.getFieldValue<boolean>("recurring");
 
   // API data fetching
@@ -182,7 +183,7 @@ export function AppointmentTab({
               return {
                 label:
                   `${client?.legal_first_name || ""} ${client?.legal_last_name || ""}`.trim(),
-                value: client?.id || "",
+                value: membership?.client_group_id || "",
               };
             });
           }
@@ -201,6 +202,8 @@ export function AppointmentTab({
           return matches;
         })
     : [];
+
+  console.log("🚀 ~ filtered:", filteredClients);
 
   const filteredClinicianOptions = Array.isArray(cliniciansData)
     ? cliniciansData
@@ -270,8 +273,9 @@ export function AppointmentTab({
 
   // Helper for client selection
   const handleClientSelect = (value: string) => {
-    form.setFieldValue("client", value);
-    clearValidationError("client");
+    console.log("Selected client group:", value);
+    form.setFieldValue("clientGroup", value);
+    clearValidationError("clientGroup");
     forceUpdate(); // Force re-render to ensure UI updates
   };
 

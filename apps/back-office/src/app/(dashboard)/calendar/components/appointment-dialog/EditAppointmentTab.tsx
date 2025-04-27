@@ -103,7 +103,7 @@ export function EditAppointmentTab({
     appointmentId: appointmentData?.id,
   });
 
-  const selectedClient = form.getFieldValue<string>("client");
+  const selectedClient = form.getFieldValue<string>("ClientGroup");
   const selectedServices = form.getFieldValue<
     Array<{ serviceId: string; fee: number }>
   >("selectedServices") || [{ serviceId: "", fee: 0 }];
@@ -117,9 +117,7 @@ export function EditAppointmentTab({
   return (
     <>
       <p className="text-[#0a96d4] text-[20px] font-bold leading-3 pt-6">
-        {appointmentData?.Client?.legal_first_name +
-          " " +
-          appointmentData?.Client?.legal_last_name}
+        {appointmentData?.ClientGroup?.name}
       </p>
       <div className="flex items-center gap-3 border-b pb-3">
         <div className="bg-[lightgray] text-gray-500 rounded-[20px] px-3 py-[2px] text-[13px]">

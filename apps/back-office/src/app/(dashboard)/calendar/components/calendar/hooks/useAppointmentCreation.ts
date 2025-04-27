@@ -13,7 +13,7 @@ export function useAppointmentCreation(
     async (
       values: FormValues,
       session: Session | null,
-      selectedResource?: string | null,
+      // selectedResource?: string | null,
       clientName?: string,
     ) => {
       // Reset error state
@@ -22,12 +22,12 @@ export function useAppointmentCreation(
       // Get formatted start and end dates, handling all-day events
       const startDateTime = getISODateTime(
         values.startDate,
-        values.allDay ? "start" : values.startTime,
+        values.allDay ? "start" : values.startTime || "",
         values.allDay,
       );
       const endDateTime = getISODateTime(
         values.endDate,
-        values.allDay ? "end" : values.endTime,
+        values.allDay ? "end" : values.endTime || "",
         values.allDay,
       );
 
@@ -107,9 +107,18 @@ export function useAppointmentCreation(
         is_all_day: values.allDay || false,
         start_date: startDateTime,
         end_date: endDateTime,
-        location_id: values.location || "",
-        client_id: values.client || null,
-        clinician_id: values.clinician || selectedResource || "",
+        location_id:
+          values.location && values.location.trim() ? values.location : null,
+        client_id:
+          values.clientType === "individual" && values.client
+            ? values.client
+            : null,
+        client_group_id:
+          values.clientType === "group" && values.clientGroup
+            ? values.clientGroup
+            : null,
+        clinician_id:
+          values.clinician && values.clinician.trim() ? values.clinician : null,
         created_by: session?.user?.id || "", // Current user as creator
         status: "SCHEDULED",
         is_recurring: values.recurring || false,

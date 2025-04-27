@@ -31,8 +31,7 @@ export function EditAppointmentDialog({
   isViewMode = false,
 }: AppointmentDialogProps) {
   const [duration, setDuration] = useState<string>("50 mins");
-  const [generalError, setGeneralError] = useState<string | null>(null);
-  console.log("🚀 ~ generalError:", generalError);
+  const [_generalError, setGeneralError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState({});
 
   // Use custom hooks
