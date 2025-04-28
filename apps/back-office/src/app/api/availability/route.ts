@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       is_recurring: validatedData.is_recurring,
       recurring_rule: validatedData.recurring_rule || null,
     };
-    console.log("prisma", prisma);
+
     const availability = await prisma.availability.create({
       data,
     });

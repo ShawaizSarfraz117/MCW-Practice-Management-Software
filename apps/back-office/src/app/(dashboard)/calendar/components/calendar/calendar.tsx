@@ -99,7 +99,6 @@ export function CalendarView({
 
   // Get session data to check if user is admin
   const { data: session } = useSession();
-  console.log("🚀 ~ session:", session);
   const isAdmin = session?.user?.isAdmin || false;
 
   // Set the view based on user role
@@ -307,25 +306,12 @@ export function CalendarView({
 
     const values = appointmentFormRef.current as unknown as FormValues;
 
-    // Add detailed logging of the form values
-    console.log("Appointment form values:", {
-      rawValues: values,
-      client: values.client,
-      type: values.type,
-      hasClient: Boolean(values.client),
-      clientTrimmed: values.client ? values.client.trim() : null,
-      formKeys: Object.keys(values),
-    });
-
     try {
       // If client is specified, get client group details for title
       if (values.client && values.client.trim()) {
-        console.log("Fetching client group details for ID:", values.client);
-
         const response = await fetch(`/api/client-group?id=${values.client}`);
         if (response.ok) {
           const clientGroupData = await response.json();
-          console.log("Successfully fetched client group:", clientGroupData);
 
           const clientName = clientGroupData.name || "Client Group";
           return createAppointmentWithAPI(values, clientName);
@@ -335,11 +321,6 @@ export function CalendarView({
             await response.text(),
           );
         }
-      } else {
-        console.log(
-          "No client specified or empty client ID, form values:",
-          values,
-        );
       }
 
       return createAppointmentWithAPI(values);
@@ -356,12 +337,6 @@ export function CalendarView({
   ) => {
     // Create the appointment payload based on form values
     const appointmentData = createAppointmentPayload(values, clientName);
-    console.log("Sending appointment creation request with data:", {
-      fullPayload: appointmentData,
-      clientGroupId: appointmentData.client_group_id,
-      originalClient: values.client,
-      formValues: values,
-    });
 
     try {
       const response = await fetch("/api/appointment", {
@@ -392,12 +367,6 @@ export function CalendarView({
       }
 
       const responseData = await response.json();
-      console.log("🚀 ~ responseData:", responseData);
-      console.log("API Success Response:", {
-        status: response.status,
-        data: responseData,
-        sentPayload: appointmentData,
-      });
 
       if (!response.ok) {
         let errorMessage = "Failed to create appointment";
@@ -434,8 +403,6 @@ export function CalendarView({
         throw new Error(errorMessage);
       }
 
-      console.log("Successfully created appointment(s):", responseData);
-
       const appointments = Array.isArray(responseData)
         ? responseData
         : [responseData];
@@ -450,7 +417,6 @@ export function CalendarView({
         location: appointment.location_id || "",
       }));
 
-      console.log("Formatted calendar events:", formattedEvents);
       return formattedEvents;
     } catch (error) {
       console.error("API error:", error);
@@ -464,12 +430,6 @@ export function CalendarView({
     clientName?: string,
   ) => {
     // Log incoming values
-    console.log("Creating appointment payload from values:", {
-      formValues: values,
-      clientName,
-      hasClient: Boolean(values.client),
-      clientValue: values.client,
-    });
 
     // Validate input dates first
     if (
@@ -488,7 +448,6 @@ export function CalendarView({
     // Parse and combine date and time values
     const getDateTimeISOString = (date: Date, timeStr?: string) => {
       if (!timeStr) {
-        console.log("No time string provided, using date as is:", date);
         return date.toISOString();
       }
 
@@ -513,15 +472,6 @@ export function CalendarView({
       const newDate = new Date(date);
       newDate.setHours(hours24, minutes, 0, 0);
 
-      // Log timezone information for debugging
-      console.log("Timezone information:", {
-        originalDate: date,
-        timeString: timeStr,
-        localTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        timezoneOffset: newDate.getTimezoneOffset(),
-        localTime: newDate.toLocaleString(),
-      });
-
       // Create an ISO string but adjust for timezone offset to preserve local time
       const tzOffset = newDate.getTimezoneOffset() * 60000; // offset in milliseconds
       const localISOTime = new Date(newDate.getTime() - tzOffset).toISOString();
@@ -534,15 +484,6 @@ export function CalendarView({
     try {
       startDateTime = getDateTimeISOString(values.startDate, values.startTime);
       endDateTime = getDateTimeISOString(values.endDate, values.endTime);
-
-      console.log("Parsed date/times:", {
-        startDateTime,
-        endDateTime,
-        originalStartDate: values.startDate,
-        originalEndDate: values.endDate,
-        startTime: values.startTime,
-        endTime: values.endTime,
-      });
     } catch (error) {
       console.error("Error parsing dates:", error);
       throw error;
@@ -589,17 +530,6 @@ export function CalendarView({
         }
       }
     }
-
-    console.log("Date/Time values:", {
-      startDate: values.startDate,
-      startTime: values.startTime,
-      endDate: values.endDate,
-      endTime: values.endTime,
-      calculatedStart: startDateTime,
-      calculatedEnd: endDateTime,
-      isRecurring: values.recurring,
-      recurringInfo: values.recurringInfo,
-    });
 
     // Format recurring rule in RFC5545 format if recurring is enabled
     let recurringRule = null;
@@ -690,14 +620,6 @@ export function CalendarView({
       appointment_fee: values.selectedServices?.[0]?.fee || null,
     };
 
-    // Log the final payload for debugging
-    console.log("Final appointment payload:", {
-      ...payload,
-      originalClientId: values.client,
-      finalClientGroupId: payload.client_group_id,
-      allFormValues: values,
-    });
-
     // Validate required fields before sending
     if (!payload.location_id) {
       throw new Error("Location is required");
@@ -708,16 +630,6 @@ export function CalendarView({
 
     return payload;
   };
-
-  // Add debug log for initial events
-  useEffect(() => {
-    console.log("Initial events:", initialEvents);
-  }, [initialEvents]);
-
-  // Add debug log for events state changes
-  useEffect(() => {
-    console.log("Current events:", events);
-  }, [events]);
 
   // Effect to fetch events
   useEffect(() => {
@@ -741,8 +653,6 @@ export function CalendarView({
           availabilityUrl += `&clinicianId=${selectedClinicians[0]}`;
         }
 
-        console.log("Fetching from URLs:", { appointmentUrl, availabilityUrl });
-
         // Fetch both appointments and availabilities in parallel
         const [appointmentsResponse, availabilitiesResponse] =
           await Promise.all([fetch(appointmentUrl), fetch(availabilityUrl)]);
@@ -756,8 +666,6 @@ export function CalendarView({
           appointmentsResponse.json(),
           availabilitiesResponse.json(),
         ]);
-
-        console.log("Raw data received:", { appointments, availabilities });
 
         // Format appointments
         const formattedAppointments = appointments.map(
@@ -792,15 +700,9 @@ export function CalendarView({
                 recurring_rule: availability.recurring_rule,
               },
             };
-            console.log("Formatted availability event:", event);
             return event;
           },
         );
-
-        console.log("Setting events:", {
-          availabilities: formattedAvailabilities,
-          appointments: formattedAppointments,
-        });
 
         // Set all events
         setEvents([...formattedAvailabilities, ...formattedAppointments]);
@@ -813,11 +715,8 @@ export function CalendarView({
 
   // Handle event click to view appointment details
   const handleEventClick = async (clickInfo: EventClickArg) => {
-    console.log("Event clicked:", clickInfo.event);
-
     if (clickInfo.event.extendedProps?.type === "availability") {
       const availabilityId = clickInfo.event.id;
-      console.log("Fetching availability:", availabilityId);
 
       try {
         const response = await fetch(`/api/availability?id=${availabilityId}`);
@@ -825,7 +724,6 @@ export function CalendarView({
           throw new Error("Failed to fetch availability details");
         const availabilityData = await response.json();
 
-        console.log("Availability data:", availabilityData);
         setSelectedAvailability(availabilityData);
         setShowAvailabilitySidebar(true);
       } catch (error) {

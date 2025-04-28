@@ -54,7 +54,6 @@ export function AppointmentTab({
 
   // Form values
   const selectedClient = form.getFieldValue<string>("clientGroup");
-  console.log("🚀 ~ selectedClient:", selectedClient);
   const isRecurring = form.getFieldValue<boolean>("recurring");
 
   // API data fetching
@@ -145,7 +144,6 @@ export function AppointmentTab({
         typeof rawData === "object" &&
         Array.isArray(rawData.data)
       ) {
-        console.log("Found nested data property in response");
         data = rawData.data;
       }
 
@@ -156,7 +154,6 @@ export function AppointmentTab({
         typeof rawData === "object" &&
         Array.isArray(rawData.clients)
       ) {
-        console.log("Found nested clients property in response");
         data = rawData.clients;
       }
 
@@ -192,7 +189,6 @@ export function AppointmentTab({
         .flat()
         .filter((option) => {
           if (!option.value) {
-            console.log("Filtering out option with empty value:", option);
             return false;
           }
 
@@ -202,8 +198,6 @@ export function AppointmentTab({
           return matches;
         })
     : [];
-
-  console.log("🚀 ~ filtered:", filteredClients);
 
   const filteredClinicianOptions = Array.isArray(cliniciansData)
     ? cliniciansData
@@ -273,7 +267,6 @@ export function AppointmentTab({
 
   // Helper for client selection
   const handleClientSelect = (value: string) => {
-    console.log("Selected client group:", value);
     form.setFieldValue("clientGroup", value);
     clearValidationError("clientGroup");
     forceUpdate(); // Force re-render to ensure UI updates

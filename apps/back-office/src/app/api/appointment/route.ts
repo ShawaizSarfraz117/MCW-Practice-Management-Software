@@ -133,7 +133,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    console.log("Received appointment creation request:", data);
 
     // Validate data structure
     if (!data || typeof data !== "object") {
@@ -161,7 +160,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (missingFields.length > 0) {
-      console.log("Validation failed - missing fields:", missingFields);
       return NextResponse.json(
         {
           error: "Missing required fields",
@@ -197,9 +195,6 @@ export async function POST(request: NextRequest) {
           throw new Error("Date string is empty or undefined");
         }
 
-        // Log the incoming date string
-        console.log("Parsing date string:", dateString);
-
         // Try to parse the date
         const date = new Date(dateString);
 
@@ -208,14 +203,6 @@ export async function POST(request: NextRequest) {
           console.error("Invalid date format:", dateString);
           throw new Error(`Invalid date format: ${dateString}`);
         }
-
-        // Log the parsed date
-        console.log("Successfully parsed date:", {
-          original: dateString,
-          parsed: date,
-          isoString: date.toISOString(),
-          timestamp: date.getTime(),
-        });
 
         return date;
       } catch (error) {
@@ -289,15 +276,8 @@ export async function POST(request: NextRequest) {
         appointment_fee: data.appointment_fee,
       };
 
-      console.log("Prepared base appointment data:", baseAppointmentData);
-
       // Check if it's a recurring appointment
       if (data.is_recurring && data.recurring_rule) {
-        console.log(
-          "Processing recurring appointment with rule:",
-          data.recurring_rule,
-        );
-
         try {
           // Parse the recurring rule
           const freq =
@@ -310,13 +290,6 @@ export async function POST(request: NextRequest) {
           );
           const byDayMatch = data.recurring_rule.match(/BYDAY=([^;]+)/)?.[1];
           const byDays = byDayMatch ? byDayMatch.split(",") : [];
-
-          console.log("Parsed recurring rule:", {
-            freq,
-            count,
-            interval,
-            byDays,
-          });
 
           // Create the master appointment with parsed dates
           const masterAppointment = await prisma.appointment.create({
@@ -353,8 +326,6 @@ export async function POST(request: NextRequest) {
               },
             },
           });
-
-          console.log("Created master appointment:", masterAppointment);
 
           // Create recurring instances
           const recurringAppointments = [masterAppointment];
@@ -582,7 +553,6 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        console.log("Successfully created appointment:", newAppointment);
         return NextResponse.json(newAppointment, { status: 201 });
       }
     } catch (dateError) {
@@ -614,7 +584,6 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
-    console.log("Received update request with data:", data);
 
     if (!data.id) {
       return NextResponse.json(
@@ -681,8 +650,6 @@ export async function PUT(request: NextRequest) {
       appointment_fee:
         data.appointment_fee ?? existingAppointment.appointment_fee,
     };
-
-    console.log("Updating appointment with data:", updateData);
 
     // Handle recurring appointments
     if (existingAppointment.is_recurring && data.updateOption) {
@@ -1041,7 +1008,6 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    console.log("Successfully updated appointment:", updatedAppointment);
     return NextResponse.json(updatedAppointment);
   } catch (error) {
     console.error("Error updating appointment:", error);

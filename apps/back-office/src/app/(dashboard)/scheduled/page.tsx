@@ -112,13 +112,6 @@ const Scheduled = () => {
           url += `?clinicianId=${effectiveClinicianId}`;
         }
 
-        console.log("DEBUG: Fetching availabilities from URL:", url);
-        console.log("DEBUG: User context:", {
-          isClinician,
-          isAdmin,
-          effectiveClinicianId,
-        });
-
         const response = await fetch(url);
         if (!response.ok) {
           console.error(

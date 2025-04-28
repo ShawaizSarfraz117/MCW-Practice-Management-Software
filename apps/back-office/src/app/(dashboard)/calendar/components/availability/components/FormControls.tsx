@@ -12,16 +12,13 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
   const { form, forceUpdate, duration } = useAvailabilityFormContext();
   const allDay = form.getFieldValue<boolean>("allDay");
   const startDate = form.getFieldValue<Date>("startDate");
-  console.log("🚀 ~ ssssDateTimeControls ~ startDate:", startDate);
   const endDate = form.getFieldValue<Date>("endDate");
-  console.log("🚀 ~ aaaaaDateTimeControls ~ endDate:", endDate);
 
   const handleDateChange = (
     field: "startDate" | "endDate",
     date: Date | undefined,
   ) => {
     if (!date) return;
-    console.log("🚀 ~ avaiDateTimeControls ~ date:", date);
 
     if (field === "startDate") {
       form.setFieldValue("startDate", date);
