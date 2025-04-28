@@ -5,6 +5,13 @@ import { Button } from "@mcw/ui";
 import { Check, Info } from "lucide-react";
 import { Service } from "../../calendar/components/appointment-dialog/types";
 import AddServcieDialog from "../../billing/components/AddServiceDialog";
+import { toast } from "@mcw/ui";
+
+// Define a type for editing service fields
+// All fields optional except id
+// This helps with type safety for editValues
+//
+type ServiceEdit = Partial<Omit<Service, "id">> & { id: string };
 
 const ServiceSection = () => {
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(
@@ -13,6 +20,7 @@ const ServiceSection = () => {
   const [modalOpen, setIsModalOpen] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editValues, setEditValues] = useState<ServiceEdit>({} as ServiceEdit);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -34,7 +42,54 @@ const ServiceSection = () => {
   }, []);
 
   const handleServiceClick = (serviceId: string) => {
+    if (expandedServiceId !== serviceId) {
+      const service = services.find((s) => s.id === serviceId);
+      setEditValues({
+        id: service?.id || "",
+        code: service?.code || "",
+        type: service?.type || "",
+        description: service?.description || "",
+        rate: service?.rate || 0,
+        duration: service?.duration || 0,
+        bill_in_units: service?.bill_in_units || false,
+        available_online: service?.available_online || false,
+        allow_new_clients: service?.allow_new_clients || false,
+        require_call: service?.require_call || false,
+        block_before: service?.block_before || 0,
+        block_after: service?.block_after || 0,
+        is_default: service?.is_default || false,
+        color: service?.color || null,
+      });
+    }
     setExpandedServiceId(expandedServiceId === serviceId ? null : serviceId);
+  };
+
+  const handleEditChange = <K extends keyof ServiceEdit>(
+    field: K,
+    value: ServiceEdit[K],
+  ) => {
+    setEditValues((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async (serviceId: string) => {
+    try {
+      const response = await fetch("/api/service", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editValues,
+          id: serviceId,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to update service");
+      const updated = await response.json();
+      setServices(services.map((s) => (s.id === serviceId ? updated : s)));
+      setExpandedServiceId(null);
+      toast.success("Service updated successfully");
+    } catch (error) {
+      console.error("Error updating services:", error);
+      toast.error("Error updating service");
+    }
   };
 
   return (
@@ -94,7 +149,7 @@ const ServiceSection = () => {
                   <p className="text-[#4B5563] text-[14px] mt-1">
                     {service.duration} minutes at ${service.rate}
                   </p>
-                  {service.isDefault && (
+                  {service.is_default && (
                     <p className="text-[#8D8D8D] text-[14px] flex gap-2 mt-1">
                       <Check className="h-5 w-5" /> Default practice service
                     </p>
@@ -105,15 +160,21 @@ const ServiceSection = () => {
                     <p className="text-[#374151] text-[14px]">Description</p>
                     <input
                       type="text"
-                      defaultValue={service.description || ""}
+                      value={editValues.description || ""}
+                      onChange={(e) =>
+                        handleEditChange("description", e.target.value)
+                      }
                       className="text-[#374151] bg-white text-[14px] w-[500px] border rounded-[5px] outline-none p-2"
                     />
                     <div className="flex items-center gap-4 mt-3">
                       <span>
                         <p className="text-[#374151] text-[14px]">Rate</p>
                         <input
-                          type="text"
-                          defaultValue={service.rate}
+                          type="number"
+                          value={editValues.rate}
+                          onChange={(e) =>
+                            handleEditChange("rate", Number(e.target.value))
+                          }
                           className="text-[#374151] text-[14px] w-[200px] border rounded-[5px] outline-none p-2"
                         />
                       </span>
@@ -123,8 +184,11 @@ const ServiceSection = () => {
                         </p>
                         <input
                           type="number"
-                          defaultValue={service.duration}
+                          value={editValues.duration}
                           min={0}
+                          onChange={(e) =>
+                            handleEditChange("duration", Number(e.target.value))
+                          }
                           className="text-[#374151] bg-white text-[14px] w-[80px] border rounded-[5px] outline-none p-2"
                         />
                         <span className="text-[#1F2937] ml-2 text-[14px]">
@@ -135,7 +199,8 @@ const ServiceSection = () => {
                         <input
                           id={`active-${service.id}`}
                           type="checkbox"
-                          defaultChecked={true}
+                          checked={true}
+                          readOnly
                           className="h-[15px] accent-[#afafaf] bg-white w-[15px]"
                         />
                         <label
@@ -150,6 +215,10 @@ const ServiceSection = () => {
                       <input
                         id={`bill-units-${service.id}`}
                         type="checkbox"
+                        checked={editValues.bill_in_units}
+                        onChange={(e) =>
+                          handleEditChange("bill_in_units", e.target.checked)
+                        }
                         className="h-[15px] accent-[#2D8467] bg-white w-[15px]"
                       />
                       <p className="text-[#1F2937] text-[14px]">
@@ -165,6 +234,13 @@ const ServiceSection = () => {
                         <input
                           id={`online-${service.id}`}
                           type="checkbox"
+                          checked={editValues.available_online}
+                          onChange={(e) =>
+                            handleEditChange(
+                              "available_online",
+                              e.target.checked,
+                            )
+                          }
                           className="h-[15px] accent-[#2D8467] bg-white w-[15px]"
                         />
                         <p className="text-[#1F2937] text-[14px]">
@@ -177,12 +253,26 @@ const ServiceSection = () => {
                       <input
                         type="number"
                         min={0}
+                        value={editValues.block_before}
+                        onChange={(e) =>
+                          handleEditChange(
+                            "block_before",
+                            Number(e.target.value),
+                          )
+                        }
                         className="text-[#374151] bg-white text-[14px] w-[60px] border rounded-[5px] outline-none p-2"
                       />
                       <p>minutes before and</p>
                       <input
                         type="number"
                         min={0}
+                        value={editValues.block_after}
+                        onChange={(e) =>
+                          handleEditChange(
+                            "block_after",
+                            Number(e.target.value),
+                          )
+                        }
                         className="text-[#374151] bg-white text-[14px] w-[60px] border rounded-[5px] outline-none p-2"
                       />
                       <p>minutes after the appointment</p>
@@ -194,7 +284,10 @@ const ServiceSection = () => {
                       >
                         Cancel
                       </Button>
-                      <Button className="bg-[#2d8467] hover:bg-[#236c53]">
+                      <Button
+                        className="bg-[#2d8467] hover:bg-[#236c53]"
+                        onClick={() => handleSave(service.id)}
+                      >
                         Save
                       </Button>
                     </div>
@@ -209,6 +302,16 @@ const ServiceSection = () => {
       <AddServcieDialog
         isOpen={modalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          toast.success("Service created successfully");
+          setLoading(true);
+          fetch("/api/service")
+            .then((res) => res.json())
+            .then((data) => {
+              setServices(data);
+              setLoading(false);
+            });
+        }}
       />
     </>
   );
