@@ -15,7 +15,6 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  toast,
 } from "@mcw/ui";
 import { useEffect, useState } from "react";
 
@@ -103,27 +102,6 @@ const AddServiceDialog = ({
 
   const handleSubmit = async () => {
     try {
-      // Validate required fields
-      if (!selectedService?.code && !customCode) {
-        toast.error("Service code is required");
-        return;
-      }
-
-      if (!description) {
-        toast.error("Description is required");
-        return;
-      }
-
-      if (!rate) {
-        toast.error("Rate is required");
-        return;
-      }
-
-      if (!duration) {
-        toast.error("Duration is required");
-        return;
-      }
-
       // Parse numeric values
       const parsedRate = parseFloat(rate);
       const parsedDuration = parseInt(duration);
@@ -137,7 +115,6 @@ const AddServiceDialog = ({
         isNaN(parsedBufferBefore) ||
         isNaN(parsedBufferAfter)
       ) {
-        toast.error("Invalid numeric values");
         return;
       }
 
@@ -169,14 +146,10 @@ const AddServiceDialog = ({
         throw new Error(data.error || "Failed to create service");
       }
 
-      toast.success("Service created successfully");
       onSuccess?.();
       onClose();
     } catch (error) {
       console.error("Error creating service:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to create service",
-      );
     } finally {
       setIsSubmitting(false);
     }
