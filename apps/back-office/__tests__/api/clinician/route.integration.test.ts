@@ -13,11 +13,27 @@ describe("Clinician API", async () => {
   beforeEach(async () => {
     try {
       // Delete in the correct order to respect foreign key constraints
+      await prisma.payment.deleteMany();
+      await prisma.invoice.deleteMany();
+      await prisma.appointment.deleteMany();
+      await prisma.surveyAnswers.deleteMany();
+      await prisma.clientReminderPreference.deleteMany();
+      await prisma.clientContact.deleteMany();
+      await prisma.creditCard.deleteMany();
       await prisma.clinicianClient.deleteMany();
       await prisma.clinicianLocation.deleteMany();
       await prisma.clinicianServices.deleteMany();
+      await prisma.clientGroupMembership.deleteMany();
+      await prisma.client.deleteMany();
       await prisma.clinician.deleteMany();
+      await prisma.userRole.deleteMany();
       await prisma.user.deleteMany();
+      await prisma.clientGroup.deleteMany();
+      // Debug: check if any clinicians remain
+      const count = await prisma.clinician.count();
+      if (count > 0) {
+        console.warn(`Warning: ${count} clinicians remain after cleanup!`);
+      }
     } catch (error) {
       console.error("Error cleaning up database:", error);
       // Continue with the test even if cleanup fails
@@ -53,6 +69,10 @@ describe("Clinician API", async () => {
     expect(response.status).toBe(200);
 
     const json = (await response.json()) as Clinician[];
+
+    // Debug: log all clinicians in DB
+    const allClinicians = await prisma.clinician.findMany();
+    console.log("All clinicians in DB:", allClinicians);
 
     expect(json).toHaveLength(clinicians.length);
 

@@ -97,6 +97,18 @@ vi.mock("@/app/actions", () => ({
   fetchAppointments: vi.fn().mockResolvedValue([]),
 }));
 
+// Mock next/navigation useRouter for all components under test
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
+
 describe("CalendarPage", () => {
   it("should render without crashing", async () => {
     // Create a new QueryClient for each test
