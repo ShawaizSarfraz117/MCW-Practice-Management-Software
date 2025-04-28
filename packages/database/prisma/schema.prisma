@@ -246,12 +246,19 @@ model Payment {
 
 model PracticeService {
   id                String              @id @default(dbgenerated("newid()"), map: "PK_PracticeService_ID") @db.UniqueIdentifier
-  type              String              @db.VarChar(255)
-  rate              Decimal
-  code              String              @unique @db.VarChar(50)
+  code              String              @db.VarChar(50) // "Service" in UI
   description       String?             @db.Text
-  duration          Int
+  rate              Decimal             // Can be 0
+  duration          Int                 // Default Duration (minutes)
   color             String?             @db.VarChar(7)
+  is_default        Boolean             @default(false)
+  bill_in_units     Boolean             @default(false)
+  available_online  Boolean             @default(false)
+  allow_new_clients Boolean             @default(false)
+  require_call      Boolean             @default(false)
+  block_before      Int                 @default(0) // Minutes before appointment
+  block_after       Int                 @default(0) // Minutes after appointment
+  type              String              @db.VarChar(255)
   Appointment       Appointment[]
   ClinicianServices ClinicianServices[]
 }
