@@ -8,7 +8,6 @@ export function useAppointmentData({
   open,
   selectedDate,
   effectiveClinicianId,
-  isViewMode,
   appointmentData,
   setAppointmentFormValues,
   setEventFormValues,
@@ -17,7 +16,7 @@ export function useAppointmentData({
 }: UseAppointmentDataProps) {
   // Set initial form values when dialog opens
   useEffect(() => {
-    if (open) {
+    if (open && !appointmentData) {
       // Check if there's a selected time slot in session storage
       const selectedTimeSlotData =
         window.sessionStorage.getItem("selectedTimeSlot");
@@ -80,18 +79,26 @@ export function useAppointmentData({
     effectiveClinicianId,
     setAppointmentFormValues,
     setEventFormValues,
+    appointmentData,
   ]);
 
   // Handle viewing/editing existing appointment data
   useEffect(() => {
-    if (isViewMode && appointmentData && open) {
+    if (appointmentData && open) {
+      const parseDateTime = (dateString: string) => {
+        const date = new Date(dateString);
+        // Adjust for timezone offset
+        const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() + userTimezoneOffset);
+      };
+
       // Format dates from appointment data
       const startDate = appointmentData.start_date
-        ? new Date(appointmentData.start_date)
+        ? parseDateTime(appointmentData.start_date)
         : new Date();
 
       const endDate = appointmentData.end_date
-        ? new Date(appointmentData.end_date)
+        ? parseDateTime(appointmentData.end_date)
         : new Date();
 
       // Format times
@@ -99,7 +106,7 @@ export function useAppointmentData({
       const endTime = format(endDate, "h:mm a");
 
       // Determine appointment type
-      const type = appointmentData.type || "appointment";
+      const type = appointmentData.type?.toLowerCase() || "appointment";
 
       // Set active tab based on appointment type
       setActiveTab(type as "appointment" | "event");
@@ -110,23 +117,22 @@ export function useAppointmentData({
         eventName: appointmentData.title || "",
         clientType: "individual",
         client: appointmentData.client_id || "",
-        clinician: appointmentData.clinician_id || "",
-        selectedServices:
-          appointmentData.services?.map((s) => ({
-            serviceId: s.id,
-            fee: s.rate || 0,
-          })) || [],
+        clinician: appointmentData.clinician_id || effectiveClinicianId || "",
+        selectedServices: appointmentData.services?.map((s) => ({
+          serviceId: s.id,
+          fee: s.rate || 0,
+        })) || [{ serviceId: "", fee: 0 }],
         startDate: startDate,
         endDate: endDate,
         startTime: startTime,
         endTime: endTime,
+        status: appointmentData.status || "pending",
         location: appointmentData.location_id || "",
         recurring: appointmentData.is_recurring || false,
         allDay: appointmentData.is_all_day || false,
         cancelAppointments: true,
         notifyClients: true,
       };
-
       // Update form values based on type
       if (type === "appointment") {
         setAppointmentFormValues(formValues);
@@ -138,12 +144,12 @@ export function useAppointmentData({
       form.reset(formValues);
     }
   }, [
-    isViewMode,
     appointmentData,
     open,
     form,
     setAppointmentFormValues,
     setEventFormValues,
     setActiveTab,
+    effectiveClinicianId,
   ]);
 }

@@ -14,7 +14,7 @@ model Appointment {
   is_all_day               Boolean          @default(false)
   start_date               DateTime
   end_date                 DateTime
-  location_id              String?
+  location                 String?
   created_by               String
   status                   String
   client_id                String?
@@ -29,7 +29,6 @@ model Appointment {
   Client                   Client?          @relation(fields: [client_id], references: [id])
   Clinician                Clinician?       @relation(fields: [clinician_id], references: [id])
   User                     User             @relation(fields: [created_by], references: [id])
-  Location                 Location?        @relation(fields: [location_id], references: [id])
   Appointment              Appointment?     @relation("AppointmentToAppointment", fields: [recurring_appointment_id], references: [id])
   other_Appointment        Appointment[]    @relation("AppointmentToAppointment")
   PracticeService          PracticeService? @relation(fields: [service_id], references: [id])
@@ -176,6 +175,25 @@ model ClinicianServices {
   PracticeService PracticeService @relation(fields: [service_id], references: [id])
 
   @@id([clinician_id, service_id])
+}
+
+model Availability {
+  id                    String    @id @default(uuid())
+  clinician_id          String
+  title                 String?
+  allow_online_requests Boolean   @default(false)
+  location              String?
+  is_all_day           Boolean   @default(false)
+  start_date           DateTime
+  end_date             DateTime
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+  is_recurring         Boolean   @default(false)
+  recurring_rule       String?
+  Clinician            Clinician @relation(fields: [clinician_id], references: [id])
+
+  @@index([clinician_id])
+  @@index([start_date, end_date])
 }
 
 model CreditCard {

@@ -21,24 +21,21 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
     if (!date) return;
 
     if (field === "startDate") {
-      // When start date changes, update both start and end date
       form.setFieldValue("startDate", date);
       form.setFieldValue("endDate", date);
     } else {
-      // For end date, we only allow changing if it's an all-day event
       if (form.getFieldValue("allDay")) {
         form.setFieldValue("endDate", date);
       } else {
-        // For regular appointments, end date must match start date
         form.setFieldValue("endDate", form.getFieldValue("startDate"));
       }
     }
-    forceUpdate(); // Ensure UI updates
+    forceUpdate();
   };
 
   const handleTimeChange = (field: "startTime" | "endTime", time: string) => {
     form.setFieldValue(field, time);
-    forceUpdate(); // Force re-render to ensure UI updates
+    forceUpdate();
   };
 
   if (allDay) {
