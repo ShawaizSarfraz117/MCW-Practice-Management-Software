@@ -63,6 +63,7 @@
   },
   "packageManager": "npm@10.9.0",
   "dependencies": {
-    "@prisma/client": "^6.5.0"
+    "@prisma/client": "^6.5.0",
+    "react-dropzone": "^14.3.8"
   }
 }

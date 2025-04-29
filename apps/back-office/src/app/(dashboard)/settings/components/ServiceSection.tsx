@@ -5,7 +5,6 @@ import { Button } from "@mcw/ui";
 import { Check, Info } from "lucide-react";
 import { Service } from "../../calendar/components/appointment-dialog/types";
 import AddServcieDialog from "../../billing/components/AddServiceDialog";
-import { toast } from "@mcw/ui";
 
 // Define a type for editing service fields
 // All fields optional except id
@@ -22,22 +21,21 @@ const ServiceSection = () => {
   const [loading, setLoading] = useState(true);
   const [editValues, setEditValues] = useState<ServiceEdit>({} as ServiceEdit);
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const response = await fetch("/api/service");
-        if (!response.ok) {
-          throw new Error("Failed to fetch services");
-        }
-        const data = await response.json();
-        setServices(data);
-      } catch (error) {
-        console.error("Error fetching services:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchServices = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/service");
+      if (!response.ok) throw new Error("Failed to fetch services");
+      const data = await response.json();
+      setServices(data);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchServices();
   }, []);
 
@@ -68,7 +66,14 @@ const ServiceSection = () => {
     field: K,
     value: ServiceEdit[K],
   ) => {
-    setEditValues((prev) => ({ ...prev, [field]: value }));
+    setEditValues((prev) => {
+      const newValues = { ...prev, [field]: value };
+      // If description is being updated, also update the type
+      if (field === "description") {
+        newValues.type = value as string;
+      }
+      return newValues;
+    });
   };
 
   const handleSave = async (serviceId: string) => {
@@ -85,11 +90,14 @@ const ServiceSection = () => {
       const updated = await response.json();
       setServices(services.map((s) => (s.id === serviceId ? updated : s)));
       setExpandedServiceId(null);
-      toast.success("Service updated successfully");
     } catch (error) {
       console.error("Error updating services:", error);
-      toast.error("Error updating service");
     }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    fetchServices();
   };
 
   return (
@@ -301,17 +309,8 @@ const ServiceSection = () => {
 
       <AddServcieDialog
         isOpen={modalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={() => {
-          toast.success("Service created successfully");
-          setLoading(true);
-          fetch("/api/service")
-            .then((res) => res.json())
-            .then((data) => {
-              setServices(data);
-              setLoading(false);
-            });
-        }}
+        onClose={handleModalClose}
+        onSuccess={handleModalClose}
       />
     </>
   );

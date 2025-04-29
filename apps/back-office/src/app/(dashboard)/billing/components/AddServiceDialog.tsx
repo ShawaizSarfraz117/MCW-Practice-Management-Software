@@ -146,7 +146,15 @@ const AddServiceDialog = ({
         throw new Error(data.error || "Failed to create service");
       }
 
-      onSuccess?.();
+      // Reset form state
+      resetForm();
+
+      // Call onSuccess first, then close the dialog
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Ensure dialog closes
       onClose();
     } catch (error) {
       console.error("Error creating service:", error);
@@ -179,8 +187,28 @@ const AddServiceDialog = ({
   }, [isOpen]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-6 max-h-[90vh] overflow-auto [&>button]:hidden">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          resetForm();
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        className="max-w-2xl p-6 max-h-[90vh] overflow-auto [&>button]:hidden"
+        onInteractOutside={(e) => {
+          e.preventDefault();
+          resetForm();
+          onClose();
+        }}
+        onEscapeKeyDown={(e) => {
+          e.preventDefault();
+          resetForm();
+          onClose();
+        }}
+      >
         <div className="absolute right-2 top-2">
           <Button
             className="text-[#6b7280] hover:text-[#374151]"
