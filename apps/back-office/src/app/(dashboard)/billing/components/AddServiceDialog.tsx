@@ -213,24 +213,24 @@ const AddServiceDialog = ({
                     ) : isNewCode && customCode ? (
                       <span>{customCode}</span>
                     ) : (
-                      <span className="text-gray-500">902</span>
+                      <span className="text-gray-500">Service</span>
                     )}
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
                   <Command className="rounded-lg">
-                    <div className="flex items-center border-b px-3">
-                      <CommandInput
-                        placeholder="Search or create new service code."
-                        value={searchQuery}
-                        onValueChange={setSearchQuery}
-                        className="w-full"
-                      />
-                    </div>
+                    {/* <div className="flex items-center border-b px-3 w-full bg-green-500"> */}
+                    <CommandInput
+                      placeholder="Search or create new service code."
+                      value={searchQuery}
+                      onValueChange={setSearchQuery}
+                      className="w-full pl-2"
+                    />
+                    {/* </div> */}
                     <CommandList>
-                      <CommandEmpty>
-                        <div className="py-6 text-center text-sm">
+                      <CommandEmpty className="py-4">
+                        <div className=" text-center text-sm">
                           No code found.{" "}
                           <button
                             className="text-[#2d8467] hover:underline"
