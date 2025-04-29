@@ -106,16 +106,24 @@ export function useAppointmentData({
       const endTime = format(endDate, "h:mm a");
 
       // Determine appointment type
-      const type = appointmentData.type?.toLowerCase() || "appointment";
+      const rawType = appointmentData.type?.toLowerCase() || "appointment";
+      const type = (rawType === "event" ? "event" : "appointment") as
+        | "appointment"
+        | "event";
 
       // Set active tab based on appointment type
-      setActiveTab(type as "appointment" | "event");
+      setActiveTab(type);
+
+      // Ensure clientType is properly typed
+      const clientType = (
+        appointmentData.client_type === "group" ? "group" : "individual"
+      ) as "individual" | "group";
 
       // Create form values from appointment data
       const formValues = {
-        type: type,
+        type,
         eventName: appointmentData.title || "",
-        clientType: "individual",
+        clientType,
         client: appointmentData.client_id || "",
         clinician: appointmentData.clinician_id || effectiveClinicianId || "",
         selectedServices: appointmentData.services?.map((s) => ({

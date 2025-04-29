@@ -17,7 +17,13 @@ const mockLocation = {
   name: "Main Office",
   address: "123 Main St",
 };
-const mockClientGroup = { id: "group-id", name: "Test Group", type: "FAMILY" };
+const mockClientGroup = {
+  id: "group-id",
+  name: "Test Group",
+  type: "FAMILY",
+  is_active: true,
+  clinician_id: null,
+};
 
 // Helper to build a minimal appointment with all required fields
 const mockAppointment = (overrides = {}) =>
