@@ -1,128 +1,76 @@
 "use client";
 
-import { Button, Label } from "@mcw/ui";
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@mcw/ui";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@mcw/ui";
-import { Info } from "lucide-react";
+import { toast } from "@mcw/ui";
 import PracticeInformationForm from "./PracticeInformation";
 import PracticeLogoForm from "./PracticeLogoForm";
 import PracticePhoneForm from "./PracticePhoneForm";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import {
+  updatePracticeInfo,
+  usePracticeInformation,
+} from "./hooks/usePracticeInformation";
+import { PracticeInformation } from "@/types/profile";
 
 export default function PracticeDetailsForm() {
-  const [phoneNumbers, setPhoneNumbers] = useState([
-    { number: "Phone number", type: "Mobile" },
-  ]);
+  const queryClient = useQueryClient();
+  const { practiceInformation } = usePracticeInformation();
 
-  const addPhoneNumber = () => {
-    setPhoneNumbers([...phoneNumbers, { number: "", type: "Mobile" }]);
+  const [practiceInfoState, setPracticeInfoState] =
+    useState<PracticeInformation>({
+      practice_name: practiceInformation?.practice_name,
+      practice_email: practiceInformation?.practice_email,
+      time_zone: practiceInformation?.time_zone,
+      practice_logo: practiceInformation?.practice_logo,
+      phone_numbers: practiceInformation?.phone_numbers,
+      telehealth_enabled: practiceInformation?.telehealth_enabled,
+      telehealth: practiceInformation?.telehealth,
+    });
+
+  const { mutate } = useMutation({
+    mutationFn: updatePracticeInfo,
+    onSuccess: () => {
+      console.log("Practice information updated successfully");
+      toast({
+        title: "Practice information updated successfully",
+        description: "Practice information has been updated successfully",
+        variant: "success",
+      });
+      queryClient.invalidateQueries({ queryKey: ["practiceInformation"] });
+    },
+    onError: (error) => {
+      // Optionally handle error (e.g., show an error message)
+      console.error("Error updating practice information:", error);
+    },
+  });
+
+  const handleSave = () => {
+    mutate(practiceInfoState); // Call the mutation function on save button click
   };
 
-  const removePhoneNumber = (index: number) => {
-    setPhoneNumbers(phoneNumbers.filter((_, i) => i !== index));
-  };
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-800">
-            Practice Details
-          </h1>
-          <p className="text-gray-600 mt-1">Practice name and location info</p>
-        </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700">
-          Save Changes
-        </Button>
-      </div>
-
-      <PracticeInformationForm />
-      <PracticeLogoForm />
-      <PracticePhoneForm
-        phoneNumbers={phoneNumbers}
-        addPhoneNumber={addPhoneNumber}
-        removePhoneNumber={removePhoneNumber}
+      <PracticeInformationForm
+        handleSave={handleSave}
+        practiceInfoState={practiceInfoState}
+        setPracticeInfoState={setPracticeInfoState}
       />
-
-      <div className="mt-4">
-        <Label className="text-base font-medium">Telehealth</Label>
-
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Your video appointments are conducted through the Telehealth
-            feature. You and your clients will get a unique link to access these
-            appointments.
-          </p>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Color</TableHead>
-                  <TableHead>Place Of Service</TableHead>
-                  <TableHead>Public view</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell>Video Office</TableCell>
-                  <TableCell className="text-gray-500">
-                    No address added
-                  </TableCell>
-                  <TableCell>
-                    <div className="w-4 h-4 rounded-full bg-blue-400"></div>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    02-Telehealth Provided Other than in Patient's Home
-                  </TableCell>
-                  <TableCell className="flex items-center space-x-1">
-                    <span className="text-gray-500">Hidden</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="h-4 w-4 text-gray-400" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="w-64">
-                            This location is hidden from public view
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <Button
-                      variant="link"
-                      className="text-blue-500 p-0 h-auto ml-4"
-                    >
-                      Edit
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-          <Button
-            variant="outline"
-            className="mt-5 border-red-300 text-red-700"
-            onClick={addPhoneNumber}
-          >
-            Turn Off
-          </Button>
-        </div>
-      </div>
-
+      <PracticeLogoForm
+        practiceInfoState={practiceInfoState}
+        setPracticeInfoState={setPracticeInfoState}
+      />
+      <PracticePhoneForm setPracticeInfoState={setPracticeInfoState} />
+      {/* <TeleHeaalthForm
+      // practiceInfoState={practiceInfoState}
+      // setPracticeInfoState={setPracticeInfoState}
+      /> */}
+      {/* <Button
+        className="mt-5 border-red-300 text-red-700"
+        variant="outline"
+        // onClick={addPhoneNumber}
+      >
+        Turn Off
+      </Button>
       <div className="mt-4 mb-8">
         <div className="pb-2">
           <Label className="text-base font-medium">Billing addresses</Label>
@@ -176,7 +124,7 @@ export default function PracticeDetailsForm() {
             </Table>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -32,3 +32,24 @@ export interface ClinicalInfo {
   taxonomy_code: string;
   NPI_number: number;
 }
+
+export interface PracticeInformation {
+  practice_name: string;
+  practice_email: string;
+  time_zone: string;
+  practice_logo: string;
+  phone_numbers: {
+    number: string;
+    type: string;
+  }[];
+  telehealth_enabled: boolean;
+  telehealth: {
+    office_name: string;
+    color: string;
+    service_place: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
+}
