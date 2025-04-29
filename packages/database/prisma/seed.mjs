@@ -85,7 +85,6 @@ async function main() {
   // Create sample audit entries
   const auditEntries = [
     {
-      id: uuidv4(),
       event_type: "LOGIN",
       event_text: "User logged into the system",
       is_hipaa: false,
@@ -93,7 +92,6 @@ async function main() {
       user_id: admin.id, // Link to admin user
     },
     {
-      id: uuidv4(),
       event_type: "VIEW",
       event_text: "Viewed client medical records",
       is_hipaa: true,
@@ -101,7 +99,6 @@ async function main() {
       user_id: clinician.id, // Link to clinician user
     },
     {
-      id: uuidv4(),
       event_type: "UPDATE",
       event_text: "Updated appointment details",
       is_hipaa: false,
@@ -109,7 +106,6 @@ async function main() {
       user_id: admin.id,
     },
     {
-      id: uuidv4(),
       event_type: "ACCESS",
       event_text: "Accessed billing information",
       is_hipaa: true,
