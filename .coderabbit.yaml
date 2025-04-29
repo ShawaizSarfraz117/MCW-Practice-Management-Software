@@ -9,7 +9,7 @@ reviews:
       instructions: "Review UI components. Ensure adherence to Shadcn patterns. Check if a similar component already exists before creating a new one. If adding a new component from Shadcn, ensure it's done via the CLI (`npx shadcn-ui@latest add ... --cwd ./packages/ui`). Avoid one-off custom styles if Tailwind utilities suffice."
     - path: "apps/*/src/app/api/**/*.ts"
       instructions: "Review API Route Handlers. Ensure they use Next.js Route Handlers (`GET`, `POST`, etc.), `NextRequest`, and `NextResponse.json()`. Verify database interactions use the shared Prisma client (`@mcw/database`). Check for proper error handling (`try...catch`) and logging (`@mcw/logger`). Ensure request validation is performed."
-    - path: "apps/*/src/__tests__/**/*.ts"
+    - path: "apps/*/src/__tests__/**/*.{ts,tsx}"
       instructions: "Review tests written with Vitest. Ensure integration tests interact with the database using Prisma factories (e.g., `UserPrismaFactory`) and unit tests use mock factories (e.g., `UserFactory`). Verify tests cover the intended functionality adequately."
     - path: "packages/database/prisma/schema.prisma"
       instructions: "Review Prisma schema changes. Ensure model definitions, relations, and constraints follow established project conventions. Verify migrations are generated correctly after schema changes."
