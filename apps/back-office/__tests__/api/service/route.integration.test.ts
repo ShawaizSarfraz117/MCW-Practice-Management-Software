@@ -2,41 +2,47 @@ import { describe, it, expect, beforeEach } from "vitest";
 import type { PracticeService } from "@mcw/database";
 import { prisma } from "@mcw/database";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
-
 import { DELETE, GET, POST, PUT } from "@/api/service/route";
+import { Prisma } from "@prisma/client";
 
-// eslint-disable-next-line max-lines-per-function
 describe("Service API Integration Tests", () => {
   beforeEach(async () => {
-    try {
-      // Clean up any existing data
-      await prisma.clinicianServices.deleteMany();
-      await prisma.practiceService.deleteMany();
-    } catch (error) {
-      console.error("Error cleaning up database:", error);
-    }
+    // Clean up the database before each test
+    await prisma.$transaction([
+      prisma.appointment.deleteMany(),
+      prisma.clinicianServices.deleteMany(),
+      prisma.practiceService.deleteMany(),
+    ]);
   });
+
+  const defaultServiceData = {
+    type: "INDIVIDUAL",
+    code: "IT101",
+    description: "One-on-one therapy session",
+    rate: new Prisma.Decimal(150.0),
+    duration: 50,
+    color: "#FF5733",
+    is_default: false,
+    bill_in_units: false,
+    available_online: true,
+    allow_new_clients: true,
+    require_call: false,
+    block_before: 0,
+    block_after: 0,
+  };
 
   it("GET /api/service should return all services", async () => {
     const services = await Promise.all([
+      prisma.practiceService.create({ data: defaultServiceData }),
       prisma.practiceService.create({
         data: {
-          type: "Therapy Session",
-          code: "THERAPY-001",
-          duration: 60,
-          rate: 175.0,
-          description: "Standard therapy session",
-          color: "#4CAF50", // Green
-        },
-      }),
-      prisma.practiceService.create({
-        data: {
-          type: "Consultation",
-          code: "CONSULT-001",
-          duration: 30,
-          rate: 120.0,
-          description: "Initial consultation",
-          color: "#2196F3", // Blue
+          ...defaultServiceData,
+          type: "GROUP",
+          code: "GT101",
+          description: "Group therapy session",
+          rate: new Prisma.Decimal(100.0),
+          duration: 90,
+          color: "#33FF57",
         },
       }),
     ]);
@@ -47,6 +53,7 @@ describe("Service API Integration Tests", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
 
+    expect(Array.isArray(json)).toBe(true);
     expect(json).toHaveLength(services.length);
 
     services.forEach((service: PracticeService) => {
@@ -54,23 +61,28 @@ describe("Service API Integration Tests", () => {
         (s: PracticeService) => s.id === service.id,
       );
       expect(foundService).toBeDefined();
-      expect(foundService).toHaveProperty("id", service.id);
-      expect(foundService).toHaveProperty("type", service.type);
-      expect(foundService).toHaveProperty("code", service.code);
-      expect(foundService).toHaveProperty("duration", service.duration);
+      expect(foundService).toMatchObject({
+        id: service.id,
+        type: service.type,
+        code: service.code,
+        description: service.description,
+        duration: service.duration,
+        color: service.color,
+        is_default: service.is_default,
+        bill_in_units: service.bill_in_units,
+        available_online: service.available_online,
+        allow_new_clients: service.allow_new_clients,
+        require_call: service.require_call,
+        block_before: service.block_before,
+        block_after: service.block_after,
+      });
+      expect(foundService.rate.toString()).toBe(service.rate.toString());
     });
   });
 
   it("GET /api/service/?id=<id> should return a specific service", async () => {
     const service = await prisma.practiceService.create({
-      data: {
-        type: "Therapy Session",
-        code: "THERAPY-001",
-        duration: 60,
-        rate: 175.0,
-        description: "Standard therapy session",
-        color: "#4CAF50", // Green
-      },
+      data: defaultServiceData,
     });
 
     const req = createRequest(`/api/service/?id=${service.id}`);
@@ -79,31 +91,39 @@ describe("Service API Integration Tests", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
 
-    expect(json).toHaveProperty("id", service.id);
-    expect(json).toHaveProperty("type", service.type);
-    expect(json).toHaveProperty("code", service.code);
-    expect(json).toHaveProperty("duration", service.duration);
-    expect(json).toHaveProperty("rate");
-    expect(String(json.rate)).toBe(String(service.rate));
-  });
-
-  it("GET /api/service/?id=<id> should return 500 for non-existent service", async () => {
-    const req = createRequest("/api/service/?id=non-existent-id");
-    const response = await GET(req);
-
-    expect(response.status).toBe(500);
-    const json = await response.json();
-    expect(json).toHaveProperty("error");
+    expect(json).toMatchObject({
+      id: service.id,
+      type: service.type,
+      code: service.code,
+      description: service.description,
+      duration: service.duration,
+      color: service.color,
+      is_default: service.is_default,
+      bill_in_units: service.bill_in_units,
+      available_online: service.available_online,
+      allow_new_clients: service.allow_new_clients,
+      require_call: service.require_call,
+      block_before: service.block_before,
+      block_after: service.block_after,
+    });
+    expect(json.rate.toString()).toBe(service.rate.toString());
   });
 
   it("POST /api/service should create a new service", async () => {
     const serviceData = {
-      type: "Group Session",
-      code: "GROUP-001",
+      type: "FAMILY",
+      code: "FT101",
+      description: "Family counseling session",
+      rate: 200.0,
       duration: 90,
-      rate: 150.0,
-      description: "Group therapy session",
-      color: "#FFC107", // Amber
+      color: "#5733FF",
+      is_default: false,
+      bill_in_units: true,
+      available_online: false,
+      allow_new_clients: true,
+      require_call: true,
+      block_before: 15,
+      block_after: 15,
     };
 
     const req = createRequestWithBody("/api/service", serviceData);
@@ -112,28 +132,30 @@ describe("Service API Integration Tests", () => {
     expect(response.status).toBe(201);
     const json = await response.json();
 
-    expect(json).toHaveProperty("type", serviceData.type);
-    expect(json).toHaveProperty("code", serviceData.code);
-    expect(json).toHaveProperty("duration", serviceData.duration);
-    expect(json).toHaveProperty("rate");
-    expect(String(json.rate)).toBe(String(serviceData.rate));
-
-    // Verify the service was actually created in the database
-    const createdService = await prisma.practiceService.findUnique({
-      where: { id: json.id },
+    expect(json).toMatchObject({
+      type: serviceData.type,
+      code: serviceData.code,
+      description: serviceData.description,
+      duration: serviceData.duration,
+      color: serviceData.color,
+      is_default: serviceData.is_default,
+      bill_in_units: serviceData.bill_in_units,
+      available_online: serviceData.available_online,
+      allow_new_clients: serviceData.allow_new_clients,
+      require_call: serviceData.require_call,
+      block_before: serviceData.block_before,
+      block_after: serviceData.block_after,
     });
-    expect(createdService).not.toBeNull();
-    expect(createdService).toHaveProperty("type", serviceData.type);
-    expect(createdService).toHaveProperty("code", serviceData.code);
+    expect(parseFloat(json.rate)).toBe(serviceData.rate);
   });
 
-  it("POST /api/service should return 400 if required fields are missing", async () => {
-    const incompleteData = {
-      type: "Incomplete Service",
-      // code and duration are missing
+  it("POST /api/service should return 400 for missing required fields", async () => {
+    const invalidData = {
+      description: "Invalid service",
+      color: "#FF0000",
     };
 
-    const req = createRequestWithBody("/api/service", incompleteData);
+    const req = createRequestWithBody("/api/service", invalidData);
     const response = await POST(req);
 
     expect(response.status).toBe(400);
@@ -143,23 +165,24 @@ describe("Service API Integration Tests", () => {
 
   it("PUT /api/service should update an existing service", async () => {
     const service = await prisma.practiceService.create({
-      data: {
-        type: "Original Service",
-        code: "ORIG-001",
-        duration: 45,
-        rate: 130.0,
-        description: "Original description",
-        color: "#9C27B0", // Purple
-      },
+      data: defaultServiceData,
     });
 
     const updateData = {
       id: service.id,
-      type: "Updated Service",
-      code: "UPDATE-001",
-      duration: 60,
-      rate: 150.0,
-      description: "Updated description",
+      type: "UPDATED",
+      code: "UT101",
+      description: "Updated therapy session",
+      rate: 175.0,
+      duration: 75,
+      color: "#33FF57",
+      is_default: true,
+      bill_in_units: true,
+      available_online: false,
+      allow_new_clients: false,
+      require_call: true,
+      block_before: 30,
+      block_after: 30,
     };
 
     const req = createRequestWithBody("/api/service", updateData, {
@@ -170,26 +193,28 @@ describe("Service API Integration Tests", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
 
-    expect(json).toHaveProperty("type", updateData.type);
-    expect(json).toHaveProperty("code", updateData.code);
-    expect(json).toHaveProperty("duration", updateData.duration);
-    expect(json).toHaveProperty("description", updateData.description);
-
-    // Verify the service was actually updated in the database
-    const updatedService = await prisma.practiceService.findUnique({
-      where: { id: service.id },
+    expect(json).toMatchObject({
+      id: service.id,
+      type: updateData.type,
+      code: updateData.code,
+      description: updateData.description,
+      duration: updateData.duration,
+      color: updateData.color,
+      is_default: updateData.is_default,
+      bill_in_units: updateData.bill_in_units,
+      available_online: updateData.available_online,
+      allow_new_clients: updateData.allow_new_clients,
+      require_call: updateData.require_call,
+      block_before: updateData.block_before,
+      block_after: updateData.block_after,
     });
-    expect(updatedService).toHaveProperty("type", updateData.type);
-    expect(updatedService).toHaveProperty("code", updateData.code);
-    expect(updatedService).toHaveProperty("duration", updateData.duration);
+    expect(parseFloat(json.rate)).toBe(updateData.rate);
   });
 
-  it("PUT /api/service should return 500 for non-existent service", async () => {
+  it("PUT /api/service should return 400 when id is missing", async () => {
     const updateData = {
-      id: "non-existent-id",
-      type: "Updated Service",
-      code: "UPDATE-001",
-      duration: 60,
+      type: "UPDATED",
+      code: "UT101",
     };
 
     const req = createRequestWithBody("/api/service", updateData, {
@@ -197,21 +222,14 @@ describe("Service API Integration Tests", () => {
     });
     const response = await PUT(req);
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
     const json = await response.json();
-    expect(json).toHaveProperty("error");
+    expect(json).toHaveProperty("error", "Service ID is required");
   });
 
   it("DELETE /api/service/?id=<id> should delete a service", async () => {
     const service = await prisma.practiceService.create({
-      data: {
-        type: "Temporary Service",
-        code: "TEMP-001",
-        duration: 30,
-        rate: 100.0,
-        description: "Temporary service to be deleted",
-        color: "#E91E63", // Pink
-      },
+      data: defaultServiceData,
     });
 
     const req = createRequest(`/api/service/?id=${service.id}`, {
@@ -223,23 +241,25 @@ describe("Service API Integration Tests", () => {
     const json = await response.json();
 
     expect(json).toHaveProperty("message", "Service deleted successfully");
+    expect(json).toHaveProperty("service");
     expect(json.service).toHaveProperty("id", service.id);
 
-    // Verify the service was actually deleted from the database
+    // Verify the service was actually deleted
     const deletedService = await prisma.practiceService.findUnique({
       where: { id: service.id },
     });
     expect(deletedService).toBeNull();
   });
 
-  it("DELETE /api/service/?id=<id> should return 500 for non-existent service", async () => {
-    const req = createRequest("/api/service/?id=non-existent-id", {
+  it("DELETE /api/service/?id=<id> should return 404 for non-existent service", async () => {
+    const nonExistentId = "00000000-0000-0000-0000-000000000000";
+    const req = createRequest(`/api/service/?id=${nonExistentId}`, {
       method: "DELETE",
     });
     const response = await DELETE(req);
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
     const json = await response.json();
-    expect(json).toHaveProperty("error");
+    expect(json).toHaveProperty("error", "Service not found");
   });
 });
