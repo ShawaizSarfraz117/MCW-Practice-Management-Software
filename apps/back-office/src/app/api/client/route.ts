@@ -1,7 +1,9 @@
+/* eslint-disable max-lines-per-function */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger, config } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
+import { v4 as uuidv4 } from "uuid";
 
 interface ClientData {
   legalFirstName: string;
@@ -19,10 +21,12 @@ interface ClientData {
     incompleteDocuments?: boolean;
     cancellations?: boolean;
   };
-  clientGroupId: string;
+  clientGroup: string;
   isResponsibleForBilling?: boolean;
   role?: string;
   is_contact_only?: boolean;
+  isExisting?: boolean;
+  clientId?: string;
 }
 
 // GET - Retrieve all clients or a specific client by ID
@@ -33,6 +37,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
     const sortBy = searchParams.get("sortBy") || "legal_last_name";
+    const clinicianId = searchParams.get("clinicianId");
 
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -63,14 +68,47 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(client);
     } else {
-      logger.info("Retrieving all clients");
+      let clientIds: string[] | undefined;
+
+      // If clinicianId is provided, get all clients associated with this clinician
+      if (clinicianId) {
+        logger.info(`Retrieving clients for clinician: ${clinicianId}`);
+
+        // Get client IDs from clinicianClient table for this clinician
+        const clinicianClients = await prisma.clinicianClient.findMany({
+          where: { clinician_id: clinicianId },
+          select: { client_id: true },
+        });
+
+        // Extract client IDs
+        clientIds = clinicianClients.map((cc) => cc.client_id);
+
+        // If clinician has no clients, return empty result
+        if (clientIds.length === 0) {
+          return NextResponse.json({
+            data: [],
+            pagination: {
+              page,
+              limit,
+              total: 0,
+            },
+          });
+        }
+      } else {
+        logger.info("Retrieving all clients");
+      }
 
       const statusArray = status?.split(",") || [];
       let whereCondition: Prisma.ClientWhereInput = {};
 
+      // Add clinician filter if clientIds is available
+      if (clientIds) {
+        whereCondition.id = { in: clientIds };
+      }
+
       // Handle status filtering
       if (statusArray.length > 0 && !statusArray.includes("all")) {
-        whereCondition = {
+        const statusCondition = {
           OR: statusArray.map((status) => {
             switch (status) {
               case "active":
@@ -92,6 +130,11 @@ export async function GET(request: NextRequest) {
             }
           }),
         };
+
+        // Combine with existing clinician filter if any
+        whereCondition = clientIds
+          ? { AND: [whereCondition, statusCondition] }
+          : statusCondition;
       }
 
       // Add search condition if search query exists
@@ -104,9 +147,9 @@ export async function GET(request: NextRequest) {
           ],
         };
 
-        // Combine with existing conditions if they exist
+        // Combine with existing conditions
         whereCondition =
-          statusArray.length > 0 && !statusArray.includes("all")
+          Object.keys(whereCondition).length > 0
             ? { AND: [whereCondition, searchCondition] }
             : searchCondition;
       }
@@ -170,104 +213,218 @@ export async function POST(request: NextRequest) {
     const results = await prisma.$transaction(async (prisma) => {
       const createdClients = [];
 
+      const clientGroup = await prisma.clientGroup.create({
+        data: {
+          id: uuidv4(),
+          name:
+            requestData.clientGroup === "couple" ||
+            requestData.clientGroup === "minor"
+              ? `${clientDataArray[0].legalFirstName} & ${clientDataArray[1].legalFirstName}`
+              : requestData.clientGroup === "family"
+                ? `${clientDataArray[0].legalFirstName} Family`
+                : `${clientDataArray[0].legalFirstName} ${clientDataArray[0].legalLastName}`,
+          type: requestData.clientGroup,
+        },
+      });
+
       for (const data of clientDataArray) {
-        // Create the client
-        const client = await prisma.client.create({
-          data: {
-            legal_first_name: data.legalFirstName,
-            legal_last_name: data.legalLastName,
-            preferred_name: data.preferredName,
-            date_of_birth: data.dob ? new Date(data.dob) : null,
-            is_waitlist: data.addToWaitlist || false,
-            primary_clinician_id: data.primaryClinicianId || null,
-            primary_location_id: data.locationId || null,
-            is_active: data.status === "active",
-          },
-        });
+        let clientId: string;
 
-        // Create ClientGroupMembership
-        await prisma.clientGroupMembership.create({
-          data: {
-            client_group_id: requestData.clientGroupId,
-            client_id: client.id,
-            role: data.role || null,
-            is_contact_only: data.is_contact_only || false,
-            is_responsible_for_billing: data.isResponsibleForBilling || false,
-          },
-        });
+        // Check if this is an existing client
+        if (data.isExisting && data.clientId) {
+          // Use existing client ID
+          clientId = data.clientId;
 
-        // Create email contacts
-        const emailContacts = (data.emails || []).map(
-          (
-            email: { value: string; type: string; permission: string },
-            index: number,
-          ) => ({
-            client_id: client.id,
-            contact_type: "EMAIL",
-            type: email.type,
-            value: email.value,
-            permission: email.permission,
-            is_primary: index === 0,
-          }),
-        );
-
-        // Create phone contacts
-        const phoneContacts = (data.phones || []).map(
-          (
-            phone: { value: string; type: string; permission: string },
-            index: number,
-          ) => ({
-            client_id: client.id,
-            contact_type: "PHONE",
-            type: phone.type,
-            value: phone.value,
-            permission: phone.permission,
-            is_primary: index === 0,
-          }),
-        );
-
-        // Create all contacts
-        if (emailContacts.length > 0 || phoneContacts.length > 0) {
-          await prisma.clientContact.createMany({
-            data: [...emailContacts, ...phoneContacts],
+          // Fetch existing client to check against later
+          const existingClient = await prisma.client.findUnique({
+            where: { id: clientId },
+            include: { ClientContact: true },
           });
+
+          if (!existingClient) {
+            throw new Error(`Existing client with ID ${clientId} not found`);
+          }
+
+          // Create ClientGroupMembership for the existing client
+          await prisma.clientGroupMembership.create({
+            data: {
+              client_group_id: clientGroup.id,
+              client_id: clientId,
+              role: requestData.clientGroup || null,
+              is_contact_only: data.is_contact_only || false,
+              is_responsible_for_billing: data.isResponsibleForBilling || false,
+            },
+          });
+
+          // For existing clients, only create contacts that don't exist yet
+          if (data.emails && data.emails.length > 0) {
+            // Filter out emails that already exist for this client
+            const existingEmailValues = existingClient.ClientContact.filter(
+              (contact) => contact.contact_type === "EMAIL",
+            ).map((contact) => contact.value.toLowerCase());
+
+            const newEmails = data.emails.filter(
+              (email) =>
+                !existingEmailValues.includes(email.value.toLowerCase()),
+            );
+
+            // Create new email contacts
+            const emailContacts = newEmails.map((email, index) => ({
+              client_id: clientId,
+              contact_type: "EMAIL",
+              type: email.type,
+              value: email.value,
+              permission: email.permission,
+              is_primary: index === 0 && existingEmailValues.length === 0, // Only set primary if no existing emails
+            }));
+
+            // Create new email contacts if any
+            if (emailContacts.length > 0) {
+              await prisma.clientContact.createMany({
+                data: emailContacts,
+              });
+            }
+          }
+
+          // Handle phone contacts for existing client
+          if (data.phones && data.phones.length > 0) {
+            // Filter out phones that already exist for this client
+            const existingPhoneValues = existingClient.ClientContact.filter(
+              (contact) => contact.contact_type === "PHONE",
+            ).map((contact) => contact.value.replace(/\D/g, "")); // Strip non-digits for comparison
+
+            const newPhones = data.phones.filter(
+              (phone) =>
+                !existingPhoneValues.includes(phone.value.replace(/\D/g, "")),
+            );
+
+            // Create new phone contacts
+            const phoneContacts = newPhones.map((phone, index) => ({
+              client_id: clientId,
+              contact_type: "PHONE",
+              type: phone.type,
+              value: phone.value,
+              permission: phone.permission,
+              is_primary: index === 0 && existingPhoneValues.length === 0, // Only set primary if no existing phones
+            }));
+
+            // Create new phone contacts if any
+            if (phoneContacts.length > 0) {
+              await prisma.clientContact.createMany({
+                data: phoneContacts,
+              });
+            }
+          }
+        } else {
+          // Create a new client
+          const client = await prisma.client.create({
+            data: {
+              legal_first_name: data.legalFirstName,
+              legal_last_name: data.legalLastName,
+              preferred_name: data.preferredName,
+              date_of_birth: data.dob ? new Date(data.dob) : null,
+              is_waitlist: data.addToWaitlist || false,
+              primary_clinician_id: data.primaryClinicianId || null,
+              primary_location_id: data.locationId || null,
+              is_active: data.status === "active",
+            },
+          });
+
+          clientId = client.id;
+
+          // Create ClientGroupMembership
+          await prisma.clientGroupMembership.create({
+            data: {
+              client_group_id: clientGroup.id,
+              client_id: clientId,
+              role: requestData.clientGroup || null,
+              is_contact_only: data.is_contact_only || false,
+              is_responsible_for_billing: data.isResponsibleForBilling || false,
+            },
+          });
+
+          // Create email contacts
+          const emailContacts = (data.emails || []).map(
+            (
+              email: { value: string; type: string; permission: string },
+              index: number,
+            ) => ({
+              client_id: clientId,
+              contact_type: "EMAIL",
+              type: email.type,
+              value: email.value,
+              permission: email.permission,
+              is_primary: index === 0,
+            }),
+          );
+
+          // Create phone contacts
+          const phoneContacts = (data.phones || []).map(
+            (
+              phone: { value: string; type: string; permission: string },
+              index: number,
+            ) => ({
+              client_id: clientId,
+              contact_type: "PHONE",
+              type: phone.type,
+              value: phone.value,
+              permission: phone.permission,
+              is_primary: index === 0,
+            }),
+          );
+
+          // Create all contacts
+          if (emailContacts.length > 0 || phoneContacts.length > 0) {
+            await prisma.clientContact.createMany({
+              data: [...emailContacts, ...phoneContacts],
+            });
+          }
         }
 
-        // Create reminder preferences if provided
+        // Create reminder preferences if provided (for both new and existing clients)
         if (data.notificationOptions) {
-          const reminderPreferences = [];
-          if (data.notificationOptions.upcomingAppointments !== undefined) {
-            reminderPreferences.push({
-              client_id: client.id,
-              reminder_type: "UPCOMING_APPOINTMENTS",
-              is_enabled: data.notificationOptions.upcomingAppointments,
+          // First check if reminder preferences already exist for this client
+          const existingPreferences =
+            await prisma.clientReminderPreference.findMany({
+              where: { client_id: clientId },
             });
-          }
-          if (data.notificationOptions.incompleteDocuments !== undefined) {
-            reminderPreferences.push({
-              client_id: client.id,
-              reminder_type: "INCOMPLETE_DOCUMENTS",
-              is_enabled: data.notificationOptions.incompleteDocuments,
-            });
-          }
-          if (data.notificationOptions.cancellations !== undefined) {
-            reminderPreferences.push({
-              client_id: client.id,
-              reminder_type: "CANCELLATIONS",
-              is_enabled: data.notificationOptions.cancellations,
-            });
-          }
 
-          if (reminderPreferences.length > 0) {
-            await prisma.clientReminderPreference.createMany({
-              data: reminderPreferences,
-            });
+          // Only create if none exist
+          if (existingPreferences.length === 0) {
+            const reminderPreferences = [];
+            if (data.notificationOptions.upcomingAppointments !== undefined) {
+              reminderPreferences.push({
+                client_id: clientId,
+                reminder_type: "UPCOMING_APPOINTMENTS",
+                is_enabled: data.notificationOptions.upcomingAppointments,
+              });
+            }
+            if (data.notificationOptions.incompleteDocuments !== undefined) {
+              reminderPreferences.push({
+                client_id: clientId,
+                reminder_type: "INCOMPLETE_DOCUMENTS",
+                is_enabled: data.notificationOptions.incompleteDocuments,
+              });
+            }
+            if (data.notificationOptions.cancellations !== undefined) {
+              reminderPreferences.push({
+                client_id: clientId,
+                reminder_type: "CANCELLATIONS",
+                is_enabled: data.notificationOptions.cancellations,
+              });
+            }
+
+            if (reminderPreferences.length > 0) {
+              await prisma.clientReminderPreference.createMany({
+                data: reminderPreferences,
+              });
+            }
           }
         }
 
-        // Get the created client with all related data
-        const createdClient = await prisma.client.findUnique({
-          where: { id: client.id },
+        // Get the created or updated client with all related data
+        const resultClient = await prisma.client.findUnique({
+          where: { id: clientId },
           include: {
             ClientContact: true,
             ClientReminderPreference: true,
@@ -281,8 +438,8 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        if (createdClient) {
-          createdClients.push(createdClient);
+        if (resultClient) {
+          createdClients.push(resultClient);
         }
       }
 
@@ -299,7 +456,10 @@ export async function POST(request: NextRequest) {
       console.error("Error creating clients:", error);
     }
     return NextResponse.json(
-      { error: "Failed to create clients" },
+      {
+        error: "Failed to create clients",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 },
     );
   }

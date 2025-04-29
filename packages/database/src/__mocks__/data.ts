@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import {
   defineClinicianFactory,
   defineClientFactory,
@@ -23,7 +24,7 @@ import {
   defineTagFactory,
   defineUserRoleFactory,
 } from "@mcw/database/fabbrica";
-
+import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcrypt";
 import { faker } from "@faker-js/faker";
 import {
@@ -46,6 +47,7 @@ import {
   SurveyTemplate,
   SurveyAnswers,
 } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 // User factory for generating mock data without Prisma
 export const UserFactory = {
@@ -97,10 +99,13 @@ export const ClinicianPrismaFactory = defineClinicianFactory({
 export const ClientFactory = {
   build: <T extends Partial<Client>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    name: faker.company.name(),
-    address: faker.location.streetAddress(),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
+    legal_first_name: faker.person.firstName(),
+    legal_last_name: faker.person.lastName(),
+    is_waitlist: false,
+    is_active: true,
+    preferred_name: faker.person.firstName(),
+    date_of_birth: faker.date.past(),
+    referred_by: faker.person.fullName(),
     ...overrides,
   }),
 };
@@ -235,6 +240,28 @@ export const InvoiceFactory = {
     issued_date: faker.date.recent(),
     ...overrides,
   }),
+
+  buildComplete: (overrides = {}) => {
+    const issuedDate = new Date();
+    const dueDate = new Date(issuedDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+    return {
+      id: generateUUID(),
+      invoice_number: "INV-1234",
+      client_group_id: generateUUID(),
+      appointment_id: null, // Set to null to avoid foreign key constraint
+      clinician_id: generateUUID(),
+      issued_date: issuedDate,
+      due_date: dueDate,
+      amount: new Decimal(100),
+      status: "PENDING",
+      ClientGroupMembership: null,
+      Appointment: null,
+      Clinician: null,
+      Payment: [],
+      ...overrides,
+    };
+  },
 };
 
 export const PaymentFactory = {
@@ -457,3 +484,8 @@ export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
     SurveyTemplate: SurveyTemplatePrismaFactory,
   }),
 });
+
+// Helper to create a valid invoice object with proper UUID formats
+export const mockInvoice = (overrides = {}) => {
+  return InvoiceFactory.buildComplete(overrides);
+};

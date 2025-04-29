@@ -123,3 +123,46 @@ body {
 .fc .fc-scrollgrid-section-header > * {
   border-left: none !important;
 }
+
+/* Availability styles */
+.availability-slot {
+  background-color: #e6f3ff !important;
+  border: none !important;
+  opacity: 0.65;
+}
+
+.availability-slot .fc-event-main {
+  padding: 2px 4px;
+}
+
+.availability-title {
+  color: #1e40af;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+/* Background events */
+.fc-bg-event {
+  opacity: 0.3;
+}
+
+.fc-timegrid-event.availability-slot {
+  background-color: #e6f3ff !important;
+  border: none !important;
+}
+
+/* Make events visible in all views */
+.fc-timegrid-event {
+  position: absolute;
+  z-index: auto !important;
+}
+
+.fc-timegrid-col-events {
+  position: relative;
+  z-index: auto !important;
+}
+
+.fc-daygrid-event {
+  position: relative;
+  z-index: auto !important;
+}

@@ -1,10 +1,11 @@
+/* eslint-disable max-lines-per-function */
 "use client";
 
 import { MapPin } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage, SearchSelect } from "@mcw/ui";
+import { format } from "date-fns";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import {
   AppointmentTabProps,
   Client,
@@ -52,7 +53,7 @@ export function AppointmentTab({
   const [serviceSearchTerm, setServiceSearchTerm] = useState("");
 
   // Form values
-  const selectedClient = form.getFieldValue<string>("client");
+  const selectedClient = form.getFieldValue<string>("clientGroup");
   const isRecurring = form.getFieldValue<boolean>("recurring");
 
   // API data fetching
@@ -121,7 +122,7 @@ export function AppointmentTab({
   >({
     queryKey: ["clients", effectiveClinicianId, isAdmin, isClinician],
     queryFn: async () => {
-      let url = "/api/client";
+      let url = "/api/client/group";
 
       if (isClinician && !isAdmin && effectiveClinicianId) {
         url += `?clinicianId=${effectiveClinicianId}`;
@@ -132,7 +133,6 @@ export function AppointmentTab({
         throw new Error("Failed to fetch clients");
       }
       const rawData = await response.json();
-      console.log("Client API raw response:", rawData);
 
       // Check if the data might be nested in a property
       let data = rawData;
@@ -144,7 +144,6 @@ export function AppointmentTab({
         typeof rawData === "object" &&
         Array.isArray(rawData.data)
       ) {
-        console.log("Found nested data property in response");
         data = rawData.data;
       }
 
@@ -155,56 +154,50 @@ export function AppointmentTab({
         typeof rawData === "object" &&
         Array.isArray(rawData.clients)
       ) {
-        console.log("Found nested clients property in response");
         data = rawData.clients;
       }
 
-      // If data is an object with results property that's an array, use that
       if (
         !Array.isArray(rawData) &&
         rawData &&
         typeof rawData === "object" &&
         Array.isArray(rawData.results)
       ) {
-        console.log("Found nested results property in response");
         data = rawData.results;
       }
-
-      console.log("Processed client data for component:", data);
       return data;
     },
     enabled: !!shouldFetchData,
   });
 
-  // Filter and process options
   const filteredClients = Array.isArray(clientsData)
     ? clientsData
-        .map((client) => {
-          console.log("Processing client:", client);
-          // Make the mapping more resilient with optional chaining and fallbacks
-          return {
-            label:
-              `${client?.legal_first_name || client?.firstName || client?.first_name || ""} ${client?.legal_last_name || client?.lastName || client?.last_name || ""}`.trim(),
-            value: client?.id || "",
-          };
+        .map((clientGroup) => {
+          if (Array.isArray(clientGroup?.ClientGroupMembership)) {
+            return clientGroup.ClientGroupMembership.map((membership) => {
+              const client = membership.Client;
+
+              return {
+                label:
+                  `${client?.legal_first_name || ""} ${client?.legal_last_name || ""}`.trim(),
+                value: membership?.client_group_id || "",
+              };
+            });
+          }
+          return [];
         })
+        .flat()
         .filter((option) => {
-          // Filter out empty/invalid options
           if (!option.value) {
-            console.log("Filtering out option with empty value:", option);
             return false;
           }
 
-          // Normal search term filtering
           const matches = option.label
             .toLowerCase()
             .includes(clientSearchTerm.toLowerCase());
           return matches;
         })
     : [];
-
-  console.log("Filtered clients:", filteredClients);
-  console.log("Client search term:", clientSearchTerm);
 
   const filteredClinicianOptions = Array.isArray(cliniciansData)
     ? cliniciansData
@@ -274,8 +267,8 @@ export function AppointmentTab({
 
   // Helper for client selection
   const handleClientSelect = (value: string) => {
-    form.setFieldValue("client", value);
-    clearValidationError("client");
+    form.setFieldValue("clientGroup", value);
+    clearValidationError("clientGroup");
     forceUpdate(); // Force re-render to ensure UI updates
   };
 

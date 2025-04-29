@@ -1,10 +1,12 @@
+import { RecurringInfo } from "../calendar/types";
+
 export type Service = {
   id: string;
   type: string;
   code: string;
   duration: number;
   description: string | null;
-  rate: number;
+  rate?: number;
 };
 
 export type Clinician = {
@@ -32,14 +34,29 @@ export type Client = {
   is_active?: boolean;
   [key: string]: unknown;
 };
+export type ClientGroup = {
+  id: string;
+  name: string;
+  type: string;
+  [key: string]: unknown;
+};
 
 export interface AppointmentData {
+  id?: string;
   start_date?: string;
+  recurring_rule: string;
+  status?: string;
+  notes?: string;
   end_date?: string;
   title?: string;
   type?: string;
   client_id?: string;
+  PracticeService?: Service;
+  appointment_fee?: number;
+  Clinician?: Clinician;
   clinician_id?: string;
+  Client?: Client;
+  ClientGroup?: ClientGroup;
   location_id?: string;
   is_recurring?: boolean;
   is_all_day?: boolean;
@@ -63,10 +80,11 @@ export interface AppointmentDialogProps {
 }
 
 export interface FormValues {
-  type: string;
+  type: "appointment" | "event";
   eventName: string;
-  clientType: string;
-  client: string;
+  clientType: "individual" | "group";
+  client?: string | null;
+  clientGroup?: string | null;
   clinician: string;
   selectedServices: Array<{ serviceId: string; fee: number }>;
   startDate: Date;
@@ -78,14 +96,7 @@ export interface FormValues {
   allDay: boolean;
   cancelAppointments: boolean;
   notifyClients: boolean;
-  recurringInfo?: {
-    frequency: string;
-    period: string;
-    selectedDays: string[];
-    monthlyPattern?: string;
-    endType: string;
-    endValue: string | undefined;
-  };
+  recurringInfo?: RecurringInfo;
 }
 
 export interface FormInterface {
@@ -121,6 +132,8 @@ export interface AppointmentTabProps {
   onCreateClient?: (date: string, time: string) => void;
   selectedDate?: Date | null;
   _selectedDate?: Date | null;
+  appointmentData?: AppointmentData;
+  onDone?: () => void;
 }
 
 export interface EventTabProps {
@@ -138,4 +151,25 @@ export interface UseAppointmentDataProps {
   setEventFormValues: (values: FormValues) => void;
   setActiveTab: (tab: "appointment" | "event" | "out") => void;
   form: FormInterface;
+}
+
+export interface AppointmentFormData {
+  startDate: Date | null;
+  endDate: Date | null;
+  startTime: string | null;
+  endTime: string | null;
+  type?: string;
+  allDay?: boolean;
+  location?: string;
+  status?: string;
+  selectedServices?: Array<{ serviceId: string; fee: number }>;
+  recurring?: boolean;
+  recurringInfo?: {
+    period: string;
+    frequency?: string;
+    selectedDays?: string[];
+    monthlyPattern?: string;
+    endType?: string;
+    endValue?: string | number;
+  };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Columns } from "lucide-react";
+import { ChevronLeft, ChevronRight, Columns, Settings } from "lucide-react";
 import {
   Button,
   Separator,
@@ -13,6 +13,8 @@ import {
   LocationSelect,
 } from "@mcw/ui";
 import { CalendarToolbarProps, clinicianGroups } from "../types";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function CalendarToolbar({
   currentView,
@@ -29,6 +31,27 @@ export function CalendarToolbar({
   handleViewChange,
   getHeaderDateFormat,
 }: Omit<CalendarToolbarProps, "currentDate">) {
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+  const router = useRouter();
+
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target as Node)
+      ) {
+        setShowSettingsDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   return (
     <div className="border-b">
       <div className="h-14 px-4 flex items-center justify-between">
@@ -131,6 +154,26 @@ export function CalendarToolbar({
             selected={selectedLocations}
             onChange={setSelectedLocations}
           />
+          <div
+            ref={settingsRef}
+            className="bg-gray-100 p-2 rounded-[10px] cursor-pointer hover:bg-gray-300 relative"
+            onClick={() => setShowSettingsDropdown((prev) => !prev)}
+          >
+            <Settings className="h-5 w-5 text-gray-500" />
+            {showSettingsDropdown && (
+              <div className="absolute right-0 mt-2 w-32 bg-white shadow-lg rounded-md border z-50">
+                <div
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-green-100 hover:text-green-800 cursor-pointer"
+                  onClick={() => {
+                    router.push("/scheduled");
+                    setShowSettingsDropdown(false);
+                  }}
+                >
+                  Schedule
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

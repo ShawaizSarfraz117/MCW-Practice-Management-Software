@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import type React from "react";
 import {
   Button,
@@ -18,6 +19,7 @@ import { X } from "lucide-react";
 interface CreateClientFormProps {
   appointmentDate: string;
   onClose: () => void;
+  onClientCreated: () => void;
 }
 
 export const CreateClientForm: React.FC<CreateClientFormProps> = ({
