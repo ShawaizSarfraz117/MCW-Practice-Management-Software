@@ -1,45 +1,59 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import type { PracticeService } from "@mcw/database";
 import { prisma } from "@mcw/database";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 
 import { DELETE, GET, POST, PUT } from "@/api/service/route";
 
+// Helper function to clean up services
+async function cleanupServices(serviceIds: string[]) {
+  if (!serviceIds || serviceIds.length === 0) return;
+  try {
+    // Delete related data first (e.g., ClinicianServices)
+    await prisma.clinicianServices.deleteMany({
+      where: { service_id: { in: serviceIds } },
+    });
+    // Then delete the services themselves
+    await prisma.practiceService.deleteMany({
+      where: { id: { in: serviceIds } },
+    });
+  } catch (error) {
+    console.error("Error cleaning up services:", error);
+  }
+}
+
 // eslint-disable-next-line max-lines-per-function
 describe("Service API Integration Tests", () => {
-  beforeEach(async () => {
-    try {
-      // Clean up any existing data
-      await prisma.clinicianServices.deleteMany();
-      await prisma.practiceService.deleteMany();
-    } catch (error) {
-      console.error("Error cleaning up database:", error);
-    }
+  let createdServiceIds: string[] = [];
+
+  afterEach(async () => {
+    await cleanupServices(createdServiceIds);
+    createdServiceIds = []; // Reset after cleanup
   });
 
   it("GET /api/service should return all services", async () => {
-    const services = await Promise.all([
-      prisma.practiceService.create({
-        data: {
-          type: "Therapy Session",
-          code: "THERAPY-001",
-          duration: 60,
-          rate: 175.0,
-          description: "Standard therapy session",
-          color: "#4CAF50", // Green
-        },
-      }),
-      prisma.practiceService.create({
-        data: {
-          type: "Consultation",
-          code: "CONSULT-001",
-          duration: 30,
-          rate: 120.0,
-          description: "Initial consultation",
-          color: "#2196F3", // Blue
-        },
-      }),
-    ]);
+    const servicesData = [
+      {
+        type: "Therapy Session",
+        code: "THERAPY-001",
+        duration: 60,
+        rate: 175.0,
+        description: "Standard therapy session",
+        color: "#4CAF50", // Green
+      },
+      {
+        type: "Consultation",
+        code: "CONSULT-001",
+        duration: 30,
+        rate: 120.0,
+        description: "Initial consultation",
+        color: "#2196F3", // Blue
+      },
+    ];
+    const createdServices = await Promise.all(
+      servicesData.map((data) => prisma.practiceService.create({ data })),
+    );
+    createdServiceIds = createdServices.map((srv) => srv.id); // Store IDs
 
     const req = createRequest("/api/service");
     const response = await GET(req);
@@ -47,17 +61,17 @@ describe("Service API Integration Tests", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
 
-    expect(json).toHaveLength(services.length);
+    expect(json).toHaveLength(servicesData.length);
 
-    services.forEach((service: PracticeService) => {
+    servicesData.forEach((data, index) => {
       const foundService = json.find(
-        (s: PracticeService) => s.id === service.id,
+        (s: PracticeService) => s.id === createdServices[index].id,
       );
       expect(foundService).toBeDefined();
-      expect(foundService).toHaveProperty("id", service.id);
-      expect(foundService).toHaveProperty("type", service.type);
-      expect(foundService).toHaveProperty("code", service.code);
-      expect(foundService).toHaveProperty("duration", service.duration);
+      expect(foundService).toHaveProperty("id", createdServices[index].id);
+      expect(foundService).toHaveProperty("type", data.type);
+      expect(foundService).toHaveProperty("code", data.code);
+      expect(foundService).toHaveProperty("duration", data.duration);
     });
   });
 
@@ -72,6 +86,7 @@ describe("Service API Integration Tests", () => {
         color: "#4CAF50", // Green
       },
     });
+    createdServiceIds.push(service.id); // Store ID
 
     const req = createRequest(`/api/service/?id=${service.id}`);
     const response = await GET(req);
@@ -111,6 +126,7 @@ describe("Service API Integration Tests", () => {
 
     expect(response.status).toBe(201);
     const json = await response.json();
+    createdServiceIds.push(json.id); // Store ID
 
     expect(json).toHaveProperty("type", serviceData.type);
     expect(json).toHaveProperty("code", serviceData.code);
@@ -152,6 +168,7 @@ describe("Service API Integration Tests", () => {
         color: "#9C27B0", // Purple
       },
     });
+    createdServiceIds.push(service.id); // Store ID
 
     const updateData = {
       id: service.id,

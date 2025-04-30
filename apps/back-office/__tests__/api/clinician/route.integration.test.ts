@@ -9,39 +9,47 @@ import { createRequest, createRequestWithBody } from "@mcw/utils";
 
 import { DELETE, GET, POST, PUT } from "@/api/clinician/route";
 
+// Helper function to clean the database before each test
+async function cleanDatabase() {
+  console.log("[Cleanup] Starting database cleanup before test.");
+  try {
+    // Delete records in order of dependency
+    await prisma.audit.deleteMany();
+    await prisma.clinicalInfo.deleteMany();
+    await prisma.userRole.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.invoice.deleteMany();
+    await prisma.availability.deleteMany();
+    await prisma.clientGroupMembership.deleteMany();
+    await prisma.clientGroup.deleteMany();
+    await prisma.clinicianServices.deleteMany();
+    await prisma.clinicianLocation.deleteMany();
+    await prisma.clinicianClient.deleteMany();
+    // Now delete Clinicians and Users
+    await prisma.clinician.deleteMany();
+    await prisma.audit.deleteMany();
+    await prisma.user.deleteMany();
+    console.log("[Cleanup] Finished database cleanup.");
+  } catch (error) {
+    console.error("[Cleanup] Error during database cleanup:", error);
+    throw error; // Re-throw the error to fail the test if cleanup fails
+  }
+}
+
 describe("Clinician API", async () => {
+  // // Store IDs created in tests for cleanup -- REMOVED
+  // let createdClinicianIds: string[] = [];
+  // let createdUserIds: string[] = [];
+
+  // Clean up data before each test
   beforeEach(async () => {
-    try {
-      // Delete in the correct order to respect foreign key constraints
-      await prisma.payment.deleteMany();
-      await prisma.invoice.deleteMany();
-      await prisma.appointment.deleteMany();
-      await prisma.surveyAnswers.deleteMany();
-      await prisma.clientReminderPreference.deleteMany();
-      await prisma.clientContact.deleteMany();
-      await prisma.creditCard.deleteMany();
-      await prisma.clinicianClient.deleteMany();
-      await prisma.clinicianLocation.deleteMany();
-      await prisma.clinicianServices.deleteMany();
-      await prisma.clientGroupMembership.deleteMany();
-      await prisma.client.deleteMany();
-      await prisma.clinician.deleteMany();
-      await prisma.userRole.deleteMany();
-      await prisma.user.deleteMany();
-      await prisma.clientGroup.deleteMany();
-      // Debug: check if any clinicians remain
-      const count = await prisma.clinician.count();
-      if (count > 0) {
-        console.warn(`Warning: ${count} clinicians remain after cleanup!`);
-      }
-    } catch (error) {
-      console.error("Error cleaning up database:", error);
-      // Continue with the test even if cleanup fails
-    }
+    await cleanDatabase();
   });
 
   it(`GET /api/clinician/?id=<id>`, async () => {
     const clinician = await ClinicianPrismaFactory.create();
+    // createdClinicianIds.push(clinician.id); // Store ID for cleanup
+    // createdUserIds.push(clinician.user_id); // Store associated user ID
 
     const req = createRequest(`/api/clinician/?id=${clinician.id}`);
 
@@ -61,6 +69,9 @@ describe("Clinician API", async () => {
 
   it("GET /api/clinician", async () => {
     const clinicians = await ClinicianPrismaFactory.createList(2);
+    // Store IDs for cleanup
+    // createdClinicianIds.push(...clinicians.map((c) => c.id));
+    // createdUserIds.push(...clinicians.map((c) => c.user_id));
 
     const req = createRequest("/api/clinician");
 
@@ -92,21 +103,17 @@ describe("Clinician API", async () => {
 
   it("POST /api/clinician", async () => {
     const user = await UserPrismaFactory.create();
-    const clinician = await ClinicianPrismaFactory.build({
-      User: {
-        connect: {
-          id: user.id,
-        },
-      },
-    });
+    // createdUserIds.push(user.id); // Store user ID first
+
+    const clinicianData = await ClinicianPrismaFactory.build(); // Build doesn't save, just creates data object
 
     const clinicianBody = {
       user_id: user.id,
-      address: clinician.address,
-      percentage_split: clinician.percentage_split,
-      is_active: clinician.is_active,
-      first_name: clinician.first_name,
-      last_name: clinician.last_name,
+      address: clinicianData.address,
+      percentage_split: clinicianData.percentage_split,
+      is_active: clinicianData.is_active,
+      first_name: clinicianData.first_name,
+      last_name: clinicianData.last_name,
     };
 
     const req = createRequestWithBody("/api/clinician", clinicianBody);
@@ -116,6 +123,7 @@ describe("Clinician API", async () => {
     expect(response.status).toBe(201);
 
     const json = await response.json();
+    // createdClinicianIds.push(json.id); // Store the ID of the created clinician
 
     expect(json).toHaveProperty("address", clinicianBody.address);
     expect(json).toHaveProperty("is_active", clinicianBody.is_active);
@@ -126,6 +134,8 @@ describe("Clinician API", async () => {
 
   it(`DELETE /api/clinician/?id=<id>`, async () => {
     const clinician = await ClinicianPrismaFactory.create();
+    // createdClinicianIds.push(clinician.id); // Store ID for cleanup
+    // createdUserIds.push(clinician.user_id);
 
     const req = createRequest(`/api/clinician/?id=${clinician.id}`, {
       method: "DELETE",
@@ -148,13 +158,21 @@ describe("Clinician API", async () => {
 
   it("PUT /api/clinician", async () => {
     const clinician = await ClinicianPrismaFactory.create();
+    // createdClinicianIds.push(clinician.id); // Store ID for cleanup
+    // createdUserIds.push(clinician.user_id);
+
     const updatedClinician = {
       ...clinician,
       first_name: "John 2",
     };
-    const req = createRequestWithBody("/api/clinician", updatedClinician, {
-      method: "PUT",
-    });
+    // Include ID in query params as well as body
+    const req = createRequestWithBody(
+      `/api/clinician/?id=${clinician.id}`,
+      updatedClinician,
+      {
+        method: "PUT",
+      },
+    );
 
     const response = await PUT(req);
 

@@ -4,6 +4,7 @@ import { GET, POST, DELETE } from "../../../src/app/api/client/route";
 import { prisma } from "@mcw/database";
 import { generateUUID } from "@mcw/utils";
 import { NextRequest } from "next/server";
+import { getClinicianInfo } from "@/utils/helpers";
 
 // Define our own createRequest and createRequestWithBody functions
 function createRequest(url: string): NextRequest {
@@ -29,9 +30,6 @@ vi.mock("@/utils/helpers", () => ({
   __esModule: true,
 }));
 
-// Import the mocked function to update it later
-import { getClinicianInfo } from "@/utils/helpers";
-
 // Define Client type for type safety
 interface Client {
   id: string;
@@ -41,6 +39,85 @@ interface Client {
   date_of_birth?: Date;
   is_waitlist: boolean;
   is_active: boolean;
+}
+
+// Helper function for cleaning up test data
+async function cleanupClientTestData({
+  clientId,
+  clientGroupId,
+  clinicianId,
+  locationId,
+}: {
+  clientId?: string;
+  clientGroupId?: string;
+  clinicianId?: string;
+  locationId?: string;
+}) {
+  // Delete the client created during tests and related data
+  if (clientId) {
+    try {
+      await prisma.clientContact.deleteMany({ where: { client_id: clientId } });
+      await prisma.clientReminderPreference.deleteMany({
+        where: { client_id: clientId },
+      });
+      await prisma.clientGroupMembership.deleteMany({
+        where: { client_id: clientId },
+      });
+      await prisma.clinicianClient.deleteMany({
+        where: { client_id: clientId },
+      });
+      await prisma.client.delete({ where: { id: clientId } });
+    } catch (error) {
+      console.log("Error deleting client and related data:", error);
+    }
+  }
+
+  // Delete the client group
+  if (clientGroupId) {
+    try {
+      // ClientGroupMembership should be deleted by client cleanup or if client wasn't created
+      await prisma.clientGroupMembership.deleteMany({
+        where: { client_group_id: clientGroupId },
+      });
+      await prisma.clientGroup.delete({ where: { id: clientGroupId } });
+    } catch (error) {
+      console.log("Error deleting client group:", error);
+    }
+  }
+
+  // Delete the clinician and associated user
+  if (clinicianId) {
+    try {
+      const clinician = await prisma.clinician.findUnique({
+        where: { id: clinicianId },
+        select: { user_id: true },
+      });
+
+      // Delete related data before deleting clinician
+      await prisma.clinicianClient.deleteMany({
+        where: { clinician_id: clinicianId },
+      });
+      await prisma.clientGroup.deleteMany({
+        where: { clinician_id: clinicianId },
+      }); // In case group wasn't deleted above
+      await prisma.clinician.delete({ where: { id: clinicianId } });
+
+      if (clinician?.user_id) {
+        await prisma.user.delete({ where: { id: clinician.user_id } });
+      }
+    } catch (error) {
+      console.log("Error deleting clinician or user:", error);
+    }
+  }
+
+  // Delete the location
+  if (locationId) {
+    try {
+      await prisma.location.delete({ where: { id: locationId } });
+    } catch (error) {
+      console.log("Error deleting location:", error);
+    }
+  }
 }
 
 describe("Client API - Integration Tests", () => {
@@ -105,83 +182,12 @@ describe("Client API - Integration Tests", () => {
 
   // Clean up test data
   afterAll(async () => {
-    // Delete the client created during tests
-    if (clientId) {
-      try {
-        // Delete client contacts
-        await prisma.clientContact.deleteMany({
-          where: { client_id: clientId },
-        });
-
-        // Delete client reminder preferences
-        await prisma.clientReminderPreference.deleteMany({
-          where: { client_id: clientId },
-        });
-
-        // Delete client group memberships
-        await prisma.clientGroupMembership.deleteMany({
-          where: { client_id: clientId },
-        });
-
-        // Delete clinician client relationship if it exists
-        await prisma.clinicianClient.deleteMany({
-          where: { client_id: clientId },
-        });
-
-        // Delete the client
-        await prisma.client.delete({
-          where: { id: clientId },
-        });
-      } catch (error) {
-        console.log("Error deleting client:", error);
-      }
-    }
-
-    // Delete the client group
-    if (clientGroupId) {
-      try {
-        await prisma.clientGroup.delete({
-          where: { id: clientGroupId },
-        });
-      } catch (error) {
-        console.log("Error deleting client group:", error);
-      }
-    }
-
-    // Delete the clinician and associated user
-    if (clinicianId) {
-      try {
-        const clinician = await prisma.clinician.findUnique({
-          where: { id: clinicianId },
-          select: { user_id: true },
-        });
-
-        if (clinician) {
-          await prisma.clinician.delete({
-            where: { id: clinicianId },
-          });
-
-          if (clinician.user_id) {
-            await prisma.user.delete({
-              where: { id: clinician.user_id },
-            });
-          }
-        }
-      } catch (error) {
-        console.log("Error deleting clinician or user:", error);
-      }
-    }
-
-    // Delete the location
-    if (locationId) {
-      try {
-        await prisma.location.delete({
-          where: { id: locationId },
-        });
-      } catch (error) {
-        console.log("Error deleting location:", error);
-      }
-    }
+    await cleanupClientTestData({
+      clientId,
+      clientGroupId,
+      clinicianId,
+      locationId,
+    });
   });
 
   it("POST /api/client should create a new client", async () => {

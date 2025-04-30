@@ -19,6 +19,19 @@ vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),
 }));
 
+// Helper function for cleaning up test data
+async function cleanupClinicalInfoTestData(userId: string) {
+  try {
+    // Ensure related data (like Licenses) is deleted first if needed
+    // Example: await prisma.license.deleteMany({ where: { clinical_info: { user_id: userId } } });
+    await prisma.clinicalInfo.deleteMany({ where: { user_id: userId } });
+    await prisma.userRole.deleteMany({ where: { user_id: userId } }); // Assuming UserRoles might exist
+    await prisma.user.delete({ where: { id: userId } });
+  } catch (error) {
+    console.error(`Error cleaning up clinical info for user ${userId}:`, error);
+  }
+}
+
 describe("Clinical Info API Integration Tests", () => {
   let userId: string;
 
@@ -28,8 +41,9 @@ describe("Clinical Info API Integration Tests", () => {
   });
 
   afterAll(async () => {
-    await prisma.clinicalInfo.deleteMany({ where: { user_id: userId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
+    // await prisma.clinicalInfo.deleteMany({ where: { user_id: userId } });
+    // await prisma.user.deleteMany({ where: { id: userId } });
+    await cleanupClinicalInfoTestData(userId);
   });
 
   afterEach(() => {

@@ -19,6 +19,16 @@ vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),
 }));
 
+async function cleanupTestData(userId: string, clinicalInfoId: string) {
+  await prisma.license.deleteMany({
+    where: { clinical_info_id: parseInt(clinicalInfoId) },
+  });
+  await prisma.clinicalInfo.deleteMany({
+    where: { id: parseInt(clinicalInfoId) },
+  });
+  await prisma.user.deleteMany({ where: { id: userId } });
+}
+
 describe("License API Integration Tests", () => {
   let userId: string;
   let clinicalInfoId: string;
@@ -39,13 +49,7 @@ describe("License API Integration Tests", () => {
   });
 
   afterAll(async () => {
-    await prisma.license.deleteMany({
-      where: { clinical_info_id: parseInt(clinicalInfoId) },
-    });
-    await prisma.clinicalInfo.deleteMany({
-      where: { id: parseInt(clinicalInfoId) },
-    });
-    await prisma.user.deleteMany({ where: { id: userId } });
+    await cleanupTestData(userId, clinicalInfoId);
   });
 
   beforeEach(() => {

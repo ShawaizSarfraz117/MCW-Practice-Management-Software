@@ -1,46 +1,56 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import type { Location } from "@mcw/database";
 import { prisma } from "@mcw/database";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 
 import { DELETE, GET, POST, PUT } from "@/api/location/route";
 
+// Helper function to clean up locations
+async function cleanupLocations(locationIds: string[]) {
+  if (!locationIds || locationIds.length === 0) return;
+  try {
+    // Add deletions for related data if locations have dependencies
+    // e.g., await prisma.clinicianLocation.deleteMany({ where: { location_id: { in: locationIds } } });
+    await prisma.location.deleteMany({ where: { id: { in: locationIds } } });
+  } catch (error) {
+    console.error("Error cleaning up locations:", error);
+  }
+}
+
 describe("Location API Integration Tests", () => {
-  beforeEach(async () => {
-    try {
-      // Clean up any existing data
-      await prisma.location.deleteMany();
-    } catch (error) {
-      console.error("Error cleaning up database:", error);
-    }
+  let createdLocationIds: string[] = [];
+
+  afterEach(async () => {
+    await cleanupLocations(createdLocationIds);
+    createdLocationIds = []; // Reset after cleanup
   });
 
   it("GET /api/location should return all locations", async () => {
-    const locations = await Promise.all([
-      prisma.location.create({
-        data: {
-          name: "Main Office",
-          address: "123 Main Street",
-          is_active: true,
-        },
-      }),
-      prisma.location.create({
-        data: {
-          name: "Branch Office",
-          address: "456 Branch Avenue",
-          is_active: true,
-        },
-      }),
-    ]);
+    const locationsData = [
+      {
+        name: "Main Office",
+        address: "123 Main Street",
+        is_active: true,
+      },
+      {
+        name: "Branch Office",
+        address: "456 Branch Avenue",
+        is_active: true,
+      },
+    ];
+    const createdLocations = await Promise.all(
+      locationsData.map((data) => prisma.location.create({ data })),
+    );
+    createdLocationIds = createdLocations.map((loc) => loc.id); // Store IDs
 
     const response = await GET();
 
     expect(response.status).toBe(200);
     const json = await response.json();
 
-    expect(json).toHaveLength(locations.length);
+    expect(json).toHaveLength(createdLocations.length);
 
-    locations.forEach((location: Location) => {
+    createdLocations.forEach((location: Location) => {
       const foundLocation = json.find((l: Location) => l.id === location.id);
       expect(foundLocation).toBeDefined();
       expect(foundLocation).toHaveProperty("id", location.id);
@@ -62,6 +72,7 @@ describe("Location API Integration Tests", () => {
 
     expect(response.status).toBe(201);
     const json = await response.json();
+    createdLocationIds.push(json.id); // Store ID of created location
 
     expect(json).toHaveProperty("name", locationData.name);
     expect(json).toHaveProperty("address", locationData.address);
@@ -97,6 +108,7 @@ describe("Location API Integration Tests", () => {
         is_active: true,
       },
     });
+    createdLocationIds.push(location.id); // Store ID
 
     const updateData = {
       id: location.id,
@@ -151,6 +163,7 @@ describe("Location API Integration Tests", () => {
         is_active: true,
       },
     });
+    createdLocationIds.push(location.id); // Store ID
 
     const req = createRequest(`/api/location/?id=${location.id}`, {
       method: "DELETE",
