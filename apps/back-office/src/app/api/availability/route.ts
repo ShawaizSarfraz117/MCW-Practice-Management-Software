@@ -2,13 +2,15 @@ import { NextResponse, NextRequest } from "next/server";
 import { prisma, Prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { z } from "zod";
+import { getServerSession } from "next-auth/next";
+import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 
 // TypeScript interface for authenticated request
-interface AuthenticatedRequest extends NextRequest {
-  nextauth?: {
-    token?: unknown;
-  };
-}
+// interface AuthenticatedRequest extends NextRequest {
+//   nextauth?: {
+//     token?: unknown;
+//   };
+// }
 
 // Validation schema for availability
 const availabilitySchema = z.object({
@@ -22,9 +24,11 @@ const availabilitySchema = z.object({
   recurring_rule: z.string().optional().nullable(),
 });
 
-export async function POST(request: AuthenticatedRequest) {
+export async function POST(request: NextRequest) {
   try {
-    if (!request.nextauth?.token) {
+    const session = await getServerSession(backofficeAuthOptions);
+    if (!session?.user) {
+      console.log("getServerSession session", session);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -71,9 +75,12 @@ export async function POST(request: AuthenticatedRequest) {
   }
 }
 
-export async function GET(request: AuthenticatedRequest) {
+export async function GET(request: NextRequest) {
   try {
-    if (!request.nextauth?.token) {
+    const session = await getServerSession(backofficeAuthOptions);
+    console.log("request>>>", request);
+    if (!session?.user) {
+      console.log("getServerSession session>>>", session);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -131,9 +138,10 @@ export async function GET(request: AuthenticatedRequest) {
   }
 }
 
-export async function PUT(request: AuthenticatedRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    if (!request.nextauth?.token) {
+    const session = await getServerSession(backofficeAuthOptions);
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -179,9 +187,10 @@ export async function PUT(request: AuthenticatedRequest) {
   }
 }
 
-export async function DELETE(request: AuthenticatedRequest) {
+export async function DELETE(request: NextRequest) {
   try {
-    if (!request.nextauth?.token) {
+    const session = await getServerSession(backofficeAuthOptions);
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

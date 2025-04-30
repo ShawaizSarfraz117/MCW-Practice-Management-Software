@@ -33,9 +33,9 @@ const Scheduled = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
 
-  // Get user role information
-  const isAdmin = session?.user?.isAdmin || false;
-  const isClinician = session?.user?.isClinician || false;
+  // Get user role information directly from roles array
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
+  const isClinician = session?.user?.roles?.includes("CLINICIAN") || false;
   const effectiveClinicianId = session?.user?.id || null;
 
   // Fetch clinicians with role-based permissions
@@ -45,9 +45,9 @@ const Scheduled = () => {
       queryFn: async () => {
         let url = "/api/clinician";
 
-        // If user is a clinician and not an admin, fetch only their own data
+        // If user is a clinician and not an admin, fetch only their own data using userId
         if (isClinician && !isAdmin && effectiveClinicianId) {
-          url += `?id=${effectiveClinicianId}`;
+          url += `?userId=${effectiveClinicianId}`;
         }
 
         const response = await fetch(url);

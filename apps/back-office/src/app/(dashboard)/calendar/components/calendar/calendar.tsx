@@ -98,7 +98,7 @@ export function CalendarView({
 
   // Get session data to check if user is admin
   const { data: session } = useSession();
-  const isAdmin = session?.user?.isAdmin || false;
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
 
   // Set the view based on user role
   const [currentView, setCurrentView] = useState(

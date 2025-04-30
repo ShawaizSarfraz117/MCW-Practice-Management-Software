@@ -1,13 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@mcw/database";
 import { z } from "zod";
-
-// TypeScript interface for authenticated request
-interface AuthenticatedRequest extends NextRequest {
-  nextauth?: {
-    token?: unknown;
-  };
-}
+import { getServerSession } from "next-auth/next";
+import { backofficeAuthOptions } from "../../auth/[...nextauth]/auth-options";
 
 // Schema for validating availability update data
 const updateAvailabilitySchema = z.object({
@@ -67,11 +62,12 @@ const validateTimeSlot = async (
 };
 
 export async function PUT(
-  request: AuthenticatedRequest,
+  request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
-    if (!request.nextauth?.token) {
+    const session = await getServerSession(backofficeAuthOptions);
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

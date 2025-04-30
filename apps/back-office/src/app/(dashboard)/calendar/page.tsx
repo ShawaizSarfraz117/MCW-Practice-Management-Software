@@ -65,8 +65,9 @@ type Appointment = {
 // Custom hook to get clinician data for the current user
 function useClinicianData() {
   const { data: session, status: sessionStatus } = useSession();
-  const isAdmin = session?.user?.isAdmin || false;
-  const isClinician = session?.user?.isClinician || false;
+  // Use roles array for checks
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
+  const isClinician = session?.user?.roles?.includes("CLINICIAN") || false;
   const userId = session?.user?.id;
 
   const [userClinicianId, setUserClinicianId] = useState<string | null>(null);
@@ -167,9 +168,9 @@ const CalendarPage: React.FC = () => {
       queryFn: async () => {
         let url = "/api/clinician";
 
-        // If user is a clinician and not an admin, fetch only self
+        // If user is a clinician and not an admin, fetch only self using userId
         if (isClinician && !isAdmin && effectiveClinicianId) {
-          url += `?id=${effectiveClinicianId}`;
+          url += `?userId=${effectiveClinicianId}`;
         }
 
         const response = await fetch(url);
@@ -299,6 +300,7 @@ const CalendarPage: React.FC = () => {
 
         // If the title contains "Appointment with Client" but we have client data
         if (title.includes("Appointment with") && appointment.Client) {
+          console.log("appointment.Client", appointment.Client);
           const clientName =
             appointment.Client.legal_first_name &&
             appointment.Client.legal_last_name
