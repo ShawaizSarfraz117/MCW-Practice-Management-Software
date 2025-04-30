@@ -25,9 +25,8 @@ import {
 } from "./types";
 import { EditAppointmentDialog } from "../EditAppointmentDialog";
 import { AvailabilitySidebar } from "../availability/AvailabilitySidebar";
-import styles from "./calendar.module.css";
 import { ClientGroup } from "../appointment-dialog/types";
-import { toast } from "@mcw/ui";
+import { Button, Card, CardHeader, CardContent, toast } from "@mcw/ui";
 
 declare global {
   interface Window {
@@ -987,113 +986,44 @@ export function CalendarView({
                     else if (limit !== undefined && limit !== null)
                       buttonText = `${limit} max appts`;
                     return (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          position: "relative",
-                        }}
-                      >
+                      <div className="flex flex-col items-center relative">
                         <span>{args.text}</span>
-                        <button
-                          style={{
-                            width: "100%",
-                            background: "#f5f6f7",
-                            color: "#222",
-                            fontWeight: 550,
-                            fontSize: "0.7rem",
-                            border: "none",
-                            borderRadius: "8px",
-                            padding: "3px 22px",
-                            marginTop: 4,
-                            marginBottom: 4,
-                            cursor: "pointer",
-                            textAlign: "center",
-                            boxShadow: "none",
-                            outline: "none",
-                            transition: "background 0.15s",
-                          }}
-                          onMouseOver={(e) =>
-                            (e.currentTarget.style.background = "#ececec")
-                          }
-                          onMouseOut={(e) =>
-                            (e.currentTarget.style.background = "#f5f6f7")
-                          }
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-[0.7rem] font-medium text-gray-700 mt-1 mb-1"
                           onClick={(e) => handleAddLimit(args.date, e)}
                         >
                           {buttonText}
-                        </button>
+                        </Button>
                         {isDropdownOpen && (
-                          <div
+                          <Card
                             ref={addLimitDropdownRef}
+                            className="fixed bg-white z-50 min-w-[170px] overflow-hidden p-0"
                             style={{
-                              position: "fixed",
                               top: dropdownPosition.top,
                               left: dropdownPosition.left,
                               transform: "translate(-50%, 0)",
-                              background: "#fff",
-                              border: "1px solid #e0e0e0",
-                              fontSize: "0.9rem",
-                              borderRadius: 12,
-                              marginTop: 4,
-                              zIndex: 9999,
-                              boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
-                              minWidth: 170,
-                              padding: 0,
-                              overflow: "hidden",
+                              marginTop: "4px",
                             }}
                           >
-                            <div
-                              style={{
-                                padding: "10px 10px 6px 10px",
-                                borderBottom: "1px solid #f0f0f0",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontWeight: 700,
-                                  fontSize: "0.6rem",
-                                  color: "#222",
-                                }}
-                              >
+                            <CardHeader className="p-[10px_10px_6px_10px] border-b border-gray-100">
+                              <div className="font-bold text-[0.6rem] text-gray-800">
                                 Appt limit per day
                               </div>
-                              <div
-                                style={{
-                                  fontWeight: 500,
-                                  fontSize: "0.5rem",
-                                  color: "#888",
-                                  marginTop: 2,
-                                }}
-                              >
+                              <div className="font-medium text-[0.5rem] text-gray-400 mt-0.5">
                                 {addLimitDropdown.date
                                   ? `All ${addLimitDropdown.date.toLocaleDateString(undefined, { weekday: "long" })}s`
                                   : ""}
                               </div>
-                            </div>
-                            <div
-                              style={{
-                                padding: "8px 0",
-                                maxHeight: 240,
-                                overflowY: "auto",
-                              }}
-                            >
+                            </CardHeader>
+                            <CardContent className="py-2 px-0 max-h-60 overflow-y-auto">
                               <div
-                                style={{
-                                  padding: "12px 16px",
-                                  textAlign: "left",
-                                  cursor: "pointer",
-                                  color: "#222",
-                                  fontWeight: 700,
-                                  fontSize: "0.7rem",
-                                  background:
-                                    appointmentLimits[dateStr] === 0
-                                      ? "#f5f6f7"
-                                      : "transparent",
-                                  borderRadius: 8,
-                                  margin: "0 8px 4px 8px",
-                                }}
+                                className={`px-4 py-3 text-left cursor-pointer text-gray-800 font-bold text-[0.7rem] rounded-lg mx-2 mb-1 ${
+                                  appointmentLimits[dateStr] === 0
+                                    ? "bg-gray-100"
+                                    : ""
+                                }`}
                                 onClick={() => handleSelectLimit(null)}
                                 onMouseDown={(e) => e.preventDefault()}
                               >
@@ -1104,21 +1034,11 @@ export function CalendarView({
                                 return (
                                   <div
                                     key={num}
-                                    style={{
-                                      padding: "10px 16px",
-                                      textAlign: "left",
-                                      cursor: "pointer",
-                                      color: "#222",
-                                      fontWeight: 500,
-                                      fontSize: "0.7rem",
-                                      borderRadius: 8,
-                                      margin: "0 8px 4px 8px",
-                                      background:
-                                        appointmentLimits[dateStr] === num
-                                          ? "#f5f6f7"
-                                          : "transparent",
-                                      transition: "background 0.15s",
-                                    }}
+                                    className={`px-4 py-2.5 text-left cursor-pointer text-gray-800 font-medium text-[0.7rem] rounded-lg mx-2 mb-1 transition-colors ${
+                                      appointmentLimits[dateStr] === num
+                                        ? "bg-gray-100"
+                                        : ""
+                                    }`}
                                     onClick={() => handleSelectLimit(num)}
                                     onMouseDown={(e) => e.preventDefault()}
                                   >
@@ -1126,8 +1046,8 @@ export function CalendarView({
                                   </div>
                                 );
                               })}
-                            </div>
-                          </div>
+                            </CardContent>
+                          </Card>
                         )}
                       </div>
                     );
@@ -1163,12 +1083,59 @@ export function CalendarView({
                   event.extendedProps?.allow_online_requests;
                 const isRecurring = event.extendedProps?.is_recurring;
 
-                info.el.classList.add(styles.availabilitySlot);
-                info.el.setAttribute(
-                  "data-allow-requests",
-                  String(!!allowRequests),
+                // Apply Tailwind equivalent classes directly
+                info.el.classList.add(
+                  "bg-[#2d84671a]",
+                  "border-0",
+                  "opacity-85",
+                  "cursor-pointer",
+                  "pointer-events-auto",
+                  "z-10",
+                  "relative",
+                  "pl-4",
                 );
-                info.el.setAttribute("data-recurring", String(!!isRecurring));
+
+                // Create the colored bar for the left side
+                const leftBar = document.createElement("div");
+                leftBar.classList.add(
+                  "absolute",
+                  "left-0",
+                  "top-0",
+                  "bottom-0",
+                  "w-1",
+                );
+
+                // Set the color based on allowRequests
+                if (allowRequests) {
+                  leftBar.classList.add("bg-green-500");
+                } else {
+                  leftBar.classList.add("bg-red-500");
+                }
+
+                info.el.appendChild(leftBar);
+
+                // Add recurring symbol if needed
+                if (isRecurring) {
+                  const recurringSymbol = document.createElement("div");
+                  recurringSymbol.classList.add(
+                    "absolute",
+                    "top-1",
+                    "right-1",
+                    "text-xs",
+                    "text-gray-500",
+                  );
+                  recurringSymbol.textContent = "↻";
+                  info.el.appendChild(recurringSymbol);
+                }
+
+                // Apply hover effect
+                info.el.addEventListener("mouseenter", () => {
+                  info.el.classList.replace("opacity-85", "opacity-100");
+                });
+
+                info.el.addEventListener("mouseleave", () => {
+                  info.el.classList.replace("opacity-100", "opacity-85");
+                });
               }
             }}
             eventContent={(arg) => {
@@ -1186,8 +1153,12 @@ export function CalendarView({
 
                 return (
                   <div className="p-1">
-                    <div className={styles.availabilityTime}>{startTime}</div>
-                    <div className={styles.availabilityTitle}>{title}</div>
+                    <div className="text-xs font-medium text-gray-600 mb-0.5">
+                      {startTime}
+                    </div>
+                    <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
+                      {title}
+                    </div>
                   </div>
                 );
               }
