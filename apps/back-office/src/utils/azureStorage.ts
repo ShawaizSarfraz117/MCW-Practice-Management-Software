@@ -84,7 +84,7 @@ export async function uploadToAzureStorage(
 
     const sasToken = await blockBlobClient.generateSasUrl({
       permissions,
-      expiresOn: new Date(new Date().valueOf() + 24 * 60 * 60 * 1000), // 24 hours from now
+      expiresOn: new Date(new Date().valueOf() + 60 * 60 * 1000), // 1 hours from now
     });
 
     return {

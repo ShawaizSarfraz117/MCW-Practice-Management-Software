@@ -1,6 +1,25 @@
 import { PracticeInformation } from "@/types/profile";
 import { toast } from "@mcw/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+interface TeleHealthInfo {
+  clinician: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  location: {
+    id: string;
+    name: string;
+    address: string;
+    color: string;
+    city: string;
+    state: string;
+    zip: string;
+    street: string;
+  } | null;
+}
 
 const usePracticeInformation = (): {
   practiceInformation: PracticeInformation;
@@ -67,4 +86,74 @@ async function uploadFile(file: File) {
 
   return response.json();
 }
-export { usePracticeInformation, uploadFile };
+
+interface UpdateTeleHealthLocationParams {
+  locationId: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  color: string;
+  street: string;
+}
+
+const useTeleHealthInfo = () => {
+  const queryClient = useQueryClient();
+
+  const {
+    data: teleHealthInfo,
+    isLoading,
+    error,
+  } = useQuery<TeleHealthInfo>({
+    queryKey: ["teleHealthInfo"],
+    queryFn: async () => {
+      const res = await fetch("/api/teleHealth");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData?.error);
+      }
+      return res.json();
+    },
+  });
+
+  const updateTeleHealthLocation = useMutation({
+    mutationFn: async (params: UpdateTeleHealthLocationParams) => {
+      const response = await fetch("/api/teleHealth", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast({
+          title: "Error updating telehealth location",
+          description: errorData?.error,
+          variant: "destructive",
+        });
+        throw new Error(errorData?.error);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teleHealthInfo"] });
+      toast({
+        title: "Success",
+        description: "Telehealth location updated successfully",
+      });
+    },
+  });
+
+  return {
+    teleHealthInfo,
+    isLoading,
+    error,
+    updateTeleHealthLocation: updateTeleHealthLocation.mutate,
+    isUpdating: updateTeleHealthLocation.isPending,
+  };
+};
+
+export { usePracticeInformation, uploadFile, useTeleHealthInfo };

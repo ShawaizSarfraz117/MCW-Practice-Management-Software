@@ -225,6 +225,11 @@ model Location {
   id                String              @id @default(dbgenerated("newid()"), map: "PK_Location_ID") @db.UniqueIdentifier
   name              String              @db.VarChar(255)
   address           String              @db.Text
+  street            String?             @db.VarChar(255)
+  city              String?             @db.VarChar(100)
+  state              String?             @db.VarChar(100)
+  zip               String?             @db.VarChar(20)
+  color             String?             @db.VarChar(50)
   is_active         Boolean             @default(true, map: "DF_Location_IsActive")
   Appointment       Appointment[]
   Client            Client[]
