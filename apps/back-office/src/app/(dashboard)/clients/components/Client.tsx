@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function */
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Search, ChevronDown, Filter } from "lucide-react";
 import { Button, Input, Card, Checkbox } from "@mcw/ui";
 import ClientTable from "./ClientTable";
@@ -82,27 +82,29 @@ export default function Clients() {
     setSortDropdownOpen(false);
     await fetchClientData({ sortBy: field });
   };
-
-  const fetchClientData = async (params = {}) => {
-    setIsLoading(true);
-    const [clients, error] = await fetchClientGroups({
-      searchParams: {
-        status: statusFilter,
-        search: searchQuery,
-        sortBy,
-        ...params,
-      },
-    });
-    if (!error) {
-      setClients(
-        clients as {
-          data: Client[];
-          pagination: { page: number; limit: number; total: number };
+  const fetchClientData = useCallback(
+    async (params = {}) => {
+      setIsLoading(true);
+      const [clients, error] = await fetchClientGroups({
+        searchParams: {
+          status: statusFilter,
+          search: searchQuery,
+          sortBy,
+          ...params,
         },
-      );
-    }
-    setIsLoading(false);
-  };
+      });
+      if (!error) {
+        setClients(
+          clients as {
+            data: Client[];
+            pagination: { page: number; limit: number; total: number };
+          },
+        );
+      }
+      setIsLoading(false);
+    },
+    [statusFilter, searchQuery, sortBy],
+  );
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);

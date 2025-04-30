@@ -19,7 +19,8 @@
     "dev": "tailwindcss -i ./src/styles.css -o ./dist/index.css --watch",
     "format": "prettier --write src",
     "prettier:check": "prettier --check src",
-    "lint": "eslint src --max-warnings 0"
+    "lint": "eslint src --max-warnings 0",
+    "prettier:write": "prettier --write src"
   },
   "dependencies": {
     "@mcw/tsconfig-config": "*",

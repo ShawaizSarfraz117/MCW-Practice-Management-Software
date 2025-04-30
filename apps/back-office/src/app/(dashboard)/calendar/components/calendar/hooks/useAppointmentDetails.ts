@@ -8,7 +8,6 @@ export function useAppointmentDetails(
   // Function to fetch appointment details by ID
   const fetchAppointmentDetails = useCallback(async (appointmentId: string) => {
     try {
-      console.log(`Fetching appointment details for ID: ${appointmentId}`);
       const response = await fetch(`/api/appointment?id=${appointmentId}`);
 
       if (!response.ok) {
@@ -25,7 +24,6 @@ export function useAppointmentDetails(
       }
 
       const appointmentData = await response.json();
-      console.log("Appointment data received:", appointmentData);
       return appointmentData;
     } catch (error: unknown) {
       const errorMessage =
