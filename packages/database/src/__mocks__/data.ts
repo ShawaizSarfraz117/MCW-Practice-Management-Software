@@ -22,6 +22,7 @@ import {
   defineSurveyTemplateFactory,
   defineTagFactory,
   defineUserRoleFactory,
+  registerScalarFieldValueGenerator,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcrypt";
@@ -47,6 +48,11 @@ import {
   SurveyAnswers,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+
+registerScalarFieldValueGenerator({
+  Decimal: () =>
+    new Decimal(faker.number.float({ min: 0, max: 10, fractionDigits: 2 })),
+});
 
 // User factory for generating mock data without Prisma
 export const UserFactory = {
@@ -211,7 +217,9 @@ export const PracticeServiceFactory = {
     type: faker.helpers.arrayElement(["INDIVIDUAL", "GROUP", "FAMILY"]),
     code: faker.string.alphanumeric(5).toUpperCase(),
     description: faker.lorem.sentence(),
-    rate: new Decimal(100),
+    rate: new Decimal(
+      faker.number.float({ min: 50, max: 1000, fractionDigits: 2 }),
+    ),
     duration: faker.number.int({ min: 30, max: 120 }),
     color: faker.internet.color(),
     is_default: faker.datatype.boolean(),
