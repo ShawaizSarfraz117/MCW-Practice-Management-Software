@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Button } from "@mcw/ui";
+import { Button, Input } from "@mcw/ui";
 import { Info } from "lucide-react";
 import { Service, ServiceEdit } from "./types";
 
@@ -26,33 +26,36 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({
   return (
     <div className="mt-3">
       <p className="text-[#374151] text-[14px]">Description</p>
-      <input
+      <Input
         type="text"
         value={editValues.description || ""}
         onChange={(e) => onEditChange("description", e.target.value)}
-        className="text-[#374151] bg-white text-[14px] w-[500px] border rounded-[5px] outline-none p-2"
+        className="text-[#374151] bg-white text-[14px] w-[500px] h-[40px]"
       />
-      <div className="flex items-center gap-4 mt-3">
+      <div className="flex items-center gap-10 mt-3">
         <span>
           <p className="text-[#374151] text-[14px]">Rate</p>
-          <input
+          <Input
             type="number"
             value={editValues.rate}
             onChange={(e) => onEditChange("rate", Number(e.target.value))}
-            className="text-[#374151] text-[14px] w-[200px] border rounded-[5px] outline-none p-2"
+            className="text-[#374151]  bg-white text-[14px] w-[200px] h-[40px]"
           />
         </span>
         <span>
           <p className="text-[#374151] text-[14px]">Default Duration</p>
-          <input
-            type="number"
-            value={editValues.duration}
-            min={0}
-            onChange={(e) => onEditChange("duration", Number(e.target.value))}
-            className="text-[#374151] bg-white text-[14px] w-[80px] border rounded-[5px] outline-none p-2"
-          />
-          <span className="text-[#1F2937] ml-2 text-[14px]">min</span>
+          <div className="flex items-center">
+            <Input
+              type="number"
+              value={editValues.duration}
+              min={0}
+              onChange={(e) => onEditChange("duration", Number(e.target.value))}
+              className="text-[#374151] bg-white text-[14px] w-[80px] h-[40px]"
+            />
+            <span className="text-[#1F2937] ml-1 text-[14px]">min</span>
+          </div>
         </span>
+
         <span className="ml-auto">
           <input
             id={`active-${service.id}`}
@@ -97,20 +100,20 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({
       </div>
       <div className="text-[#1F2937] text-[14px] flex items-center gap-1 mt-3">
         <p>Block off</p>
-        <input
+        <Input
           type="number"
           min={0}
           value={editValues.block_before}
           onChange={(e) => onEditChange("block_before", Number(e.target.value))}
-          className="text-[#374151] bg-white text-[14px] w-[60px] border rounded-[5px] outline-none p-2"
+          className="text-[#374151] bg-white text-[14px] w-[60px]"
         />
         <p>minutes before and</p>
-        <input
+        <Input
           type="number"
           min={0}
           value={editValues.block_after}
           onChange={(e) => onEditChange("block_after", Number(e.target.value))}
-          className="text-[#374151] bg-white text-[14px] w-[60px] border rounded-[5px] outline-none p-2"
+          className="text-[#374151] bg-white text-[14px] w-[60px]"
         />
         <p>minutes after the appointment</p>
       </div>

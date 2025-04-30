@@ -10,8 +10,10 @@ import {
 import { prisma } from "@mcw/database";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { DELETE, GET, POST, PUT } from "@/api/service/route";
-import { Prisma } from "@prisma/client";
-import { PracticeServicePrismaFactory } from "@mcw/database/mock-data";
+import {
+  PracticeServiceFactory,
+  PracticeServicePrismaFactory,
+} from "@mcw/database/mock-data";
 
 describe("Service API Integration Tests", () => {
   afterAll(async () => {
@@ -46,21 +48,7 @@ describe("Service API Integration Tests", () => {
   });
 
   it("POST /api/service should create services", async () => {
-    const payload = {
-      type: "INDIVIDUAL",
-      code: "IT101",
-      description: "One-on-one therapy session",
-      rate: 150.0,
-      duration: 50,
-      color: "#FF5733",
-      is_default: false,
-      bill_in_units: false,
-      available_online: true,
-      allow_new_clients: true,
-      require_call: false,
-      block_before: 0,
-      block_after: 0,
-    };
+    const payload = PracticeServiceFactory.build();
 
     const request = createRequestWithBody("/api/service", payload);
     const response = await POST(request);
@@ -111,9 +99,7 @@ describe("Service API Integration Tests", () => {
   });
 
   it("DELETE /api/service/?id=<id> should delete a service", async () => {
-    const service = await PracticeServicePrismaFactory.create({
-      rate: new Prisma.Decimal("150.00"), // Explicitly provide a Decimal value
-    });
+    const service = await PracticeServicePrismaFactory.create();
 
     const request = createRequest(`/api/service/?id=${service.id}`, {
       method: "DELETE",

@@ -15,6 +15,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Input,
 } from "@mcw/ui";
 import { useEffect, useState } from "react";
 import { AddServiceDialogProps, Service } from "./types";
@@ -38,7 +39,7 @@ const AddServiceDialog = ({
       type: "",
       code: "",
       description: "",
-      rate: 0,
+      rate: "",
       duration: 50,
       is_default: false,
       bill_in_units: false,
@@ -60,6 +61,7 @@ const AddServiceDialog = ({
           body: JSON.stringify({
             ...value,
             code: selectedService?.code || value.code,
+            type: value.description,
           }),
         });
 
@@ -99,30 +101,39 @@ const AddServiceDialog = ({
   const handleServiceSelect = (service: Service | null) => {
     if (!service) {
       setSelectedService(null);
+      setIsNewCode(true);
       form.setFieldValue("description", "");
       form.setFieldValue("code", searchQuery);
-      setIsNewCode(true);
       return;
     }
 
     setSelectedService(service);
-    form.setFieldValue("type", service.type || service.description || "");
-    form.setFieldValue("code", service.code);
-    form.setFieldValue(
-      "description",
-      service.type || service.description || "",
-    );
-    form.setFieldValue("rate", service.rate);
-    form.setFieldValue("duration", service.duration);
-    form.setFieldValue("is_default", service.is_default);
-    form.setFieldValue("bill_in_units", service.bill_in_units);
-    form.setFieldValue("available_online", service.available_online);
-    form.setFieldValue("allow_new_clients", service.allow_new_clients);
-    form.setFieldValue("require_call", service.require_call);
-    form.setFieldValue("block_before", service.block_before);
-    form.setFieldValue("block_after", service.block_after);
-    form.setFieldValue("color", "");
     setIsNewCode(false);
+
+    const serviceData = {
+      type: service.type || service.description || "",
+      code: service.code,
+      description: service.type || service.description || "",
+      rate: service.rate,
+      duration: service.duration,
+      is_default: service.is_default,
+      bill_in_units: service.bill_in_units,
+      available_online: service.available_online,
+      allow_new_clients: service.allow_new_clients,
+      require_call: service.require_call,
+      block_before: service.block_before,
+      block_after: service.block_after,
+      color: "",
+    };
+
+    (
+      Object.entries(serviceData) as [
+        keyof typeof serviceData,
+        string | number | boolean,
+      ][]
+    ).forEach(([key, value]) => {
+      form.setFieldValue(key, value);
+    });
   };
 
   const filteredServices = services.filter(
@@ -199,7 +210,7 @@ const AddServiceDialog = ({
                     variant="outline"
                     role="combobox"
                     aria-expanded={isPopoverOpen}
-                    className="w-full justify-between bg-white border-gray-300 text-left font-normal"
+                    className="w-full justify-between bg-white border-gray-300 text-left font-normal h-[35px]"
                   >
                     {selectedService ? (
                       <span>{selectedService.code}</span>
@@ -268,11 +279,10 @@ const AddServiceDialog = ({
               <form.Field
                 name="description"
                 children={(field) => (
-                  <input
-                    type="text"
+                  <Input
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="text-[#374151] bg-white text-[14px] w-full border rounded-[5px] outline-none p-2"
+                    className="text-[#374151] bg-white text-[14px] w-full h-[35px]"
                     placeholder="Description"
                   />
                 )}
@@ -288,12 +298,13 @@ const AddServiceDialog = ({
               <form.Field
                 name="rate"
                 children={(field) => (
-                  <input
+                  <Input
                     type="number"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
-                    className="text-[#374151] text-[14px] w-[340px] border rounded-[5px] outline-none p-2"
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    className="text-[#374151] text-[14px] w-[340px] h-[35px]"
                     placeholder="0"
+                    // step="0.01"
                   />
                 )}
               />
@@ -304,14 +315,14 @@ const AddServiceDialog = ({
                 <form.Field
                   name="duration"
                   children={(field) => (
-                    <input
+                    <Input
                       type="number"
                       min={0}
                       value={field.state.value}
                       onChange={(e) =>
                         field.handleChange(Number(e.target.value))
                       }
-                      className="text-[#374151] bg-white text-[14px] w-[80px] border rounded-[5px] outline-none p-2"
+                      className="text-[#374151] bg-white text-[14px] w-[80px]  h-[35px]"
                       placeholder="50"
                     />
                   )}
@@ -435,12 +446,12 @@ const AddServiceDialog = ({
             <form.Field
               name="block_before"
               children={(field) => (
-                <input
+                <Input
                   type="number"
                   min={0}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(Number(e.target.value))}
-                  className="text-[#374151] bg-white text-[14px] w-[60px] border rounded-[5px] outline-none p-2"
+                  className="text-[#374151] bg-white text-[14px] w-[60px]"
                   placeholder="0"
                 />
               )}
@@ -451,12 +462,12 @@ const AddServiceDialog = ({
             <form.Field
               name="block_after"
               children={(field) => (
-                <input
+                <Input
                   type="number"
                   min={0}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(Number(e.target.value))}
-                  className="text-[#374151] bg-white text-[14px] w-[60px] border rounded-[5px] outline-none p-2"
+                  className="text-[#374151] bg-white text-[14px] w-[60px]"
                   placeholder="0"
                 />
               )}

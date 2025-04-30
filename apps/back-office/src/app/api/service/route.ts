@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validate required fields
-    if (!data.type || !data.code || !data.duration || data.rate === undefined) {
+    if (!data.code || !data.duration || data.rate === undefined) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
