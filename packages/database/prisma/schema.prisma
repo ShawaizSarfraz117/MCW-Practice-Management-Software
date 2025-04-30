@@ -248,7 +248,7 @@ model PracticeService {
   id                String              @id @default(dbgenerated("newid()"), map: "PK_PracticeService_ID") @db.UniqueIdentifier
   code              String              @db.VarChar(50) // "Service" in UI
   description       String?             @db.Text
-  rate              Decimal             // Can be 0
+  rate              Decimal             @db.Decimal(10, 2)
   duration          Int                 // Default Duration (minutes)
   color             String?             @db.VarChar(7)
   is_default        Boolean             @default(false)

@@ -13,7 +13,6 @@ import {
   defineClientReminderPreferenceFactory,
   defineClinicianClientFactory,
   defineClinicianLocationFactory,
-  defineClinicianServicesFactory,
   defineCreditCardFactory,
   defineInvoiceFactory,
   definePaymentFactory,
@@ -209,17 +208,27 @@ export const ClinicianClientFactory = {
 export const PracticeServiceFactory = {
   build: <T extends Partial<PracticeService>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    name: faker.helpers.arrayElement([
-      "Initial Consultation",
-      "Follow-up Session",
-      "Group Therapy",
-    ]),
-    duration: faker.number.int({ min: 30, max: 120 }),
-    cost: faker.number.float({ min: 50, max: 300, fractionDigits: 2 }),
+    type: faker.helpers.arrayElement(["INDIVIDUAL", "GROUP", "FAMILY"]),
+    code: faker.string.alphanumeric(5).toUpperCase(),
     description: faker.lorem.sentence(),
+    rate: new Decimal(100),
+    duration: faker.number.int({ min: 30, max: 120 }),
+    color: faker.internet.color(),
+    is_default: faker.datatype.boolean(),
+    bill_in_units: faker.datatype.boolean(),
+    available_online: faker.datatype.boolean(),
+    allow_new_clients: faker.datatype.boolean(),
+    require_call: faker.datatype.boolean(),
+    block_before: faker.number.int({ min: 0, max: 30 }),
+    block_after: faker.number.int({ min: 0, max: 30 }),
     ...overrides,
   }),
 };
+
+// PracticeService Prisma factory
+export const PracticeServicePrismaFactory = definePracticeServiceFactory({
+  defaultData: () => PracticeServiceFactory.build(),
+});
 
 export const CreditCardFactory = {
   build: <T extends Partial<CreditCard>>(overrides: T = {} as T) => ({
@@ -412,19 +421,6 @@ export const ClinicianLocationPrismaFactory = defineClinicianLocationFactory({
   defaultData: () => ({
     Clinician: ClinicianPrismaFactory,
     Location: LocationPrismaFactory,
-  }),
-});
-
-// PracticeService Prisma factory
-export const PracticeServicePrismaFactory = definePracticeServiceFactory({
-  defaultData: () => PracticeServiceFactory.build(),
-});
-
-// ClinicianServices Prisma factory
-export const ClinicianServicesPrismaFactory = defineClinicianServicesFactory({
-  defaultData: () => ({
-    Clinician: ClinicianPrismaFactory,
-    PracticeService: PracticeServicePrismaFactory,
   }),
 });
 
