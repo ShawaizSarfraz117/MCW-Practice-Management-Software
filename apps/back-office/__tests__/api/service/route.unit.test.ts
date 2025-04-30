@@ -3,36 +3,16 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { GET, POST, DELETE, PUT } from "@/api/service/route";
 import prismaMock from "@mcw/database/mock";
-import { Prisma } from "@prisma/client";
+import { PracticeServiceFactory } from "@mcw/database/mock-data";
 
 describe("Service API Unit Tests", () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
-  const mockService = (overrides = {}) => ({
-    id: "test-id",
-    type: "Individual Therapy",
-    code: "IT101",
-    duration: 50,
-    rate: new Prisma.Decimal("150.00"),
-    description: "One-on-one therapy session",
-    color: "#FF5733",
-    is_default: false,
-    bill_in_units: false,
-    available_online: true,
-    allow_new_clients: true,
-    require_call: false,
-    block_before: 0,
-    block_after: 0,
-    created_at: new Date(),
-    updated_at: new Date(),
-    ...overrides,
-  });
-
   it("GET /api/service should return all services", async () => {
-    const service1 = mockService({ id: "1" });
-    const service2 = mockService({ id: "2", type: "Group Therapy" });
+    const service1 = PracticeServiceFactory.build();
+    const service2 = PracticeServiceFactory.build();
     const services = [service1, service2];
 
     prismaMock.practiceService.findMany.mockResolvedValueOnce(services);
@@ -45,8 +25,20 @@ describe("Service API Unit Tests", () => {
 
     expect(Array.isArray(json)).toBe(true);
     expect(json).toHaveLength(services.length);
-    expect(json[0]).toHaveProperty("id", service1.id);
-    expect(json[1]).toHaveProperty("id", service2.id);
+    expect(json[0]).toMatchObject({
+      id: service1.id,
+      type: service1.type,
+      code: service1.code,
+      duration: service1.duration,
+      rate: service1.rate.toString(),
+    });
+    expect(json[1]).toMatchObject({
+      id: service2.id,
+      type: service2.type,
+      code: service2.code,
+      duration: service2.duration,
+      rate: service2.rate.toString(),
+    });
 
     expect(prismaMock.practiceService.findMany).toHaveBeenCalled();
   });
@@ -63,101 +55,82 @@ describe("Service API Unit Tests", () => {
   });
 
   it("POST /api/service should create a new service", async () => {
-    const newService = mockService({
-      type: "Family Therapy",
-      code: "FT101",
-      duration: 90,
-      rate: new Prisma.Decimal("200.00"),
-    });
+    const serviceData = PracticeServiceFactory.build();
+    const { id, rate, ...createData } = serviceData;
+    const newService = PracticeServiceFactory.build(serviceData);
 
     prismaMock.practiceService.create.mockResolvedValueOnce(newService);
 
-    const serviceData = {
-      type: "Family Therapy",
-      code: "FT101",
-      duration: 90,
-      rate: 200.0, // API accepts number, converts to Decimal internally
-      description: "Family counseling session",
-      color: "#FF5733",
-      is_default: false,
-      bill_in_units: false,
-      available_online: true,
-      allow_new_clients: true,
-      require_call: false,
-    };
-
-    const req = createRequestWithBody("/api/service", serviceData);
+    const req = createRequestWithBody("/api/service", {
+      ...serviceData,
+      rate: rate.toString(),
+    });
     const response = await POST(req);
 
     expect(response.status).toBe(201);
     const json = await response.json();
 
-    expect(json).toHaveProperty("type", "Family Therapy");
-    expect(json).toHaveProperty("code", "FT101");
-    expect(json).toHaveProperty("duration", 90);
-    // Use toMatch for rate to handle decimal precision
-    expect(json.rate.toString()).toMatch(/^200\.?0*$/);
+    expect(json).toMatchObject({
+      type: serviceData.type,
+      code: serviceData.code,
+      duration: serviceData.duration,
+      rate: rate.toString(),
+    });
 
     expect(prismaMock.practiceService.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        type: "Family Therapy",
-        code: "FT101",
-        duration: 90,
-        rate: 200.0,
-      }),
+      data: {
+        ...createData,
+        rate: rate.toString(),
+      },
     });
   });
 
   it("PUT /api/service should update an existing service", async () => {
-    const existingService = mockService();
-    const updatedService = mockService({
-      type: "Updated Therapy",
-      code: "UT101",
-      duration: 60,
-      rate: new Prisma.Decimal("175.00"),
-    });
+    const existingService = PracticeServiceFactory.build();
+    const updateData = PracticeServiceFactory.build();
+    const { id, rate, ...updateDataWithoutId } = updateData;
+    const updatedService = PracticeServiceFactory.build(updateData);
 
     prismaMock.practiceService.findUnique.mockResolvedValueOnce(
       existingService,
     );
     prismaMock.practiceService.update.mockResolvedValueOnce(updatedService);
 
-    const updateData = {
-      id: existingService.id,
-      type: "Updated Therapy",
-      code: "UT101",
-      duration: 60,
-      rate: 175.0, // API accepts number, converts to Decimal internally
-    };
-
-    const req = createRequestWithBody("/api/service", updateData, {
-      method: "PUT",
-    });
+    const req = createRequestWithBody(
+      "/api/service",
+      {
+        ...updateData,
+        id: existingService.id,
+        rate: rate.toString(),
+      },
+      {
+        method: "PUT",
+      },
+    );
     const response = await PUT(req);
 
     expect(response.status).toBe(200);
     const json = await response.json();
 
-    expect(json).toHaveProperty("type", "Updated Therapy");
-    expect(json).toHaveProperty("code", "UT101");
-    expect(json).toHaveProperty("duration", 60);
-    // Use toMatch for rate to handle decimal precision
-    expect(json.rate.toString()).toMatch(/^175\.?0*$/);
+    expect(json).toMatchObject({
+      type: updateData.type,
+      code: updateData.code,
+      duration: updateData.duration,
+      rate: rate.toString(),
+    });
 
     expect(prismaMock.practiceService.update).toHaveBeenCalledWith({
       where: { id: existingService.id },
-      data: expect.objectContaining({
-        type: "Updated Therapy",
-        code: "UT101",
-        duration: 60,
-        rate: 175.0,
-      }),
+      data: {
+        ...updateDataWithoutId,
+        rate: rate.toString(),
+      },
     });
   });
 
   it("DELETE /api/service/?id=<id> should delete a service", async () => {
-    const service = mockService();
-    const deletedService = mockService();
+    const service = PracticeServiceFactory.build();
+    const deletedService = PracticeServiceFactory.build();
 
     prismaMock.practiceService.findUnique.mockResolvedValueOnce(service);
     prismaMock.practiceService.delete.mockResolvedValueOnce(deletedService);
@@ -172,6 +145,13 @@ describe("Service API Unit Tests", () => {
 
     expect(json).toHaveProperty("message", "Service deleted successfully");
     expect(json).toHaveProperty("service");
+    expect(json.service).toMatchObject({
+      id: deletedService.id,
+      type: deletedService.type,
+      code: deletedService.code,
+      duration: deletedService.duration,
+      rate: deletedService.rate.toString(),
+    });
 
     expect(prismaMock.practiceService.delete).toHaveBeenCalledWith({
       where: { id: service.id },
