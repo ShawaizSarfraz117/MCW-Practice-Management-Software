@@ -18,10 +18,10 @@ import { useAppointmentUpdate } from "./hooks/useAppointmentUpdate";
 import { useAppointmentDelete } from "../../hooks/useAppointmentDelete";
 import { parseRecurringRule } from "../../utils/recurringRuleUtils";
 
-import CallIcon from "../../../../../../public/images/call-icon.svg";
-import MessageIcon from "../../../../../../public/images/message-icon.svg";
-import EmailIcon from "../../../../../../public/images/email-icon.svg";
-import DeleteIcon from "../../../../../../public/images/delete-icon.svg";
+import CallIcon from "@/assets/images/call-icon.svg";
+import MessageIcon from "@/assets/images/message-icon.svg";
+import EmailIcon from "@/assets/images/email-icon.svg";
+import DeleteIcon from "@/assets/images/delete-icon.svg";
 
 interface RecurringInfo {
   period: string;

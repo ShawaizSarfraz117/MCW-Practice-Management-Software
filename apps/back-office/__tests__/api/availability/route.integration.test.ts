@@ -14,6 +14,16 @@ vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
   backofficeAuthOptions: {},
 }));
 
+// Helper function to create an authenticated request with the nextauth.token property
+function addAuthToRequest(req: ReturnType<typeof createRequest>) {
+  // Add nextauth token property to match what the API routes check for
+  return Object.assign(req, {
+    nextauth: {
+      token: { sub: "test-user-id" },
+    },
+  });
+}
+
 describe("Availability API Integration Tests", () => {
   beforeEach(async () => {
     // Clean up data in correct order to respect foreign key constraints
@@ -67,7 +77,7 @@ describe("Availability API Integration Tests", () => {
       },
     });
 
-    const req = createRequest("/api/availability");
+    const req = addAuthToRequest(createRequest("/api/availability"));
     const response = await GET(req);
     expect(response.status).toBe(200);
     const json: import("@mcw/database").Availability[] = await response.json();
@@ -91,7 +101,9 @@ describe("Availability API Integration Tests", () => {
         recurring_rule: null,
       },
     });
-    const req = createRequest(`/api/availability/?id=${avail.id}`);
+    const req = addAuthToRequest(
+      createRequest(`/api/availability/?id=${avail.id}`),
+    );
     const response = await GET(req);
     expect(response.status).toBe(200);
     const json = await response.json();
@@ -112,7 +124,9 @@ describe("Availability API Integration Tests", () => {
       is_recurring: false,
       recurring_rule: null,
     };
-    const req = createRequestWithBody("/api/availability", availData);
+    const req = addAuthToRequest(
+      createRequestWithBody("/api/availability", availData),
+    );
     const response = await POST(req);
     expect(response.status).toBe(200);
     const json = await response.json();
@@ -136,10 +150,10 @@ describe("Availability API Integration Tests", () => {
       },
     });
     const updateData = { title: "Updated Slot" };
-    const req = createRequestWithBody(
-      `/api/availability?id=${avail.id}`,
-      updateData,
-      { method: "PUT" },
+    const req = addAuthToRequest(
+      createRequestWithBody(`/api/availability?id=${avail.id}`, updateData, {
+        method: "PUT",
+      }),
     );
     const response = await PUT(req);
     expect(response.status).toBe(200);
@@ -161,9 +175,11 @@ describe("Availability API Integration Tests", () => {
         recurring_rule: null,
       },
     });
-    const req = createRequest(`/api/availability/?id=${avail.id}`, {
-      method: "DELETE",
-    });
+    const req = addAuthToRequest(
+      createRequest(`/api/availability/?id=${avail.id}`, {
+        method: "DELETE",
+      }),
+    );
     const response = await DELETE(req);
     expect(response.status).toBe(200);
     const json = await response.json();
@@ -176,7 +192,9 @@ describe("Availability API Integration Tests", () => {
   });
 
   it("DELETE /api/availability/?id=<id> should return 400 for missing id", async () => {
-    const req = createRequest(`/api/availability`, { method: "DELETE" });
+    const req = addAuthToRequest(
+      createRequest(`/api/availability`, { method: "DELETE" }),
+    );
     const response = await DELETE(req);
     expect(response.status).toBe(400);
     const json = await response.json();

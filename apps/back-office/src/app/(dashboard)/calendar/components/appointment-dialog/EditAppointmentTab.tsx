@@ -22,11 +22,11 @@ import {
   mappedClients,
 } from "../../mock/appointmentData";
 
-import CallIcon from "../../../../../../public/images/call-icon.svg";
-import MessageIcon from "../../../../../../public/images/message-icon.svg";
-import EmailIcon from "../../../../../../public/images/email-icon.svg";
-import VideoIcon from "../../../../../../public/images/video-icon-white.svg";
-import DeleteIcon from "../../../../../../public/images/delete-icon.svg";
+import CallIcon from "@/assets/images/call-icon.svg";
+import MessageIcon from "@/assets/images/message-icon.svg";
+import EmailIcon from "@/assets/images/email-icon.svg";
+import VideoIcon from "@/assets/images/video-icon-white.svg";
+import DeleteIcon from "@/assets/images/delete-icon.svg";
 
 interface RecurringInfo {
   period: string;

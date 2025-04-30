@@ -1,5 +1,5 @@
 import Image from "next/image";
-import RefreshIcon from "../../../../../../../public/images/refresh-icon.svg";
+import RefreshIcon from "@/assets/images/refresh-icon.svg";
 
 interface RecurringHeaderProps {
   isExpanded: boolean;

@@ -1,25 +1,60 @@
-import { vi } from "vitest";
+import { vi, Mock } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
-import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { GET, POST, PUT, DELETE } from "@/api/availability/route";
-import prismaMock from "@mcw/database/mock";
-import { getServerSession } from "next-auth";
+import { NextRequest } from "next/server";
 
-// Mock next-auth getServerSession
-vi.mock("next-auth", () => ({
-  getServerSession: vi.fn(),
+// Set up mock values
+const MOCK_CLINICIAN_ID = "123e4567-e89b-12d3-a456-426614174000";
+const MOCK_AVAILABILITY_ID = "availability-id";
+
+// Mock the database operations
+vi.mock("@mcw/database", () => {
+  const availabilityFindManyMock = vi.fn();
+  const availabilityFindUniqueMock = vi.fn();
+  const availabilityCreateMock = vi.fn();
+  const availabilityUpdateMock = vi.fn();
+  const availabilityDeleteMock = vi.fn();
+
+  return {
+    prisma: {
+      availability: {
+        findMany: availabilityFindManyMock,
+        findUnique: availabilityFindUniqueMock,
+        create: availabilityCreateMock,
+        update: availabilityUpdateMock,
+        delete: availabilityDeleteMock,
+      },
+    },
+    __esModule: true,
+  };
+});
+
+// Import mocked modules
+import { prisma } from "@mcw/database";
+
+// Mock authentication helper
+vi.mock("next-auth/jwt", () => ({
+  getToken: vi.fn().mockResolvedValue({ sub: "test-user-id" }),
+  __esModule: true,
 }));
+
+// Define the authenticated request interface to match what's in the routes
+interface AuthenticatedRequest extends NextRequest {
+  nextauth?: {
+    token?: unknown;
+  };
+}
 
 // Minimal mock for related entities
 const mockClinician = {
-  id: "123e4567-e89b-12d3-a456-426614174000",
+  id: MOCK_CLINICIAN_ID,
   first_name: "Jane",
   last_name: "Doe",
 };
 
 // Helper to build a minimal availability with all required fields
 const mockAvailability = (overrides = {}) => ({
-  id: "availability-id",
+  id: MOCK_AVAILABILITY_ID,
   clinician_id: mockClinician.id,
   title: "Available Slot",
   allow_online_requests: false,
@@ -35,20 +70,51 @@ const mockAvailability = (overrides = {}) => ({
   ...overrides,
 });
 
+// Create a request with authentication
+const createAuthRequest = (
+  url: string,
+  method = "GET",
+  body?: Record<string, unknown>,
+): AuthenticatedRequest => {
+  // Create a base request
+  const baseUrl = new URL(url, "http://localhost");
+  const req = new Request(baseUrl, { method });
+
+  // Add nextauth token
+  const authReq = req as AuthenticatedRequest;
+  authReq.nextauth = {
+    token: { sub: "test-user-id" },
+  };
+
+  // Mock json() method if needed
+  if (body && (method === "POST" || method === "PUT")) {
+    vi.spyOn(authReq, "json").mockResolvedValue(body);
+  }
+
+  // Add necessary properties for NextRequest
+  Object.defineProperty(authReq, "nextUrl", {
+    get: () => baseUrl,
+  });
+
+  return authReq;
+};
+
 describe("Availability API Unit Tests", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: "test-user-id" },
-    });
   });
 
   it("GET /api/availability should return all availabilities", async () => {
     const avail1 = mockAvailability({ id: "1" });
     const avail2 = mockAvailability({ id: "2" });
-    prismaMock.availability.findMany.mockResolvedValueOnce([avail1, avail2]);
 
-    const req = createRequest("/api/availability");
+    // Mock the database response using the mocked module
+    (prisma.availability.findMany as unknown as Mock).mockResolvedValue([
+      avail1,
+      avail2,
+    ]);
+
+    const req = createAuthRequest("/api/availability");
     const response = await GET(req);
 
     expect(response.status).toBe(200);
@@ -60,8 +126,8 @@ describe("Availability API Unit Tests", () => {
   });
 
   it("GET /api/availability/?id=<id> should return 404 for non-existent availability", async () => {
-    prismaMock.availability.findUnique.mockResolvedValueOnce(null);
-    const req = createRequest("/api/availability/?id=non-existent-id");
+    (prisma.availability.findUnique as unknown as Mock).mockResolvedValue(null);
+    const req = createAuthRequest("/api/availability?id=non-existent-id");
     const response = await GET(req);
     expect(response.status).toBe(404);
     const json = await response.json();
@@ -70,7 +136,7 @@ describe("Availability API Unit Tests", () => {
 
   it("POST /api/availability should create a new availability", async () => {
     const newAvail = mockAvailability();
-    prismaMock.availability.create.mockResolvedValueOnce(newAvail);
+    (prisma.availability.create as unknown as Mock).mockResolvedValue(newAvail);
 
     const availData = {
       clinician_id: mockClinician.id,
@@ -82,7 +148,7 @@ describe("Availability API Unit Tests", () => {
       is_recurring: false,
       recurring_rule: null,
     };
-    const req = createRequestWithBody("/api/availability", availData);
+    const req = createAuthRequest("/api/availability", "POST", availData);
     const response = await POST(req);
     expect(response.status).toBe(200);
     const json = await response.json();
@@ -93,15 +159,15 @@ describe("Availability API Unit Tests", () => {
   it("PUT /api/availability should update an existing availability", async () => {
     const existing = mockAvailability();
     const updated = mockAvailability({ title: "Updated Slot" });
-    prismaMock.availability.update.mockResolvedValueOnce(updated);
+    (prisma.availability.update as unknown as Mock).mockResolvedValue(updated);
 
     const updateData = {
       title: "Updated Slot",
     };
-    const req = createRequestWithBody(
-      "/api/availability?id=" + existing.id,
+    const req = createAuthRequest(
+      `/api/availability?id=${existing.id}`,
+      "PUT",
       updateData,
-      { method: "PUT" },
     );
     const response = await PUT(req);
     expect(response.status).toBe(200);
@@ -110,10 +176,13 @@ describe("Availability API Unit Tests", () => {
   });
 
   it("DELETE /api/availability/?id=<id> should delete an availability", async () => {
-    prismaMock.availability.delete.mockResolvedValueOnce(mockAvailability());
-    const req = createRequest(`/api/availability/?id=availability-id`, {
-      method: "DELETE",
-    });
+    (prisma.availability.delete as unknown as Mock).mockResolvedValue(
+      mockAvailability(),
+    );
+    const req = createAuthRequest(
+      "/api/availability?id=availability-id",
+      "DELETE",
+    );
     const response = await DELETE(req);
     expect(response.status).toBe(200);
     const json = await response.json();
@@ -121,10 +190,30 @@ describe("Availability API Unit Tests", () => {
   });
 
   it("DELETE /api/availability/?id=<id> should return 400 for missing id", async () => {
-    const req = createRequest(`/api/availability`, { method: "DELETE" });
+    const req = createAuthRequest("/api/availability", "DELETE");
     const response = await DELETE(req);
     expect(response.status).toBe(400);
     const json = await response.json();
     expect(json).toHaveProperty("error", "Availability ID is required");
+  });
+
+  it("should return 401 if not authenticated", async () => {
+    // Create an unauthenticated request (no nextauth property)
+    const unauthReq = new Request(
+      "http://localhost/api/availability",
+    ) as AuthenticatedRequest;
+
+    // Test all endpoints for authentication check
+    const getRes = await GET(unauthReq);
+    expect(getRes.status).toBe(401);
+
+    const postRes = await POST(unauthReq);
+    expect(postRes.status).toBe(401);
+
+    const putRes = await PUT(unauthReq);
+    expect(putRes.status).toBe(401);
+
+    const deleteRes = await DELETE(unauthReq);
+    expect(deleteRes.status).toBe(401);
   });
 });

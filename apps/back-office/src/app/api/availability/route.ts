@@ -1,9 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma, Prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { z } from "zod";
-import { getServerSession } from "next-auth";
-import { backofficeAuthOptions as authOptions } from "../auth/[...nextauth]/auth-options";
+
+// TypeScript interface for authenticated request
+interface AuthenticatedRequest extends NextRequest {
+  nextauth?: {
+    token?: unknown;
+  };
+}
 
 // Validation schema for availability
 const availabilitySchema = z.object({
@@ -17,11 +22,9 @@ const availabilitySchema = z.object({
   recurring_rule: z.string().optional().nullable(),
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(request: AuthenticatedRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
+    if (!request.nextauth?.token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -68,11 +71,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: AuthenticatedRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
+    if (!request.nextauth?.token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -130,11 +131,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(request: AuthenticatedRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
+    if (!request.nextauth?.token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -180,11 +179,9 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: AuthenticatedRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
+    if (!request.nextauth?.token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

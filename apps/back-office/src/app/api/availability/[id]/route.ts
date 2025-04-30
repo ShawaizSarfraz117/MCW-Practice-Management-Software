@@ -1,7 +1,13 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@mcw/database";
 import { z } from "zod";
+
+// TypeScript interface for authenticated request
+interface AuthenticatedRequest extends NextRequest {
+  nextauth?: {
+    token?: unknown;
+  };
+}
 
 // Schema for validating availability update data
 const updateAvailabilitySchema = z.object({
@@ -61,12 +67,11 @@ const validateTimeSlot = async (
 };
 
 export async function PUT(
-  request: Request,
+  request: AuthenticatedRequest,
   { params }: { params: { id: string } },
 ) {
   try {
-    const session = await getServerSession();
-    if (!session) {
+    if (!request.nextauth?.token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -130,39 +135,3 @@ export async function PUT(
     );
   }
 }
-
-// export async function DELETE(
-//   request: Request,
-//   { params }: { params: { id: string } }
-// ) {
-//   try {
-//     const session = await getServerSession();
-//     if (!session) {
-//       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-//     }
-
-//     const { id } = params;
-
-//     // Check if the availability exists
-//     const availability = await prisma.availability.findUnique({
-//       where: { id },
-//     });
-
-//     if (!availability) {
-//       return NextResponse.json({ error: 'Availability not found' }, { status: 404 });
-//     }
-
-//     // Delete the availability
-//     await prisma.availability.delete({
-//       where: { id },
-//     });
-
-//     return NextResponse.json({ message: 'Availability deleted successfully' });
-//   } catch (error) {
-//     console.error('Error deleting availability:', error);
-//     return NextResponse.json(
-//       { error: 'Failed to delete availability' },
-//       { status: 500 }
-//     );
-//   }
-// }

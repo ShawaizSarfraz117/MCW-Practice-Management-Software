@@ -154,7 +154,6 @@ export function useAppointmentCreation(
           },
           body: JSON.stringify(appointmentData),
         });
-        console.log("🚀 ~ response:", response);
 
         if (!response.ok) {
           // Try to parse error message from response
