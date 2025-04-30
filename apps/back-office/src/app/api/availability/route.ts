@@ -5,13 +5,6 @@ import { z } from "zod";
 import { getServerSession } from "next-auth/next";
 import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 
-// TypeScript interface for authenticated request
-// interface AuthenticatedRequest extends NextRequest {
-//   nextauth?: {
-//     token?: unknown;
-//   };
-// }
-
 // Validation schema for availability
 const availabilitySchema = z.object({
   title: z.string().optional(),
@@ -28,7 +21,6 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(backofficeAuthOptions);
     if (!session?.user) {
-      console.log("getServerSession session", session);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -114,10 +106,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (startDate && endDate) {
-      where.AND = [
+      // Ensure AND condition is added, not overwriting
+      if (!where.AND) {
+        where.AND = [];
+      }
+      // Push date range conditions into the AND array
+      (where.AND as Prisma.AvailabilityWhereInput[]).push(
         { start_date: { gte: new Date(startDate) } },
         { end_date: { lte: new Date(endDate) } },
-      ];
+      );
     }
 
     const availabilities = await prisma.availability.findMany({

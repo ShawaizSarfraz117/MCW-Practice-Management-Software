@@ -170,7 +170,7 @@ const CalendarPage: React.FC = () => {
 
         // If user is a clinician and not an admin, fetch only self using userId
         if (isClinician && !isAdmin && effectiveClinicianId) {
-          url += `?userId=${effectiveClinicianId}`;
+          url += `?id=${effectiveClinicianId}`;
         }
 
         const response = await fetch(url);

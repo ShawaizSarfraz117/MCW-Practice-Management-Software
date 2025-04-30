@@ -84,7 +84,7 @@ export function AppointmentTab({
         let url = "/api/clinician";
 
         if (isClinician && !isAdmin && effectiveClinicianId) {
-          url += `?userId=${effectiveClinicianId}`;
+          url += `?id=${effectiveClinicianId}`;
         }
 
         const response = await fetch(url);
