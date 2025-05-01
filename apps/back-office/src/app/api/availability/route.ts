@@ -70,7 +70,6 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(backofficeAuthOptions);
-    console.log("request>>>", request);
     if (!session?.user) {
       console.log("getServerSession session>>>", session);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
