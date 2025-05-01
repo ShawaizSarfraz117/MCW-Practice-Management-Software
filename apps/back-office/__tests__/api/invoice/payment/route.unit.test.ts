@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import prismaMock from "@mcw/database/mock";
@@ -50,6 +51,11 @@ describe("Invoice Payment API Unit Tests", () => {
       due_date: new Date(),
       amount: new Decimal(100),
       status: "PENDING",
+      type: "INVOICE",
+      client_info: null,
+      provider_info: null,
+      service_description: null,
+      notes: null,
       Payment: [],
     };
 
@@ -85,6 +91,7 @@ describe("Invoice Payment API Unit Tests", () => {
       status: "COMPLETED",
       response: "Payment processed successfully",
       payment_date: new Date(),
+      credit_applied: new Decimal(0),
     };
 
     // Mock behaviors
@@ -159,6 +166,11 @@ describe("Invoice Payment API Unit Tests", () => {
       amount: new Decimal(100),
       status: "PENDING",
       Payment: [],
+      type: "INVOICE",
+      client_info: null,
+      provider_info: null,
+      service_description: null,
+      notes: null,
     };
 
     const paymentData = {
@@ -200,6 +212,11 @@ describe("Invoice Payment API Unit Tests", () => {
       amount: new Decimal(100),
       status: "PENDING",
       Payment: [],
+      type: "INVOICE",
+      client_info: null,
+      provider_info: null,
+      service_description: null,
+      notes: null,
     };
 
     const paymentData = {
@@ -217,6 +234,7 @@ describe("Invoice Payment API Unit Tests", () => {
       status: "COMPLETED",
       response: null,
       payment_date: new Date(),
+      credit_applied: new Decimal(0),
     };
 
     // Mock behaviors
