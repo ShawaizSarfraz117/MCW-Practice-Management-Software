@@ -2,12 +2,12 @@
 const nextConfig = {
   transpilePackages: ["@mcw/ui", "@mcw/utils", "@mcw/types", "@mcw/logger"],
   reactStrictMode: true,
-  output: 'standalone', // Add standalone output for Azure deployment
+  output: "standalone", // Add standalone output for Azure deployment
 
   experimental: {
-    serverComponentsExternalPackages: ['pino', 'pino-pretty', 'thread-stream']
+    serverComponentsExternalPackages: ["pino", "pino-pretty", "thread-stream"],
   },
-  
+
   // Add webpack configuration to handle node-pre-gyp
   webpack: (config) => {
     // Externalize problematic packages
@@ -17,7 +17,7 @@ const nextConfig = {
       "mock-aws-s3",
       "aws-sdk",
       "nock",
-    ];    
+    ];
 
     // Add support for native node modules
     config.resolve.alias = {
@@ -27,10 +27,10 @@ const nextConfig = {
 
     return config;
   },
-  
+
   // Optional: Enable correct handling of Azure App Service with reverse proxy
-  assetPrefix: process.env.NODE_ENV === 'production' ? undefined : undefined,
-  basePath: '',
+  assetPrefix: process.env.NODE_ENV === "production" ? undefined : undefined,
+  basePath: "",
 };
 
 export default nextConfig;

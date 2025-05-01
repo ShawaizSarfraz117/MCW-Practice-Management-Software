@@ -11,7 +11,8 @@
     "format": "prettier --write src",
     "prettier:check": "prettier --check src",
     "typecheck": "tsc --noEmit --pretty --checkJs",
-    "test": "vitest"
+    "test": "vitest",
+    "prettier:write": "prettier --write src"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",

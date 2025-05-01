@@ -1,13 +1,17 @@
+/* eslint-disable max-lines-per-function */
 "use client";
 
 import type React from "react";
 // import { MainSidebar } from "./components/main-sidebar";
 import { CalendarView } from "./components/calendar/calendar";
-import { CreateClientForm } from "./components/client/CreateClientForm";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { IntakeForm } from "./components/intake/IntakeForm";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
+import { CreateClientDrawer } from "../clients/components/CreateClientDrawer";
+import { fetchClientGroups } from "../clients/services/client.service";
+import { Client } from "@prisma/client";
 
 // Types for API responses
 type Clinician = {
@@ -61,8 +65,9 @@ type Appointment = {
 // Custom hook to get clinician data for the current user
 function useClinicianData() {
   const { data: session, status: sessionStatus } = useSession();
-  const isAdmin = session?.user?.isAdmin || false;
-  const isClinician = session?.user?.isClinician || false;
+  // Use roles array for checks
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
+  const isClinician = session?.user?.roles?.includes("CLINICIAN") || false;
   const userId = session?.user?.id;
 
   const [userClinicianId, setUserClinicianId] = useState<string | null>(null);
@@ -134,7 +139,7 @@ function determineLocationType(
 
 const CalendarPage: React.FC = () => {
   const [showCreateClient, setShowCreateClient] = useState(false);
-  const [appointmentDate, setAppointmentDate] = useState("");
+  const [_appointmentDate, setAppointmentDate] = useState("");
   const [showIntakeForm, setShowIntakeForm] = useState(false);
 
   // Use the custom hook to get clinician data
@@ -163,7 +168,7 @@ const CalendarPage: React.FC = () => {
       queryFn: async () => {
         let url = "/api/clinician";
 
-        // If user is a clinician and not an admin, fetch only self
+        // If user is a clinician and not an admin, fetch only self using userId
         if (isClinician && !isAdmin && effectiveClinicianId) {
           url += `?id=${effectiveClinicianId}`;
         }
@@ -250,6 +255,43 @@ const CalendarPage: React.FC = () => {
       }))
     : [];
 
+  const [_isLoading, setIsLoading] = useState(true);
+  const [sortBy, _setSortBy] = useState("legal_last_name");
+  const [statusFilter, _setStatusFilter] = useState<string[]>(["all"]);
+  const [searchQuery, _setSearchQuery] = useState("");
+  const [_clients, setClients] = useState<{
+    data: Client[];
+    pagination: { page: number; limit: number; total: number };
+  }>({ data: [], pagination: { page: 1, limit: 20, total: 0 } });
+
+  const fetchClientData = useCallback(
+    async (params = {}) => {
+      setIsLoading(true);
+      const [clients, error] = await fetchClientGroups({
+        searchParams: {
+          status: statusFilter,
+          search: searchQuery,
+          sortBy,
+          ...params,
+        },
+      });
+      if (!error) {
+        setClients(
+          clients as {
+            data: Client[];
+            pagination: { page: number; limit: number; total: number };
+          },
+        );
+      }
+      setIsLoading(false);
+    },
+    [statusFilter, searchQuery, sortBy],
+  );
+
+  useEffect(() => {
+    fetchClientData(); // Now only called when statusFilter or sortBy change
+  }, [statusFilter, sortBy]);
+
   // Format appointments for the calendar
   const formattedAppointments = Array.isArray(appointmentsData)
     ? appointmentsData.map((appointment) => {
@@ -258,6 +300,7 @@ const CalendarPage: React.FC = () => {
 
         // If the title contains "Appointment with Client" but we have client data
         if (title.includes("Appointment with") && appointment.Client) {
+          console.log("appointment.Client", appointment.Client);
           const clientName =
             appointment.Client.legal_first_name &&
             appointment.Client.legal_last_name
@@ -315,18 +358,19 @@ const CalendarPage: React.FC = () => {
       <div className="flex-1">
         <CalendarView
           initialClinicians={formattedClinicians}
-          initialEvents={formattedAppointments}
           initialLocations={formattedLocations}
-          onAppointmentDone={handleAppointmentDone}
+          initialEvents={formattedAppointments}
           onCreateClient={handleCreateClient}
+          onAppointmentDone={handleAppointmentDone}
+          isScheduledPage={false}
         />
 
-        {showCreateClient && (
-          <CreateClientForm
-            appointmentDate={appointmentDate}
-            onClose={() => setShowCreateClient(false)}
-          />
-        )}
+        <CreateClientDrawer
+          fetchClientData={fetchClientData}
+          open={showCreateClient}
+          onOpenChange={setShowCreateClient}
+        />
+
         {showIntakeForm && (
           <IntakeForm
             clientEmail="almir@example.com"
