@@ -98,7 +98,7 @@ export function CalendarView({
 
   // Get session data to check if user is admin
   const { data: session } = useSession();
-  const isAdmin = session?.user?.isAdmin || false;
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
 
   // Set the view based on user role
   const [currentView, setCurrentView] = useState(
@@ -147,9 +147,7 @@ export function CalendarView({
     filtered = filtered.filter((event) => {
       // For availability events, only check clinician
       if (event.extendedProps?.type === "availability") {
-        return (
-          event.resourceId && selectedClinicians.includes(event.resourceId)
-        );
+        return event.resourceId;
       }
       // For regular events, filter by location
       return event.location && selectedLocations.includes(event.location);

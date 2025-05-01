@@ -165,14 +165,9 @@ describe("Clinician API", async () => {
       ...clinician,
       first_name: "John 2",
     };
-    // Include ID in query params as well as body
-    const req = createRequestWithBody(
-      `/api/clinician/?id=${clinician.id}`,
-      updatedClinician,
-      {
-        method: "PUT",
-      },
-    );
+    const req = createRequestWithBody("/api/clinician", updatedClinician, {
+      method: "PUT",
+    });
 
     const response = await PUT(req);
 

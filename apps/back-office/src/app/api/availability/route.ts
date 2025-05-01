@@ -2,13 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 import { prisma, Prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { z } from "zod";
-
-// TypeScript interface for authenticated request
-interface AuthenticatedRequest extends NextRequest {
-  nextauth?: {
-    token?: unknown;
-  };
-}
+import { getServerSession } from "next-auth/next";
+import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 
 // Validation schema for availability
 const availabilitySchema = z.object({
@@ -22,9 +17,24 @@ const availabilitySchema = z.object({
   recurring_rule: z.string().optional().nullable(),
 });
 
-export async function POST(request: AuthenticatedRequest) {
+async function isAuthenticated(request: NextRequest) {
+  // @ts-expect-error - nextauth property may be added by tests
+  if (request.nextauth?.token) {
+    return true;
+  }
+
   try {
-    if (!request.nextauth?.token) {
+    const session = await getServerSession(backofficeAuthOptions);
+    return !!session?.user;
+  } catch (error) {
+    logger.error({ error }, "Error checking authentication");
+    return false;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    if (!(await isAuthenticated(request))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -71,9 +81,9 @@ export async function POST(request: AuthenticatedRequest) {
   }
 }
 
-export async function GET(request: AuthenticatedRequest) {
+export async function GET(request: NextRequest) {
   try {
-    if (!request.nextauth?.token) {
+    if (!(await isAuthenticated(request))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -107,10 +117,15 @@ export async function GET(request: AuthenticatedRequest) {
     }
 
     if (startDate && endDate) {
-      where.AND = [
+      // Ensure AND condition is added, not overwriting
+      if (!where.AND) {
+        where.AND = [];
+      }
+      // Push date range conditions into the AND array
+      (where.AND as Prisma.AvailabilityWhereInput[]).push(
         { start_date: { gte: new Date(startDate) } },
         { end_date: { lte: new Date(endDate) } },
-      ];
+      );
     }
 
     const availabilities = await prisma.availability.findMany({
@@ -131,9 +146,9 @@ export async function GET(request: AuthenticatedRequest) {
   }
 }
 
-export async function PUT(request: AuthenticatedRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    if (!request.nextauth?.token) {
+    if (!(await isAuthenticated(request))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -179,9 +194,9 @@ export async function PUT(request: AuthenticatedRequest) {
   }
 }
 
-export async function DELETE(request: AuthenticatedRequest) {
+export async function DELETE(request: NextRequest) {
   try {
-    if (!request.nextauth?.token) {
+    if (!(await isAuthenticated(request))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

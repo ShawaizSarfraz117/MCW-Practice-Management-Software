@@ -33,24 +33,27 @@ const Scheduled = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
 
-  // Get user role information
-  const isAdmin = session?.user?.isAdmin || false;
-  const isClinician = session?.user?.isClinician || false;
-  const effectiveClinicianId = session?.user?.id || null;
+  // Get user role information directly from roles array
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
+  const isClinician = session?.user?.roles?.includes("CLINICIAN") || false;
+  const userId = session?.user?.id || null;
 
   // Fetch clinicians with role-based permissions
   const { data: cliniciansData = [], isLoading: isLoadingClinicians } =
     useQuery({
-      queryKey: ["clinicians", effectiveClinicianId, isAdmin, isClinician],
+      queryKey: ["clinicians", userId, isAdmin, isClinician],
       queryFn: async () => {
-        let url = "/api/clinician";
-
-        // If user is a clinician and not an admin, fetch only their own data
-        if (isClinician && !isAdmin && effectiveClinicianId) {
-          url += `?id=${effectiveClinicianId}`;
+        // Fetch clinician data based on userId if needed
+        if (isClinician && !isAdmin && userId) {
+          const url = `/api/clinician?userId=${userId}`;
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error("Failed to fetch clinician data");
+          }
+          return response.json(); // Expecting an array, possibly with one clinician object
         }
-
-        const response = await fetch(url);
+        // Admins might fetch all or based on other criteria (logic assumed handled by API)
+        const response = await fetch("/api/clinician");
         if (!response.ok) {
           throw new Error("Failed to fetch clinicians");
         }
@@ -59,15 +62,43 @@ const Scheduled = () => {
       enabled: sessionStatus === "authenticated",
     });
 
+  // Derive the actual clinician ID after cliniciansData is loaded
+  // Handle both array and single object responses from the API
+  const clinicianId = React.useMemo(() => {
+    if (isClinician && !isAdmin && cliniciansData) {
+      let id = null;
+      if (Array.isArray(cliniciansData) && cliniciansData.length > 0) {
+        id = cliniciansData[0]?.id; // Get id from first element if array
+      } else if (
+        typeof cliniciansData === "object" &&
+        cliniciansData !== null &&
+        !Array.isArray(cliniciansData)
+      ) {
+        // Assuming the object has an 'id' property of type string or similar
+        id = (cliniciansData as { id?: string | number }).id;
+      }
+      return id || null;
+    }
+    return null;
+  }, [isClinician, isAdmin, cliniciansData]);
+
   // Fetch locations with role-based permissions
   const { data: locationsData = [], isLoading: isLoadingLocations } = useQuery({
-    queryKey: ["locations", effectiveClinicianId, isAdmin, isClinician],
+    queryKey: ["locations", clinicianId, isAdmin, isClinician], // Use derived clinicianId in key
     queryFn: async () => {
       let url = "/api/location";
 
-      // If user is a clinician and not an admin, fetch only assigned locations
-      if (isClinician && !isAdmin && effectiveClinicianId) {
-        url += `?clinicianId=${effectiveClinicianId}`;
+      // Use the derived clinicianId if available
+      if (isClinician && !isAdmin && clinicianId) {
+        url += `?clinicianId=${clinicianId}`;
+      } else if (isAdmin) {
+        // Admin fetching logic (if different, else API handles it)
+      } else if (isClinician && !isAdmin && !clinicianId) {
+        // Handle case where clinicianId couldn't be derived but was expected
+        // Decide behavior: return empty array, throw error, or fetch all if allowed?
+        // For now, let's assume the API handles the case where no clinicianId is passed
+        // or perhaps return an empty array immediately to prevent unnecessary API calls.
+        return [];
       }
 
       const response = await fetch(url);
@@ -76,19 +107,26 @@ const Scheduled = () => {
       }
       return response.json();
     },
-    enabled: sessionStatus === "authenticated",
+    // Enable only when session is authenticated AND (user is admin OR clinicianId is determined)
+    enabled:
+      sessionStatus === "authenticated" &&
+      (!isClinician || isAdmin || !!clinicianId),
   });
 
   // Fetch appointments with role-based permissions
   const { data: appointmentsData = [], isLoading: isLoadingAppointments } =
     useQuery({
-      queryKey: ["appointments", effectiveClinicianId, isAdmin, isClinician],
+      queryKey: ["appointments", clinicianId, isAdmin, isClinician], // Use derived clinicianId in key
       queryFn: async () => {
         let url = "/api/appointment";
 
-        // If user is a clinician and not an admin, fetch only their appointments
-        if (isClinician && !isAdmin && effectiveClinicianId) {
-          url += `?clinicianId=${effectiveClinicianId}`;
+        // Use the derived clinicianId if available
+        if (isClinician && !isAdmin && clinicianId) {
+          url += `?clinicianId=${clinicianId}`;
+        } else if (isAdmin) {
+          // Admin fetching logic (if different, else API handles it)
+        } else if (isClinician && !isAdmin && !clinicianId) {
+          return []; // Return empty array
         }
 
         const response = await fetch(url);
@@ -97,28 +135,30 @@ const Scheduled = () => {
         }
         return response.json();
       },
-      enabled: sessionStatus === "authenticated",
+      // Enable only when session is authenticated AND (user is admin OR clinicianId is determined)
+      enabled:
+        sessionStatus === "authenticated" &&
+        (!isClinician || isAdmin || !!clinicianId),
     });
 
   // Fetch availabilities with role-based permissions
   const { data: availabilitiesData = [], isLoading: isLoadingAvailabilities } =
     useQuery({
-      queryKey: ["availabilities", effectiveClinicianId, isAdmin, isClinician],
+      queryKey: ["availabilities", clinicianId, isAdmin, isClinician], // Use derived clinicianId in key
       queryFn: async () => {
         let url = "/api/availability";
 
-        // If user is a clinician and not an admin, fetch only their availabilities
-        if (isClinician && !isAdmin && effectiveClinicianId) {
-          url += `?clinicianId=${effectiveClinicianId}`;
+        // Use the derived clinicianId if available
+        if (isClinician && !isAdmin && clinicianId) {
+          url += `?clinicianId=${clinicianId}`;
+        } else if (isAdmin) {
+          // Admin fetching logic (if different, else API handles it)
+        } else if (isClinician && !isAdmin && !clinicianId) {
+          return []; // Return empty array
         }
 
         const response = await fetch(url);
         if (!response.ok) {
-          console.error(
-            "DEBUG: Failed to fetch availabilities:",
-            response.status,
-            response.statusText,
-          );
           throw new Error("Failed to fetch availabilities");
         }
         const data = await response.json();
@@ -178,7 +218,6 @@ const Scheduled = () => {
 
   // Combine all events
   const allEvents = [...formattedAvailabilities, ...formattedAppointments];
-
   // Handle appointment creation completion
   const handleAppointmentDone = () => {
     // Refresh appointments data
@@ -300,16 +339,16 @@ const Scheduled = () => {
               Use this schedule to show when you're available to meet with
               clients.{" "}
               <Link
-                href="/help/availability"
                 className="text-[#267356] hover:text-blue-700 text-sm"
+                href="/help/availability"
               >
                 Learn about managing availability
               </Link>
             </p>
           </div>
           <Button
-            onClick={() => router.push("/calendar")}
             className="bg-[#2e8467] hover:bg-[#267356] text-white rounded-md px-4 py-2"
+            onClick={() => router.push("/calendar")}
           >
             View calendar
           </Button>
@@ -318,34 +357,34 @@ const Scheduled = () => {
       <div className="flex-1">
         <CalendarView
           initialClinicians={formattedClinicians}
-          initialLocations={formattedLocations}
           initialEvents={allEvents}
-          onCreateClient={handleCreateClient}
-          onAppointmentDone={handleAppointmentDone}
-          onEventClick={handleEventClick}
-          onDateSelect={handleDateSelect}
+          initialLocations={formattedLocations}
           isScheduledPage={true}
+          onAppointmentDone={handleAppointmentDone}
+          onCreateClient={handleCreateClient}
+          onDateSelect={handleDateSelect}
+          onEventClick={handleEventClick}
         />
 
         <AppointmentSidebar
           open={isSidebarOpen}
-          onOpenChange={setIsSidebarOpen}
           selectedDate={selectedDate || new Date()}
           selectedResource={selectedResource}
+          onClose={() => setIsSidebarOpen(false)}
           onDone={() => {
             setIsSidebarOpen(false);
             handleAppointmentDone();
           }}
-          onClose={() => setIsSidebarOpen(false)}
+          onOpenChange={setIsSidebarOpen}
         />
 
         {showCreateClient && (
           <CreateClientForm
             appointmentDate={appointmentDate}
-            onClose={() => setShowCreateClient(false)}
             onClientCreated={() => {
               setShowCreateClient(false);
             }}
+            onClose={() => setShowCreateClient(false)}
           />
         )}
       </div>

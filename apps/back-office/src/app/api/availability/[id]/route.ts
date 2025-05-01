@@ -1,13 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@mcw/database";
 import { z } from "zod";
-
-// TypeScript interface for authenticated request
-interface AuthenticatedRequest extends NextRequest {
-  nextauth?: {
-    token?: unknown;
-  };
-}
+import { getServerSession } from "next-auth/next";
+import { backofficeAuthOptions } from "../../auth/[...nextauth]/auth-options";
+import { logger } from "@mcw/logger";
 
 // Schema for validating availability update data
 const updateAvailabilitySchema = z.object({
@@ -16,6 +12,22 @@ const updateAvailabilitySchema = z.object({
   isRecurring: z.boolean().optional(),
   recurringRule: z.string().optional(),
 });
+
+// Helper function to check authentication
+async function isAuthenticated(request: NextRequest) {
+  // @ts-expect-error - nextauth property may be added by tests
+  if (request.nextauth?.token) {
+    return true;
+  }
+
+  try {
+    const session = await getServerSession(backofficeAuthOptions);
+    return !!session?.user;
+  } catch (error) {
+    logger.error({ error }, "Error checking authentication");
+    return false;
+  }
+}
 
 // Helper function to validate time slots
 const validateTimeSlot = async (
@@ -67,11 +79,11 @@ const validateTimeSlot = async (
 };
 
 export async function PUT(
-  request: AuthenticatedRequest,
+  request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
-    if (!request.nextauth?.token) {
+    if (!(await isAuthenticated(request))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

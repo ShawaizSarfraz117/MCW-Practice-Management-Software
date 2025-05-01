@@ -94,19 +94,19 @@ export function AppointmentSidebar({
     queryKey: [
       "clinicians",
       selectedResource,
-      session?.user?.isAdmin,
-      session?.user?.isClinician,
+      session?.user?.roles?.includes("CLINICIAN") &&
+        !session?.user?.roles?.includes("ADMIN") &&
+        session?.user?.id,
     ],
     queryFn: async () => {
       let url = "/api/clinician";
-
       // If user is a clinician and not an admin, fetch only their own data
       if (
-        session?.user?.isClinician &&
-        !session?.user?.isAdmin &&
+        session?.user?.roles?.includes("CLINICIAN") &&
+        !session?.user?.roles?.includes("ADMIN") &&
         session?.user?.id
       ) {
-        url += `?id=${session.user.id}`;
+        url += `?userId=${session.user.id}`;
       }
 
       const response = await fetch(url);
@@ -314,12 +314,19 @@ export function AppointmentSidebar({
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button
-              className="bg-[#16A34A] hover:bg-[#16A34A]/90 text-white"
-              onClick={handleSave}
-            >
-              Save
-            </Button>
+            {session?.user?.roles?.includes("CLINICIAN") &&
+              !session?.user?.roles?.includes("ADMIN") && (
+                <Button
+                  className="bg-[#16A34A] hover:bg-[#16A34A]/90 text-white"
+                  onClick={handleSave}
+                  disabled={
+                    !!generalError ||
+                    Object.values(validationState).some((v) => v)
+                  }
+                >
+                  Save
+                </Button>
+              )}
           </div>
         </div>
 
