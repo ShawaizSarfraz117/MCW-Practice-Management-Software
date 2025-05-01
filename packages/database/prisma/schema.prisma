@@ -139,6 +139,20 @@ model ClientReminderPreference {
   @@unique([client_id, reminder_type])
 }
 
+model BillingAddress {
+  id           String     @id @default(dbgenerated("newid()"), map: "PK_BillingAddress_ID") @db.UniqueIdentifier
+  street       String     @db.VarChar(255)
+  city         String     @db.VarChar(100)
+  state        String     @db.VarChar(50)
+  zip          String     @db.VarChar(20)
+  type         String     @db.VarChar(50) // 'business' or 'client'
+  clinician_id String     @db.UniqueIdentifier
+  Clinician    Clinician  @relation(fields: [clinician_id], references: [id], onDelete: Cascade, map: "FK_BillingAddress_Clinician")
+
+  @@index([clinician_id], map: "IX_BillingAddress_clinician_id")
+  @@unique([clinician_id, type], map: "UQ_BillingAddress_Clinician_Type")
+}
+
 model Clinician {
   id                String              @id @default(dbgenerated("newid()"), map: "PK_Clinician_ID") @db.UniqueIdentifier
   user_id           String              @unique @db.UniqueIdentifier
@@ -155,6 +169,7 @@ model Clinician {
   ClinicianServices ClinicianServices[]
   Invoice           Invoice[]
   ClientGroup       ClientGroup[]
+  BillingAddress    BillingAddress[]
 }
 
 model ClinicianClient {

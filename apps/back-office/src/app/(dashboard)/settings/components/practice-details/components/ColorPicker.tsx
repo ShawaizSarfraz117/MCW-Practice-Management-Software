@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Label } from "@mcw/ui";
+import { Button } from "@mcw/ui";
 
 interface ColorPickerProps {
   selectedColor: string | undefined;
@@ -23,7 +23,6 @@ export default function ColorPicker({
 
   return (
     <div className="space-y-2">
-      <Label className="block text-sm font-medium text-gray-700">Color</Label>
       <p className="text-xs text-gray-500">
         Select a color for your location to surface in the calendar
       </p>

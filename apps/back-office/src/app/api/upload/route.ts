@@ -54,8 +54,8 @@ export async function POST(
     });
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await uploadToAzureStorage(buffer, file.name, "uploads"); // Specify "uploads" container
 
+    const result = await uploadToAzureStorage(buffer, file.name, "uploads"); // Specify "uploads" container
     return NextResponse.json(result);
   } catch (error: unknown) {
     const err = error as UploadError;
@@ -66,9 +66,20 @@ export async function POST(
       details: err,
     });
 
+    if (err?.message === "Invalid blob URL") {
+      return NextResponse.json(
+        {
+          error: "Invalid blob URL",
+          details: "The provided URL is not properly formatted",
+        },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json(
       {
-        error: "Failed to upload file",
+        error: "Internal server error",
+        details: "Failed to generate SAS token",
       },
       { status: 500 },
     );

@@ -7,6 +7,7 @@ import {
   uploadFile,
   usePracticeInformation,
 } from "./hooks/usePracticeInformation";
+import { BlobToSaas } from "@/utils/blobToSaas";
 
 export default function PracticeLogoForm({
   practiceInfoState,
@@ -26,7 +27,7 @@ export default function PracticeLogoForm({
     onSuccess: (data) => {
       setPracticeInfoState({
         ...practiceInfoState,
-        practice_logo: data.url,
+        practice_logo: data.blobUrl,
       });
       setError(null);
     },
@@ -101,6 +102,13 @@ export default function PracticeLogoForm({
   useEffect(() => {
     if (practiceInfoState.practice_logo) {
       setPreviewUrl(practiceInfoState.practice_logo);
+      console.log(
+        "practiceInfoState.practice_logo",
+        practiceInfoState.practice_logo,
+      );
+      BlobToSaas(practiceInfoState.practice_logo).then((sasToken) => {
+        setPreviewUrl(sasToken);
+      });
     }
   }, [practiceInfoState.practice_logo]);
 
