@@ -28,7 +28,7 @@ async function cleanupPaymentTestData({
 }) {
   try {
     // Delete in reverse order of creation / dependency
-    if (paymentIds.length > 0) {
+    if (paymentIds.length > 0 && paymentIds.every((id) => id)) {
       await prisma.payment.deleteMany({ where: { id: { in: paymentIds } } });
     }
     if (invoiceIds.length > 0) {
@@ -164,41 +164,53 @@ describe("Invoice Payment API Integration Tests", async () => {
     });
     createdInvoiceIds.push(invoice.id);
 
-    // Prepare payment data
+    // Prepare payment data - format to match API expectations
     const paymentData = {
-      invoice_id: invoice.id,
-      amount: 75,
-      credit_card_id: creditCard.id,
+      invoiceWithPayment: [
+        {
+          id: invoice.id,
+          amount: 75,
+        },
+      ],
+      client_group_id: clientGroup.id,
       status: "COMPLETED",
       transaction_id: "tx_" + Date.now(),
       response: "Payment successful",
     };
 
+    console.log("TEST 1 - Payment data:", JSON.stringify(paymentData));
+
     // Make the API request
     const req = createRequestWithBody("/api/invoice/payment", paymentData);
     const response = await POST(req);
 
+    // Log the response for debugging
+    console.log("TEST 1 - Response status:", response.status);
+    const responseText = await response.text();
+    console.log("TEST 1 - Response text:", responseText);
+    const responseData = JSON.parse(responseText);
+
     // Verify response
     expect(response.status).toBe(201);
-    const responseData = await response.json();
-    createdPaymentIds.push(responseData.id); // Store created payment ID
 
-    expect(responseData).toHaveProperty("id");
-    expect(responseData).toHaveProperty("invoice_id", invoice.id);
-    expect(responseData).toHaveProperty(
+    // Store created payment ID (first one in array)
+    createdPaymentIds.push(responseData[0]?.id);
+
+    expect(responseData[0]).toHaveProperty("id");
+    expect(responseData[0]).toHaveProperty("invoice_id", invoice.id);
+    expect(responseData[0]).toHaveProperty(
       "amount",
-      paymentData.amount.toString(),
+      "75", // API returns string for decimal amounts
     );
-    expect(responseData).toHaveProperty("credit_card_id", creditCard.id);
-    expect(responseData).toHaveProperty("status", paymentData.status);
+    expect(responseData[0]).toHaveProperty("status", paymentData.status);
 
     // Verify database state
     const paymentInDb = await prisma.payment.findUnique({
-      where: { id: responseData.id },
+      where: { id: responseData[0]?.id },
     });
     expect(paymentInDb).not.toBeNull();
     expect(paymentInDb?.invoice_id).toBe(invoice.id);
-    expect(paymentInDb?.amount.toString()).toBe(paymentData.amount.toString());
+    expect(paymentInDb?.amount.toString()).toBe("75");
   });
 
   it("POST /api/invoice/payment should update invoice status to PAID when fully paid", async () => {
@@ -237,17 +249,33 @@ describe("Invoice Payment API Integration Tests", async () => {
 
     // Prepare payment data for full amount
     const paymentData = {
-      invoice_id: invoice.id,
-      amount: 100, // Full payment
+      invoiceWithPayment: [
+        {
+          id: invoice.id,
+          amount: 100,
+        },
+      ],
+      client_group_id: clientGroup.id,
       status: "COMPLETED",
+      transaction_id: "tx_" + Date.now(),
+      response: "Payment successful",
     };
+
+    console.log("TEST 2 - Payment data:", JSON.stringify(paymentData));
 
     // Make the API request
     const req = createRequestWithBody("/api/invoice/payment", paymentData);
     const response = await POST(req);
 
+    // Log the response
+    console.log("TEST 2 - Response status:", response.status);
+    const responseText = await response.text();
+    console.log("TEST 2 - Response text:", responseText);
+    const responseData = JSON.parse(responseText);
+
     // Verify response
     expect(response.status).toBe(201);
+    createdPaymentIds.push(responseData[0]?.id);
 
     // Verify invoice status in database
     const updatedInvoice = await prisma.invoice.findUnique({
@@ -294,18 +322,37 @@ describe("Invoice Payment API Integration Tests", async () => {
 
     // First partial payment
     const firstPaymentData = {
-      invoice_id: invoice.id,
-      amount: 40,
+      invoiceWithPayment: [
+        {
+          id: invoice.id,
+          amount: 40,
+        },
+      ],
+      client_group_id: clientGroup.id,
       status: "COMPLETED",
+      transaction_id: "tx_" + Date.now(),
+      response: "First payment",
     };
+
+    console.log(
+      "TEST 3 - First payment data:",
+      JSON.stringify(firstPaymentData),
+    );
 
     const firstReq = createRequestWithBody(
       "/api/invoice/payment",
       firstPaymentData,
     );
     const firstResponse = await POST(firstReq);
-    const firstPayment = await firstResponse.json();
-    createdPaymentIds.push(firstPayment.id);
+
+    // Log the first response
+    console.log("TEST 3 - First response status:", firstResponse.status);
+    const firstResponseText = await firstResponse.text();
+    console.log("TEST 3 - First response text:", firstResponseText);
+    const firstPayment = JSON.parse(firstResponseText);
+
+    expect(firstResponse.status).toBe(201);
+    createdPaymentIds.push(firstPayment[0]?.id);
 
     // Check invoice status - should still be PENDING
     const checkInvoice = await prisma.invoice.findUnique({
@@ -315,18 +362,37 @@ describe("Invoice Payment API Integration Tests", async () => {
 
     // Second partial payment that completes the invoice
     const secondPaymentData = {
-      invoice_id: invoice.id,
-      amount: 60,
+      invoiceWithPayment: [
+        {
+          id: invoice.id,
+          amount: 60,
+        },
+      ],
+      client_group_id: clientGroup.id,
       status: "COMPLETED",
+      transaction_id: "tx_" + Date.now(),
+      response: "Second payment",
     };
+
+    console.log(
+      "TEST 3 - Second payment data:",
+      JSON.stringify(secondPaymentData),
+    );
 
     const secondReq = createRequestWithBody(
       "/api/invoice/payment",
       secondPaymentData,
     );
     const secondResponse = await POST(secondReq);
-    const secondPayment = await secondResponse.json();
-    createdPaymentIds.push(secondPayment.id);
+
+    // Log the second response
+    console.log("TEST 3 - Second response status:", secondResponse.status);
+    const secondResponseText = await secondResponse.text();
+    console.log("TEST 3 - Second response text:", secondResponseText);
+    const secondPayment = JSON.parse(secondResponseText);
+
+    expect(secondResponse.status).toBe(201);
+    createdPaymentIds.push(secondPayment[0]?.id);
 
     // Verify invoice status in database - should now be PAID
     const updatedInvoice = await prisma.invoice.findUnique({
