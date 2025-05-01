@@ -59,7 +59,7 @@ const menuItems = {
     },
     {
       label: "Services and products",
-      id: "services",
+      id: "service",
     },
   ],
   clientCare: [

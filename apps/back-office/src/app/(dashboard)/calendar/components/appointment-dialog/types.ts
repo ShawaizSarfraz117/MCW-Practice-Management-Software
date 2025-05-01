@@ -1,12 +1,20 @@
 import { RecurringInfo } from "../calendar/types";
 
 export type Service = {
+  is_default: boolean;
   id: string;
   type: string;
   code: string;
   duration: number;
+  block_before: number;
+  block_after: number;
+  available_online: boolean;
+  allow_new_clients: boolean;
+  bill_in_units: boolean;
   description: string | null;
-  rate?: number;
+  rate: number;
+  require_call: boolean;
+  color: string | null;
 };
 
 export type Clinician = {
