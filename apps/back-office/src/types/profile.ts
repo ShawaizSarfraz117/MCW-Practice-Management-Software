@@ -42,14 +42,5 @@ export interface PracticeInformation {
     number: string;
     type: string;
   }[];
-  telehealth_enabled: boolean;
-  telehealth: {
-    office_name: string;
-    color: string;
-    service_place: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-  };
+  tele_health: boolean;
 }

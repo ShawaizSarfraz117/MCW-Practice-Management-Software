@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   toast,
+  Input,
 } from "@mcw/ui";
 import { PracticeInformation } from "@/types/profile";
 import { useTeleHealthInfo } from "../hooks/usePracticeInformation";
@@ -41,6 +42,14 @@ export default function TelehealthForm({ onClose }: TelehealthFormProps) {
   );
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [errors, setErrors] = useState({
+    officeName: false,
+    street: false,
+    city: false,
+    state: false,
+    zip: false,
+    color: false,
+  });
 
   // Track changes
   useEffect(() => {
@@ -65,20 +74,26 @@ export default function TelehealthForm({ onClose }: TelehealthFormProps) {
 
   const submit = () => {
     if (teleHealthInfo?.location?.id) {
-      if (
-        !officeName ||
-        !address.street ||
-        !address.city ||
-        !address.state ||
-        !address.zip ||
-        !selectedColor
-      ) {
+      const newErrors = {
+        officeName: !officeName?.trim(),
+        street: !address.street.trim(),
+        city: !address.city.trim(),
+        state: !address.state.trim(),
+        zip: !address.zip.trim() || !/^\d{5}(-\d{4})?$/.test(address.zip),
+        color: !selectedColor,
+      };
+
+      setErrors(newErrors);
+
+      if (Object.values(newErrors).some(Boolean)) {
         toast({
           title: "Missing Required Fields",
           description: "Please fill in all required fields before saving.",
+          variant: "destructive",
         });
         return;
       }
+
       updateTeleHealthLocation({
         locationId: teleHealthInfo.location.id,
         name: officeName || "",
@@ -122,28 +137,52 @@ export default function TelehealthForm({ onClose }: TelehealthFormProps) {
               {/* Office Name */}
               <div className="space-y-2">
                 <Label
-                  className="block text-sm font-medium text-gray-700"
+                  className="flex items-center text-sm font-medium text-gray-700"
                   htmlFor="office-name"
                 >
                   Office Name
+                  <span className="text-red-500 ml-1">*</span>
                 </Label>
-                <input
-                  className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                <Input
+                  className={`w-full ${errors.officeName ? "border-red-500" : "border-gray-300"}`}
                   id="office-name"
                   type="text"
                   value={officeName}
                   onChange={(e) => setOfficeName(e.target.value)}
                 />
+                {errors.officeName && (
+                  <p className="text-sm text-red-500">
+                    Office name is required
+                  </p>
+                )}
               </div>
 
               {/* Location */}
-              <LocationForm address={address} setAddress={setAddress} />
+              <LocationForm
+                address={address}
+                setAddress={setAddress}
+                errors={{
+                  street: errors.street,
+                  city: errors.city,
+                  state: errors.state,
+                  zip: errors.zip,
+                }}
+              />
 
               {/* Color */}
-              <ColorPicker
-                selectedColor={selectedColor}
-                onColorSelect={setSelectedColor}
-              />
+              <div className="space-y-2">
+                <Label className="flex items-center text-sm font-medium text-gray-700">
+                  Color
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <ColorPicker
+                  selectedColor={selectedColor}
+                  onColorSelect={setSelectedColor}
+                />
+                {errors.color && (
+                  <p className="text-sm text-red-500">Color is required</p>
+                )}
+              </div>
             </div>
 
             <div className="p-4 border-t flex justify-between">

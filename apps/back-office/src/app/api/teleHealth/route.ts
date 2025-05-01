@@ -55,6 +55,13 @@ export async function GET() {
       clinicianWithLocation.ClinicianLocation.find((cl) => cl.is_primary)
         ?.Location || clinicianWithLocation.ClinicianLocation[0]?.Location;
 
+    if (!primaryLocation) {
+      return NextResponse.json(
+        { error: "TeleHealth location not found" },
+        { status: 404 },
+      );
+    }
+
     return NextResponse.json({
       clinician: {
         id: clinicianWithLocation.id,
@@ -75,6 +82,16 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    // Get clinician info from the session
+    const { isClinician, clinicianId } = await getClinicianInfo();
+
+    if (!isClinician || !clinicianId) {
+      return NextResponse.json(
+        { error: "User is not a clinician" },
+        { status: 403 },
+      );
+    }
+
     const data = await request.json();
     // Validate request body
     const validationResult = updateLocationSchema.safeParse(data);

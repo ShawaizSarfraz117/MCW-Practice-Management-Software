@@ -56,6 +56,7 @@ export const updatePracticeInfo = async (data: PracticeInformation) => {
       timeZone: data.time_zone,
       practiceLogo: data.practice_logo,
       phoneNumbers: data.phone_numbers,
+      teleHealth: false,
     }),
   });
 

@@ -4,13 +4,12 @@ import { getBackOfficeSession } from "@/utils/helpers";
 import { z } from "zod";
 
 const practiceInformationPayload = z.object({
-  practiceName: z.string().max(100).optional().nullable(),
-  practiceEmail: z.string().max(100).optional().nullable(),
-  timeZone: z.string().max(100).optional().nullable(),
-  practiceLogo: z.string().max(1000).optional().nullable(),
+  practiceName: z.string().nonempty().max(100).nullable(),
+  practiceEmail: z.string().nonempty().max(100).nullable(),
+  timeZone: z.string().nonempty().max(100).nullable(),
+  practiceLogo: z.string().nonempty().max(1000).nullable(),
   phoneNumbers: z
     .array(z.object({ number: z.string(), type: z.string() }))
-    .optional()
     .nullable(),
   teleHealth: z.boolean().optional().nullable(),
 });
@@ -54,6 +53,7 @@ export async function PUT(request: NextRequest) {
             time_zone: validationResult.data.timeZone ?? undefined,
             practice_logo: validationResult.data.practiceLogo ?? undefined,
             phone_numbers: JSON.stringify(validationResult.data.phoneNumbers),
+            tele_health: validationResult.data.teleHealth ?? false,
           },
         });
 
@@ -68,7 +68,7 @@ export async function PUT(request: NextRequest) {
           time_zone: validationResult.data.timeZone ?? "",
           practice_logo: validationResult.data.practiceLogo ?? "",
           phone_numbers: JSON.stringify(validationResult.data.phoneNumbers),
-          tele_health: validationResult.data.teleHealth ? "true" : "false",
+          tele_health: validationResult.data.teleHealth ?? false,
         },
       });
       return NextResponse.json(newPracticeInformation);

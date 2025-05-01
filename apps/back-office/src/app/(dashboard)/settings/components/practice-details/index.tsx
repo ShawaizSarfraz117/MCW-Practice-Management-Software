@@ -5,13 +5,14 @@ import PracticeInformationForm from "./PracticeInformation";
 import PracticeLogoForm from "./PracticeLogoForm";
 import PracticePhoneForm from "./PracticePhoneForm";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   updatePracticeInfo,
   usePracticeInformation,
 } from "./hooks/usePracticeInformation";
 import { PracticeInformation } from "@/types/profile";
 import TeleHealth from "./TeleHealth";
+import BillingAddresses from "./BillingAddresses";
 
 export default function PracticeDetailsForm() {
   const queryClient = useQueryClient();
@@ -19,14 +20,26 @@ export default function PracticeDetailsForm() {
 
   const [practiceInfoState, setPracticeInfoState] =
     useState<PracticeInformation>({
-      practice_name: practiceInformation?.practice_name,
-      practice_email: practiceInformation?.practice_email,
-      time_zone: practiceInformation?.time_zone,
-      practice_logo: practiceInformation?.practice_logo,
-      phone_numbers: practiceInformation?.phone_numbers,
-      telehealth_enabled: practiceInformation?.telehealth_enabled,
-      telehealth: practiceInformation?.telehealth,
+      practice_name: "",
+      practice_email: "",
+      time_zone: "",
+      practice_logo: "",
+      phone_numbers: [],
+      tele_health: false,
     });
+
+  useEffect(() => {
+    if (practiceInformation) {
+      setPracticeInfoState({
+        practice_name: practiceInformation.practice_name ?? "",
+        practice_email: practiceInformation.practice_email ?? "",
+        time_zone: practiceInformation.time_zone ?? "",
+        practice_logo: practiceInformation.practice_logo ?? "",
+        phone_numbers: practiceInformation.phone_numbers ?? [],
+        tele_health: practiceInformation.tele_health ?? false,
+      });
+    }
+  }, [practiceInformation]);
 
   const { mutate } = useMutation({
     mutationFn: updatePracticeInfo,
@@ -40,13 +53,26 @@ export default function PracticeDetailsForm() {
       queryClient.invalidateQueries({ queryKey: ["practiceInformation"] });
     },
     onError: (error) => {
-      // Optionally handle error (e.g., show an error message)
       console.error("Error updating practice information:", error);
     },
   });
 
   const handleSave = () => {
-    mutate(practiceInfoState); // Call the mutation function on save button click
+    if (
+      !practiceInfoState.practice_name.trim() ||
+      !practiceInfoState.practice_email.trim() ||
+      !practiceInfoState.time_zone.trim() ||
+      !practiceInfoState.practice_logo.trim() ||
+      practiceInfoState.phone_numbers.length === 0
+    ) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Please fill in all required fields before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+    mutate(practiceInfoState);
   };
 
   return (
@@ -61,17 +87,41 @@ export default function PracticeDetailsForm() {
         setPracticeInfoState={setPracticeInfoState}
       />
       <PracticePhoneForm setPracticeInfoState={setPracticeInfoState} />
+
       <TeleHealth
         practiceInfoState={practiceInfoState}
         setPracticeInfoState={setPracticeInfoState}
       />
-      <Button
-        className="mt-5 border-red-300 text-red-700"
-        variant="outline"
-        //  onClick={addPhoneNumber}
-      >
-        Turn Off
-      </Button>
+
+      {practiceInfoState.tele_health && (
+        <Button
+          className="mt-5 border-red-300 text-red-700"
+          variant="outline"
+          onClick={() => {
+            setPracticeInfoState({
+              ...practiceInfoState,
+              tele_health: false,
+            });
+          }}
+        >
+          Turn Off
+        </Button>
+      )}
+      {!practiceInfoState.tele_health && (
+        <Button
+          className="mt-5 border-green-300 text-green-700"
+          variant="outline"
+          onClick={() => {
+            setPracticeInfoState({
+              ...practiceInfoState,
+              tele_health: true,
+            });
+          }}
+        >
+          Turn On
+        </Button>
+      )}
+      <BillingAddresses />
     </div>
   );
 }

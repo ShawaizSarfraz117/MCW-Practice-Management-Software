@@ -15,67 +15,101 @@ interface LocationFormProps {
     state: string;
     zip: string;
   }) => void;
-  onValidate?: () => boolean;
+  errors?: {
+    street?: boolean;
+    city?: boolean;
+    state?: boolean;
+    zip?: boolean;
+  };
 }
 
 export default function LocationForm({
   address,
   setAddress,
+  errors = {},
 }: LocationFormProps) {
   return (
     <div className="space-y-2">
       <div>
-        <Label className="block text-xs text-gray-500" htmlFor="street">
+        <Label
+          className="flex items-center text-sm font-medium text-gray-700"
+          htmlFor="street"
+        >
           Street Address
+          <span className="text-red-500 ml-1">*</span>
         </Label>
         <Input
-          className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          required
+          className={`w-full ${errors.street ? "border-red-500" : "border-gray-300"}`}
           id="street"
           type="text"
           value={address.street}
           onChange={(e) => setAddress({ ...address, street: e.target.value })}
-          required
         />
+        {errors.street && (
+          <p className="text-sm text-red-500">Street address is required</p>
+        )}
       </div>
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <Label className="block text-xs text-gray-500" htmlFor="city">
+          <Label
+            className="flex items-center text-sm font-medium text-gray-700"
+            htmlFor="city"
+          >
             City
+            <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
-            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+            className={`w-full ${errors.city ? "border-red-500" : "border-gray-300"}`}
             id="city"
             type="text"
             value={address.city}
             onChange={(e) => setAddress({ ...address, city: e.target.value })}
-            required
           />
+          {errors.city && (
+            <p className="text-sm text-red-500">City is required</p>
+          )}
         </div>
         <div>
-          <Label className="block text-xs text-gray-500" htmlFor="state">
+          <Label
+            className="flex items-center text-sm font-medium text-gray-700"
+            htmlFor="state"
+          >
             State
+            <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
-            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+            className={`w-full ${errors.state ? "border-red-500" : "border-gray-300"}`}
             id="state"
             type="text"
             value={address.state}
             onChange={(e) => setAddress({ ...address, state: e.target.value })}
-            required
           />
+          {errors.state && (
+            <p className="text-sm text-red-500">State is required</p>
+          )}
         </div>
         <div>
-          <Label className="block text-xs text-gray-500" htmlFor="zip">
+          <Label
+            className="flex items-center text-sm font-medium text-gray-700"
+            htmlFor="zip"
+          >
             ZIP Code
+            <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
-            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+            className={`w-full ${errors.zip ? "border-red-500" : "border-gray-300"}`}
             id="zip"
             type="text"
             value={address.zip}
             onChange={(e) => setAddress({ ...address, zip: e.target.value })}
-            required
           />
+          {errors.zip && (
+            <p className="text-sm text-red-500">Valid ZIP code is required</p>
+          )}
         </div>
       </div>
       <p className="text-xs text-gray-500 mt-1">
