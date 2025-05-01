@@ -147,9 +147,7 @@ export function CalendarView({
     filtered = filtered.filter((event) => {
       // For availability events, only check clinician
       if (event.extendedProps?.type === "availability") {
-        return (
-          event.resourceId && selectedClinicians.includes(event.resourceId)
-        );
+        return event.resourceId;
       }
       // For regular events, filter by location
       return event.location && selectedLocations.includes(event.location);

@@ -77,21 +77,10 @@ const Scheduled = () => {
         // Assuming the object has an 'id' property of type string or similar
         id = (cliniciansData as { id?: string | number }).id;
       }
-      console.log("Derived clinicianId:", id); // DEBUG: Log derived ID
       return id || null;
     }
     return null;
   }, [isClinician, isAdmin, cliniciansData]);
-
-  // Add logging to check if dependent queries should be enabled
-  React.useEffect(() => {
-    if (sessionStatus === "authenticated") {
-      const shouldEnable = !isClinician || isAdmin || !!clinicianId;
-      console.log(
-        `DEBUG: Dependent queries check - isClinician: ${isClinician}, isAdmin: ${isAdmin}, clinicianId: ${clinicianId}, shouldEnable: ${shouldEnable}`,
-      );
-    }
-  }, [sessionStatus, isClinician, isAdmin, clinicianId]);
 
   // Fetch locations with role-based permissions
   const { data: locationsData = [], isLoading: isLoadingLocations } = useQuery({
@@ -106,9 +95,6 @@ const Scheduled = () => {
         // Admin fetching logic (if different, else API handles it)
       } else if (isClinician && !isAdmin && !clinicianId) {
         // Handle case where clinicianId couldn't be derived but was expected
-        console.warn(
-          "Clinician ID not found, cannot fetch specific locations.",
-        );
         // Decide behavior: return empty array, throw error, or fetch all if allowed?
         // For now, let's assume the API handles the case where no clinicianId is passed
         // or perhaps return an empty array immediately to prevent unnecessary API calls.
@@ -140,9 +126,6 @@ const Scheduled = () => {
         } else if (isAdmin) {
           // Admin fetching logic (if different, else API handles it)
         } else if (isClinician && !isAdmin && !clinicianId) {
-          console.warn(
-            "Clinician ID not found, cannot fetch specific appointments.",
-          );
           return []; // Return empty array
         }
 
@@ -171,24 +154,14 @@ const Scheduled = () => {
         } else if (isAdmin) {
           // Admin fetching logic (if different, else API handles it)
         } else if (isClinician && !isAdmin && !clinicianId) {
-          console.warn(
-            "Clinician ID not found, cannot fetch specific availabilities.",
-          );
           return []; // Return empty array
         }
 
         const response = await fetch(url);
-        console.log("response", response);
         if (!response.ok) {
-          console.error(
-            "DEBUG: Failed to fetch availabilities:",
-            response.status,
-            response.statusText,
-          );
           throw new Error("Failed to fetch availabilities");
         }
         const data = await response.json();
-        console.log("availabilitiesData", data);
         return data;
       },
       enabled: sessionStatus === "authenticated",
@@ -245,7 +218,6 @@ const Scheduled = () => {
 
   // Combine all events
   const allEvents = [...formattedAvailabilities, ...formattedAppointments];
-
   // Handle appointment creation completion
   const handleAppointmentDone = () => {
     // Refresh appointments data
