@@ -23,6 +23,7 @@ interface FetchParams {
   token?: string | null;
   body?: unknown;
   isFormData?: boolean;
+  method?: string;
 }
 
 const get = async ({
@@ -113,6 +114,7 @@ const update = async ({
   id = null,
   body = {},
   isFormData = false,
+  method = "PUT",
 }: FetchParams): Promise<ResponseData | null> => {
   try {
     const headers: AuthHeaders = {
@@ -124,7 +126,7 @@ const update = async ({
     const promise = await fetch(
       id ? `${ROUTES.BASE_URL}/${url}/${id}` : `${ROUTES.BASE_URL}/${url}`,
       {
-        method: "PUT",
+        method: method,
         headers,
         body: isFormData ? (body as FormData) : JSON.stringify(body),
       },

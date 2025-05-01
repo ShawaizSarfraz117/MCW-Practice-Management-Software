@@ -59,6 +59,7 @@ describe("Invoice Payment API Integration Tests", async () => {
         clinician_id: clinician.id,
         client_group_id: clientGroup.id,
         status: "PENDING",
+        type: "INVOICE",
         amount: "100.00", // Use string for Decimal
         invoice_number: "INV-" + Date.now(),
         due_date: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
@@ -124,6 +125,7 @@ describe("Invoice Payment API Integration Tests", async () => {
         clinician_id: clinician.id,
         client_group_id: clientGroup.id,
         status: "PENDING",
+        type: "INVOICE",
         amount: "100.00", // Use string for Decimal
         invoice_number: "INV-" + Date.now(),
         due_date: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
@@ -176,6 +178,7 @@ describe("Invoice Payment API Integration Tests", async () => {
         clinician_id: clinician.id,
         client_group_id: clientGroup.id,
         status: "PENDING",
+        type: "INVOICE",
         amount: "100.00", // Use string for Decimal
         invoice_number: "INV-" + Date.now(),
         due_date: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),

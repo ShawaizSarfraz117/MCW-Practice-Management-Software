@@ -175,7 +175,9 @@ export default function Clients() {
         <div className="mb-4 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-semibold">Clients and contacts</h2>
-            <p className="text-sm text-gray-500">Total Clients: 3</p>
+            <p className="text-sm text-gray-500">
+              Total Clients: {clients.pagination.total || 0}
+            </p>
           </div>
           <Button
             className="bg-[#2d8467] hover:bg-[#236c53]"

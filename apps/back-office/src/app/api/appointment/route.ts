@@ -131,7 +131,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    console.log("data", data);
 
     // Validate required fields based on type
     const isEventType = data.type === "event";
