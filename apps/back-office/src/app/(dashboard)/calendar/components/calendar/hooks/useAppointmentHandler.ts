@@ -16,7 +16,7 @@ export function useAppointmentHandler() {
 
   // Function to handle appointment submission
   const handleAppointmentSubmit = useCallback(
-    async (callback?: () => void, selectedResource?: string | null) => {
+    async (callback?: () => void) => {
       // Get form values from the dialog's form state
       if (appointmentFormRef.current) {
         // Create a new appointment from the form data
@@ -40,20 +40,15 @@ export function useAppointmentHandler() {
                   : "Client";
 
               // Create appointment with proper client name in title
-              await createAppointment(
-                values,
-                session,
-                selectedResource,
-                clientName,
-              );
+              await createAppointment(values, session, clientName);
             } catch (error) {
               console.error("Error fetching client details:", error);
               // Continue with generic title if client fetch fails
-              await createAppointment(values, session, selectedResource);
+              await createAppointment(values, session);
             }
           } else {
             // No client specified, just create the appointment with default title
-            await createAppointment(values, session, selectedResource);
+            await createAppointment(values, session);
           }
         } catch (err) {
           console.error("Error preparing appointment data:", err);

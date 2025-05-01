@@ -40,16 +40,7 @@ export async function GET(request: NextRequest) {
           clinician_id: clinicianId,
         },
         include: {
-          PracticeService: {
-            select: {
-              id: true,
-              type: true,
-              code: true,
-              duration: true,
-              description: true,
-              rate: true,
-            },
-          },
+          PracticeService: true,
         },
       });
 
@@ -67,16 +58,7 @@ export async function GET(request: NextRequest) {
     } else {
       logger.info("Retrieving all services");
       // List all services
-      const services = await prisma.practiceService.findMany({
-        select: {
-          id: true,
-          type: true,
-          code: true,
-          duration: true,
-          description: true,
-          rate: true,
-        },
-      });
+      const services = await prisma.practiceService.findMany();
 
       return NextResponse.json(services);
     }
@@ -95,20 +77,29 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validate required fields
-    if (!data.type || !data.code || !data.duration) {
+    if (!data.code || !data.duration || data.rate === undefined) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
       );
     }
 
-    // Create new service
+    // Create new service with all fields
     const newService = await prisma.practiceService.create({
       data: {
         type: data.type,
         code: data.code,
         duration: data.duration,
-        rate: data.rate || 175.0,
+        rate: data.rate,
+        description: data.description || null,
+        color: data.color || null,
+        is_default: data.is_default ?? false,
+        bill_in_units: data.bill_in_units ?? false,
+        available_online: data.available_online ?? false,
+        allow_new_clients: data.allow_new_clients ?? false,
+        require_call: data.require_call ?? false,
+        block_before: data.block_before ?? 0,
+        block_after: data.block_after ?? 0,
       },
     });
 
@@ -151,7 +142,15 @@ export async function PUT(request: NextRequest) {
         code: data.code,
         duration: data.duration,
         rate: data.rate,
-        description: data.description,
+        description: data.description || null,
+        color: data.color || null,
+        is_default: data.is_default ?? false,
+        bill_in_units: data.bill_in_units ?? false,
+        available_online: data.available_online ?? false,
+        allow_new_clients: data.allow_new_clients ?? false,
+        require_call: data.require_call ?? false,
+        block_before: data.block_before ?? 0,
+        block_after: data.block_after ?? 0,
       },
     });
 

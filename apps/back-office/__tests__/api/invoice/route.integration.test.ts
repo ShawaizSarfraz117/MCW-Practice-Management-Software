@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { GET, POST } from "../../../src/app/api/invoice/route";
 import { prisma } from "@mcw/database";
@@ -15,6 +14,80 @@ interface Invoice {
   status: string;
   issued_date: string;
   due_date: string;
+}
+
+// Helper function for cleaning up test data
+async function cleanupInvoiceTestData({
+  invoiceId,
+  clientGroupId,
+  clinicianId,
+}: {
+  invoiceId?: string;
+  clientGroupId?: string;
+  clinicianId?: string;
+}) {
+  // Delete the invoice created during tests
+  if (invoiceId) {
+    try {
+      // Delete related Payments first if necessary
+      await prisma.payment.deleteMany({ where: { invoice_id: invoiceId } });
+      await prisma.invoice.delete({ where: { id: invoiceId } });
+    } catch (error) {
+      console.log("Error deleting invoice:", error);
+    }
+  }
+
+  // Delete the clinician and associated user
+  if (clinicianId) {
+    try {
+      const clinician = await prisma.clinician.findUnique({
+        where: { id: clinicianId },
+        select: { user_id: true },
+      });
+
+      // Delete related data before clinician
+      await prisma.clinicianClient.deleteMany({
+        where: { clinician_id: clinicianId },
+      });
+      await prisma.clinicianLocation.deleteMany({
+        where: { clinician_id: clinicianId },
+      });
+      await prisma.clinicianServices.deleteMany({
+        where: { clinician_id: clinicianId },
+      });
+      await prisma.clientGroup.deleteMany({
+        where: { clinician_id: clinicianId },
+      });
+      await prisma.invoice.deleteMany({ where: { clinician_id: clinicianId } }); // Delete any other invoices by this clinician
+
+      if (clinician) {
+        await prisma.clinician.delete({ where: { id: clinicianId } });
+        if (clinician.user_id) {
+          await prisma.userRole.deleteMany({
+            where: { user_id: clinician.user_id },
+          });
+          await prisma.user.delete({ where: { id: clinician.user_id } });
+        }
+      }
+    } catch (error) {
+      console.log("Error deleting clinician or user:", error);
+    }
+  }
+
+  // Delete the client group (ensure memberships/clients are handled if needed)
+  if (clientGroupId) {
+    try {
+      await prisma.clientGroupMembership.deleteMany({
+        where: { client_group_id: clientGroupId },
+      });
+      await prisma.invoice.deleteMany({
+        where: { client_group_id: clientGroupId },
+      }); // Delete any other invoices for this group
+      await prisma.clientGroup.delete({ where: { id: clientGroupId } });
+    } catch (error) {
+      console.log("Error deleting client group:", error);
+    }
+  }
 }
 
 describe("Invoice API - Integration Tests", () => {
@@ -61,51 +134,11 @@ describe("Invoice API - Integration Tests", () => {
 
   // Clean up test data
   afterAll(async () => {
-    // Delete the invoice created during tests
-    if (createdInvoiceId) {
-      try {
-        await prisma.invoice.delete({
-          where: { id: createdInvoiceId },
-        });
-      } catch (error) {
-        console.log("Error deleting invoice:", error);
-      }
-    }
-
-    // Delete the clinician and associated user
-    if (clinicianId) {
-      try {
-        const clinician = await prisma.clinician.findUnique({
-          where: { id: clinicianId },
-          select: { user_id: true },
-        });
-
-        if (clinician) {
-          await prisma.clinician.delete({
-            where: { id: clinicianId },
-          });
-
-          if (clinician.user_id) {
-            await prisma.user.delete({
-              where: { id: clinician.user_id },
-            });
-          }
-        }
-      } catch (error) {
-        console.log("Error deleting clinician or user:", error);
-      }
-    }
-
-    // Delete the client group
-    if (clientGroupId) {
-      try {
-        await prisma.clientGroup.delete({
-          where: { id: clientGroupId },
-        });
-      } catch (error) {
-        console.log("Error deleting client group:", error);
-      }
-    }
+    await cleanupInvoiceTestData({
+      invoiceId: createdInvoiceId,
+      clientGroupId,
+      clinicianId,
+    });
   });
 
   it("POST /api/invoice should create a new invoice", async () => {

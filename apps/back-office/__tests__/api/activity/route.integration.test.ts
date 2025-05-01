@@ -20,30 +20,55 @@ vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
   backofficeAuthOptions: {},
 }));
 
-describe("Activity API Integration Tests", () => {
-  beforeEach(async () => {
-    await prisma.audit.deleteMany();
-    await prisma.clientReminderPreference.deleteMany({});
-    await prisma.clientContact.deleteMany({});
-    await prisma.clinicianClient.deleteMany({});
-    await prisma.clientGroupMembership.deleteMany({});
-    await prisma.client.deleteMany({});
+// Helper function to clean the database before each test
+async function cleanDatabase() {
+  console.log("[Cleanup] Starting database cleanup before activity test.");
+  try {
+    // Delete records in order of dependency
+    // Start with tables referencing others
     await prisma.payment.deleteMany();
     await prisma.invoice.deleteMany();
-    await prisma.clientGroup.deleteMany({});
-    await prisma.clinician.deleteMany();
+    await prisma.availability.deleteMany();
+    await prisma.clientGroupMembership.deleteMany();
+    await prisma.clientGroup.deleteMany();
+    await prisma.clinicianServices.deleteMany();
+    await prisma.clinicianLocation.deleteMany();
+    await prisma.clinicianClient.deleteMany();
+    await prisma.clientContact.deleteMany();
+    await prisma.clientReminderPreference.deleteMany();
+    await prisma.clinicalInfo.deleteMany();
     await prisma.userRole.deleteMany();
+    await prisma.audit.deleteMany(); // First pass for audit
+
+    // Delete main entities that might trigger audits/cascade issues
+    await prisma.clinician.deleteMany();
+    await prisma.client.deleteMany();
+
+    // Final cleanup of potential dependents and core entities
+    await prisma.audit.deleteMany(); // Second pass for audit
     await prisma.user.deleteMany();
 
-    // Mock session for each test
-    vi.mocked(getServerSession).mockResolvedValue({
-      user: {
-        id: "test-user-id",
-      },
-    });
+    console.log("[Cleanup] Finished database cleanup for activity test.");
+  } catch (error) {
+    console.error("[Cleanup] Error during database cleanup:", error);
+    throw error; // Re-throw the error to fail the test if cleanup fails
+  }
+}
+
+describe("Activity API Integration Tests", () => {
+  beforeEach(async () => {
+    await cleanDatabase();
+    vi.restoreAllMocks(); // Keep mock restoration here
   });
 
   it("GET /api/activity should return all audit logs", async () => {
+    // Mock session for this test (if not already global)
+    vi.mocked(getServerSession).mockResolvedValueOnce({
+      user: {
+        id: "test-user-id-get-activity", // Use a specific ID for clarity
+      },
+    });
+
     // Create test users and clients
     const user1 = await UserPrismaFactory.create();
     const user2 = await UserPrismaFactory.create();

@@ -45,8 +45,9 @@ interface AppointmentDetailsProps {
 // Custom hook to get clinician data for the current user (like in appointment-dialog.tsx)
 function useClinicianData() {
   const { data: session, status: sessionStatus } = useSession();
-  const isAdmin = session?.user?.isAdmin || false;
-  const isClinician = session?.user?.isClinician || false;
+  // Use roles array for checks
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
+  const isClinician = session?.user?.roles?.includes("CLINICIAN") || false;
   const userId = session?.user?.id;
 
   const [userClinicianId, setUserClinicianId] = useState<string | null>(null);
