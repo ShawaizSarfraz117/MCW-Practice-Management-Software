@@ -32,3 +32,9 @@ export interface ClinicalInfo {
   taxonomy_code: string;
   NPI_number: number;
 }
+
+export interface ProductList {
+  id: string;
+  name: string;
+  price: string;
+}

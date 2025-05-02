@@ -324,6 +324,7 @@ model User {
   phone         String?   @db.VarChar(20)
   profile_photo String?   @db.VarChar(500)
   clinicalInfos ClinicalInfo[]
+  Products Product[]
 }
 
 model UserRole {
@@ -354,3 +355,14 @@ model License {
   state           String   // State
   clinicalInfo    ClinicalInfo @relation(fields: [clinical_info_id], references: [id]) // Establishing the relation
 }
+
+model Product {
+  id String @id @default(dbgenerated("newid()"), map: "PK_Product_ID") @db.UniqueIdentifier
+  name String @db.VarChar(255)
+  price String @db.VarChar(255)
+  created_at DateTime @default(now(), map: "DF_Product_CreatedAt")
+  user_id String @db.UniqueIdentifier
+  User User @relation(fields: [user_id], references: [id], map: "FK_Product_User")
+}
+
+

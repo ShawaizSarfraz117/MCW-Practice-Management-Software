@@ -59,7 +59,18 @@ const menuItems = {
     },
     {
       label: "Services and products",
-      id: "services",
+      children: [
+        {
+          label: "Services",
+          id: "services",
+          description: "Manage services and set rates",
+        },
+        {
+          label: "Products",
+          id: "products",
+          description: "Manage products and set rates",
+        },
+      ],
     },
   ],
   clientCare: [
