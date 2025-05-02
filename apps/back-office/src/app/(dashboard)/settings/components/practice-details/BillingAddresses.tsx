@@ -25,7 +25,7 @@ export default function BillingAddresses() {
   useEffect(() => {
     let addressData: BillingAddress[] = [];
     if (billingAddressesData?.length) {
-      addressData = billingAddressesData;
+      addressData = [...billingAddressesData];
       const hasBusinessAddress = addressData.some(
         (address) => address.type === "business",
       );
@@ -130,7 +130,7 @@ export default function BillingAddresses() {
         <TableBody>
           {billingAddresses?.map((address) => {
             return (
-              <TableRow key={address.id}>
+              <TableRow key={address.id ?? address.type}>
                 <TableCell>
                   {address.type === "business"
                     ? "Business Billing"

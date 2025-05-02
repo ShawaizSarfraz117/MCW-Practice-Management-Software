@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     if (existingAddress) {
       // Update existing address instead of returning error
       const updatedAddress = await prisma.billingAddress.update({
-        where: { id: existingAddress.id, type },
+        where: { id: existingAddress.id },
         data: {
           street,
           city,

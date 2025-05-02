@@ -80,7 +80,6 @@ const ProfileInfo = ({
                     <Input
                       className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm
                       placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      defaultValue={profileInfo?.phone}
                       type="tel"
                       value={form.getFieldValue("phone") as string}
                       onChange={(e) => field.handleChange(e.target.value)}

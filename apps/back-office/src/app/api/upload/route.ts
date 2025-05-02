@@ -76,6 +76,28 @@ export async function POST(
       );
     }
 
+    // Handle container not found
+    if (err?.message?.includes("ContainerNotFound")) {
+      return NextResponse.json(
+        {
+          error: "Storage configuration error",
+          details: "Upload destination not found",
+        },
+        { status: 500 },
+      );
+    }
+
+    // Handle authentication errors
+    if (err?.message?.includes("AuthenticationFailed")) {
+      return NextResponse.json(
+        {
+          error: "Storage authentication error",
+          details: "Failed to authenticate with storage provider",
+        },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json(
       {
         error: "Internal server error",

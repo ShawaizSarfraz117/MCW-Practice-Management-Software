@@ -1,25 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Button,
-  Label,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  toast,
-  Input,
-} from "@mcw/ui";
+import { Button, Label, toast, Input } from "@mcw/ui";
 import { PracticeInformation } from "@/types/profile";
 import { useTeleHealthInfo } from "../hooks/usePracticeInformation";
 import LocationForm from "./LocationForm";
 import ColorPicker from "./ColorPicker";
 import { X } from "lucide-react";
+import UnSavedChangesDialog from "./UnSavedChangesDialog";
 
 interface TelehealthFormProps {
   practiceInfoState: PracticeInformation;
@@ -30,7 +18,9 @@ interface TelehealthFormProps {
 export default function TelehealthForm({ onClose }: TelehealthFormProps) {
   const { teleHealthInfo, updateTeleHealthLocation, isUpdating } =
     useTeleHealthInfo();
-  const [officeName, setOfficeName] = useState(teleHealthInfo?.location?.name);
+  const [officeName, setOfficeName] = useState(
+    teleHealthInfo?.location?.name || "",
+  );
   const [address, setAddress] = useState({
     city: teleHealthInfo?.location?.city || "",
     state: teleHealthInfo?.location?.state || "",
@@ -97,14 +87,9 @@ export default function TelehealthForm({ onClose }: TelehealthFormProps) {
       updateTeleHealthLocation({
         locationId: teleHealthInfo.location.id,
         name: officeName || "",
-        address:
-          address.street +
-          " " +
-          address.city +
-          " " +
-          address.state +
-          " " +
-          address.zip,
+        address: [address.street, address.city, address.state, address.zip]
+          .filter(Boolean)
+          .join(" "),
         city: address.city,
         state: address.state,
         zip: address.zip,
@@ -112,16 +97,29 @@ export default function TelehealthForm({ onClose }: TelehealthFormProps) {
         street: address.street,
       });
       onClose();
+    } else {
+      toast({
+        title: "Missing Required Fields",
+        description: "Please fill in all required fields before saving.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50">
+    <div
+      aria-labelledby="telehealth-dialog-title"
+      aria-modal="true"
+      className="fixed inset-0 bg-black/50 z-50"
+      role="dialog"
+    >
       <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-lg transform transition-transform duration-300 ease-in-out translate-x-0">
         <div className="h-full flex flex-col">
           {/* Dialog Header */}
           <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-medium">Edit Telehealth Office</h2>
+            <h2 className="text-lg font-medium" id="telehealth-dialog-title">
+              Edit Telehealth Office
+            </h2>
             <Button
               className="rounded-full"
               size="icon"
@@ -160,13 +158,13 @@ export default function TelehealthForm({ onClose }: TelehealthFormProps) {
               {/* Location */}
               <LocationForm
                 address={address}
-                setAddress={setAddress}
                 errors={{
                   street: errors.street,
                   city: errors.city,
                   state: errors.state,
                   zip: errors.zip,
                 }}
+                setAddress={setAddress}
               />
 
               {/* Color */}
@@ -198,26 +196,12 @@ export default function TelehealthForm({ onClose }: TelehealthFormProps) {
               </Button>
             </div>
 
-            <AlertDialog
+            <UnSavedChangesDialog
               open={showConfirmDialog}
+              onDiscard={onClose}
               onOpenChange={setShowConfirmDialog}
-            >
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You have unsaved changes. Do you want to save them before
-                    closing?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => onClose()}>
-                    Discard
-                  </AlertDialogCancel>
-                  <AlertDialogAction onClick={submit}>Save</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              onSave={submit}
+            />
           </>
         </div>
       </div>
