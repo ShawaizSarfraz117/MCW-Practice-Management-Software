@@ -262,8 +262,9 @@ export function EditAppointmentTab({
                 }))}
                 placeholder="Select service"
                 value={
+                  selectedServices[0]?.serviceId ||
                   appointmentData?.PracticeService?.id ||
-                  selectedServices[0]?.serviceId
+                  ""
                 }
                 onValueChange={handleServiceSelect}
               />

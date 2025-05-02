@@ -305,12 +305,15 @@ export function CalendarView({
 
     try {
       // If client is specified, get client group details for title
-      if (values.client && values.client.trim()) {
-        const response = await fetch(`/api/client-group?id=${values.client}`);
+      if (values.clientGroup) {
+        const response = await fetch(
+          `/api/client/group?id=${values.clientGroup}`,
+        );
         if (response.ok) {
           const clientGroupData = await response.json();
 
           const clientName = clientGroupData.name || "Client Group";
+
           return createAppointmentWithAPI(values, clientName);
         } else {
           console.error(
@@ -320,7 +323,7 @@ export function CalendarView({
         }
       }
 
-      return createAppointmentWithAPI(values);
+      // return createAppointmentWithAPI(values);
     } catch (error) {
       console.error("Error in appointment creation:", error);
       return [];
@@ -616,6 +619,7 @@ export function CalendarView({
       service_id: values.selectedServices?.[0]?.serviceId || null,
       appointment_fee: values.selectedServices?.[0]?.fee || null,
     };
+    console.log("payload", payload, clientName);
 
     // Validate required fields before sending
     if (!payload.location_id) {
@@ -1067,8 +1071,8 @@ export function CalendarView({
             resources={isAdmin ? resources : undefined}
             select={handleDateSelect}
             selectable={true}
-            slotMaxTime="23:00:00"
-            slotMinTime="07:00:00"
+            slotMaxTime="23:59:00"
+            slotMinTime="00:00:00"
             timeZone="America/New_York"
             eventDisplay="block"
             eventOverlap={true}

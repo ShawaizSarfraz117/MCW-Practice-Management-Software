@@ -3,9 +3,8 @@
 
 import { MapPin } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage, SearchSelect } from "@mcw/ui";
-import { format } from "date-fns";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AppointmentTabProps,
   Client,
@@ -18,11 +17,23 @@ import { ValidationError } from "./components/ValidationError";
 import { useFormContext } from "./context/FormContext";
 import { CheckboxControl, DateTimeControls } from "./components/FormControls";
 import { RecurringControl } from "../calendar/RecurringControl";
+import { CreateClientDrawer } from "@/(dashboard)/clients/components/CreateClientDrawer";
+
+// Re-introduce specific types
+interface ClientMembership {
+  client_group_id?: string;
+  Client?: Client;
+}
+interface ClientGroupWithMembers {
+  id: string;
+  name?: string;
+  ClientGroupMembership?: ClientMembership[];
+}
 
 export function AppointmentTab({
-  onCreateClient,
   selectedDate: _selectedDate,
 }: AppointmentTabProps) {
+  const queryClient = useQueryClient();
   const {
     form,
     validationErrors,
@@ -34,6 +45,8 @@ export function AppointmentTab({
     isClinician,
     shouldFetchData,
   } = useFormContext();
+
+  const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
 
   const [selectedServices, setSelectedServices] = useState<
     Array<{ serviceId: string; fee: number }>
@@ -118,9 +131,14 @@ export function AppointmentTab({
   });
 
   const { data: clientsData = [], isLoading: isLoadingClients } = useQuery<
-    Client[]
+    ClientGroupWithMembers[]
   >({
-    queryKey: ["clients", effectiveClinicianId, isAdmin, isClinician],
+    queryKey: [
+      "appointmentDialogClients",
+      effectiveClinicianId,
+      isAdmin,
+      isClinician,
+    ],
     queryFn: async () => {
       let url = "/api/client/group";
 
@@ -165,33 +183,34 @@ export function AppointmentTab({
       ) {
         data = rawData.results;
       }
-      return data;
+      return data as ClientGroupWithMembers[];
     },
     enabled: !!shouldFetchData,
   });
 
   const filteredClients = Array.isArray(clientsData)
     ? clientsData
-        .map((clientGroup) => {
+        .map((clientGroup: ClientGroupWithMembers) => {
           if (Array.isArray(clientGroup?.ClientGroupMembership)) {
-            return clientGroup.ClientGroupMembership.map((membership) => {
-              const client = membership.Client;
-
-              return {
-                label:
-                  `${client?.legal_first_name || ""} ${client?.legal_last_name || ""}`.trim(),
-                value: membership?.client_group_id || "",
-              };
-            });
+            return clientGroup.ClientGroupMembership.map(
+              (membership: ClientMembership) => {
+                const client = membership.Client;
+                return {
+                  label:
+                    `${client?.legal_first_name || ""} ${client?.legal_last_name || ""}`.trim() ||
+                    `Group ${clientGroup.id}`,
+                  value: membership?.client_group_id || "",
+                };
+              },
+            );
           }
           return [];
         })
         .flat()
-        .filter((option) => {
-          if (!option.value) {
+        .filter((option): option is { label: string; value: string } => {
+          if (!option || !option.value) {
             return false;
           }
-
           const matches = option.label
             .toLowerCase()
             .includes(clientSearchTerm.toLowerCase());
@@ -289,19 +308,48 @@ export function AppointmentTab({
     }
   };
 
+  // Open the create client drawer
   const handleCreateClientClick = () => {
-    if (!onCreateClient) return;
-
-    const date = form.getFieldValue<Date>("startDate");
-    const time = form.getFieldValue<string>("startTime") || "12:00 PM";
-
-    const formattedDate = date
-      ? format(date, "yyyy-MM-dd")
-      : format(new Date(), "yyyy-MM-dd");
-    const formattedTime = time || "12:00 PM";
-
-    onCreateClient?.(formattedDate, formattedTime);
+    setIsCreateClientOpen(true);
   };
+
+  // Handle successful client creation
+  const handleClientCreated = async (newClient: {
+    id: string;
+    name: string;
+  }) => {
+    setIsCreateClientOpen(false);
+
+    const queryKey = [
+      "appointmentDialogClients",
+      effectiveClinicianId,
+      isAdmin,
+      isClinician,
+    ];
+
+    try {
+      await queryClient.invalidateQueries({ queryKey });
+      await queryClient.fetchQuery({ queryKey });
+
+      form.setFieldValue("clientGroup", newClient.id);
+      clearValidationError("clientGroup");
+    } catch (error) {
+      console.error(
+        "Error refetching or setting client after creation:",
+        error,
+      );
+      setGeneralError(
+        "Failed to automatically select the new client. Please select them manually.",
+      );
+    }
+  };
+
+  // --- DEBUG LOGS before render ---
+  // const currentClientGroupValue = form.getFieldValue("clientGroup");
+  // console.log("[AppointmentTab] Rendering - Form Value (clientGroup):", currentClientGroupValue);
+  // const paginatedClients = filteredClients.slice(/* ... */);
+  // console.log("[AppointmentTab] Rendering - Paginated Client Options for Select:", JSON.stringify(paginatedClients));
+  // --- END DEBUG LOGS ---
 
   return (
     <>
@@ -548,6 +596,13 @@ export function AppointmentTab({
           </div>
         </div>
       )}
+
+      {/* Render the CreateClientDrawer */}
+      <CreateClientDrawer
+        open={isCreateClientOpen}
+        onOpenChange={setIsCreateClientOpen}
+        onClientCreated={handleClientCreated}
+      />
     </>
   );
 }
