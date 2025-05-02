@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 import { X, ChevronDown, Printer, Download, Pencil, Save } from "lucide-react";
-import { Dialog, DialogContent } from "@mcw/ui";
+import { Dialog, DialogContent, toast } from "@mcw/ui";
 import { Button } from "@mcw/ui";
 import {
   DropdownMenu,
@@ -116,7 +116,7 @@ export function InvoiceDialog({ open, onOpenChange }: InvoiceDialogProps) {
 
   const creditApplied =
     invoice?.Payment?.reduce(
-      (sum: number, payment) => sum + parseFloat(payment.credit_applied),
+      (sum: number, payment) => sum + parseFloat(payment.credit_applied ?? 0),
       0,
     ) || 0;
 
@@ -222,6 +222,8 @@ export function InvoiceDialog({ open, onOpenChange }: InvoiceDialogProps) {
     }
     setIsEditMode(false);
     setIsLoading(false);
+    toast({ description: "Invoice updated", variant: "success" });
+    router.refresh();
   };
 
   const handleCancel = () => {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
+import { logger } from "@mcw/logger";
 
 // PUT - Update an existing appointment
 export async function PUT(
@@ -56,7 +57,7 @@ export async function PUT(
 
     return NextResponse.json(updatedAppointment);
   } catch (error) {
-    console.error("Error updating appointment:", error);
+    logger.error(error as Error, "Failed to update appointment");
     return NextResponse.json(
       { error: "Failed to update appointment" },
       { status: 500 },

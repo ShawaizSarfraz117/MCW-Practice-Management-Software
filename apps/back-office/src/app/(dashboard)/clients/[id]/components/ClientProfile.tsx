@@ -99,21 +99,14 @@ export default function ClientProfile({
         setClientGroup(clientGroupResponse as ClientGroupWithMembership);
 
         if (clientGroupResponse.ClientGroupMembership?.length) {
-          let name = "";
-          (
-            clientGroupResponse.ClientGroupMembership as Array<{
-              Client: {
-                legal_first_name?: string;
-                legal_last_name?: string;
-              };
-            }>
-          ).forEach((membership, index: number, array) => {
-            name +=
-              membership?.Client?.legal_first_name +
-              " " +
-              membership?.Client?.legal_last_name +
-              (index !== array.length - 1 ? " & " : "");
-          });
+          const name = (clientGroupResponse.ClientGroupMembership ?? [])
+            .map((m) =>
+              `${m.Client?.legal_first_name ?? ""} ${
+                m.Client?.legal_last_name ?? ""
+              }`.trim(),
+            )
+            .filter(Boolean)
+            .join(" & ");
           setClientName(name);
         }
       }
