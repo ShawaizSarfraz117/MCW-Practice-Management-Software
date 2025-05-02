@@ -90,7 +90,7 @@ export function AppointmentDialog({
 
       // Tab-specific validation
       if (activeTab === "appointment") {
-        if (!value.client) errors.client = true;
+        if (!value.clientGroup) errors.client = true;
         if (!value.clinician) errors.clinician = true;
         if (!value.location) errors.location = true;
         if (
@@ -237,10 +237,7 @@ export function AppointmentDialog({
                   }
 
                   setActiveTab(value as "appointment" | "event" | "out");
-                  form.setFieldValue(
-                    "type",
-                    value as "appointment" | "event" | "out",
-                  );
+                  form.setFieldValue("type", value as "appointment" | "event");
 
                   if (value === "event") {
                     form.reset(eventFormValues);
@@ -272,6 +269,7 @@ export function AppointmentDialog({
               <div className="px-6 space-y-4">
                 {activeTab === "appointment" ? (
                   <AppointmentTab
+                    appointmentData={appointmentData}
                     selectedDate={selectedDate}
                     onCreateClient={onCreateClient}
                   />

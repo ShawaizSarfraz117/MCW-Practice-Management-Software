@@ -6,15 +6,62 @@ import resourceTimeGridPlugin from "@fullcalendar/resource-timegrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { EventClickArg } from "@fullcalendar/core";
+import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
+import { DayHeaderContentArg } from "@fullcalendar/core";
 
 import { AppointmentDialog } from "../AppointmentDialog";
 import { CalendarToolbar } from "./components/CalendarToolbar";
 import { useAppointmentHandler } from "./hooks/useAppointmentHandler";
 import { getHeaderDateFormat } from "./utils/date-utils";
-import { CalendarViewProps, Event, Clinician, Location } from "./types";
+import {
+  CalendarViewProps,
+  Event,
+  Clinician,
+  Location,
+  AppointmentData,
+  AvailabilityData,
+} from "./types";
+import { EditAppointmentDialog } from "../EditAppointmentDialog";
+import { AvailabilitySidebar } from "../availability/AvailabilitySidebar";
+import { ClientGroup } from "../appointment-dialog/types";
+import { Button, Card, CardHeader, CardContent, toast } from "@mcw/ui";
+
+declare global {
+  interface Window {
+    toast?: {
+      error: (message: string) => void;
+    };
+  }
+}
+
+interface FormValues {
+  clientGroup: ClientGroup | null;
+  type?: string;
+  eventName?: string;
+  client?: string;
+  startDate: Date;
+  endDate: Date;
+  startTime?: string;
+  endTime?: string;
+  location?: string;
+  clinician?: string;
+  recurring?: boolean;
+  allDay?: boolean;
+  selectedServices?: Array<{
+    serviceId: string;
+    fee: number;
+  }>;
+  recurringInfo?: {
+    frequency: string;
+    period: string;
+    selectedDays: string[];
+    monthlyPattern?: string;
+    endType: string;
+    endValue: string | undefined;
+  };
+}
 
 export function CalendarView({
   initialClinicians,
@@ -22,17 +69,36 @@ export function CalendarView({
   initialEvents,
   onCreateClient,
   onAppointmentDone,
+  onEventClick,
+  onDateSelect,
+  isScheduledPage = false,
 }: CalendarViewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
-  const [isViewingAppointment, setIsViewingAppointment] = useState(false);
   const [events, setEvents] = useState<Event[]>(initialEvents);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [showAvailabilitySidebar, setShowAvailabilitySidebar] = useState(false);
+  const [selectedAvailability, setSelectedAvailability] =
+    useState<AvailabilityData | null>(null);
+  const [appointmentLimits, setAppointmentLimits] = useState<
+    Record<string, number | null>
+  >({});
+  const [addLimitDropdown, setAddLimitDropdown] = useState<{
+    open: boolean;
+    anchor: HTMLElement | null;
+    date: Date | null;
+  }>({ open: false, anchor: null, date: null });
+  const addLimitDropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   // Get session data to check if user is admin
   const { data: session } = useSession();
-  const isAdmin = session?.user?.isAdmin || false;
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
 
   // Set the view based on user role
   const [currentView, setCurrentView] = useState(
@@ -65,20 +131,39 @@ export function CalendarView({
 
   // Filter events based on selected resources
   const filteredEvents = useMemo(() => {
-    // First filter events by selected locations
-    let filtered = events.filter((event) =>
-      selectedLocations.includes(event.location),
-    );
+    // First filter events by type based on the page we're on
+    let filtered = events.filter((event) => {
+      const eventType = event.extendedProps?.type;
+
+      // On scheduled page, only show availabilities
+      if (isScheduledPage) {
+        return eventType === "availability";
+      }
+      // On calendar page, only show appointments
+      return eventType !== "availability";
+    });
+
+    // Then filter by location and clinician
+    filtered = filtered.filter((event) => {
+      // For availability events, only check clinician
+      if (event.extendedProps?.type === "availability") {
+        return event.resourceId;
+      }
+      // For regular events, filter by location
+      return event.location && selectedLocations.includes(event.location);
+    });
 
     // For non-admin users, only show events related to their clinician ID
     if (!isAdmin && selectedClinicians.length > 0) {
-      filtered = filtered.filter((event) =>
-        selectedClinicians.includes(event.resourceId),
-      );
+      filtered = filtered.filter((event) => {
+        return (
+          event.resourceId && selectedClinicians.includes(event.resourceId)
+        );
+      });
     }
 
     return filtered;
-  }, [events, selectedLocations, selectedClinicians, isAdmin]);
+  }, [events, selectedLocations, selectedClinicians, isAdmin, isScheduledPage]);
 
   // Effect to capture form values from the AppointmentDialog
   useEffect(() => {
@@ -103,6 +188,99 @@ export function CalendarView({
     };
   }, []);
 
+  // Listen for appointment updates
+  useEffect(() => {
+    const handleAppointmentUpdate = (event: CustomEvent) => {
+      const updatedAppointment = event.detail.appointment;
+
+      // Update the events array by replacing the old appointment with the updated one
+      setEvents((prevEvents) => {
+        return prevEvents.map((event) => {
+          if (event.id === updatedAppointment.id) {
+            return {
+              ...event,
+              ...updatedAppointment,
+              start: new Date(updatedAppointment.start_date),
+              end: new Date(updatedAppointment.end_date),
+            };
+          }
+          return event;
+        });
+      });
+
+      // Close the edit dialog
+      setIsEditDialogOpen(false);
+    };
+
+    const handleAppointmentDelete = async () => {
+      try {
+        // Get the current date range from the calendar
+        const calendarApi = calendarRef.current?.getApi();
+        if (!calendarApi) return;
+
+        const view = calendarApi.view;
+        const startDate = view.activeStart.toISOString().split("T")[0];
+        const endDate = view.activeEnd.toISOString().split("T")[0];
+
+        // Construct the URL with date range
+        let url = `/api/appointment?startDate=${startDate}&endDate=${endDate}`;
+
+        // If user is a clinician and not an admin, fetch only their appointments
+        if (!isAdmin && selectedClinicians.length > 0) {
+          url += `&clinicianId=${selectedClinicians[0]}`;
+        }
+
+        // Fetch updated appointments
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error("Failed to fetch appointments");
+        }
+
+        const appointments = await response.json();
+
+        // Format appointments for calendar
+        const formattedEvents = appointments.map(
+          (appointment: AppointmentData) => ({
+            id: appointment.id,
+            resourceId: appointment.clinician_id || "",
+            title: appointment.title,
+            start: appointment.start_date,
+            end: appointment.end_date,
+            location: appointment.location_id || "",
+          }),
+        );
+
+        // Update calendar events
+        setEvents(formattedEvents);
+      } catch (error) {
+        console.error("Error refreshing appointments:", error);
+      }
+
+      // Close the edit dialog
+      setIsEditDialogOpen(false);
+    };
+
+    window.addEventListener(
+      "appointmentUpdated",
+      handleAppointmentUpdate as EventListener,
+    );
+    window.addEventListener(
+      "appointmentDeleted",
+      handleAppointmentDelete as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "appointmentUpdated",
+        handleAppointmentUpdate as EventListener,
+      );
+      window.removeEventListener(
+        "appointmentDeleted",
+        handleAppointmentDelete as EventListener,
+      );
+    };
+  }, [calendarRef, isAdmin, selectedClinicians]);
+
   // Handle appointment dialog closing and form submission
   const handleAppointmentSubmit = async () => {
     try {
@@ -123,24 +301,25 @@ export function CalendarView({
   const handleCreateAppointment = async () => {
     if (!appointmentFormRef.current) return [];
 
-    const values = appointmentFormRef.current;
+    const values = appointmentFormRef.current as unknown as FormValues;
 
     try {
-      // If client is specified, get client details for title
-      if (values.client) {
-        const response = await fetch(`/api/client?id=${values.client}`);
+      // If client is specified, get client group details for title
+      if (values.client && values.client.trim()) {
+        const response = await fetch(`/api/client-group?id=${values.client}`);
         if (response.ok) {
-          const clientData = await response.json();
-          const clientName =
-            clientData.legal_first_name && clientData.legal_last_name
-              ? `${clientData.legal_first_name} ${clientData.legal_last_name}`
-              : "Client";
+          const clientGroupData = await response.json();
 
+          const clientName = clientGroupData.name || "Client Group";
           return createAppointmentWithAPI(values, clientName);
+        } else {
+          console.error(
+            "Failed to fetch client group data:",
+            await response.text(),
+          );
         }
       }
 
-      // No client or error fetching client, proceed with generic title
       return createAppointmentWithAPI(values);
     } catch (error) {
       console.error("Error in appointment creation:", error);
@@ -150,20 +329,7 @@ export function CalendarView({
 
   // Function to create appointment via API
   const createAppointmentWithAPI = async (
-    values: {
-      type?: string;
-      eventName?: string;
-      client?: string;
-      startDate: Date;
-      endDate: Date;
-      startTime?: string;
-      endTime?: string;
-      location?: string;
-      clinician?: string;
-      recurring?: boolean;
-      allDay?: boolean;
-      selectedServices?: Array<{ serviceId: string; fee: number }>;
-    },
+    values: FormValues,
     clientName?: string,
   ) => {
     // Create the appointment payload based on form values
@@ -177,19 +343,69 @@ export function CalendarView({
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error ||
-            response.statusText ||
-            "Failed to create appointment",
-        );
+        const errorData = await response.json();
+        console.error("API Error Response:", {
+          status: response.status,
+          errorData,
+          sentPayload: appointmentData,
+          originalFormValues: values,
+        });
+        // Handle appointment limit error
+        if (errorData.error === "Appointment limit reached for this day.") {
+          toast({
+            title: "Appointment limit reached for this day",
+            // description: "Please select at least one invoice to make a payment.",
+            // variant: "destructive",
+          });
+
+          return [];
+        }
+        throw new Error(errorData.error || "Failed to create appointment");
       }
 
-      const data = await response.json();
-      const appointments = Array.isArray(data) ? data : [data];
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        let errorMessage = "Failed to create appointment";
+
+        // Handle specific validation errors
+        if (responseData.missingFields?.length > 0) {
+          errorMessage = `Missing required fields: ${responseData.missingFields.join(", ")}`;
+          console.error(
+            "Validation error:",
+            errorMessage,
+            "Full error:",
+            responseData,
+          );
+        } else if (responseData.error) {
+          errorMessage = responseData.error;
+          if (responseData.details) {
+            errorMessage += `: ${responseData.details}`;
+          }
+          console.error(
+            "API error:",
+            errorMessage,
+            "Full error:",
+            responseData,
+          );
+        }
+
+        // Show error in a more user-friendly way using the toast system if available
+        if (typeof window !== "undefined" && window.toast) {
+          window.toast.error(errorMessage);
+        } else {
+          alert(errorMessage);
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const appointments = Array.isArray(responseData)
+        ? responseData
+        : [responseData];
 
       // Format events for calendar
-      return appointments.map((appointment) => ({
+      const formattedEvents = appointments.map((appointment) => ({
         id: appointment.id,
         resourceId: appointment.clinician_id || "",
         title: appointment.title,
@@ -197,51 +413,63 @@ export function CalendarView({
         end: appointment.end_date,
         location: appointment.location_id || "",
       }));
+
+      return formattedEvents;
     } catch (error) {
       console.error("API error:", error);
-      alert(
-        `Error creating appointment: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-      return [];
+      throw error;
     }
   };
 
   // Helper to create appointment payload
   const createAppointmentPayload = (
-    values: {
-      type?: string;
-      eventName?: string;
-      client?: string;
-      startDate: Date;
-      endDate: Date;
-      startTime?: string;
-      endTime?: string;
-      location?: string;
-      clinician?: string;
-      recurring?: boolean;
-      allDay?: boolean;
-      selectedServices?: Array<{ serviceId: string; fee: number }>;
-    },
+    values: FormValues,
     clientName?: string,
   ) => {
+    // Log incoming values
+
+    // Validate input dates first
+    if (
+      !(values.startDate instanceof Date) ||
+      isNaN(values.startDate.getTime())
+    ) {
+      console.error("Invalid start date:", values.startDate);
+      throw new Error(`Invalid start date: ${values.startDate}`);
+    }
+
+    if (!(values.endDate instanceof Date) || isNaN(values.endDate.getTime())) {
+      console.error("Invalid end date:", values.endDate);
+      throw new Error(`Invalid end date: ${values.endDate}`);
+    }
+
     // Parse and combine date and time values
     const getDateTimeISOString = (date: Date, timeStr?: string) => {
-      if (values.allDay || !timeStr) return date.toISOString();
+      if (!timeStr) {
+        return date.toISOString();
+      }
+
+      // Validate time string format
+      const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
+      if (!timeRegex.test(timeStr)) {
+        console.error("Invalid time string format:", timeStr);
+        throw new Error(
+          `Invalid time format. Expected "HH:MM AM/PM", got "${timeStr}"`,
+        );
+      }
 
       const [timeValue, period] = timeStr.split(" ");
       const [hours, minutes] = timeValue.split(":").map(Number);
 
       // Convert 12-hour format to 24-hour
       let hours24 = hours;
-      if (period === "PM" && hours !== 12) hours24 += 12;
-      if (period === "AM" && hours === 12) hours24 = 0;
+      if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
+      if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
 
       // Create a new date with the correct local time
       const newDate = new Date(date);
       newDate.setHours(hours24, minutes, 0, 0);
 
       // Create an ISO string but adjust for timezone offset to preserve local time
-      // Format: YYYY-MM-DDTHH:MM:SS.sssZ
       const tzOffset = newDate.getTimezoneOffset() * 60000; // offset in milliseconds
       const localISOTime = new Date(newDate.getTime() - tzOffset).toISOString();
 
@@ -249,65 +477,297 @@ export function CalendarView({
     };
 
     // Create start and end dates with the correct times
-    const startDateTime = getDateTimeISOString(
-      values.startDate,
-      values.startTime,
-    );
-    const endDateTime = getDateTimeISOString(values.endDate, values.endTime);
+    let startDateTime, endDateTime;
+    try {
+      startDateTime = getDateTimeISOString(values.startDate, values.startTime);
+      endDateTime = getDateTimeISOString(values.endDate, values.endTime);
+    } catch (error) {
+      console.error("Error parsing dates:", error);
+      throw error;
+    }
 
-    return {
+    // Validate date range
+    if (new Date(endDateTime) <= new Date(startDateTime)) {
+      const error = "End date/time must be after start date/time";
+      console.error(error, { startDateTime, endDateTime });
+      throw new Error(error);
+    }
+
+    // Validate recurring appointment settings
+    if (values.recurring && values.recurringInfo) {
+      // Validate frequency is a positive number
+      if (
+        values.recurringInfo.frequency &&
+        parseInt(values.recurringInfo.frequency) <= 0
+      ) {
+        throw new Error("Recurring frequency must be a positive number");
+      }
+
+      // Validate selected days for weekly recurrence
+      if (
+        values.recurringInfo.period === "WEEKLY" &&
+        (!values.recurringInfo.selectedDays ||
+          values.recurringInfo.selectedDays.length === 0)
+      ) {
+        throw new Error(
+          "Weekly recurring appointments must have at least one day selected",
+        );
+      }
+
+      // Validate end date for "On Date" end type
+      if (
+        values.recurringInfo.endType === "On Date" &&
+        values.recurringInfo.endValue
+      ) {
+        const endDate = new Date(values.recurringInfo.endValue);
+        if (endDate <= new Date(startDateTime)) {
+          throw new Error(
+            "Recurring end date must be after the appointment start date",
+          );
+        }
+      }
+    }
+
+    // Format recurring rule in RFC5545 format if recurring is enabled
+    let recurringRule = null;
+    if (values.recurring && values.recurringInfo) {
+      const parts = [`FREQ=${values.recurringInfo.period}`];
+
+      // Add interval (frequency)
+      if (
+        values.recurringInfo.frequency &&
+        parseInt(values.recurringInfo.frequency) > 1
+      ) {
+        parts.push(`INTERVAL=${values.recurringInfo.frequency}`);
+      }
+
+      // Add weekdays for weekly recurrence
+      if (
+        values.recurringInfo.period === "WEEKLY" &&
+        values.recurringInfo.selectedDays?.length > 0
+      ) {
+        parts.push(`BYDAY=${values.recurringInfo.selectedDays.join(",")}`);
+      }
+
+      // Add monthly pattern if specified
+      if (
+        values.recurringInfo.period === "MONTHLY" &&
+        values.recurringInfo.monthlyPattern
+      ) {
+        if (values.recurringInfo.monthlyPattern === "onDateOfMonth") {
+          // Use BYMONTHDAY for same day each month
+          const dayOfMonth = values.startDate.getDate();
+          parts.push(`BYMONTHDAY=${dayOfMonth}`);
+        } else if (values.recurringInfo.monthlyPattern === "onWeekDayOfMonth") {
+          // Use BYDAY with ordinal for same weekday each month
+          const dayOfWeek = values.startDate.getDay();
+          const weekNumber = Math.ceil(values.startDate.getDate() / 7);
+          const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+          parts.push(`BYDAY=${weekNumber}${days[dayOfWeek]}`);
+        } else if (
+          values.recurringInfo.monthlyPattern === "onLastWeekDayOfMonth"
+        ) {
+          // Use BYDAY with -1 for last weekday of month
+          const dayOfWeek = values.startDate.getDay();
+          const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+          parts.push(`BYDAY=-1${days[dayOfWeek]}`);
+        }
+      }
+
+      // Add end condition
+      if (
+        values.recurringInfo.endType === "After" &&
+        values.recurringInfo.endValue
+      ) {
+        parts.push(`COUNT=${values.recurringInfo.endValue}`);
+      } else if (
+        values.recurringInfo.endType === "On Date" &&
+        values.recurringInfo.endValue
+      ) {
+        // Format the end date as YYYYMMDD for UNTIL
+        const endDate = new Date(values.recurringInfo.endValue);
+        const year = endDate.getFullYear();
+        const month = String(endDate.getMonth() + 1).padStart(2, "0");
+        const day = String(endDate.getDate()).padStart(2, "0");
+        parts.push(`UNTIL=${year}${month}${day}T235959Z`);
+      }
+
+      recurringRule = parts.join(";");
+    }
+
+    const payload = {
       type: values.type || "APPOINTMENT",
       title:
         values.type === "event"
           ? values.eventName || "Event"
-          : values.client
+          : values.clientGroup
             ? `Appointment with ${clientName || "Client"}`
             : "New Appointment",
       is_all_day: values.allDay || false,
       start_date: startDateTime,
       end_date: endDateTime,
       location_id: values.location || "",
-      client_id: values.client || null,
+      client_group_id: values.clientGroup ? values.clientGroup : null,
       clinician_id: values.clinician || selectedResource || "",
       created_by: session?.user?.id || "",
       status: "SCHEDULED",
       is_recurring: values.recurring || false,
+      recurring_rule: recurringRule,
       service_id: values.selectedServices?.[0]?.serviceId || null,
       appointment_fee: values.selectedServices?.[0]?.fee || null,
     };
+
+    // Validate required fields before sending
+    if (!payload.location_id) {
+      throw new Error("Location is required");
+    }
+    if (!payload.clinician_id) {
+      throw new Error("Clinician is required");
+    }
+
+    return payload;
   };
 
+  // Effect to fetch events
+  useEffect(() => {
+    async function fetchEventsForCurrentView() {
+      if (!calendarRef.current) return;
+      const calendarApi = calendarRef.current.getApi();
+      const view = calendarApi.view;
+      const startDate = view.activeStart.toISOString().split("T")[0];
+      const endDate = view.activeEnd.toISOString().split("T")[0];
+
+      try {
+        // Fetch appointments
+        let appointmentUrl = `/api/appointment?startDate=${startDate}&endDate=${endDate}`;
+        if (!isAdmin && selectedClinicians.length > 0) {
+          appointmentUrl += `&clinicianId=${selectedClinicians[0]}`;
+        }
+
+        // Fetch availabilities
+        let availabilityUrl = `/api/availability?startDate=${startDate}&endDate=${endDate}`;
+        if (!isAdmin && selectedClinicians.length > 0) {
+          availabilityUrl += `&clinicianId=${selectedClinicians[0]}`;
+        }
+
+        // Fetch both appointments and availabilities in parallel
+        const [appointmentsResponse, availabilitiesResponse] =
+          await Promise.all([fetch(appointmentUrl), fetch(availabilityUrl)]);
+
+        if (!appointmentsResponse.ok)
+          throw new Error("Failed to fetch appointments");
+        if (!availabilitiesResponse.ok)
+          throw new Error("Failed to fetch availabilities");
+
+        const [appointments, availabilities] = await Promise.all([
+          appointmentsResponse.json(),
+          availabilitiesResponse.json(),
+        ]);
+
+        // Format appointments
+        const formattedAppointments = appointments.map(
+          (appointment: AppointmentData) => ({
+            id: appointment.id,
+            resourceId: appointment.clinician_id || "",
+            title: appointment.title,
+            start: appointment.start_date,
+            end: appointment.end_date,
+            location: appointment.location_id || "",
+            extendedProps: {
+              type: "appointment",
+            },
+          }),
+        );
+
+        // Format availabilities to match appointment pattern
+        const formattedAvailabilities = availabilities.map(
+          (availability: AvailabilityData) => {
+            const event = {
+              id: availability.id,
+              resourceId: availability.clinician_id,
+              title: availability.title || "Available",
+              start: availability.start_date,
+              end: availability.end_date,
+              location: availability.location || "",
+              extendedProps: {
+                type: "availability",
+                clinician_id: availability.clinician_id,
+                allow_online_requests: availability.allow_online_requests,
+                is_recurring: availability.is_recurring,
+                recurring_rule: availability.recurring_rule,
+              },
+            };
+            return event;
+          },
+        );
+
+        // Set all events
+        setEvents([...formattedAvailabilities, ...formattedAppointments]);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    }
+    fetchEventsForCurrentView();
+  }, [currentView, currentDate, selectedClinicians, isAdmin]);
+
   // Handle event click to view appointment details
-  const handleEventClick = async (info: EventClickArg) => {
-    const appointmentId = info.event.id;
+  const handleEventClick = async (clickInfo: EventClickArg) => {
+    if (clickInfo.event.extendedProps?.type === "availability") {
+      const availabilityId = clickInfo.event.id;
+
+      try {
+        const response = await fetch(`/api/availability?id=${availabilityId}`);
+        if (!response.ok)
+          throw new Error("Failed to fetch availability details");
+        const availabilityData = await response.json();
+
+        setSelectedAvailability(availabilityData);
+        setShowAvailabilitySidebar(true);
+      } catch (error) {
+        console.error("Error fetching availability:", error);
+      }
+      return;
+    }
+
+    // Handle regular appointment click
+    if (onEventClick) {
+      onEventClick(clickInfo);
+      return;
+    }
+
+    const appointmentId = clickInfo.event.id;
     const appointmentData = await fetchAppointmentDetails(appointmentId);
 
     if (appointmentData) {
-      // Set selected date from appointment
       if (appointmentData.start_date) {
         setSelectedDate(new Date(appointmentData.start_date));
       }
-
-      // Set selected resource (clinician) if available
       if (appointmentData.clinician_id) {
         setSelectedResource(appointmentData.clinician_id);
       }
 
-      // Open the dialog in view mode
-      setIsViewingAppointment(true);
-      setIsDialogOpen(true);
+      const eventData = {
+        startTime: format(new Date(appointmentData.start_date), "h:mm a"),
+        endTime: format(new Date(appointmentData.end_date), "h:mm a"),
+      };
+
+      window.sessionStorage.setItem(
+        "selectedTimeSlot",
+        JSON.stringify(eventData),
+      );
       setSelectedAppointment(appointmentData);
+      setIsEditDialogOpen(true);
     }
   };
 
   // Handle date selection to create a new appointment
-  const handleDateSelect = (selectInfo: {
-    start: Date;
-    end: Date;
-    resource?: { id: string };
-  }) => {
+  const handleDateSelect = (selectInfo: DateSelectArg) => {
+    if (onDateSelect) {
+      onDateSelect(selectInfo);
+      return;
+    }
+
     // Reset viewing mode when creating a new appointment
-    setIsViewingAppointment(false);
     setSelectedAppointment(null);
     setSelectedDate(selectInfo.start);
     setSelectedResource(selectInfo.resource?.id || null);
@@ -380,6 +840,104 @@ export function CalendarView({
       title: clinician.label,
     }));
 
+  // Fetch limits for all days in view
+  useEffect(() => {
+    if (
+      !isScheduledPage ||
+      selectedClinicians.length === 0 ||
+      !calendarRef.current
+    ) {
+      setAppointmentLimits({});
+      return;
+    }
+    const calendarApi = calendarRef.current.getApi();
+    const view = calendarApi.view;
+    const startDate = view.activeStart;
+    const endDate = view.activeEnd;
+    const clinicianId = selectedClinicians[0];
+
+    // Get all dates in range
+    const dates: string[] = [];
+    const d = new Date(startDate);
+    while (d <= endDate) {
+      dates.push(d.toISOString().split("T")[0]);
+      d.setDate(d.getDate() + 1);
+    }
+
+    // Fetch all limits in parallel
+    Promise.all(
+      dates.map((date) =>
+        fetch(`/api/appointment-limit?clinicianId=${clinicianId}&date=${date}`)
+          .then((res) => res.json())
+          .then((data) => ({ date, limit: data.limit ?? null }))
+          .catch(() => ({ date, limit: null })),
+      ),
+    ).then((results) => {
+      const limits: Record<string, number | null> = {};
+      results.forEach(({ date, limit }) => {
+        limits[date] = limit;
+      });
+      setAppointmentLimits(limits);
+    });
+  }, [isScheduledPage, selectedClinicians, currentView, currentDate]);
+
+  function handleAddLimit(
+    date: Date,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY,
+      left: rect.left + rect.width / 2 + window.scrollX,
+    });
+    setAddLimitDropdown({ open: true, anchor: event.currentTarget, date });
+  }
+
+  // Update only the selected date's limit after adding
+  async function handleSelectLimit(limit: number | null) {
+    if (!addLimitDropdown.date || selectedClinicians.length === 0) return;
+    const clinician_id = selectedClinicians[0];
+    const date = addLimitDropdown.date.toISOString().split("T")[0];
+    const apiLimit = limit === null ? 0 : limit;
+    try {
+      const res = await fetch("/api/appointment-limit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinician_id, date, max_limit: apiLimit }),
+      });
+      if (!res.ok) throw new Error("Failed to set limit");
+      setAppointmentLimits((prev) => ({ ...prev, [date]: apiLimit }));
+    } catch (_e) {
+      if (typeof window !== "undefined" && window.toast) {
+        window.toast.error("Failed to set limit");
+      } else {
+        alert("Failed to set limit");
+      }
+    } finally {
+      setAddLimitDropdown({ open: false, anchor: null, date: null });
+    }
+  }
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        addLimitDropdown.open &&
+        addLimitDropdownRef.current &&
+        !addLimitDropdownRef.current.contains(event.target as Node)
+      ) {
+        setAddLimitDropdown({ open: false, anchor: null, date: null });
+        setDropdownPosition(null);
+      }
+    }
+    if (addLimitDropdown.open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [addLimitDropdown.open]);
+
   return (
     <div className="flex h-full bg-background">
       <div className="flex-1 flex flex-col">
@@ -410,6 +968,90 @@ export function CalendarView({
               day: "numeric",
               omitCommas: true,
             }}
+            dayHeaderContent={
+              isScheduledPage
+                ? (args: DayHeaderContentArg) => {
+                    const dateStr = args.date.toISOString().split("T")[0];
+                    const limit = appointmentLimits[dateStr];
+                    const isDropdownOpen =
+                      addLimitDropdown.open &&
+                      addLimitDropdown.date &&
+                      dropdownPosition &&
+                      addLimitDropdown.date.toDateString() ===
+                        args.date.toDateString();
+                    let buttonText = "+ Appt Limit";
+                    if (limit === 0) buttonText = "No Availability";
+                    else if (limit !== undefined && limit !== null)
+                      buttonText = `${limit} max appts`;
+                    return (
+                      <div className="flex flex-col items-center relative">
+                        <span>{args.text}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-[0.7rem] font-medium text-gray-700 mt-1 mb-1"
+                          onClick={(e) => handleAddLimit(args.date, e)}
+                        >
+                          {buttonText}
+                        </Button>
+                        {isDropdownOpen && (
+                          <Card
+                            ref={addLimitDropdownRef}
+                            className="fixed bg-white z-50 min-w-[170px] overflow-hidden p-0"
+                            style={{
+                              top: dropdownPosition.top,
+                              left: dropdownPosition.left,
+                              transform: "translate(-50%, 0)",
+                              marginTop: "4px",
+                            }}
+                          >
+                            <CardHeader className="p-[10px_10px_6px_10px] border-b border-gray-100">
+                              <div className="font-bold text-[0.6rem] text-gray-800">
+                                Appt limit per day
+                              </div>
+                              <div className="font-medium text-[0.5rem] text-gray-400 mt-0.5">
+                                {addLimitDropdown.date
+                                  ? `All ${addLimitDropdown.date.toLocaleDateString(undefined, { weekday: "long" })}s`
+                                  : ""}
+                              </div>
+                            </CardHeader>
+                            <CardContent className="py-2 px-0 max-h-60 overflow-y-auto">
+                              <div
+                                className={`px-4 py-3 text-left cursor-pointer text-gray-800 font-bold text-[0.7rem] rounded-lg mx-2 mb-1 ${
+                                  appointmentLimits[dateStr] === 0
+                                    ? "bg-gray-100"
+                                    : ""
+                                }`}
+                                onClick={() => handleSelectLimit(null)}
+                                onMouseDown={(e) => e.preventDefault()}
+                              >
+                                No appt limit
+                              </div>
+                              {[...Array(20)].map((_, i: number) => {
+                                const num = i + 1;
+                                return (
+                                  <div
+                                    key={num}
+                                    className={`px-4 py-2.5 text-left cursor-pointer text-gray-800 font-medium text-[0.7rem] rounded-lg mx-2 mb-1 transition-colors ${
+                                      appointmentLimits[dateStr] === num
+                                        ? "bg-gray-100"
+                                        : ""
+                                    }`}
+                                    onClick={() => handleSelectLimit(num)}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                  >
+                                    {num}
+                                  </div>
+                                );
+                              })}
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                    );
+                  }
+                : undefined
+            }
             eventClick={handleEventClick}
             events={filteredEvents}
             headerToolbar={false}
@@ -428,6 +1070,100 @@ export function CalendarView({
             slotMaxTime="23:00:00"
             slotMinTime="07:00:00"
             timeZone="America/New_York"
+            eventDisplay="block"
+            eventOverlap={true}
+            slotEventOverlap={true}
+            eventDidMount={(info) => {
+              const event = info.event;
+              const type = event.extendedProps?.type;
+              if (type === "availability") {
+                const allowRequests =
+                  event.extendedProps?.allow_online_requests;
+                const isRecurring = event.extendedProps?.is_recurring;
+
+                // Apply Tailwind equivalent classes directly
+                info.el.classList.add(
+                  "bg-[#2d84671a]",
+                  "border-0",
+                  "opacity-85",
+                  "cursor-pointer",
+                  "pointer-events-auto",
+                  "z-10",
+                  "relative",
+                  "pl-4",
+                );
+
+                // Create the colored bar for the left side
+                const leftBar = document.createElement("div");
+                leftBar.classList.add(
+                  "absolute",
+                  "left-0",
+                  "top-0",
+                  "bottom-0",
+                  "w-1",
+                );
+
+                // Set the color based on allowRequests
+                if (allowRequests) {
+                  leftBar.classList.add("bg-green-500");
+                } else {
+                  leftBar.classList.add("bg-red-500");
+                }
+
+                info.el.appendChild(leftBar);
+
+                // Add recurring symbol if needed
+                if (isRecurring) {
+                  const recurringSymbol = document.createElement("div");
+                  recurringSymbol.classList.add(
+                    "absolute",
+                    "top-1",
+                    "right-1",
+                    "text-xs",
+                    "text-gray-500",
+                  );
+                  recurringSymbol.textContent = "↻";
+                  info.el.appendChild(recurringSymbol);
+                }
+
+                // Apply hover effect
+                info.el.addEventListener("mouseenter", () => {
+                  info.el.classList.replace("opacity-85", "opacity-100");
+                });
+
+                info.el.addEventListener("mouseleave", () => {
+                  info.el.classList.replace("opacity-100", "opacity-85");
+                });
+              }
+            }}
+            eventContent={(arg) => {
+              const type = arg.event.extendedProps?.type;
+              if (type === "availability") {
+                const start = arg.event.start;
+                const startTime = start
+                  ? new Date(start).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                  : "";
+                const title = arg.event.title || "Available";
+
+                return (
+                  <div className="p-1">
+                    <div className="text-xs font-medium text-gray-600 mb-0.5">
+                      {startTime}
+                    </div>
+                    <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
+                      {title}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div style={{ padding: "2px 4px" }}>{arg.event.title}</div>
+              );
+            }}
             views={{
               resourceTimeGridDay: {
                 type: "resourceTimeGrid",
@@ -480,18 +1216,42 @@ export function CalendarView({
       </div>
 
       <AppointmentDialog
-        appointmentData={
-          isViewingAppointment && selectedAppointment
-            ? (selectedAppointment as unknown as Record<string, unknown>)
-            : undefined
-        }
-        isViewMode={isViewingAppointment}
+        appointmentData={undefined}
+        isViewMode={false}
         open={isDialogOpen}
         selectedDate={selectedDate || new Date()}
         selectedResource={selectedResource}
         onCreateClient={(date, time) => onCreateClient?.(date, time)}
         onDone={handleAppointmentSubmit}
         onOpenChange={setIsDialogOpen}
+      />
+
+      <EditAppointmentDialog
+        appointmentData={selectedAppointment || undefined}
+        open={isEditDialogOpen}
+        selectedDate={selectedDate || new Date()}
+        selectedResource={selectedResource}
+        onDone={() => {
+          // Just close the dialog after update
+          setIsEditDialogOpen(false);
+          // If there's a callback, call it
+          if (onAppointmentDone) onAppointmentDone();
+        }}
+        onOpenChange={setIsEditDialogOpen}
+      />
+
+      <AvailabilitySidebar
+        open={showAvailabilitySidebar}
+        onOpenChange={setShowAvailabilitySidebar}
+        selectedDate={
+          selectedAvailability?.start_date
+            ? new Date(selectedAvailability.start_date)
+            : new Date()
+        }
+        selectedResource={selectedAvailability?.clinician_id || null}
+        onClose={() => setShowAvailabilitySidebar(false)}
+        availabilityData={selectedAvailability ?? undefined}
+        isEditMode={!!selectedAvailability}
       />
     </div>
   );

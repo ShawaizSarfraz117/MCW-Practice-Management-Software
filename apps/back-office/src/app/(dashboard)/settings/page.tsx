@@ -6,6 +6,7 @@ import ProfileSidebar from "./components/sidebar";
 import Profile from "./components/Profile";
 import ClinicalInfo from "./components/clinical-info/ClinicalInfo";
 import PracticeDetails from "./components/practice-details";
+import ServiceSection from "./components/service/ServiceSection";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("profile-security");
@@ -43,7 +44,8 @@ export default function SettingsPage() {
         return <ClinicalInfo />;
       case "practice-info":
         return <PracticeDetails />;
-      // Add more cases for other sections
+      case "service":
+        return <ServiceSection />;
       default:
         return (
           <div>

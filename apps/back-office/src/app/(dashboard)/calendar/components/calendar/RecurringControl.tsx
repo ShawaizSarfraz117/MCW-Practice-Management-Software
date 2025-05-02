@@ -109,7 +109,6 @@ export function RecurringControl({
         setEndDate(addDays(startDate, 25));
       }
     } else {
-      // Reset when dialog closes
       setSelectedDays([]);
       setEndDate(undefined);
     }
@@ -138,20 +137,25 @@ export function RecurringControl({
   ]);
   if (!visible) return null;
   return (
-    <div className="space-y-4 mt-2 pl-6">
+    <div className="space-y-4 mt-2">
       <div className="flex items-center gap-2">
-        <span className="text-sm w-12">Every</span>
-        <div className="flex-1 flex items-center gap-2">
-          {period !== "YEARLY" && (
-            <Input
-              className="w-[70px]"
-              max="99"
-              min="1"
-              type="number"
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-            />
-          )}
+        <div className="w-32">
+          <span className="text-sm w-12">Every</span>
+          <div className="flex-1 flex w-full items-center gap-2">
+            {period !== "YEARLY" && (
+              <Input
+                className="w-32 h-[37px]"
+                max="99"
+                min="1"
+                type="number"
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value)}
+              />
+            )}
+          </div>
+        </div>
+        <div className="w-full">
+          <span className="text-sm w-12">Repeat</span>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="flex-1">
               <SelectValue />
@@ -166,7 +170,6 @@ export function RecurringControl({
       </div>
       {period === "WEEKLY" && (
         <div className="flex items-center gap-2">
-          <span className="text-sm w-12" />
           <div className="flex-1 flex gap-1">
             {weekdays.map((day) => (
               <button
@@ -210,10 +213,10 @@ export function RecurringControl({
         </div>
       )}
       <div className="flex items-center gap-2">
-        <span className="text-sm w-12">Ends</span>
-        <div className="flex-1 flex items-center gap-2">
+        <div className="w-full">
+          <span className="text-sm">Ends</span>
           <Select value={endType} onValueChange={setEndType}>
-            <SelectTrigger className="w-[100px]">
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -221,26 +224,28 @@ export function RecurringControl({
               <SelectItem value="On Date">on date</SelectItem>
             </SelectContent>
           </Select>
-          {endType === "After" ? (
-            <>
-              <Input
-                className="w-[80px]"
-                max="99"
-                min="1"
-                type="number"
-                value={endCount}
-                onChange={(e) => setEndCount(e.target.value)}
-              />
-              <span className="text-sm">events</span>
-            </>
-          ) : (
+        </div>
+        {endType === "After" ? (
+          <div className="w-40 shrink-0">
+            <span className="text-sm">events</span>
+            <Input
+              className="w-full h-[37px]"
+              max="99"
+              min="1"
+              type="number"
+              value={endCount}
+              onChange={(e) => setEndCount(e.target.value)}
+            />
+          </div>
+        ) : (
+          <div className="w-40 shrink-0">
             <DatePicker
               className="flex-1"
               value={endDate}
               onChange={(date) => setEndDate(date)}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

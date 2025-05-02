@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import type { Clinician } from "@mcw/database";
 import { prisma } from "@mcw/database";
 import {
@@ -9,42 +9,47 @@ import { createRequest, createRequestWithBody } from "@mcw/utils";
 
 import { DELETE, GET, POST, PUT } from "@/api/clinician/route";
 
+// Helper function to clean the database before each test
+async function cleanDatabase() {
+  console.log("[Cleanup] Starting database cleanup before test.");
+  try {
+    // Delete records in order of dependency
+    await prisma.audit.deleteMany();
+    await prisma.clinicalInfo.deleteMany();
+    await prisma.userRole.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.invoice.deleteMany();
+    await prisma.availability.deleteMany();
+    await prisma.clientGroupMembership.deleteMany();
+    await prisma.clientGroup.deleteMany();
+    await prisma.clinicianServices.deleteMany();
+    await prisma.clinicianLocation.deleteMany();
+    await prisma.clinicianClient.deleteMany();
+    // Now delete Clinicians and Users
+    await prisma.clinician.deleteMany();
+    await prisma.audit.deleteMany();
+    await prisma.user.deleteMany();
+    console.log("[Cleanup] Finished database cleanup.");
+  } catch (error) {
+    console.error("[Cleanup] Error during database cleanup:", error);
+    throw error; // Re-throw the error to fail the test if cleanup fails
+  }
+}
+
 describe("Clinician API", async () => {
-  // Track created entities for cleanup
-  const createdClinicianIds: string[] = [];
-  const createdUserIds: string[] = [];
+  // // Store IDs created in tests for cleanup -- REMOVED
+  // let createdClinicianIds: string[] = [];
+  // let createdUserIds: string[] = [];
 
+  // Clean up data before each test
   beforeEach(async () => {
-    try {
-      // Instead of trying to delete everything, we'll clean up only what we created
-      // Clear the tracking arrays for this test
-      createdClinicianIds.length = 0;
-      createdUserIds.length = 0;
-    } catch (error) {
-      console.error("Error cleaning up database:", error);
-      // Continue with the test even if cleanup fails
-    }
-  });
-
-  // Cleanup after each test
-  afterEach(async () => {
-    try {
-      // Deactivate clinicians instead of deleting to avoid foreign key constraint issues
-      for (const id of createdClinicianIds) {
-        await prisma.clinician.update({
-          where: { id },
-          data: { is_active: false },
-        });
-      }
-    } catch (error) {
-      console.error("Error deactivating clinicians:", error);
-    }
+    await cleanDatabase();
   });
 
   it(`GET /api/clinician/?id=<id>`, async () => {
     const clinician = await ClinicianPrismaFactory.create();
-    createdClinicianIds.push(clinician.id);
-    createdUserIds.push(clinician.user_id);
+    // createdClinicianIds.push(clinician.id); // Store ID for cleanup
+    // createdUserIds.push(clinician.user_id); // Store associated user ID
 
     const req = createRequest(`/api/clinician/?id=${clinician.id}`);
 
@@ -64,11 +69,9 @@ describe("Clinician API", async () => {
 
   it("GET /api/clinician", async () => {
     const clinicians = await ClinicianPrismaFactory.createList(2);
-    // Track created clinicians
-    clinicians.forEach((clinician) => {
-      createdClinicianIds.push(clinician.id);
-      createdUserIds.push(clinician.user_id);
-    });
+    // Store IDs for cleanup
+    // createdClinicianIds.push(...clinicians.map((c) => c.id));
+    // createdUserIds.push(...clinicians.map((c) => c.user_id));
 
     const req = createRequest("/api/clinician");
 
@@ -78,8 +81,12 @@ describe("Clinician API", async () => {
 
     const json = (await response.json()) as Clinician[];
 
-    // Don't expect the exact length since other clinicians might exist in the database
-    // Instead, check that our newly created clinicians are included in the results
+    // Debug: log all clinicians in DB
+    const allClinicians = await prisma.clinician.findMany();
+    console.log("All clinicians in DB:", allClinicians);
+
+    expect(json).toHaveLength(clinicians.length);
+
     clinicians.forEach((clinician: Clinician) => {
       const foundClinician = json.find((c) => c.id === clinician.id);
 
@@ -96,23 +103,17 @@ describe("Clinician API", async () => {
 
   it("POST /api/clinician", async () => {
     const user = await UserPrismaFactory.create();
-    createdUserIds.push(user.id);
+    // createdUserIds.push(user.id); // Store user ID first
 
-    const clinician = await ClinicianPrismaFactory.build({
-      User: {
-        connect: {
-          id: user.id,
-        },
-      },
-    });
+    const clinicianData = await ClinicianPrismaFactory.build(); // Build doesn't save, just creates data object
 
     const clinicianBody = {
       user_id: user.id,
-      address: clinician.address,
-      percentage_split: clinician.percentage_split,
-      is_active: clinician.is_active,
-      first_name: clinician.first_name,
-      last_name: clinician.last_name,
+      address: clinicianData.address,
+      percentage_split: clinicianData.percentage_split,
+      is_active: clinicianData.is_active,
+      first_name: clinicianData.first_name,
+      last_name: clinicianData.last_name,
     };
 
     const req = createRequestWithBody("/api/clinician", clinicianBody);
@@ -122,9 +123,7 @@ describe("Clinician API", async () => {
     expect(response.status).toBe(201);
 
     const json = await response.json();
-
-    // Track created clinician
-    createdClinicianIds.push(json.id);
+    // createdClinicianIds.push(json.id); // Store the ID of the created clinician
 
     expect(json).toHaveProperty("address", clinicianBody.address);
     expect(json).toHaveProperty("is_active", clinicianBody.is_active);
@@ -135,8 +134,8 @@ describe("Clinician API", async () => {
 
   it(`DELETE /api/clinician/?id=<id>`, async () => {
     const clinician = await ClinicianPrismaFactory.create();
-    createdClinicianIds.push(clinician.id);
-    createdUserIds.push(clinician.user_id);
+    // createdClinicianIds.push(clinician.id); // Store ID for cleanup
+    // createdUserIds.push(clinician.user_id);
 
     const req = createRequest(`/api/clinician/?id=${clinician.id}`, {
       method: "DELETE",
@@ -159,8 +158,8 @@ describe("Clinician API", async () => {
 
   it("PUT /api/clinician", async () => {
     const clinician = await ClinicianPrismaFactory.create();
-    createdClinicianIds.push(clinician.id);
-    createdUserIds.push(clinician.user_id);
+    // createdClinicianIds.push(clinician.id); // Store ID for cleanup
+    // createdUserIds.push(clinician.user_id);
 
     const updatedClinician = {
       ...clinician,

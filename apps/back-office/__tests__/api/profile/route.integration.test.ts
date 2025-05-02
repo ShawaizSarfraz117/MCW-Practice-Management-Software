@@ -19,18 +19,30 @@ vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),
 }));
 
+// Helper function for cleaning up test data
+async function cleanupProfileTestData(userId: string) {
+  try {
+    // Add deletions for related data if necessary
+    await prisma.userRole.deleteMany({ where: { user_id: userId } });
+    // Add other related deletions here...
+    await prisma.user.delete({ where: { id: userId } });
+  } catch (error) {
+    console.error(`Error cleaning up user ${userId}:`, error);
+  }
+}
+
 describe("Profile API Integration Tests", () => {
-  let userId: string;
+  let testUserId: string;
 
   beforeAll(async () => {
     // Create a test user before all tests
     const user = await UserPrismaFactory.create();
-    userId = user.id;
+    testUserId = user.id;
   });
 
   afterAll(async () => {
-    // Clean up by deleting the test user after all tests
-    await prisma.user.deleteMany({ where: { id: userId } });
+    // Clean up the test user
+    await cleanupProfileTestData(testUserId);
   });
 
   afterEach(() => {
@@ -40,33 +52,31 @@ describe("Profile API Integration Tests", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: userId },
+      user: { id: testUserId }, // Use the user created in beforeAll
     });
   });
 
   it("GET /api/profile should return the user profile", async () => {
-    // Step 1: Create a test user
-    const mockUser = await UserPrismaFactory.create();
+    // Session is already mocked in beforeEach to use testUserId
 
-    // Step 2: Set the session to match the created user
-    vi.mocked(getServerSession).mockResolvedValueOnce({
-      user: {
-        id: mockUser.id,
-      },
-    });
-
-    // Step 3: Call the handler
+    // Call the handler
     const response = await GET();
 
-    // Step 4: Validate
+    // Validate
     expect(response.status).toBe(200);
     const json = await response.json();
 
-    // Step 5: Compare actual response to the user created
+    // Compare actual response to the user created in beforeAll
+    // Fetch the user data directly to compare
+    const userFromDb = await prisma.user.findUnique({
+      where: { id: testUserId },
+    });
+
     expect(json).toMatchObject({
-      email: mockUser.email,
-      phone: mockUser.phone,
-      profile_photo: mockUser.profile_photo,
+      email: userFromDb?.email,
+      phone: userFromDb?.phone,
+      profile_photo: userFromDb?.profile_photo,
+      // Add other relevant fields as needed
     });
   });
 
@@ -81,32 +91,34 @@ describe("Profile API Integration Tests", () => {
 
   it("PUT /api/profile should update user profile (birth date, phone, and profile photo)", async () => {
     const updateData = {
-      email: "test@example.com",
+      email: "updated.test@example.com", // Ensure this email is unique if needed
       birth_date: "1990-01-01",
-      phone: "+1234567890",
-      profile_photo: "https://example.com/photo.jpg",
+      phone: "+1987654321",
+      profile_photo: "https://example.com/new_photo.jpg",
     };
 
-    const user = await UserPrismaFactory.create();
-    const userId = user.id;
+    // Session is mocked in beforeEach to use testUserId
 
-    // Fake session
-    vi.mocked(getServerSession).mockResolvedValueOnce({
-      user: { id: userId },
-    });
-
-    // Mock updated user
-    const updatedUser = {
-      ...updateData,
-      id: userId,
-      password_hash: "hashedpassword",
+    // Mock the prisma update call for the specific test user
+    const updatedUserMock = {
+      id: testUserId,
+      email: updateData.email,
+      phone: updateData.phone,
+      profile_photo: updateData.profile_photo,
+      date_of_birth: new Date(updateData.birth_date),
+      password_hash: "hashedpassword", // Include required fields
       last_login: new Date(),
-      date_of_birth: new Date("1990-01-01"),
     };
 
-    // 🔁 Temporarily override prisma.user.update
+    // Temporarily override prisma.user.update for this test case
     const originalUpdate = prisma.user.update;
-    prisma.user.update = vi.fn().mockResolvedValueOnce(updatedUser);
+    prisma.user.update = vi.fn().mockImplementation(async (args) => {
+      if (args.where.id === testUserId) {
+        return updatedUserMock;
+      }
+      // Call the original function for other IDs if necessary, or throw error
+      return originalUpdate(args);
+    });
 
     const request = createRequestWithBody(
       "/api/profile",
@@ -117,17 +129,16 @@ describe("Profile API Integration Tests", () => {
 
     expect(response.status).toBe(200);
     const json = await response.json();
-    console.log("json", json);
-    console.log("updatedUser", updatedUser);
-    // ✅ Match the mocked user, with ISO-formatted date_of_birth
+
+    // Match the mocked user data
     expect(json).toMatchObject({
-      date_of_birth: updatedUser.date_of_birth.toISOString(),
-      email: updatedUser.email,
-      phone: updatedUser.phone,
-      profile_photo: updatedUser.profile_photo,
+      date_of_birth: updatedUserMock.date_of_birth.toISOString(),
+      email: updatedUserMock.email,
+      phone: updatedUserMock.phone,
+      profile_photo: updatedUserMock.profile_photo,
     });
 
-    // // 🔁 Restore
+    // Restore the original prisma.user.update
     prisma.user.update = originalUpdate;
   });
 
