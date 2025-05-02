@@ -83,7 +83,7 @@ describe("Practice Information API Integration Tests", () => {
         phone_numbers: JSON.stringify([
           { number: "123456789", type: "office" },
         ]),
-        tele_health: "true",
+        tele_health: true,
       };
 
       await prisma.practiceInformation.create({
@@ -139,7 +139,7 @@ describe("Practice Information API Integration Tests", () => {
         time_zone: validData.timeZone,
         practice_logo: validData.practiceLogo,
         phone_numbers: JSON.stringify(validData.phoneNumbers),
-        tele_health: "true",
+        tele_health: true,
       });
 
       // Verify in database
@@ -161,7 +161,7 @@ describe("Practice Information API Integration Tests", () => {
         phone_numbers: JSON.stringify([
           { number: "123456789", type: "office" },
         ]),
-        tele_health: "false",
+        tele_health: false,
       };
 
       await prisma.practiceInformation.create({
@@ -199,7 +199,7 @@ describe("Practice Information API Integration Tests", () => {
         phone_numbers: JSON.stringify([
           { number: "123456789", type: "office" },
         ]),
-        tele_health: "false",
+        tele_health: false,
       };
 
       await prisma.practiceInformation.create({
