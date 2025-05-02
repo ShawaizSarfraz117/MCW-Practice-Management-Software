@@ -193,7 +193,6 @@ describe("POST /api/billingAddress", () => {
     expect(mockUpdate).toHaveBeenCalledWith({
       where: {
         id: existingAddress.id,
-        type: "business",
       },
       data: {
         street: validData.street,

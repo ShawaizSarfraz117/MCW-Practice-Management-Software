@@ -209,6 +209,11 @@ describe("Practice Information API Integration Tests", () => {
       // Update only practice name
       const partialData = {
         practiceName: "Updated Practice Name",
+        practiceEmail: "initial@example.com",
+        timeZone: "UTC",
+        practiceLogo: "initial-logo.png",
+        phoneNumbers: [{ number: "123456789", type: "office" }],
+        teleHealth: false,
       };
 
       const request = createRequestWithBody(
@@ -224,8 +229,12 @@ describe("Practice Information API Integration Tests", () => {
       });
       expect(dbRecord).toBeTruthy();
       expect(dbRecord?.practice_name).toBe(partialData.practiceName);
-      expect(dbRecord?.practice_email).toBe(initialData.practice_email); // Should remain unchanged
-      expect(dbRecord?.time_zone).toBe(initialData.time_zone); // Should remain unchanged
+      expect(dbRecord?.practice_email).toBe(partialData.practiceEmail);
+      expect(dbRecord?.time_zone).toBe(partialData.timeZone);
+      expect(dbRecord?.practice_logo).toBe(partialData.practiceLogo);
+      expect(JSON.parse(dbRecord?.phone_numbers || "[]")).toEqual(
+        partialData.phoneNumbers,
+      );
     });
 
     it("should validate input data", async () => {

@@ -44,7 +44,7 @@ describe("GET /api/practiceInformation", () => {
       time_zone: "UTC",
       practice_logo: "logo.png",
       phone_numbers: JSON.stringify([{ number: "123456789", type: "office" }]),
-      tele_health: "true",
+      tele_health: true,
     };
 
     const mockFindFirst = prisma.practiceInformation
@@ -115,7 +115,7 @@ describe("PUT /api/practiceInformation", () => {
     timeZone: "UTC",
     practiceLogo: "new-logo.png",
     phoneNumbers: [{ number: "987654321", type: "mobile" }],
-    teleHealth: true,
+    tele_health: false,
   };
 
   it("should update practice information when record exists", async () => {
@@ -151,6 +151,7 @@ describe("PUT /api/practiceInformation", () => {
         time_zone: validUpdateData.timeZone,
         practice_logo: validUpdateData.practiceLogo,
         phone_numbers: JSON.stringify(validUpdateData.phoneNumbers),
+        tele_health: validUpdateData.tele_health,
       },
     });
   });
@@ -171,7 +172,7 @@ describe("PUT /api/practiceInformation", () => {
       time_zone: validUpdateData.timeZone,
       practice_logo: validUpdateData.practiceLogo,
       phone_numbers: JSON.stringify(validUpdateData.phoneNumbers),
-      tele_health: "true",
+      tele_health: true,
     };
     mockCreate.mockResolvedValueOnce(expectedNewRecord);
 
