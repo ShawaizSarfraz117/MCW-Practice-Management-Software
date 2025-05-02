@@ -123,7 +123,7 @@ export function ClientForm({
                 : ""
             }
             disabled={!!selectedClient}
-            placeholder="Almir"
+            placeholder="John"
             value={value.legalFirstName || ""}
             onChange={(e) =>
               handleInputChange("legalFirstName", e.target.value)
@@ -149,7 +149,7 @@ export function ClientForm({
                 : ""
             }
             disabled={!!selectedClient}
-            placeholder="Kazacic"
+            placeholder="Doe"
             value={value.legalLastName || ""}
             onChange={(e) => handleInputChange("legalLastName", e.target.value)}
           />
@@ -169,7 +169,7 @@ export function ClientForm({
         <div className="space-y-2">
           <Label>Preferred name</Label>
           <Input
-            placeholder="Almir"
+            placeholder="John"
             value={value.preferredName || ""}
             onChange={(e) =>
               field.setValue({

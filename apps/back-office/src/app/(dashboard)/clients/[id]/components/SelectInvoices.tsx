@@ -3,6 +3,7 @@ import { Input } from "@mcw/ui";
 import { Checkbox } from "@mcw/ui";
 import { InvoiceWithPayments } from "./ClientProfile";
 import { formatDate } from "@mcw/utils";
+import { calculateRemainingAmount } from "./AddPaymentModal";
 
 interface SelectInvoicesProps {
   invoices: InvoiceWithPayments[];
@@ -10,10 +11,12 @@ interface SelectInvoicesProps {
   invoiceAmounts: Record<string, string>;
   applyCredit: boolean;
   total: number;
+  credit: number;
   onInvoiceSelection: (invoiceId: string, checked: boolean) => void;
   onAmountChange: (invoiceId: string, amount: string) => void;
   onApplyCreditChange: (checked: boolean) => void;
   onPaymentAmountChange: (amount: string) => void;
+  onErrorMessagesUpdate?: (errors: Record<string, string>) => void;
 }
 
 export function SelectInvoices({
@@ -22,12 +25,17 @@ export function SelectInvoices({
   invoiceAmounts,
   applyCredit,
   total,
+  credit,
   onInvoiceSelection,
   onAmountChange,
   onApplyCreditChange,
-  onPaymentAmountChange,
+  onPaymentAmountChange: _onPaymentAmountChange,
+  onErrorMessagesUpdate,
 }: SelectInvoicesProps) {
   const [showAllInvoices, setShowAllInvoices] = useState(false);
+  const [errorMessages, setErrorMessages] = useState<Record<string, string>>(
+    {},
+  );
 
   // Set showAllInvoices to true if selected invoice is not the first one
   useEffect(() => {
@@ -39,15 +47,52 @@ export function SelectInvoices({
     }
   }, [invoices, selectedInvoices]);
 
-  // Calculate remaining amount (invoice amount - sum of payments)
-  const calculateRemainingAmount = (invoice: InvoiceWithPayments): number => {
-    const totalAmount = Number(invoice.amount);
-    const totalPaid =
-      invoice.Payment?.reduce((sum, payment) => {
-        return sum + Number(payment.amount);
-      }, 0) || 0;
-    return totalAmount - totalPaid;
+  // Update parent component with error messages whenever they change
+  useEffect(() => {
+    onErrorMessagesUpdate?.(errorMessages);
+  }, [errorMessages, onErrorMessagesUpdate]);
+
+  // Validate and handle amount change
+  const handleAmountChange = (invoiceId: string, value: string) => {
+    const invoice = invoices.find((inv) => inv.id === invoiceId);
+    const remainingAmount = invoice ? calculateRemainingAmount(invoice) : 0;
+
+    // Remove non-numeric characters except decimal point
+    const sanitizedValue = value.replace(/[^0-9.]/g, "");
+
+    // Ensure only one decimal point
+    const parts = sanitizedValue.split(".");
+    const cleanValue =
+      parts.length > 1
+        ? parts[0] + "." + parts.slice(1).join("")
+        : sanitizedValue;
+
+    const amount = Number(cleanValue);
+    const newErrorMessages = { ...errorMessages };
+
+    if (isNaN(amount)) {
+      newErrorMessages[invoiceId] = "Please enter a valid amount";
+    } else if (amount < 0) {
+      newErrorMessages[invoiceId] = "Amount can't be negative";
+    } else if (amount > remainingAmount) {
+      newErrorMessages[invoiceId] =
+        `Amount can't be greater than $${remainingAmount.toFixed(2)}`;
+    } else {
+      delete newErrorMessages[invoiceId];
+    }
+
+    setErrorMessages(newErrorMessages);
+    onAmountChange(invoiceId, cleanValue);
   };
+
+  // Calculate credit to apply (not exceeding total)
+  const creditToApply = Math.min(credit, total);
+
+  // Calculate final payment amount
+  const finalPaymentAmount = Math.max(
+    total - (applyCredit ? creditToApply : 0),
+    0,
+  );
 
   return (
     <div className="mb-8 max-w-4xl mx-auto">
@@ -67,7 +112,7 @@ export function SelectInvoices({
       <div className="bg-gray-100 rounded-md p-4">
         <div className="grid grid-cols-4 gap-4 mb-2 font-medium text-sm">
           <div>Invoice</div>
-          <div>Status</div>
+          <div>Details</div>
           <div>Balance</div>
           <div>Amount</div>
         </div>
@@ -92,22 +137,31 @@ export function SelectInvoices({
                     }
                   />
                   <div>
-                    <div>Invoice # {invoice.invoice_number}</div>
-                    <div className="text-gray-500 text-sm">
-                      {invoice.issued_date
-                        ? formatDate(new Date(invoice.issued_date))
-                        : ""}
-                    </div>
+                    <div>{invoice.invoice_number}</div>
                   </div>
                 </div>
-                <div className="text-red-500">{invoice.status}</div>
+                <div>
+                  {invoice.issued_date
+                    ? formatDate(new Date(invoice.issued_date))
+                    : ""}
+                  <div className="text-gray-500 text-sm">
+                    {invoice.type === "ADJUSTMENT" ? "Fee Adjustment" : ""}
+                  </div>
+                </div>
                 <div>${remainingAmount.toFixed(2)}</div>
                 <div>
                   <Input
-                    className="w-full"
+                    className={`w-full ${errorMessages[invoice.id] ? "border-red-500" : ""}`}
                     value={invoiceAmounts[invoice.id] || "0"}
-                    onChange={(e) => onAmountChange(invoice.id, e.target.value)}
+                    onChange={(e) =>
+                      handleAmountChange(invoice.id, e.target.value)
+                    }
                   />
+                  {errorMessages[invoice.id] && (
+                    <div className="text-red-500 text-xs mt-1">
+                      {errorMessages[invoice.id]}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -141,19 +195,15 @@ export function SelectInvoices({
                   onApplyCreditChange(checked as boolean)
                 }
               />
-              <label htmlFor="apply-credit">Apply available credit ($0)</label>
+              <label className="cursor-pointer" htmlFor="apply-credit">
+                Apply available credit (${Number(credit).toFixed(2)})
+              </label>
             </div>
-            <div>{applyCredit ? "$0" : "--"}</div>
+            <div>{applyCredit ? `-$${creditToApply.toFixed(2)}` : "--"}</div>
           </div>
           <div className="flex justify-between font-medium">
             <div>Payment amount</div>
-            <div>
-              <Input
-                className="w-24"
-                value={applyCredit ? (total - 0).toFixed(2) : total.toFixed(2)}
-                onChange={(e) => onPaymentAmountChange(e.target.value)}
-              />
-            </div>
+            <div>${finalPaymentAmount.toFixed(2)}</div>
           </div>
         </div>
       </div>

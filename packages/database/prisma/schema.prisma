@@ -27,6 +27,8 @@ model Appointment {
   client_group_id          String?          @db.UniqueIdentifier
   clinician_id             String?          @db.UniqueIdentifier
   appointment_fee          Decimal?
+  write_off                Decimal?
+  adjustable_amount        Decimal?
   service_id               String?          @db.UniqueIdentifier
   is_recurring             Boolean          @default(false, map: "DF_Appointment_IsRecurring")
   recurring_rule           String?          @db.Text
@@ -127,6 +129,7 @@ model ClientGroup {
   id                    String                  @id(map: "PK_ClientGroup_ID") @db.UniqueIdentifier
   type                  String                  @db.VarChar(150)
   name                  String                  @db.VarChar(250)
+  available_credit      Decimal                @default(0)
   clinician_id          String?                 @db.UniqueIdentifier
   is_active             Boolean                 @default(true, map: "DF_ClientGroup_IsActive")
   Appointment           Appointment[]
@@ -228,19 +231,24 @@ model CreditCard {
 }
 
 model Invoice {
-  id              String       @id @default(dbgenerated("newid()"), map: "PK_Invoice_ID") @db.UniqueIdentifier
-  invoice_number  String       @db.VarChar(50)
-  client_group_id String?      @db.UniqueIdentifier
-  appointment_id  String?      @db.UniqueIdentifier
-  clinician_id    String       @db.UniqueIdentifier
-  issued_date     DateTime     @default(now(), map: "DF_Invoice_IssuedDate")
-  due_date        DateTime
-  amount          Decimal      @db.Decimal(10, 2)
-  status          String       @db.VarChar(50)
-  Appointment     Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
-  ClientGroup     ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
-  Clinician       Clinician    @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
-  Payment         Payment[]
+  id                    String       @id @default(dbgenerated("newid()"), map: "PK_Invoice_ID") @db.UniqueIdentifier
+  invoice_number        String       @db.VarChar(50)
+  client_group_id       String?      @db.UniqueIdentifier
+  appointment_id        String?      @db.UniqueIdentifier
+  clinician_id          String?      @db.UniqueIdentifier
+  issued_date           DateTime     @default(now(), map: "DF_Invoice_IssuedDate")
+  due_date              DateTime
+  amount                Decimal      @db.Decimal(10, 2)
+  status                String       @db.VarChar(50)
+  type                  String       @db.VarChar(50)
+  client_info           String?      @db.Text
+  provider_info         String?      @db.Text
+  service_description   String?      @db.Text
+  notes                 String?      @db.Text
+  Appointment           Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
+  ClientGroup           ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
+  Clinician             Clinician?   @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
+  Payment               Payment[]
 }
 
 model Location {
@@ -258,6 +266,7 @@ model Payment {
   invoice_id     String      @db.UniqueIdentifier
   payment_date   DateTime    @default(now(), map: "DF_Payment_PaymentDate")
   amount         Decimal     @db.Decimal(10, 2)
+  credit_applied Decimal?    @db.Decimal(10, 2)
   credit_card_id String?     @db.UniqueIdentifier
   transaction_id String?     @db.VarChar(100)
   status         String      @db.VarChar(50)

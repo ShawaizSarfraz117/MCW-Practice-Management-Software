@@ -8,15 +8,14 @@ import { formatDate } from "date-fns";
 
 interface InvoicesDocumentsCardProps {
   invoices: InvoiceWithPayments[];
-  onInvoiceClick: () => void;
 }
 
 export function InvoicesDocumentsCard({
   invoices,
-  onInvoiceClick,
 }: InvoicesDocumentsCardProps) {
   const [invoicesCollapsed, setInvoicesCollapsed] = useState(false);
   const searchParams = useSearchParams();
+
   return (
     <div className="p-4 sm:p-6 border border-[#e5e7eb] rounded-md">
       {/* Invoices Section */}
@@ -40,15 +39,14 @@ export function InvoicesDocumentsCard({
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-blue-500">
                     <Link
-                      href={`${window.location.pathname}?tab=${searchParams.get("tab")}&invoiceId=${invoice.id}&type=payment`}
-                      onClick={onInvoiceClick}
+                      href={`${window.location.pathname}?tab=${searchParams.get("tab")}&invoiceId=${invoice.id}&type=invoice`}
                     >
                       {invoice.invoice_number}
                     </Link>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge
-                      className={`bg-red-500 text-white text-xs ${invoice.status === "PAID" ? "bg-green-500" : ""}`}
+                      className={`text-white text-xs ${invoice.status === "UNPAID" ? "bg-red-500" : "bg-green-500"}`}
                     >
                       {invoice.status}
                     </Badge>
