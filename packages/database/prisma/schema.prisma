@@ -167,7 +167,7 @@ model BillingAddress {
   zip          String     @db.VarChar(20)
   type         String     @db.VarChar(50) // 'business' or 'client'
   clinician_id String     @db.UniqueIdentifier
-  Clinician    Clinician  @relation(fields: [clinician_id], references: [id], onDelete: Cascade, map: "FK_BillingAddress_Clinician")
+  Clinician    Clinician  @relation("ManyBillingAddresses", fields: [clinician_id], references: [id], onDelete: Cascade, map: "FK_BillingAddress_Clinician")
 
   @@index([clinician_id], map: "IX_BillingAddress_clinician_id")
   @@unique([clinician_id, type], map: "UQ_BillingAddress_Clinician_Type")
@@ -191,6 +191,7 @@ model Clinician {
   Invoice           Invoice[]
   ClientGroup       ClientGroup[]
   Availability      Availability[]
+  billingAddresses  BillingAddress[]    @relation("ManyBillingAddresses")
 }
 
 model ClinicianClient {
