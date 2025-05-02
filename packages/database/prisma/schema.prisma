@@ -405,7 +405,7 @@ model License {
 }
 
 model PracticeInformation {
-  String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  id            String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   practice_name String
   practice_email String
   time_zone     String
