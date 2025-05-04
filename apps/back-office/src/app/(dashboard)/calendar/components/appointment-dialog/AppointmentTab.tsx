@@ -3,7 +3,7 @@
 
 import { MapPin } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage, SearchSelect } from "@mcw/ui";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AppointmentTabProps,
@@ -64,6 +64,36 @@ export function AppointmentTab({
   const [clinicianSearchTerm, setClinicianSearchTerm] = useState("");
   const [locationSearchTerm, setLocationSearchTerm] = useState("");
   const [serviceSearchTerm, setServiceSearchTerm] = useState("");
+
+  // Function to clear all states
+  const clearAllStates = () => {
+    // Clear form values
+    form.reset();
+
+    // Clear selected services
+    setSelectedServices([{ serviceId: "", fee: 0 }]);
+
+    // Reset pagination states
+    setClientPage(1);
+    setClinicianPage(1);
+    setLocationPage(1);
+    setServicePage(1);
+
+    // Clear search terms
+    setClientSearchTerm("");
+    setClinicianSearchTerm("");
+    setLocationSearchTerm("");
+    setServiceSearchTerm("");
+
+    // Clear validation errors
+    setValidationErrors({});
+    setGeneralError(null);
+  };
+
+  // Clear all states when component is first mounted
+  useEffect(() => {
+    clearAllStates();
+  }, []);
 
   // Form values
   const selectedClient = form.getFieldValue<string>("clientGroup");
@@ -343,13 +373,6 @@ export function AppointmentTab({
       );
     }
   };
-
-  // --- DEBUG LOGS before render ---
-  // const currentClientGroupValue = form.getFieldValue("clientGroup");
-  // console.log("[AppointmentTab] Rendering - Form Value (clientGroup):", currentClientGroupValue);
-  // const paginatedClients = filteredClients.slice(/* ... */);
-  // console.log("[AppointmentTab] Rendering - Paginated Client Options for Select:", JSON.stringify(paginatedClients));
-  // --- END DEBUG LOGS ---
 
   return (
     <>

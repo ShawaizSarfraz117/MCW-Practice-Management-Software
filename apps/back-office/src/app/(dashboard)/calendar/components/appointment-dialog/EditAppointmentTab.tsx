@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Video, Check } from "lucide-react";
+import { Video, Check, X } from "lucide-react";
 import { SearchSelect, Button } from "@mcw/ui";
 import { cn } from "@mcw/utils";
 
@@ -17,15 +17,12 @@ import { RecurringHeader } from "./components/RecurringHeader";
 import { useAppointmentUpdate } from "./hooks/useAppointmentUpdate";
 import { useAppointmentDelete } from "../../hooks/useAppointmentDelete";
 import { parseRecurringRule } from "../../utils/recurringRuleUtils";
-import {
-  appointmentStatusOptions,
-  mappedClients,
-} from "../../mock/appointmentData";
+import { appointmentStatusOptions } from "../../mock/appointmentData";
 
 import CallIcon from "@/assets/images/call-icon.svg";
 import MessageIcon from "@/assets/images/message-icon.svg";
 import EmailIcon from "@/assets/images/email-icon.svg";
-import VideoIcon from "@/assets/images/video-icon-white.svg";
+// import VideoIcon from "@/assets/images/video-icon-white.svg";
 import DeleteIcon from "@/assets/images/delete-icon.svg";
 
 interface RecurringInfo {
@@ -68,7 +65,6 @@ export function EditAppointmentTab({
     servicesData,
     setLocationPage,
     isLoadingLocations,
-    handleClientSelect,
     handleStatusChange,
     locationTotalPages,
     handleServiceSelect,
@@ -103,7 +99,6 @@ export function EditAppointmentTab({
     appointmentId: appointmentData?.id,
   });
 
-  const selectedClient = form.getFieldValue<string>("ClientGroup");
   const selectedServices = form.getFieldValue<
     Array<{ serviceId: string; fee: number }>
   >("selectedServices") || [{ serviceId: "", fee: 0 }];
@@ -131,7 +126,7 @@ export function EditAppointmentTab({
         <Image src={EmailIcon} alt="" height={20} />
       </div>
 
-      <div className="flex gap-3 border-b pb-3">
+      {/* <div className="flex gap-3 border-b pb-3">
         <div className="flex justify-center items-center w-full bg-[#11bd72] text-white gap-2 rounded-[5px] py-1.5 text-[13px]">
           <Image src={VideoIcon} alt="" height={20} />
           Start video appointment
@@ -145,13 +140,54 @@ export function EditAppointmentTab({
           value={selectedClient}
           onValueChange={handleClientSelect}
         />
-      </div>
+      </div> */}
       <div className="border-b pb-3">
         <SearchSelect
           searchable={false}
           showPagination={false}
-          icon={<Check className="h-4 w-4 text-green-700 font-bold" />}
-          className="border-0 bg-green-100 w-[200px] rounded-[24px] px-3 py-1 font-medium text-green-700 focus:outline-none focus:ring-0"
+          icon={
+            form.getFieldValue("status") === "NO_SHOW" ||
+            form.getFieldValue("status") === "LATE_CANCELED" ||
+            form.getFieldValue("status") === "CANCELLED" ||
+            form.getFieldValue("status") === "CLINICIAN_CANCELED" ? (
+              <X
+                className={cn(
+                  "h-4 w-4 font-bold",
+                  form.getFieldValue("status") === "NO_SHOW" && "text-red-700",
+                  form.getFieldValue("status") === "LATE_CANCELED" &&
+                    "text-red-700",
+                  form.getFieldValue("status") === "CANCELLED" &&
+                    "text-amber-700",
+                  form.getFieldValue("status") === "CLINICIAN_CANCELED" &&
+                    "text-amber-700",
+                )}
+              />
+            ) : (
+              <Check
+                className={cn(
+                  "h-4 w-4 font-bold",
+                  form.getFieldValue("status") === "SHOW" && "text-green-700",
+                  form.getFieldValue("status") === "SCHEDULED" &&
+                    "text-green-700",
+                )}
+              />
+            )
+          }
+          className={cn(
+            "border-0 w-[200px] rounded-[24px] px-3 py-1 font-medium focus:outline-none focus:ring-0",
+            form.getFieldValue("status") === "SHOW" &&
+              "bg-green-100 text-green-700",
+            form.getFieldValue("status") === "SCHEDULED" &&
+              "bg-green-100 text-green-700",
+            form.getFieldValue("status") === "NO_SHOW" &&
+              "bg-red-100 text-red-700",
+            form.getFieldValue("status") === "LATE_CANCELED" &&
+              "bg-red-100 text-red-700",
+            form.getFieldValue("status") === "CANCELLED" &&
+              "bg-amber-100 text-amber-700",
+            form.getFieldValue("status") === "CLINICIAN_CANCELED" &&
+              "bg-amber-100 text-amber-700",
+          )}
           options={appointmentStatusOptions}
           placeholder="Select Status"
           value={form.getFieldValue("status")}
