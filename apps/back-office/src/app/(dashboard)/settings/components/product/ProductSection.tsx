@@ -165,11 +165,12 @@ const ProductSection = () => {
           </label>
           <Input
             className="rounded-[6px] border w-[192px] h-[42px] mt-[12px] border-gray-300"
-            min="0"
-            placeholder="$0"
-            type="number"
-            value={newProductPrice}
-            onChange={(e) => setNewProductPrice(e.target.value)}
+            placeholder="$0.00"
+            value={`$${newProductPrice}`}
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/[^0-9.]/g, "");
+              setNewProductPrice(cleaned);
+            }}
           />
         </div>
       </div>
@@ -202,10 +203,14 @@ const ProductSection = () => {
                   <div className="flex items-center gap-2">
                     <Input
                       className="rounded-[6px] border w-[162px] h-[42px] mt-[12px] border-gray-300"
-                      value={edited.price}
-                      onChange={(e) =>
-                        handleChange(product.id, "price", e.target.value)
-                      }
+                      value={`$${edited.price}`}
+                      onChange={(e) => {
+                        const cleanedValue = e.target.value.replace(
+                          /[^0-9.]/g,
+                          "",
+                        );
+                        handleChange(product.id, "price", cleanedValue);
+                      }}
                     />
                     <Trash2
                       className={`text-gray-500 cursor-pointer mt-[12px] hover:text-red-600 h-[16px] w-[14px] ${deleteProductMutation.status === "pending" ? "opacity-50 pointer-events-none" : ""}`}
