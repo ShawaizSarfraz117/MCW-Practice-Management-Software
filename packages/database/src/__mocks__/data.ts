@@ -233,6 +233,17 @@ export const PracticeServiceFactory = {
   }),
 };
 
+type ProductMock = { id: string; name: string; price: Decimal };
+
+export const ProductFactory = {
+  build: (overrides: Partial<ProductMock> = {}) => ({
+    id: "test-id-" + Math.random().toString(36).substring(2, 8),
+    name: "Test Product",
+    price: new Decimal(overrides.price ?? 99.99),
+    ...overrides,
+  }),
+};
+
 // PracticeService Prisma factory
 export const PracticeServicePrismaFactory = definePracticeServiceFactory({
   defaultData: () => PracticeServiceFactory.build(),

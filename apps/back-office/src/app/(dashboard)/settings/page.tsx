@@ -7,6 +7,7 @@ import Profile from "./components/Profile";
 import ClinicalInfo from "./components/clinical-info/ClinicalInfo";
 import PracticeDetails from "./components/practice-details";
 import ServiceSection from "./components/service/ServiceSection";
+import ProductSection from "./components/product/ProductSection";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("profile-security");
@@ -46,6 +47,8 @@ export default function SettingsPage() {
         return <PracticeDetails />;
       case "service":
         return <ServiceSection />;
+      case "product":
+        return <ProductSection />;
       default:
         return (
           <div>
