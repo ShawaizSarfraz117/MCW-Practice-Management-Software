@@ -12,43 +12,71 @@ type Product = {
 };
 
 const ProductSection = () => {
-  const [productName, setProductName] = useState("");
-  const [productPrice, setProductPrice] = useState("0");
+  const [newProductName, setNewProductName] = useState("");
+  const [newProductPrice, setNewProductPrice] = useState("0");
+  const [editedProducts, setEditedProducts] = useState<
+    Record<string, { name: string; price: string }>
+  >({});
+
   const queryClient = useQueryClient();
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["products"],
     queryFn: async () => {
-      const response = await fetch("/api/product");
-      if (!response.ok) throw new Error("Failed to fetch products");
-      return response.json();
+      const res = await fetch("/api/product");
+      if (!res.ok) throw new Error("Failed to fetch products");
+      return res.json();
     },
   });
 
   const createProductMutation = useMutation({
     mutationFn: async ({ name, price }: { name: string; price: number }) => {
-      const response = await fetch("/api/product", {
+      const res = await fetch("/api/product", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, price }),
       });
-      if (!response.ok) throw new Error("Failed to create product");
-      return response.json();
+      if (!res.ok) throw new Error("Failed to create product");
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      setProductName("");
-      setProductPrice("0");
+      setNewProductName("");
+      setNewProductPrice("0");
+    },
+  });
+
+  const updateProductMutation = useMutation({
+    mutationFn: async ({
+      id,
+      name,
+      price,
+    }: {
+      id: string;
+      name: string;
+      price: number;
+    }) => {
+      const res = await fetch("/api/product", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name, price }),
+      });
+      if (!res.ok) throw new Error("Failed to update product");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setEditedProducts({});
     },
   });
 
   const deleteProductMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/product?id=${id}`, {
+      const res = await fetch(`/api/product?id=${id}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to delete product");
-      return response.json();
+      if (!res.ok) throw new Error("Failed to delete product");
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -56,10 +84,40 @@ const ProductSection = () => {
   });
 
   const handleSave = () => {
-    if (!productName || isNaN(Number(productPrice))) return;
-    createProductMutation.mutate({
-      name: productName,
-      price: parseFloat(productPrice),
+    if (newProductName && !isNaN(Number(newProductPrice))) {
+      createProductMutation.mutate({
+        name: newProductName,
+        price: parseFloat(newProductPrice),
+      });
+    }
+
+    Object.entries(editedProducts).forEach(([id, product]) => {
+      if (!product.name || isNaN(Number(product.price))) return;
+      updateProductMutation.mutate({
+        id,
+        name: product.name,
+        price: parseFloat(product.price),
+      });
+    });
+  };
+
+  const handleChange = (id: string, field: "name" | "price", value: string) => {
+    const existingProduct = products.find((p) => p.id === id);
+    if (!existingProduct) return;
+
+    setEditedProducts((prev) => {
+      const previous = prev[id] || {
+        name: existingProduct.name,
+        price: existingProduct.price.toString(),
+      };
+
+      return {
+        ...prev,
+        [id]: {
+          ...previous,
+          [field]: value,
+        },
+      };
     });
   };
 
@@ -68,8 +126,7 @@ const ProductSection = () => {
   };
 
   return (
-    <div className="">
-      {/* Header */}
+    <div>
       <div className="flex justify-between mt-5">
         <div>
           <h2 className="text-[22px] font-medium">Products</h2>
@@ -78,11 +135,13 @@ const ProductSection = () => {
           </p>
         </div>
         <Button
-          onClick={handleSave}
           className="bg-[#2d8467] hover:bg-[#236c53] w-[160px]"
-          disabled={createProductMutation.status === "pending"}
+          disabled={
+            createProductMutation.isPending || updateProductMutation.isPending
+          }
+          onClick={handleSave}
         >
-          {createProductMutation.status === "pending"
+          {createProductMutation.isPending || updateProductMutation.isPending
             ? "Saving..."
             : "Save Changes"}
         </Button>
@@ -94,10 +153,10 @@ const ProductSection = () => {
             Product Name
           </label>
           <Input
-            placeholder="Product Name"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
             className="w-full rounded-[6px] border h-[42px] mt-[12px]"
+            placeholder="Product Name"
+            value={newProductName}
+            onChange={(e) => setNewProductName(e.target.value)}
           />
         </div>
         <div>
@@ -105,12 +164,12 @@ const ProductSection = () => {
             Price
           </label>
           <Input
-            type="number"
+            className="rounded-[6px] border w-[192px] h-[42px] mt-[12px] border-gray-300"
             min="0"
             placeholder="$0"
-            value={productPrice}
-            onChange={(e) => setProductPrice(e.target.value)}
-            className="rounded-[6px] border w-[192px] h-[42px] mt-[12px] border-gray-300"
+            type="number"
+            value={newProductPrice}
+            onChange={(e) => setNewProductPrice(e.target.value)}
           />
         </div>
       </div>
@@ -123,29 +182,39 @@ const ProductSection = () => {
             <p className="block text-sm font-medium text-gray-700 mb-1">
               Added Products
             </p>
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="grid grid-cols-2 gap-4 items-center mb-3"
-              >
-                <Input
-                  value={product.name}
-                  readOnly
-                  className="w-full rounded-[6px] border h-[42px] mt-[12px]"
-                />
-                <div className="flex items-center gap-2">
+            {products.map((product) => {
+              const edited = editedProducts[product.id] || {
+                name: product.name,
+                price: product.price.toString(),
+              };
+              return (
+                <div
+                  key={product.id}
+                  className="grid grid-cols-2 gap-4 items-center mb-3"
+                >
                   <Input
-                    value={`$${product.price}`}
-                    readOnly
-                    className="rounded-[6px] border w-[162px] h-[42px] mt-[12px] border-gray-300"
+                    className="w-full rounded-[6px] border h-[42px] mt-[12px]"
+                    value={edited.name}
+                    onChange={(e) =>
+                      handleChange(product.id, "name", e.target.value)
+                    }
                   />
-                  <Trash2
-                    className={`text-gray-500 cursor-pointer mt-[12px] hover:text-red-600 h-[16px] w-[14px] ${deleteProductMutation.status === "pending" ? "opacity-50 pointer-events-none" : ""}`}
-                    onClick={() => handleDelete(product.id)}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      className="rounded-[6px] border w-[162px] h-[42px] mt-[12px] border-gray-300"
+                      value={edited.price}
+                      onChange={(e) =>
+                        handleChange(product.id, "price", e.target.value)
+                      }
+                    />
+                    <Trash2
+                      className={`text-gray-500 cursor-pointer mt-[12px] hover:text-red-600 h-[16px] w-[14px] ${deleteProductMutation.status === "pending" ? "opacity-50 pointer-events-none" : ""}`}
+                      onClick={() => handleDelete(product.id)}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </>
         ) : null}
       </div>
