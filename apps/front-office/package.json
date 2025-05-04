@@ -21,8 +21,10 @@
     "@mcw/types": "*",
     "@mcw/ui": "*",
     "@mcw/utils": "*",
+    "jsonwebtoken": "^9.0.2",
     "next": "^14.2.25",
     "next-auth": "^5.0.0-beta.5",
+    "nodemailer": "^6.10.1",
     "openid-client": "^6.3.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
