@@ -70,6 +70,12 @@ export function ContactDetailsSection({
             {validationErrors.emails[0]}
           </p>
         )}
+        <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-4 pb-1 border-b">
+          <div className="font-medium text-sm">Email</div>
+          <div className="font-medium text-sm">Type</div>
+          <div className="font-medium text-sm">Permission</div>
+          <div></div>
+        </div>
         {emails.map((email, index) => (
           <div
             key={index}
@@ -126,7 +132,7 @@ export function ContactDetailsSection({
           </div>
         ))}
         <Button
-          className="text-[#2d8467]"
+          className="text-[#2d8467] hover:bg-transparent p-0"
           variant="ghost"
           onClick={() => {
             const newEmails = [
@@ -136,12 +142,18 @@ export function ContactDetailsSection({
             onEmailsChange(newEmails);
           }}
         >
-          <Plus className="h-4 w-4 mr-1" /> Add Email
+          <Plus className="h-4 w-4 mr-1" /> Add email
         </Button>
       </div>
 
       {/* Phone Section */}
       <div className="space-y-2 mt-4">
+        <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-4 pb-1 border-b">
+          <div className="font-medium text-sm">Phone</div>
+          <div className="font-medium text-sm">Type</div>
+          <div className="font-medium text-sm">Permission</div>
+          <div></div>
+        </div>
         {phones.map((phone, index) => (
           <div
             key={index}
@@ -201,7 +213,7 @@ export function ContactDetailsSection({
           </div>
         ))}
         <Button
-          className="text-[#2d8467]"
+          className="text-[#2d8467] hover:bg-transparent p-0"
           variant="ghost"
           onClick={() => {
             const newPhones = [
@@ -211,7 +223,7 @@ export function ContactDetailsSection({
             onPhonesChange(newPhones);
           }}
         >
-          <Plus className="h-4 w-4 mr-1" /> Add Phone
+          <Plus className="h-4 w-4 mr-1" /> Add phone
         </Button>
       </div>
     </div>

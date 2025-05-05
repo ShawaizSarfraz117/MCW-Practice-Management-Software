@@ -7,6 +7,7 @@ import {
   Invoice,
   Payment,
 } from "@prisma/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface Location {
   id: string;
@@ -59,6 +60,14 @@ export const fetchAppointments = async ({
   } catch (error) {
     throw new Error(error as string);
   }
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useFetchAppointments = (queryKey: any, searchParams: any) => {
+  return useQuery({
+    queryKey: queryKey,
+    queryFn: () => fetchAppointments(searchParams),
+  });
 };
 
 export const updateAppointment = async ({
