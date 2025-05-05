@@ -1,17 +1,29 @@
 "use client";
 
-import { Badge } from "@mcw/ui";
 import DataTable from "@/components/table/DataTable";
-import {
-  Client,
-  ClientContact,
-  ClientGroup,
-  ClientGroupMembership,
-} from "@prisma/client";
+import { Badge } from "@mcw/ui";
+import { Client, ClientContact, ClientGroupMembership } from "@prisma/client";
 
 interface ClientTableProps {
   rows: Client[];
-  onRowClick: (id: string) => void;
+  onRowClick: (row: object) => void;
+}
+
+// Define the expected shape of client data from the API
+interface ClientWithRelations extends Client {
+  name: string;
+  type: string;
+  is_waitlist: boolean;
+  ClientGroupMembership: (ClientGroupMembership & {
+    ClientGroup: {
+      id: string;
+      name: string;
+      type: string;
+    };
+    Client: Client & {
+      ClientContact: ClientContact[];
+    };
+  })[];
 }
 
 const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
@@ -19,95 +31,90 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
     {
       key: "name",
       label: "Name",
-      formatter: (row: {
-        legal_first_name: string;
-        legal_last_name: string;
-      }) => (
-        <div>
-          {row.legal_first_name} {row.legal_last_name}
-        </div>
-      ),
+      value: "name",
+      formatter: (value: unknown) => {
+        const row = value as ClientWithRelations;
+        return <div className="text-blue-500 hover:underline">{row.name}</div>;
+      },
     },
     {
       key: "type",
       label: "Type",
-      formatter: (
-        row: Client & {
-          ClientGroupMembership: (ClientGroupMembership & {
-            ClientGroup: ClientGroup;
-          })[];
-        },
-      ) => {
-        return (
-          <div className="text-gray-500">
-            {row.ClientGroupMembership.length > 0
-              ? row.ClientGroupMembership[0].ClientGroup.name
-              : "No Group"}
-          </div>
-        );
+      value: "type",
+      formatter: (value: unknown) => {
+        const row = value as ClientWithRelations;
+        return <div>{row.type}</div>;
       },
     },
     {
       key: "status",
       label: "Status",
-      // TODO: Add right type
-      formatter: (row: { is_active: boolean }) => (
-        <Badge
-          className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-50"
-          variant="outline"
-        >
-          {row.is_active ? "Active" : "Inactive"}
-        </Badge>
-      ),
+      value: "ClientGroupMembership",
+      formatter: (value: unknown) => {
+        const row = value as ClientWithRelations;
+        return (
+          <Badge
+            className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-50"
+            variant="outline"
+          >
+            {row.is_active ? "Active" : "Inactive"}
+          </Badge>
+        );
+      },
     },
     {
       key: "phone",
       label: "Phone",
-      formatter: (row: Client & { ClientContact: ClientContact[] }) => {
-        return (
-          <div className="text-gray-500">
-            {
-              row.ClientContact.find(
-                (contact: ClientContact) => contact.contact_type === "PHONE",
-              )?.value
-            }
-          </div>
-        );
+      value: "ClientContact",
+      formatter: (value: unknown) => {
+        const row = value as ClientWithRelations;
+        // Find the first client membership with a phone contact
+        const phoneContact = row.ClientGroupMembership.flatMap((membership) =>
+          membership.Client.ClientContact.filter(
+            (contact) => contact.contact_type === "PHONE",
+          ),
+        )[0];
+
+        return <div className="text-gray-500">{phoneContact?.value || ""}</div>;
       },
     },
     {
       key: "email",
       label: "Email",
-      // TODO: Add right type
-      formatter: (row: Client & { ClientContact: ClientContact[] }) => {
-        return (
-          <div className="text-gray-500">
-            {
-              row.ClientContact.find(
-                (contact: ClientContact) => contact.contact_type === "EMAIL",
-              )?.value
-            }
-          </div>
-        );
+      value: "ClientContact",
+      formatter: (value: unknown) => {
+        const row = value as ClientWithRelations;
+        // Find the first client membership with an email contact
+        const emailContact = row.ClientGroupMembership.flatMap((membership) =>
+          membership.Client.ClientContact.filter(
+            (contact) => contact.contact_type === "EMAIL",
+          ),
+        )[0];
+
+        return <div className="text-gray-500">{emailContact?.value || ""}</div>;
       },
-    },
-    {
-      key: "relationship",
-      label: "Relationship",
     },
     {
       key: "waitlist",
       label: "Waitlist",
-      formatter: (row: { is_waitlist: boolean }) => (
-        <p>{row.is_waitlist ? "Yes" : "No"}</p>
-      ),
+      value: "is_waitlist",
+      formatter: (value: unknown) => {
+        const row = value as ClientWithRelations;
+        return (
+          <p>
+            {row.ClientGroupMembership[0].Client.is_waitlist ? "Yes" : "No"}
+          </p>
+        );
+      },
     },
   ];
 
   return (
-    // TODO: Add right type
-    // @ts-expect-error - TODO: Add right type
-    <DataTable columns={columns} rows={rows} onRowClick={onRowClick} />
+    <DataTable
+      columns={columns}
+      rows={rows as Record<string, unknown>[]}
+      onRowClick={onRowClick}
+    />
   );
 };
 

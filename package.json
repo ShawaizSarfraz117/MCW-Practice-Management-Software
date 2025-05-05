@@ -32,7 +32,8 @@
     "checks": "turbo run checks",
     "test:ci": "./scripts/run-vitest-with-testdb.sh run",
     "prepare": "husky",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "prettier:write": "prettier --write src"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -52,7 +53,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
     "node-mocks-http": "^1.16.2",
-    "prettier": "^3.0.0",
+    "prettier": "^3.5.3",
     "prisma": "^6.5.0",
     "turbo": "^2.4.4",
     "typescript": "^5.3.3",
@@ -63,6 +64,7 @@
   },
   "packageManager": "npm@10.9.0",
   "dependencies": {
-    "@prisma/client": "^6.5.0"
+    "@prisma/client": "^6.5.0",
+    "react-dropzone": "^14.3.8"
   }
 }

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import {
   defineClinicianFactory,
   defineClientFactory,
@@ -12,7 +13,6 @@ import {
   defineClientReminderPreferenceFactory,
   defineClinicianClientFactory,
   defineClinicianLocationFactory,
-  defineClinicianServicesFactory,
   defineCreditCardFactory,
   defineInvoiceFactory,
   definePaymentFactory,
@@ -22,8 +22,9 @@ import {
   defineSurveyTemplateFactory,
   defineTagFactory,
   defineUserRoleFactory,
+  registerScalarFieldValueGenerator,
 } from "@mcw/database/fabbrica";
-
+import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcrypt";
 import { faker } from "@faker-js/faker";
 import {
@@ -46,6 +47,12 @@ import {
   SurveyTemplate,
   SurveyAnswers,
 } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
+
+registerScalarFieldValueGenerator({
+  Decimal: () =>
+    new Decimal(faker.number.float({ min: 0, max: 10, fractionDigits: 2 })),
+});
 
 // User factory for generating mock data without Prisma
 export const UserFactory = {
@@ -54,6 +61,9 @@ export const UserFactory = {
     email: faker.internet.email(),
     password_hash: bcrypt.hashSync(faker.internet.password(), 10),
     last_login: faker.date.recent(),
+    date_of_birth: faker.date.past(),
+    phone: faker.phone.number(),
+    profile_photo: faker.image.url(),
     ...overrides,
   }),
 };
@@ -97,10 +107,13 @@ export const ClinicianPrismaFactory = defineClinicianFactory({
 export const ClientFactory = {
   build: <T extends Partial<Client>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    name: faker.company.name(),
-    address: faker.location.streetAddress(),
-    phone: faker.phone.number(),
-    email: faker.internet.email(),
+    legal_first_name: faker.person.firstName(),
+    legal_last_name: faker.person.lastName(),
+    is_waitlist: false,
+    is_active: true,
+    preferred_name: faker.person.firstName(),
+    date_of_birth: faker.date.past(),
+    referred_by: faker.person.fullName(),
     ...overrides,
   }),
 };
@@ -201,17 +214,29 @@ export const ClinicianClientFactory = {
 export const PracticeServiceFactory = {
   build: <T extends Partial<PracticeService>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    name: faker.helpers.arrayElement([
-      "Initial Consultation",
-      "Follow-up Session",
-      "Group Therapy",
-    ]),
-    duration: faker.number.int({ min: 30, max: 120 }),
-    cost: faker.number.float({ min: 50, max: 300, fractionDigits: 2 }),
+    type: faker.helpers.arrayElement(["INDIVIDUAL", "GROUP", "FAMILY"]),
+    code: faker.string.alphanumeric(5).toUpperCase(),
     description: faker.lorem.sentence(),
+    rate: new Decimal(
+      faker.number.float({ min: 50, max: 1000, fractionDigits: 2 }),
+    ),
+    duration: faker.number.int({ min: 30, max: 120 }),
+    color: faker.internet.color(),
+    is_default: faker.datatype.boolean(),
+    bill_in_units: faker.datatype.boolean(),
+    available_online: faker.datatype.boolean(),
+    allow_new_clients: faker.datatype.boolean(),
+    require_call: faker.datatype.boolean(),
+    block_before: faker.number.int({ min: 0, max: 30 }),
+    block_after: faker.number.int({ min: 0, max: 30 }),
     ...overrides,
   }),
 };
+
+// PracticeService Prisma factory
+export const PracticeServicePrismaFactory = definePracticeServiceFactory({
+  defaultData: () => PracticeServiceFactory.build(),
+});
 
 export const CreditCardFactory = {
   build: <T extends Partial<CreditCard>>(overrides: T = {} as T) => ({
@@ -235,6 +260,28 @@ export const InvoiceFactory = {
     issued_date: faker.date.recent(),
     ...overrides,
   }),
+
+  buildComplete: (overrides = {}) => {
+    const issuedDate = new Date();
+    const dueDate = new Date(issuedDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+    return {
+      id: generateUUID(),
+      invoice_number: "INV-1234",
+      client_group_id: generateUUID(),
+      appointment_id: null, // Set to null to avoid foreign key constraint
+      clinician_id: generateUUID(),
+      issued_date: issuedDate,
+      due_date: dueDate,
+      amount: new Decimal(100),
+      status: "PENDING",
+      ClientGroupMembership: null,
+      Appointment: null,
+      Clinician: null,
+      Payment: [],
+      ...overrides,
+    };
+  },
 };
 
 export const PaymentFactory = {
@@ -385,19 +432,6 @@ export const ClinicianLocationPrismaFactory = defineClinicianLocationFactory({
   }),
 });
 
-// PracticeService Prisma factory
-export const PracticeServicePrismaFactory = definePracticeServiceFactory({
-  defaultData: () => PracticeServiceFactory.build(),
-});
-
-// ClinicianServices Prisma factory
-export const ClinicianServicesPrismaFactory = defineClinicianServicesFactory({
-  defaultData: () => ({
-    Clinician: ClinicianPrismaFactory,
-    PracticeService: PracticeServicePrismaFactory,
-  }),
-});
-
 // CreditCard Prisma factory
 export const CreditCardPrismaFactory = defineCreditCardFactory({
   defaultData: () => ({
@@ -457,3 +491,8 @@ export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
     SurveyTemplate: SurveyTemplatePrismaFactory,
   }),
 });
+
+// Helper to create a valid invoice object with proper UUID formats
+export const mockInvoice = (overrides = {}) => {
+  return InvoiceFactory.buildComplete(overrides);
+};

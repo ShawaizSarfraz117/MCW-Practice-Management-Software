@@ -10,7 +10,7 @@ import {
   LogOut,
   Settings,
 } from "lucide-react";
-import { Button } from "@mcw/ui";
+import { Button, useIsMobile } from "@mcw/ui";
 import { Input } from "@mcw/ui";
 import {
   Sheet,
@@ -27,30 +27,47 @@ import {
 } from "@mcw/ui";
 import Sidebar from "./Sidebar";
 
-export default function TopBar() {
-  const userImage = null;
-  return (
-    <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
-      <div className="flex items-center gap-2">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button className="md:hidden" size="icon" variant="ghost">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="p-0" side="left">
-            <Sidebar mobile={true} />
-          </SheetContent>
-        </Sheet>
+interface TopBarProps {
+  showSearch?: boolean;
+  showMenuBar?: boolean;
+}
 
-        <div className="relative w-[180px] sm:w-[230px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            className="pl-9 h-10 bg-white border-[#e5e7eb]"
-            placeholder="Search clients"
-          />
-        </div>
+export default function TopBar({
+  showSearch = true,
+  showMenuBar = true,
+}: TopBarProps) {
+  const userImage = null;
+
+  const isMobile = useIsMobile();
+
+  return (
+    <header className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
+      <div className="flex items-center gap-2">
+        {isMobile && (
+          <Sheet>
+            {showMenuBar && (
+              <SheetTrigger asChild>
+                <Button className="md:hidden" size="icon" variant="ghost">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+            )}
+
+            <SheetContent className="p-0" side="left">
+              <Sidebar isSheet={true} />
+            </SheetContent>
+          </Sheet>
+        )}
+        {showSearch && (
+          <div className="relative w-[180px] sm:w-[230px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              className="!pl-8 h-10 bg-white border-[#e5e7eb]"
+              placeholder="Search clients"
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex items-center space-x-2 sm:space-x-4">

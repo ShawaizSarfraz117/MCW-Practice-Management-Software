@@ -68,7 +68,7 @@ export function LocationSelect({
       <PopoverTrigger asChild>
         <Button
           aria-expanded={open}
-          className="w-[130px] h-8 justify-between text-sm font-normal"
+          className="w-[130px] justify-between text-sm font-normal"
           role="combobox"
           variant="outline"
         >

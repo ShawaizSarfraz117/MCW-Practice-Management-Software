@@ -139,3 +139,4 @@ dist
 .turbo
 
 .DS_Store
+/.specstory/history
