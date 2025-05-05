@@ -1,9 +1,11 @@
 import Clients from "./components/Client";
-import TopBar from "@/components/layouts/Topbar";
+// TopBar import removed
+// import TopBar from "@/components/layouts/Topbar";
+
 export default function ClientsPage() {
   return (
     <>
-      <TopBar />
+      {/* <TopBar /> Removed */}
       <Clients />
     </>
   );

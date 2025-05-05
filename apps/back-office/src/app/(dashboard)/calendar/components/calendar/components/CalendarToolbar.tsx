@@ -54,19 +54,19 @@ export function CalendarToolbar({
   }, []);
   return (
     <div className="border-b">
-      <div className="h-14 px-4 flex items-center justify-between">
+      <div className="h-16 px-6 flex items-center justify-between">
         {/* Left section */}
         <div className="flex items-center space-x-2">
-          <Button size="icon" variant="ghost" onClick={handlePrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
           <Button
             className="text-sm"
             size="sm"
-            variant="ghost"
+            variant="outline"
             onClick={handleToday}
           >
             Today
+          </Button>
+          <Button size="icon" variant="ghost" onClick={handlePrev}>
+            <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button size="icon" variant="ghost" onClick={handleNext}>
             <ChevronRight className="h-4 w-4" />
@@ -136,7 +136,7 @@ export function CalendarToolbar({
           </div>
 
           <Select defaultValue="status">
-            <SelectTrigger className="w-[120px] h-8 text-sm">
+            <SelectTrigger className="text-sm">
               <SelectValue>Color: Status</SelectValue>
             </SelectTrigger>
             <SelectContent>

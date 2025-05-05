@@ -17,9 +17,9 @@ import {
   TooltipTrigger,
 } from "@mcw/ui";
 import { Info } from "lucide-react";
-import PracticeInformationForm from "./PracticeInformation";
-import PracticeLogoForm from "./PracticeLogoForm";
-import PracticePhoneForm from "./PracticePhoneForm";
+import PracticeInformationForm from "./components/PracticeInformation";
+import PracticeLogoForm from "./components/PracticeLogoForm";
+import PracticePhoneForm from "./components/PracticePhoneForm";
 import { useState } from "react";
 
 export default function PracticeDetailsForm() {

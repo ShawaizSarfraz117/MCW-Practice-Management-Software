@@ -128,15 +128,15 @@ export function EditAppointmentTab({
 
       {/* <div className="flex gap-3 border-b pb-3">
         <div className="flex justify-center items-center w-full bg-[#11bd72] text-white gap-2 rounded-[5px] py-1.5 text-[13px]">
-          <Image src={VideoIcon} alt="" height={20} />
+          <Image alt="" height={20} src={VideoIcon} />
           Start video appointment
         </div>
         <SearchSelect
-          searchable={false}
-          showPagination={false}
           className="border-0 bg-gray-200 w-[150px] rounded-[5px]"
           options={mappedClients}
           placeholder="Share link"
+          searchable={false}
+          showPagination={false}
           value={selectedClient}
           onValueChange={handleClientSelect}
         />

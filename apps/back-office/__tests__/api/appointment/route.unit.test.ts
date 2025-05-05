@@ -23,6 +23,7 @@ const mockClientGroup = {
   type: "FAMILY",
   is_active: true,
   clinician_id: null,
+  available_credit: new Decimal(0),
 };
 
 // Helper to build a minimal appointment with all required fields
@@ -46,6 +47,8 @@ const mockAppointment = (overrides = {}) =>
     is_recurring: false,
     cancel_appointments: false,
     notify_cancellation: false,
+    adjustable_amount: new Decimal(0),
+    write_off: new Decimal(0),
     ...overrides,
   });
 

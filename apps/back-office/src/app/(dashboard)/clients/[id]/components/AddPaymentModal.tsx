@@ -23,6 +23,22 @@ interface AddPaymentModalProps {
   fetchInvoicesData: () => Promise<void>;
 }
 
+export const calculateRemainingAmount = (
+  invoice: InvoiceWithPayments,
+): number => {
+  const totalAmount = Number(invoice.amount);
+  const creditApplied =
+    invoice.Payment?.reduce((sum, payment) => {
+      return sum + Number(payment.credit_applied);
+    }, 0) || 0;
+
+  const totalPaid =
+    invoice.Payment?.reduce((sum, payment) => {
+      return sum + Number(payment.amount);
+    }, 0) || 0;
+  return totalAmount - totalPaid - creditApplied;
+};
+
 export function AddPaymentModal({
   open,
   onOpenChange,
@@ -35,9 +51,13 @@ export function AddPaymentModal({
   const [checkNumber, setCheckNumber] = useState("");
   const [paymentDate, setPaymentDate] = useState("2025-03-27");
   const [applyCredit, setApplyCredit] = useState(false);
+  const [credit, setCredit] = useState(0);
   const [invoices, setInvoices] = useState<InvoiceWithPayments[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [invoiceAmounts, setInvoiceAmounts] = useState<Record<string, string>>(
+    {},
+  );
+  const [errorMessages, setErrorMessages] = useState<Record<string, string>>(
     {},
   );
 
@@ -45,39 +65,42 @@ export function AddPaymentModal({
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const appointmentId = searchParams.get("appointmentId");
 
   useEffect(() => {
-    const fetchInvoicesData = async () => {
-      const [invoices, error] = await fetchInvoices({
-        searchParams: { clientGroupId: id, status: "UNPAID" },
+    const fetchInvoicesForPayment = async () => {
+      const [response, error] = await fetchInvoices({
+        searchParams: {
+          clientGroupId: id,
+          status: "UNPAID",
+          appointmentId: appointmentId,
+        },
       });
-      if (!error && invoices?.length) {
-        setInvoices(invoices as InvoiceWithPayments[]);
-        const invoiceId = searchParams.get("invoiceId");
-        setSelectedInvoices(invoiceId ? [invoiceId] : [invoices[0].id]);
-        // Initialize invoice amounts with remaining balances
-        const initialAmounts: Record<string, string> = {};
-        invoices.forEach((invoice) => {
-          const remainingAmount = calculateRemainingAmount(
-            invoice as InvoiceWithPayments,
+
+      if (!error && response) {
+        const invoiceResponse = response as InvoiceWithPayments[];
+        if (invoiceResponse.length > 0) {
+          setCredit(invoiceResponse[0].ClientGroup.available_credit || 0);
+          setInvoices(invoiceResponse);
+
+          const invoiceId = searchParams.get("invoiceId");
+          setSelectedInvoices(
+            invoiceId ? [invoiceId] : [invoiceResponse[0].id],
           );
-          initialAmounts[invoice.id] = remainingAmount.toString();
-        });
-        setInvoiceAmounts(initialAmounts);
+
+          // Initialize invoice amounts with remaining balances
+          const initialAmounts: Record<string, string> = {};
+          invoiceResponse.forEach((invoice) => {
+            const remainingAmount = calculateRemainingAmount(invoice);
+            initialAmounts[invoice.id] = remainingAmount.toString();
+          });
+          setInvoiceAmounts(initialAmounts);
+        }
       }
     };
-    fetchInvoicesData();
-  }, [id, searchParams]);
 
-  // Calculate remaining amount (invoice amount - sum of payments)
-  const calculateRemainingAmount = (invoice: InvoiceWithPayments): number => {
-    const totalAmount = Number(invoice.amount);
-    const totalPaid =
-      invoice.Payment?.reduce((sum, payment) => {
-        return sum + Number(payment.amount);
-      }, 0) || 0;
-    return totalAmount - totalPaid;
-  };
+    fetchInvoicesForPayment();
+  }, [id, searchParams, appointmentId]);
 
   // Calculate total based on selected invoices
   const calculateTotal = () => {
@@ -107,6 +130,10 @@ export function AddPaymentModal({
     });
   };
 
+  const handleErrorMessagesUpdate = (errors: Record<string, string>) => {
+    setErrorMessages(errors);
+  };
+
   // Handle payment submission
   const handleSubmitPayment = async () => {
     if (selectedInvoices.length === 0) {
@@ -121,37 +148,57 @@ export function AddPaymentModal({
     setIsSubmitting(true);
 
     try {
-      // For each selected invoice, create a payment
-      for (const invoiceId of selectedInvoices) {
-        const invoice = invoices.find((inv) => inv.id === invoiceId);
+      // Calculate credit to apply (not exceeding total)
+      const totalAmount = calculateTotal();
+      const creditToApply = Math.min(credit, totalAmount);
+      const finalPaymentAmount = Math.max(
+        totalAmount - (applyCredit ? creditToApply : 0),
+        0,
+      );
 
-        if (invoice) {
-          const paymentData = {
-            invoice_id: invoice.id,
-            amount: Number(invoiceAmounts[invoice.id] || 0),
-            status: "completed",
-            transaction_id: paymentMethod === "check" ? checkNumber : undefined,
-            response: JSON.stringify({
-              payment_method: paymentMethod,
-              payment_date: paymentDate,
-            }),
-          };
+      // Create filtered invoices with payment amounts
+      const invoiceWithPayment = invoices
+        .filter((inv) => selectedInvoices.includes(inv.id))
+        .map((inv) => ({
+          id: inv.id,
+          amount: Number(invoiceAmounts[inv.id] || 0),
+        }));
 
-          const [_, error] = await createPayment({ body: paymentData });
-          fetchInvoicesData();
-          if (error) {
-            throw error;
-          }
+      // Prepare and process payment data
+      if (invoiceWithPayment.length > 0) {
+        const paymentData = {
+          status: "completed",
+          invoiceWithPayment,
+          client_group_id: invoices[0].client_group_id,
+          transaction_id: paymentMethod === "check" ? checkNumber : undefined,
+          response: JSON.stringify({
+            payment_method: paymentMethod,
+            payment_date: paymentDate,
+          }),
+          applyCredit: applyCredit,
+          credit_applied: applyCredit ? creditToApply : 0,
+        };
+        const [_, error] = await createPayment({ body: paymentData });
+        if (error) throw error;
+
+        // Update UI based on whether it's a credit-only payment or regular payment
+        if (finalPaymentAmount <= 0 && applyCredit && creditToApply > 0) {
+          toast({
+            title: "Credit allocated",
+            description: `$${creditToApply.toFixed(2)} in credit has been successfully applied.`,
+            variant: "success",
+          });
+        } else {
+          toast({
+            title: "Payment successful",
+            description: `Payment of $${finalPaymentAmount.toFixed(2)} was successfully processed.`,
+            variant: "success",
+          });
         }
+
+        fetchInvoicesData();
+        onOpenChange(false);
       }
-
-      toast({
-        title: "Payment successful",
-        description: `Payment of $${applyCredit ? (total - 0).toFixed(2) : total.toFixed(2)} was successfully processed.`,
-        variant: "success",
-      });
-
-      onOpenChange(false);
     } catch (error) {
       console.error("Payment error:", error);
       toast({
@@ -167,7 +214,7 @@ export function AddPaymentModal({
 
   // Handle modal close with URL cleanup
   const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen && searchParams.has("invoiceId")) {
+    if (!isOpen) {
       // Remove invoiceId from URL when closing modal
       router.replace(
         `${window.location.pathname}?tab=${searchParams.get("tab")}`,
@@ -205,12 +252,14 @@ export function AddPaymentModal({
                   {/* Step 1: Select invoices */}
                   <SelectInvoices
                     applyCredit={applyCredit}
+                    credit={credit}
                     invoiceAmounts={invoiceAmounts}
                     invoices={invoices}
                     selectedInvoices={selectedInvoices}
                     total={total}
                     onAmountChange={handleAmountChange}
                     onApplyCreditChange={setApplyCredit}
+                    onErrorMessagesUpdate={handleErrorMessagesUpdate}
                     onInvoiceSelection={toggleInvoiceSelection}
                     onPaymentAmountChange={setPaymentAmount}
                   />
@@ -230,6 +279,8 @@ export function AddPaymentModal({
               {/* Right sidebar - Summary */}
               <PaymentSummary
                 applyCredit={applyCredit}
+                credit={credit}
+                errorMessages={errorMessages}
                 invoiceAmounts={invoiceAmounts}
                 invoices={invoices}
                 isSubmitting={isSubmitting}
