@@ -113,17 +113,17 @@ export function EditEvent({
         <div className="bg-green-200 text-green-700 rounded-[20px] px-3 py-[2px] text-[13px]">
           Active
         </div>
-        <Image src={CallIcon} alt="" height={18} />
-        <Image src={MessageIcon} alt="" height={20} />
-        <Image src={EmailIcon} alt="" height={20} />
+        <Image alt="" height={18} src={CallIcon} />
+        <Image alt="" height={20} src={MessageIcon} />
+        <Image alt="" height={20} src={EmailIcon} />
       </div>
 
       <div className="space-y-4">
         <div>
           <span className="text-[#717171] text-[14px] pb-2">Event Name</span>
           <input
-            type="text"
             className="w-full border border-gray-200 rounded-[5px] px-3 py-2"
+            type="text"
             value={
               form.getFieldValue("eventName") || appointmentData?.title || ""
             }
@@ -188,8 +188,8 @@ export function EditEvent({
           <div className="pb-4 border-b">
             <RecurringHeader
               isExpanded={isRecurringExpanded}
-              onToggle={() => setIsRecurringExpanded(!isRecurringExpanded)}
               recurringRule={appointmentData.recurring_rule}
+              onToggle={() => setIsRecurringExpanded(!isRecurringExpanded)}
             />
             {isRecurringExpanded && (
               <RecurringSettings
@@ -214,7 +214,7 @@ export function EditEvent({
             className="h-[40px] w-[40px] bg-gray-100 flex justify-center items-center rounded-[5px] cursor-pointer hover:bg-gray-200"
             onClick={() => setIsDeleteModalOpen(true)}
           >
-            <Image src={DeleteIcon} alt="" />
+            <Image alt="" src={DeleteIcon} />
           </div>
           <Button
             className="py-2 px-3 bg-[#0a96d4] rounded-[5px] text-white"
@@ -228,16 +228,16 @@ export function EditEvent({
       <EditConfirmationModal
         appointmentData={appointmentData}
         open={isConfirmationOpen}
-        onOpenChange={setIsConfirmationOpen}
         onConfirm={handleUpdateConfirm}
+        onOpenChange={setIsConfirmationOpen}
       />
 
       <DeleteConfirmationModal
         appointmentData={appointmentData}
         open={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        onConfirm={handleDeleteConfirm}
         selectedOption={selectedDeleteOption}
+        onConfirm={handleDeleteConfirm}
+        onOpenChange={setIsDeleteModalOpen}
         onOptionChange={setSelectedDeleteOption}
       />
     </>

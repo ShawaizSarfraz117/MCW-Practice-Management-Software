@@ -15,18 +15,18 @@ export default function PracticeInformationForm() {
         <div className="space-y-2">
           <Label htmlFor="practice-name">Practice Name</Label>
           <Input
-            id="practice-name"
-            defaultValue="Alma Naser"
             className="border-gray-300"
+            defaultValue="Alma Naser"
+            id="practice-name"
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="practice-email">Practice Email</Label>
           <Input
+            className="border-gray-300"
+            defaultValue="alma@mindfully.com"
             id="practice-email"
             type="email"
-            defaultValue="alma@mindfully.com"
-            className="border-gray-300"
           />
         </div>
       </div>

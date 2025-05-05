@@ -104,7 +104,7 @@ const menuItems = {
   ],
 };
 
-export default function ProfileSidebar() {
+export default function SettingsSidebar() {
   const pathname = usePathname();
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
@@ -112,7 +112,10 @@ export default function ProfileSidebar() {
     let foundParentLabel: string | null = null;
     Object.values(menuItems).forEach((section) => {
       section.forEach((item: MenuItem) => {
-        if (item.children && item.children.some((child: MenuItem) => child.href === pathname)) {
+        if (
+          item.children &&
+          item.children.some((child: MenuItem) => child.href === pathname)
+        ) {
           foundParentLabel = item.label;
         }
       });
@@ -160,7 +163,9 @@ export default function ProfileSidebar() {
           <Link href={item.href} legacyBehavior={false}>
             <div
               className={`cursor-pointer ${
-                isActive ? "bg-green-50 rounded-md p-3 my-1" : "py-2 text-sm"
+                isActive
+                  ? "bg-green-50 border-l-4 border-primary rounded-sm p-3 my-1"
+                  : "py-2 text-sm"
               }`}
             >
               <div
@@ -189,50 +194,31 @@ export default function ProfileSidebar() {
   };
 
   return (
-    <div className="w-64 flex-shrink-0 border-r border-gray-200 h-full overflow-y-auto bg-white">
-      <div className="p-4 sticky top-0 bg-white z-10 border-b">
-        <div className="relative">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <svg
-              className="h-4 w-4 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-              />
-            </svg>
-          </div>
-          <input
-            className="w-full rounded-md border-0 bg-gray-100 py-2 pl-10 pr-4 text-sm focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Search settings"
-            type="text"
-          />
-        </div>
-      </div>
-
+    <div className="w-64 top-1 flex-shrink-0 border-r border-gray-200 h-full overflow-y-auto bg-white">
       <div className="p-4">
         <div className="py-2">
-          <div className="px-2 text-xs font-semibold uppercase text-gray-500 tracking-wider">Operations</div>
-          <div className="mt-2 space-y-1">
+          <div className="text-xs font-semibold uppercase text-primary tracking-wider">
+            Operations
+          </div>
+          <div className="mt-2 ml-2 space-y-1">
             {menuItems.operations.map((item) => renderMenuItem(item))}
           </div>
         </div>
 
         <div className="mt-4 py-2">
-          <div className="px-2 text-xs font-semibold uppercase text-gray-500 tracking-wider">Billing</div>
-          <div className="mt-2 space-y-1">
+          <div className="text-xs font-semibold uppercase text-primary tracking-wider">
+            Billing
+          </div>
+          <div className="mt-2 ml-2 space-y-1">
             {menuItems.billing.map((item) => renderMenuItem(item))}
           </div>
         </div>
 
         <div className="mt-4 py-2">
-          <div className="px-2 text-xs font-semibold uppercase text-gray-500 tracking-wider">Client Care</div>
-          <div className="mt-2 space-y-1">
+          <div className="text-xs font-semibold uppercase text-primary tracking-wider">
+            Client Care
+          </div>
+          <div className="mt-2 ml-2 space-y-1">
             {menuItems.clientCare.map((item) => renderMenuItem(item))}
           </div>
         </div>

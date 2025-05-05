@@ -60,14 +60,14 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  type="email"
                   placeholder="Enter email address"
+                  type="email"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" type="tel" placeholder="Enter phone number" />
+                <Input id="phone" placeholder="Enter phone number" type="tel" />
               </div>
             </div>
 

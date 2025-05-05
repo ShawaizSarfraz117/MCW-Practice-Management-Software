@@ -392,9 +392,9 @@ export function AppointmentTab({
 
           {isRecurring && (
             <RecurringControl
+              open={true}
               startDate={form.getFieldValue<Date>("startDate") || new Date()}
               visible={true}
-              open={true}
               onRecurringChange={(recurringValues) => {
                 form.setFieldValue("recurringInfo", recurringValues);
               }}
