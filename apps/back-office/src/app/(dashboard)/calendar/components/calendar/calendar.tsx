@@ -252,19 +252,28 @@ export function CalendarView({
         const appointments = await response.json();
 
         // Format appointments for calendar
-        const formattedEvents = appointments.map(
-          (appointment: AppointmentData) => ({
+        const formattedAppointments = appointments.map(
+          (
+            appointment: AppointmentData & {
+              isFirstAppointmentForGroup?: boolean;
+            },
+          ) => ({
             id: appointment.id,
             resourceId: appointment.clinician_id || "",
             title: appointment.title,
             start: appointment.start_date,
             end: appointment.end_date,
             location: appointment.location_id || "",
+            extendedProps: {
+              type: "appointment",
+              isFirstAppointmentForGroup:
+                appointment.isFirstAppointmentForGroup,
+            },
           }),
         );
 
         // Update calendar events
-        setEvents(formattedEvents);
+        setEvents(formattedAppointments);
       } catch (error) {
         console.error("Error refreshing appointments:", error);
       }
@@ -687,7 +696,11 @@ export function CalendarView({
 
         // Format appointments
         const formattedAppointments = appointments.map(
-          (appointment: AppointmentData) => ({
+          (
+            appointment: AppointmentData & {
+              isFirstAppointmentForGroup?: boolean;
+            },
+          ) => ({
             id: appointment.id,
             resourceId: appointment.clinician_id || "",
             title: appointment.title,
@@ -696,6 +709,8 @@ export function CalendarView({
             location: appointment.location_id || "",
             extendedProps: {
               type: "appointment",
+              isFirstAppointmentForGroup:
+                appointment.isFirstAppointmentForGroup,
             },
           }),
         );
@@ -1263,6 +1278,10 @@ export function CalendarView({
             }}
             eventContent={(arg) => {
               const type = arg.event.extendedProps?.type;
+              const isFirstAppointment = arg.event.extendedProps
+                ?.isFirstAppointmentForGroup as boolean | undefined;
+
+              // Handle Availability events separately
               if (type === "availability") {
                 const start = arg.event.start;
                 const startTime = start
@@ -1282,11 +1301,41 @@ export function CalendarView({
                     <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
                       {title}
                     </div>
+                    {/* Availability events don't get New/Old badges */}
                   </div>
                 );
               }
+
+              // Handle regular Appointment events
+              const title = arg.event.title; // Or format as needed
+              // Add badge based on isFirstAppointmentForGroup
+              const badgeText =
+                isFirstAppointment === true
+                  ? "New"
+                  : isFirstAppointment === false
+                    ? ""
+                    : null;
+              const badgeColor =
+                isFirstAppointment === true
+                  ? "bg-green-100 text-green-800"
+                  : isFirstAppointment === false
+                    ? "bg-blue-100 text-blue-800"
+                    : "";
+
               return (
-                <div style={{ padding: "2px 4px" }}>{arg.event.title}</div>
+                <div className="p-1 flex flex-col h-full relative">
+                  {/* You might want to add time or other info here */}
+                  <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis mb-1 flex-grow">
+                    {title}
+                  </div>
+                  {badgeText && (
+                    <span
+                      className={`absolute top-1.5 right-1.5 text-xs font-medium px-1.5 py-0.5 rounded-full ${badgeColor}`}
+                    >
+                      {badgeText}
+                    </span>
+                  )}
+                </div>
               );
             }}
             views={{
