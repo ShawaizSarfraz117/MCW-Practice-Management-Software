@@ -42,4 +42,21 @@ alwaysApply: false
 
 -   **Test Structure**: Organize API route tests into separate describe blocks for each HTTP method (GET, POST, PUT, DELETE), with clear test cases covering successful operations and error conditions.
 
+## Code Quality in Tests
+
+- **Type Safety**: Tests deserve the same level of type safety as production code:
+  - Avoid `any` types in test code
+  - Define proper interfaces for test data
+  - Use type assertions only when necessary
+  
+- **Mocking and Fixtures**:
+  - When creating mock implementations, ensure they follow the correct interface
+  - For API tests, define proper request/response object types rather than using generic `Record<string, any>`
+  
+- **Unused Variables**:
+  - In test files, follow the same convention of using underscore prefix (`_unused`) for intentionally unused variables
+  - This is particularly relevant for destructured objects where you might only need certain properties
+
+
+
 
