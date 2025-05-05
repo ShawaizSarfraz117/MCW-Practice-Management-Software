@@ -148,7 +148,7 @@ export default function BillingTab({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24">
+                <TableCell className="h-24" colSpan={6}>
                   <div className="flex justify-center items-center">
                     <Loading message="Loading appointments..." />
                   </div>
@@ -174,8 +174,8 @@ export default function BillingTab({
                       {appointment.Invoice?.map((invoice) => (
                         <button
                           key={invoice.id}
-                          onClick={() => handleInvoiceClick(invoice.id)}
                           className="text-blue-500 hover:underline text-sm mt-1"
+                          onClick={() => handleInvoiceClick(invoice.id)}
                         >
                           Invoice # {invoice.invoice_number}
                         </button>

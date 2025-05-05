@@ -450,10 +450,12 @@ export function AvailabilitySidebar({
     >
       {isLoadingAvailability ? (
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
         </div>
       ) : (
         <AvailabilityFormProvider
+          duration={"1 hour"}
+          forceUpdate={forceUpdate}
           form={{
             ...availabilityFormValues,
             setFieldValue: (field, value) =>
@@ -473,19 +475,17 @@ export function AvailabilitySidebar({
             handleSubmit: handleSave,
             state: { values: availabilityFormValues },
           }}
-          duration={"1 hour"}
-          validationErrors={{}}
-          setValidationErrors={() => {}}
           setGeneralError={() => {}}
-          forceUpdate={forceUpdate}
+          setValidationErrors={() => {}}
+          validationErrors={{}}
         >
           <form
+            className="h-full flex flex-col"
             onSubmit={(e) => {
               e.preventDefault();
               e.stopPropagation();
               handleSave();
             }}
-            className="h-full flex flex-col"
           >
             <div className="flex sticky top-0 bg-white items-center justify-between p-4 border-b z-10">
               <div className="flex items-center gap-3">
@@ -504,8 +504,8 @@ export function AvailabilitySidebar({
                   >
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="ghost"
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        variant="ghost"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -521,8 +521,8 @@ export function AvailabilitySidebar({
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={handleDelete}
                           className="bg-red-600 hover:bg-red-700 text-white"
+                          onClick={handleDelete}
                         >
                           Delete
                         </AlertDialogAction>
@@ -534,8 +534,8 @@ export function AvailabilitySidebar({
                   Cancel
                 </Button>
                 <Button
-                  type="submit"
                   className="bg-[#16A34A] hover:bg-[#16A34A]/90 text-white"
+                  type="submit"
                 >
                   Save
                 </Button>
@@ -546,14 +546,14 @@ export function AvailabilitySidebar({
               <div className="p-6 space-y-6">
                 <div className="flex items-start gap-3">
                   <Checkbox
-                    id="allowRequests"
                     checked={allowOnlineRequests}
+                    className="mt-1"
+                    id="allowRequests"
                     onCheckedChange={(checked) =>
                       setAllowOnlineRequests(checked as boolean)
                     }
-                    className="mt-1"
                   />
-                  <label htmlFor="allowRequests" className="text-gray-900">
+                  <label className="text-gray-900" htmlFor="allowRequests">
                     Allow online appointment requests
                   </label>
                 </div>
@@ -562,9 +562,9 @@ export function AvailabilitySidebar({
                   <label className="block mb-2">Availability title</label>
                   <Input
                     className="w-full"
+                    placeholder="Enter availability title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter availability title"
                   />
                 </div>
 
@@ -572,14 +572,14 @@ export function AvailabilitySidebar({
                 <div className="bg-gray-50 p-6 space-y-4">
                   <div className="flex items-start gap-3">
                     <Checkbox
-                      id="recurring"
                       checked={isRecurring}
+                      className="mt-1"
+                      id="recurring"
                       onCheckedChange={(checked) =>
                         setIsRecurring(checked as boolean)
                       }
-                      className="mt-1"
                     />
-                    <label htmlFor="recurring" className="text-gray-900">
+                    <label className="text-gray-900" htmlFor="recurring">
                       Recurring
                     </label>
                   </div>
@@ -626,13 +626,13 @@ export function AvailabilitySidebar({
                               return (
                                 <button
                                   key={dayValue}
-                                  onClick={() => toggleDay(dayValue)}
                                   className={`w-9 h-9 rounded-full flex items-center justify-center text-sm
                                   ${
                                     selectedDays.includes(dayValue)
                                       ? "bg-[#16A34A] text-white"
                                       : "bg-white border text-gray-700"
                                   }`}
+                                  onClick={() => toggleDay(dayValue)}
                                 >
                                   {day}
                                 </button>
@@ -658,20 +658,20 @@ export function AvailabilitySidebar({
                         </Select>
                         {endType === "date" && (
                           <Input
+                            min={format(new Date(), "yyyy-MM-dd")}
                             type="date"
                             value={endValue}
                             onChange={(e) => setEndValue(e.target.value)}
-                            min={format(new Date(), "yyyy-MM-dd")}
                           />
                         )}
                         {endType === "occurrences" && (
                           <Input
+                            max="52"
+                            min="1"
+                            placeholder="Number of occurrences"
                             type="number"
                             value={endValue}
                             onChange={(e) => setEndValue(e.target.value)}
-                            min="1"
-                            max="52"
-                            placeholder="Number of occurrences"
                           />
                         )}
                       </div>
@@ -701,9 +701,9 @@ export function AvailabilitySidebar({
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-medium">Services</h3>
                     <Button
-                      variant="outline"
-                      size="sm"
                       className="text-[#16A34A] hover:text-[#16A34A]/90"
+                      size="sm"
+                      variant="outline"
                       onClick={() => {
                         if (
                           services.length > 0 &&
@@ -749,8 +749,8 @@ export function AvailabilitySidebar({
                             </div>
                           </div>
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="ghost"
                             onClick={() => {
                               setSelectedServices(
                                 selectedServices.filter(

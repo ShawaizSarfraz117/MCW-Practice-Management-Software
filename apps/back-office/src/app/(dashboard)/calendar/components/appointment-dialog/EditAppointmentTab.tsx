@@ -121,9 +121,9 @@ export function EditAppointmentTab({
         <div className="bg-green-200 text-green-700 rounded-[20px] px-3 py-[2px] text-[13px]">
           Active
         </div>
-        <Image src={CallIcon} alt="" height={18} />
-        <Image src={MessageIcon} alt="" height={20} />
-        <Image src={EmailIcon} alt="" height={20} />
+        <Image alt="" height={18} src={CallIcon} />
+        <Image alt="" height={20} src={MessageIcon} />
+        <Image alt="" height={20} src={EmailIcon} />
       </div>
 
       {/* <div className="flex gap-3 border-b pb-3">
@@ -143,8 +143,21 @@ export function EditAppointmentTab({
       </div> */}
       <div className="border-b pb-3">
         <SearchSelect
-          searchable={false}
-          showPagination={false}
+          className={cn(
+            "border-0 w-[200px] rounded-[24px] px-3 py-1 font-medium focus:outline-none focus:ring-0",
+            form.getFieldValue("status") === "SHOW" &&
+              "bg-green-100 text-green-700",
+            form.getFieldValue("status") === "SCHEDULED" &&
+              "bg-green-100 text-green-700",
+            form.getFieldValue("status") === "NO_SHOW" &&
+              "bg-red-100 text-red-700",
+            form.getFieldValue("status") === "LATE_CANCELED" &&
+              "bg-red-100 text-red-700",
+            form.getFieldValue("status") === "CANCELLED" &&
+              "bg-amber-100 text-amber-700",
+            form.getFieldValue("status") === "CLINICIAN_CANCELED" &&
+              "bg-amber-100 text-amber-700",
+          )}
           icon={
             form.getFieldValue("status") === "NO_SHOW" ||
             form.getFieldValue("status") === "LATE_CANCELED" ||
@@ -173,23 +186,10 @@ export function EditAppointmentTab({
               />
             )
           }
-          className={cn(
-            "border-0 w-[200px] rounded-[24px] px-3 py-1 font-medium focus:outline-none focus:ring-0",
-            form.getFieldValue("status") === "SHOW" &&
-              "bg-green-100 text-green-700",
-            form.getFieldValue("status") === "SCHEDULED" &&
-              "bg-green-100 text-green-700",
-            form.getFieldValue("status") === "NO_SHOW" &&
-              "bg-red-100 text-red-700",
-            form.getFieldValue("status") === "LATE_CANCELED" &&
-              "bg-red-100 text-red-700",
-            form.getFieldValue("status") === "CANCELLED" &&
-              "bg-amber-100 text-amber-700",
-            form.getFieldValue("status") === "CLINICIAN_CANCELED" &&
-              "bg-amber-100 text-amber-700",
-          )}
           options={appointmentStatusOptions}
           placeholder="Select Status"
+          searchable={false}
+          showPagination={false}
           value={form.getFieldValue("status")}
           onValueChange={handleStatusChange}
         />
@@ -250,8 +250,8 @@ export function EditAppointmentTab({
           <div className="pb-4 border-b">
             <RecurringHeader
               isExpanded={isRecurringExpanded}
-              onToggle={() => setIsRecurringExpanded(!isRecurringExpanded)}
               recurringRule={appointmentData.recurring_rule}
+              onToggle={() => setIsRecurringExpanded(!isRecurringExpanded)}
             />
             {isRecurringExpanded && (
               <RecurringSettings
@@ -289,14 +289,14 @@ export function EditAppointmentTab({
           <div className="flex gap-3">
             <div className="w-full">
               <SearchSelect
-                searchable={false}
-                showPagination={false}
                 className="border w-full rounded-[5px]"
                 options={servicesData.map((service) => ({
                   label: service.type,
                   value: service.id,
                 }))}
                 placeholder="Select service"
+                searchable={false}
+                showPagination={false}
                 value={
                   selectedServices[0]?.serviceId ||
                   appointmentData?.PracticeService?.id ||
@@ -348,7 +348,7 @@ export function EditAppointmentTab({
             className="h-[40px] w-[40px] bg-gray-100 flex justify-center items-center rounded-[5px] cursor-pointer hover:bg-gray-200"
             onClick={() => setIsDeleteModalOpen(true)}
           >
-            <Image src={DeleteIcon} alt="" />
+            <Image alt="" src={DeleteIcon} />
           </div>
           <Button
             className="py-2 px-3 bg-[#0a96d4] rounded-[5px] text-white"
@@ -362,17 +362,17 @@ export function EditAppointmentTab({
       <EditConfirmationModal
         appointmentData={appointmentData}
         open={isConfirmationOpen}
-        onOpenChange={setIsConfirmationOpen}
-        onConfirm={handleUpdateConfirm}
         status={form.getFieldValue("status")}
+        onConfirm={handleUpdateConfirm}
+        onOpenChange={setIsConfirmationOpen}
       />
 
       <DeleteConfirmationModal
         appointmentData={appointmentData}
         open={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        onConfirm={handleDeleteConfirm}
         selectedOption={selectedDeleteOption}
+        onConfirm={handleDeleteConfirm}
+        onOpenChange={setIsDeleteModalOpen}
         onOptionChange={setSelectedDeleteOption}
       />
     </>

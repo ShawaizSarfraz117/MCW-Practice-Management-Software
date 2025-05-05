@@ -1092,12 +1092,6 @@ export function CalendarView({
             ref={calendarRef}
             allDaySlot={true}
             allDayText="All day"
-            dayHeaderFormat={{
-              weekday: "short",
-              month: "numeric",
-              day: "numeric",
-              omitCommas: true,
-            }}
             dayHeaderContent={
               isScheduledPage
                 ? (args: DayHeaderContentArg) => {
@@ -1117,9 +1111,9 @@ export function CalendarView({
                       <div className="flex flex-col items-center relative">
                         <span>{args.text}</span>
                         <Button
-                          variant="outline"
-                          size="sm"
                           className="w-full text-[0.7rem] font-medium text-gray-700 mt-1 mb-1"
+                          size="sm"
+                          variant="outline"
                           onClick={(e) => handleAddLimit(args.date, e)}
                         >
                           {buttonText}
@@ -1192,27 +1186,75 @@ export function CalendarView({
                   }
                 : undefined
             }
+            dayHeaderFormat={{
+              weekday: "short",
+              month: "numeric",
+              day: "numeric",
+              omitCommas: true,
+            }}
             eventClick={handleEventClick}
-            events={filteredEvents}
-            headerToolbar={false}
-            height="100%"
-            initialView={currentView}
-            nowIndicator={true}
-            plugins={[
-              resourceTimeGridPlugin,
-              timeGridPlugin,
-              dayGridPlugin,
-              interactionPlugin,
-            ]}
-            resources={isAdmin ? resources : undefined}
-            select={handleDateSelect}
-            selectable={true}
-            slotMaxTime="23:59:00"
-            slotMinTime="00:00:00"
-            timeZone="America/New_York"
-            eventDisplay="block"
-            eventOverlap={true}
-            slotEventOverlap={true}
+            eventContent={(arg) => {
+              const type = arg.event.extendedProps?.type;
+              const isFirstAppointment = arg.event.extendedProps
+                ?.isFirstAppointmentForGroup as boolean | undefined;
+
+              // Handle Availability events separately
+              if (type === "availability") {
+                const start = arg.event.start;
+                const startTime = start
+                  ? new Date(start).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                  : "";
+                const title = arg.event.title || "Available";
+
+                return (
+                  <div className="p-1">
+                    <div className="text-xs font-medium text-gray-600 mb-0.5">
+                      {startTime}
+                    </div>
+                    <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
+                      {title}
+                    </div>
+                    {/* Availability events don't get New/Old badges */}
+                  </div>
+                );
+              }
+
+              // Handle regular Appointment events
+              const title = arg.event.title; // Or format as needed
+              // Add badge based on isFirstAppointmentForGroup
+              const badgeText =
+                isFirstAppointment === true
+                  ? "New"
+                  : isFirstAppointment === false
+                    ? ""
+                    : null;
+              const badgeColor =
+                isFirstAppointment === true
+                  ? "bg-green-100 text-green-800"
+                  : isFirstAppointment === false
+                    ? "bg-blue-100 text-blue-800"
+                    : "";
+
+              return (
+                <div className="p-1 flex flex-col h-full relative">
+                  {/* You might want to add time or other info here */}
+                  <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis mb-1 flex-grow">
+                    {title}
+                  </div>
+                  {badgeText && (
+                    <span
+                      className={`absolute top-1.5 right-1.5 text-xs font-medium px-1.5 py-0.5 rounded-full ${badgeColor}`}
+                    >
+                      {badgeText}
+                    </span>
+                  )}
+                </div>
+              );
+            }}
             eventDidMount={(info) => {
               const event = info.event;
               const type = event.extendedProps?.type;
@@ -1276,68 +1318,26 @@ export function CalendarView({
                 });
               }
             }}
-            eventContent={(arg) => {
-              const type = arg.event.extendedProps?.type;
-              const isFirstAppointment = arg.event.extendedProps
-                ?.isFirstAppointmentForGroup as boolean | undefined;
-
-              // Handle Availability events separately
-              if (type === "availability") {
-                const start = arg.event.start;
-                const startTime = start
-                  ? new Date(start).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })
-                  : "";
-                const title = arg.event.title || "Available";
-
-                return (
-                  <div className="p-1">
-                    <div className="text-xs font-medium text-gray-600 mb-0.5">
-                      {startTime}
-                    </div>
-                    <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
-                      {title}
-                    </div>
-                    {/* Availability events don't get New/Old badges */}
-                  </div>
-                );
-              }
-
-              // Handle regular Appointment events
-              const title = arg.event.title; // Or format as needed
-              // Add badge based on isFirstAppointmentForGroup
-              const badgeText =
-                isFirstAppointment === true
-                  ? "New"
-                  : isFirstAppointment === false
-                    ? ""
-                    : null;
-              const badgeColor =
-                isFirstAppointment === true
-                  ? "bg-green-100 text-green-800"
-                  : isFirstAppointment === false
-                    ? "bg-blue-100 text-blue-800"
-                    : "";
-
-              return (
-                <div className="p-1 flex flex-col h-full relative">
-                  {/* You might want to add time or other info here */}
-                  <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis mb-1 flex-grow">
-                    {title}
-                  </div>
-                  {badgeText && (
-                    <span
-                      className={`absolute top-1.5 right-1.5 text-xs font-medium px-1.5 py-0.5 rounded-full ${badgeColor}`}
-                    >
-                      {badgeText}
-                    </span>
-                  )}
-                </div>
-              );
-            }}
+            eventDisplay="block"
+            eventOverlap={true}
+            events={filteredEvents}
+            headerToolbar={false}
+            height="100%"
+            initialView={currentView}
+            nowIndicator={true}
+            plugins={[
+              resourceTimeGridPlugin,
+              timeGridPlugin,
+              dayGridPlugin,
+              interactionPlugin,
+            ]}
+            resources={isAdmin ? resources : undefined}
+            select={handleDateSelect}
+            selectable={true}
+            slotEventOverlap={true}
+            slotMaxTime="24:00:00"
+            slotMinTime="00:00:00"
+            timeZone="America/New_York"
             views={{
               resourceTimeGridDay: {
                 type: "resourceTimeGrid",
@@ -1415,8 +1415,9 @@ export function CalendarView({
       />
 
       <AvailabilitySidebar
+        availabilityData={selectedAvailability ?? undefined}
+        isEditMode={!!selectedAvailability}
         open={showAvailabilitySidebar}
-        onOpenChange={setShowAvailabilitySidebar}
         selectedDate={
           selectedAvailability?.start_date
             ? new Date(selectedAvailability.start_date)
@@ -1424,8 +1425,7 @@ export function CalendarView({
         }
         selectedResource={selectedAvailability?.clinician_id || null}
         onClose={() => setShowAvailabilitySidebar(false)}
-        availabilityData={selectedAvailability ?? undefined}
-        isEditMode={!!selectedAvailability}
+        onOpenChange={setShowAvailabilitySidebar}
       />
     </div>
   );

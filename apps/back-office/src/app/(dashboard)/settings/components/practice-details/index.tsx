@@ -51,8 +51,8 @@ export default function PracticeDetailsForm() {
       <PracticeInformationForm />
       <PracticeLogoForm />
       <PracticePhoneForm
-        phoneNumbers={phoneNumbers}
         addPhoneNumber={addPhoneNumber}
+        phoneNumbers={phoneNumbers}
         removePhoneNumber={removePhoneNumber}
       />
 
@@ -83,7 +83,7 @@ export default function PracticeDetailsForm() {
                     No address added
                   </TableCell>
                   <TableCell>
-                    <div className="w-4 h-4 rounded-full bg-blue-400"></div>
+                    <div className="w-4 h-4 rounded-full bg-blue-400" />
                   </TableCell>
                   <TableCell className="text-sm">
                     02-Telehealth Provided Other than in Patient's Home
@@ -103,8 +103,8 @@ export default function PracticeDetailsForm() {
                       </Tooltip>
                     </TooltipProvider>
                     <Button
-                      variant="link"
                       className="text-blue-500 p-0 h-auto ml-4"
+                      variant="link"
                     >
                       Edit
                     </Button>
@@ -114,8 +114,8 @@ export default function PracticeDetailsForm() {
             </Table>
           </div>
           <Button
-            variant="outline"
             className="mt-5 border-red-300 text-red-700"
+            variant="outline"
             onClick={addPhoneNumber}
           >
             Turn Off
@@ -140,7 +140,7 @@ export default function PracticeDetailsForm() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Address / Office</TableHead>
-                  <TableHead className="w-20"></TableHead>
+                  <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -151,8 +151,8 @@ export default function PracticeDetailsForm() {
                   </TableCell>
                   <TableCell>
                     <Button
-                      variant="link"
                       className="text-emerald-600 p-0 h-auto"
+                      variant="link"
                     >
                       Add
                     </Button>
@@ -165,8 +165,8 @@ export default function PracticeDetailsForm() {
                   </TableCell>
                   <TableCell>
                     <Button
-                      variant="link"
                       className="text-emerald-600 p-0 h-auto"
+                      variant="link"
                     >
                       Add
                     </Button>

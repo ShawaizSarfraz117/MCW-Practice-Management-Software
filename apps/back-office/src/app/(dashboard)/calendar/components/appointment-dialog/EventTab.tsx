@@ -106,8 +106,8 @@ export function EventTab(): React.ReactNode {
     <>
       <div>
         <Input
-          placeholder="Event name (optional)"
           className="rounded-none border-gray-200"
+          placeholder="Event name (optional)"
           value={form.getFieldValue("eventName") || ""}
           onChange={(e) => {
             form.setFieldValue("eventName", e.target.value);
@@ -121,16 +121,16 @@ export function EventTab(): React.ReactNode {
         <div className="space-y-4">
           <div className="flex items-start space-x-2">
             <Checkbox
-              id="event-all-day"
               checked={allDay}
+              className="data-[state=checked]:bg-[#16A34A] data-[state=checked]:border-[#16A34A] mt-0.5"
+              id="event-all-day"
               onCheckedChange={(checked) =>
                 handleCheckboxChange("allDay", !!checked)
               }
-              className="data-[state=checked]:bg-[#16A34A] data-[state=checked]:border-[#16A34A] mt-0.5"
             />
             <label
-              htmlFor="event-all-day"
               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 !mt-1"
+              htmlFor="event-all-day"
             >
               All day
             </label>
@@ -139,16 +139,16 @@ export function EventTab(): React.ReactNode {
           {allDay ? (
             <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
               <DatePicker
+                className="border-gray-200"
                 value={startDate}
                 onChange={(date) => form.setFieldValue("startDate", date)}
-                className="border-gray-200"
               />
               <span className="text-sm text-gray-500">to</span>
               <div className="flex items-center gap-2">
                 <DatePicker
+                  className="border-gray-200"
                   value={endDate}
                   onChange={(date) => form.setFieldValue("endDate", date)}
-                  className="border-gray-200"
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {differenceInDays(
@@ -162,22 +162,22 @@ export function EventTab(): React.ReactNode {
           ) : (
             <div className="space-y-2">
               <DatePicker
+                className="border-gray-200"
                 value={startDate}
                 onChange={(date) => form.setFieldValue("startDate", date)}
-                className="border-gray-200"
               />
               <div className="flex items-center gap-2">
                 <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center flex-1">
                   <TimePicker
+                    className="border-gray-200"
                     value={startTime}
                     onChange={(time) => form.setFieldValue("startTime", time)}
-                    className="border-gray-200"
                   />
                   <span className="text-sm text-gray-500">to</span>
                   <TimePicker
+                    className="border-gray-200"
                     value={endTime}
                     onChange={(time) => form.setFieldValue("endTime", time)}
-                    className="border-gray-200"
                   />
                 </div>
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -188,41 +188,41 @@ export function EventTab(): React.ReactNode {
           )}
 
           <SearchSelect
+            className={`border-gray-200 ${validationErrors.clinician ? "border-red-500" : ""}`}
             options={formattedClinicianOptions}
+            placeholder="Team member"
             value={form.getFieldValue("clinician")}
             onValueChange={(value) => {
               form.setFieldValue("clinician", value);
               clearValidationError("clinician");
             }}
-            placeholder="Team member"
-            className={`border-gray-200 ${validationErrors.clinician ? "border-red-500" : ""}`}
           />
 
           <SearchSelect
+            className={`border-gray-200 ${validationErrors.location ? "border-red-500" : ""}`}
+            icon={<MapPin className="h-4 w-4 text-gray-500" />}
             options={formattedLocationOptions}
+            placeholder="Location"
             value={form.getFieldValue("location")}
             onValueChange={(value) => {
               form.setFieldValue("location", value);
               clearValidationError("location");
               forceUpdate();
             }}
-            placeholder="Location"
-            icon={<MapPin className="h-4 w-4 text-gray-500" />}
-            className={`border-gray-200 ${validationErrors.location ? "border-red-500" : ""}`}
           />
 
           <div className="flex items-start space-x-2">
             <Checkbox
-              id="event-recurring"
               checked={isRecurring}
+              className="data-[state=checked]:bg-[#16A34A] data-[state=checked]:border-[#16A34A] mt-0.5"
+              id="event-recurring"
               onCheckedChange={(checked) =>
                 handleCheckboxChange("recurring", !!checked)
               }
-              className="data-[state=checked]:bg-[#16A34A] data-[state=checked]:border-[#16A34A] mt-0.5"
             />
             <label
-              htmlFor="event-recurring"
               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 !mt-1"
+              htmlFor="event-recurring"
             >
               Recurring
             </label>
@@ -230,9 +230,9 @@ export function EventTab(): React.ReactNode {
 
           {isRecurring && (
             <RecurringControl
+              open={true}
               startDate={startDate || new Date()}
               visible={true}
-              open={true}
               onRecurringChange={(recurringValues) => {
                 form.setFieldValue("recurringInfo", recurringValues);
               }}
