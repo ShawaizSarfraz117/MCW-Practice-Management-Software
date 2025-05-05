@@ -35,23 +35,23 @@ export default function AccountActivitySection() {
         </div>
 
         <div className="bg-white rounded-lg shadow">
-          <Tabs defaultValue="history" className="w-full">
+          <Tabs className="w-full" defaultValue="history">
             <TabsList className="border-b w-full justify-start rounded-none p-0 h-auto bg-transparent">
               <TabsTrigger
-                value="history"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#2d8467] data-[state=active]:text-[#2d8467] px-6 py-3 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                value="history"
               >
                 History
               </TabsTrigger>
               <TabsTrigger
-                value="signin"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#2d8467] data-[state=active]:text-[#2d8467] px-6 py-3 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                value="signin"
               >
                 Sign In Events
               </TabsTrigger>
               <TabsTrigger
-                value="hipaa"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#2d8467] data-[state=active]:text-[#2d8467] px-6 py-3 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                value="hipaa"
               >
                 HIPAA Audit Log
               </TabsTrigger>
@@ -96,8 +96,8 @@ export default function AccountActivitySection() {
               </div>
 
               <ActivityTable
-                showDetails={showDetails}
                 searchQuery={searchQuery}
+                showDetails={showDetails}
                 timeRange={selectedTimeRange}
               />
             </div>

@@ -15,8 +15,17 @@ import BillingTab from "./tabs/BillingTab";
 import MeasuresTab from "./tabs/MeasuresTab";
 import FilesTab from "./tabs/FilesTab";
 import { AddPaymentModal } from "./AddPaymentModal";
-import { fetchInvoices } from "@/(dashboard)/clients/services/client.service";
-import { Invoice, Payment } from "@prisma/client";
+import {
+  fetchInvoices,
+  fetchClientGroups,
+} from "@/(dashboard)/clients/services/client.service";
+import {
+  Invoice,
+  Payment,
+  ClientGroup,
+  ClientGroupMembership,
+  Client,
+} from "@prisma/client";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
@@ -25,11 +34,15 @@ interface ClientProfileProps {
   clientId: string;
 }
 
+interface ClientGroupWithMembership extends ClientGroup {
+  ClientGroupMembership: (ClientGroupMembership & { Client: Client })[];
+}
 export interface InvoiceWithPayments extends Invoice {
   Payment: Payment[];
-  ClientGroup?: {
+  ClientGroup: {
     name?: string;
     type?: string;
+    available_credit?: number;
     ClientGroupMembership?: Array<{
       id: string;
       Client?: {
@@ -41,6 +54,7 @@ export interface InvoiceWithPayments extends Invoice {
   };
   Appointment?: {
     start_date: Date;
+    adjustable_amount: string;
   };
 }
 
@@ -51,6 +65,9 @@ export default function ClientProfile({
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceWithPayments[]>([]);
+  const [_clientGroup, setClientGroup] =
+    useState<ClientGroupWithMembership | null>(null);
+  const [creditAmount, setCredit] = useState<number>(0);
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
   const [clientName, setClientName] = useState("");
   const { id } = useParams();
@@ -72,61 +89,46 @@ export default function ClientProfile({
     return null;
   };
 
-  // Calculate totals for invoice and payments
-  const totalInvoiceAmount = invoices.reduce(
-    (sum, invoice) => sum + Number(invoice.amount),
-    0,
-  );
-  const totalPaymentsAmount = invoices.reduce((sum, invoice) => {
-    const invoicePayments =
-      invoice.Payment?.reduce(
-        (paymentSum, payment) => paymentSum + Number(payment.amount),
-        0,
-      ) || 0;
-    return sum + invoicePayments;
-  }, 0);
-  const remainingBalance = totalInvoiceAmount - totalPaymentsAmount;
-
-  const fetchInvoicesData = async () => {
-    const [invoices, error] = await fetchInvoices({
-      searchParams: { clientGroupId: id },
+  const clientGroupsData = async () => {
+    const [clientGroupResponse, clientGroupError] = await fetchClientGroups({
+      searchParams: { id },
     });
-    if (!error && invoices?.length) {
-      const typedInvoices = invoices as InvoiceWithPayments[];
-      setInvoices(typedInvoices);
-      if (typedInvoices[0]?.ClientGroup?.ClientGroupMembership?.length) {
-        let name = "";
-        typedInvoices[0]?.ClientGroup?.ClientGroupMembership.forEach(
-          (
-            membership: {
-              id: string;
-              Client?: {
-                id: string;
-                legal_first_name?: string;
-                legal_last_name?: string;
-              };
-            },
-            index: number,
-            array: Array<{
-              id: string;
-              Client?: {
-                id: string;
-                legal_first_name?: string;
-                legal_last_name?: string;
-              };
-            }>,
-          ) => {
-            name +=
-              membership?.Client?.legal_first_name +
-              " " +
-              membership?.Client?.legal_last_name +
-              (index !== array.length - 1 ? " & " : "");
-          },
-        );
-        setClientName(name);
+    if (!clientGroupError && clientGroupResponse) {
+      if ("available_credit" in clientGroupResponse) {
+        setCredit(Number(clientGroupResponse.available_credit) || 0);
+        setClientGroup(clientGroupResponse as ClientGroupWithMembership);
+
+        if (clientGroupResponse.ClientGroupMembership?.length) {
+          const name = (clientGroupResponse.ClientGroupMembership ?? [])
+            .map((m) =>
+              `${m.Client?.legal_first_name ?? ""} ${
+                m.Client?.legal_last_name ?? ""
+              }`.trim(),
+            )
+            .filter(Boolean)
+            .join(" & ");
+          setClientName(name);
+        }
       }
     }
   };
+
+  const fetchInvoicesData = async () => {
+    const [response, error] = await fetchInvoices({
+      searchParams: { clientGroupId: id },
+    });
+    if (!error && response) {
+      const invoiceResponse = response as InvoiceWithPayments[];
+
+      if (invoiceResponse?.length) {
+        setInvoices(invoiceResponse);
+      }
+    }
+  };
+
+  useEffect(() => {
+    clientGroupsData();
+  }, []);
 
   useEffect(() => {
     fetchInvoicesData();
@@ -136,7 +138,9 @@ export default function ClientProfile({
     // Handle invoice related URL parameters
     const invoiceId = searchParams.get("invoiceId");
     const type = searchParams.get("type");
-    if (invoiceId && type === "payment") {
+    const appointmentId = searchParams.get("appointmentId");
+
+    if ((invoiceId || appointmentId) && type === "payment") {
       setAddPaymentModalOpen(true);
     }
     if (invoiceId && type === "invoice") {
@@ -157,12 +161,10 @@ export default function ClientProfile({
   const handleTabChange = (value: string) => {
     setActiveTab(value);
 
-    // Create a new URLSearchParams object from the current searchParams
     const params = new URLSearchParams(searchParams.toString());
     // Set or update the tab parameter
     params.set("tab", value);
 
-    // Update the URL without refreshing the page
     router.push(`${window.location.pathname}?${params.toString()}`, {
       scroll: false,
     });
@@ -282,6 +284,7 @@ export default function ClientProfile({
             <TabsContent value="billing">
               <BillingTab
                 addPaymentModalOpen={addPaymentModalOpen}
+                fetchInvoicesData={fetchInvoicesData}
                 invoiceDialogOpen={invoiceDialogOpen}
                 setInvoiceDialogOpen={setInvoiceDialogOpen}
               />
@@ -300,17 +303,12 @@ export default function ClientProfile({
         {/* Right Sidebar */}
         <div className="col-span-12 lg:col-span-4 pt-0 border-[#e5e7eb] p-4 sm:p-6 space-y-4">
           <ClientBillingCard
+            credit={creditAmount}
             invoices={invoices}
-            remainingBalance={remainingBalance}
-            totalInvoiceAmount={totalInvoiceAmount}
-            totalPaymentsAmount={totalPaymentsAmount}
             onAddPayment={() => setAddPaymentModalOpen(true)}
           />
 
-          <InvoicesDocumentsCard
-            invoices={invoices}
-            onInvoiceClick={() => setAddPaymentModalOpen(true)}
-          />
+          <InvoicesDocumentsCard invoices={invoices} />
         </div>
       </div>
 

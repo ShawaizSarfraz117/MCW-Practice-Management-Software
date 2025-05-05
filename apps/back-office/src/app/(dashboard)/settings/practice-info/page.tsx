@@ -1,18 +1,18 @@
 "use client";
 
 import { Button, toast } from "@mcw/ui";
-import PracticeInformationForm from "./PracticeInformation";
-import PracticeLogoForm from "./PracticeLogoForm";
-import PracticePhoneForm from "./PracticePhoneForm";
+import PracticeInformationForm from "./components/PracticeInformation";
+import PracticeLogoForm from "./components/PracticeLogoForm";
+import PracticePhoneForm from "./components/PracticePhoneForm";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import {
   updatePracticeInfo,
   usePracticeInformation,
-} from "./hooks/usePracticeInformation";
+} from "./components/hooks/usePracticeInformation";
 import { PracticeInformation } from "@/types/profile";
-import TeleHealth from "./TeleHealth";
-import BillingAddresses from "./BillingAddresses";
+import TeleHealth from "./components/TeleHealth";
+import BillingAddresses from "./components/BillingAddresses";
 
 export default function PracticeDetailsForm() {
   const queryClient = useQueryClient();

@@ -1,7 +1,8 @@
 "use client";
+
 import { useState } from "react";
-import EditClinicianSidebar from "./EditClinicianSidebar";
-import AddLicenseSidebar, { LicenseInfo } from "./AddLicenseSidebar";
+import EditClinicianSidebar from "./components/EditClinicianSidebar";
+import AddLicenseSidebar, { LicenseInfo } from "./components/AddLicenseSidebar";
 import { Button, Input, Label } from "@mcw/ui";
 import { useClinicalInfo, useLicenses } from "./hooks/useClinicalInfo";
 import { PlusIcon } from "lucide-react";

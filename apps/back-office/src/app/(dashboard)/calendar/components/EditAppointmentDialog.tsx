@@ -181,9 +181,9 @@ export function EditAppointmentDialog({
               <div className="px-6 space-y-4">
                 {activeTab === "appointment" ? (
                   <EditAppointmentTab
+                    appointmentData={appointmentData}
                     selectedDate={selectedDate}
                     onCreateClient={onCreateClient}
-                    appointmentData={appointmentData}
                     onDone={onDone}
                   />
                 ) : (

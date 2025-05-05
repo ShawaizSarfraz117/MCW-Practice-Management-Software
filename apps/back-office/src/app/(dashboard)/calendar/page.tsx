@@ -358,11 +358,11 @@ const CalendarPage: React.FC = () => {
       <div className="flex-1">
         <CalendarView
           initialClinicians={formattedClinicians}
-          initialLocations={formattedLocations}
           initialEvents={formattedAppointments}
-          onCreateClient={handleCreateClient}
-          onAppointmentDone={handleAppointmentDone}
+          initialLocations={formattedLocations}
           isScheduledPage={false}
+          onAppointmentDone={handleAppointmentDone}
+          onCreateClient={handleCreateClient}
         />
 
         <CreateClientDrawer
