@@ -4,9 +4,9 @@ import React, { useState } from "react";
 import { Button } from "@mcw/ui";
 import { Check } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Service, ServiceEdit } from "./types";
-import ServiceEditForm from "./ServiceEditForm";
-import AddServiceDialog from "./AddServiceDialog";
+import { Service, ServiceEdit } from "./components/types";
+import ServiceEditForm from "./components/ServiceEditForm";
+import AddServiceDialog from "./components/AddServiceDialog";
 
 const ServiceSection = () => {
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(
