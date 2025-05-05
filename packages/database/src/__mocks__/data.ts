@@ -46,6 +46,7 @@ import {
   Role,
   SurveyTemplate,
   SurveyAnswers,
+  Product,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
@@ -495,4 +496,31 @@ export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
 // Helper to create a valid invoice object with proper UUID formats
 export const mockInvoice = (overrides = {}) => {
   return InvoiceFactory.buildComplete(overrides);
+};
+
+// Product Factory for Mock Data
+//===================================================
+
+// Basic structure for a mock Product
+export type MockProduct = Omit<Product, "createdAt" | "updatedAt" | "price"> & {
+  createdAt: string; // Often easier to work with ISO strings in mocks
+  updatedAt: string;
+  price: string; // Represent Decimal as string for simplicity in mocks
+};
+
+let productSequence = 0; // Renamed to avoid conflict with other sequence vars if any
+
+// Simple mock factory function
+export const ProductFactory = (
+  overrides?: Partial<MockProduct>,
+): MockProduct => {
+  productSequence += 1;
+  return {
+    id: `mock-product-${productSequence}`,
+    name: `Mock Product ${productSequence}`,
+    price: "100.00",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  };
 };
