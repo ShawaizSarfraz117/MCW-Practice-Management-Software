@@ -46,6 +46,7 @@ import {
   Role,
   SurveyTemplate,
   SurveyAnswers,
+  ClinicianLocation,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
@@ -128,6 +129,19 @@ export const LocationFactory = {
     id: faker.string.uuid(),
     name: faker.company.name(),
     address: faker.location.streetAddress(),
+    color: faker.internet.color(),
+    street: faker.location.streetAddress(),
+    city: faker.location.city(),
+    state: faker.location.state(),
+    zip: faker.location.zipCode(),
+    ...overrides,
+  }),
+};
+
+export const ClinicianLocationFactory = {
+  build: <T extends Partial<ClinicianLocation>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    is_primary: faker.datatype.boolean(),
     ...overrides,
   }),
 };
@@ -427,6 +441,7 @@ export const ClinicianClientPrismaFactory = defineClinicianClientFactory({
 // ClinicianLocation Prisma factory
 export const ClinicianLocationPrismaFactory = defineClinicianLocationFactory({
   defaultData: () => ({
+    ...ClinicianLocationFactory.build(),
     Clinician: ClinicianPrismaFactory,
     Location: LocationPrismaFactory,
   }),

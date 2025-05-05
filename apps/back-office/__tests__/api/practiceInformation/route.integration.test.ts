@@ -11,18 +11,10 @@ import { GET, PUT } from "@/api/practiceInformation/route";
 import { prisma } from "@mcw/database";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
-import { faker } from "@faker-js/faker";
+import { UserFactory } from "@mcw/database/mock-data";
 
 // Create mock user data
-const mockUser = {
-  id: faker.string.uuid(),
-  email: faker.internet.email(),
-  password_hash: "mock-hash",
-  last_login: new Date(),
-  date_of_birth: new Date(),
-  phone: faker.phone.number(),
-  profile_photo: faker.image.url(),
-};
+const mockUser = UserFactory.build();
 
 // Mock helpers
 vi.mock("@/utils/helpers", () => ({

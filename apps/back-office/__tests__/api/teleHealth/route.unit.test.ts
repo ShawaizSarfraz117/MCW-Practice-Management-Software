@@ -3,6 +3,7 @@ import { GET, PUT } from "@/api/teleHealth/route";
 import { prisma } from "@mcw/database";
 import { getClinicianInfo } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
+import { ClinicianFactory, LocationFactory } from "@mcw/database/mock-data";
 
 // Mock database
 vi.mock("@mcw/database", () => ({
@@ -34,19 +35,8 @@ describe("GET /api/teleHealth", () => {
   });
 
   it("should return telehealth location when it exists", async () => {
-    const mockLocation = {
-      id: "location-1",
-      name: "Virtual Office",
-      street: "123 Virtual St",
-      city: "Digital City",
-      state: "DC",
-      zip: "12345",
-      color: "#FF5733",
-      address: "123 Virtual St, Digital City, DC 12345",
-      is_active: true,
-    };
-
-    const mockClinician = {
+    const mockLocation = LocationFactory.build();
+    const mockClinician = ClinicianFactory.build({
       id: mockClinicianId,
       first_name: "Test",
       last_name: "Clinician",
@@ -59,7 +49,7 @@ describe("GET /api/teleHealth", () => {
           Location: mockLocation,
         },
       ],
-    };
+    });
 
     const mockFindUnique = prisma.clinician.findUnique as unknown as ReturnType<
       typeof vi.fn

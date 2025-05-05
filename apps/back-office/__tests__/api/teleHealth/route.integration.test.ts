@@ -11,27 +11,14 @@ import { GET, PUT } from "@/api/teleHealth/route";
 import { prisma } from "@mcw/database";
 import { getClinicianInfo } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
-import { faker } from "@faker-js/faker";
-
+import {
+  ClinicianFactory,
+  LocationFactory,
+  UserFactory,
+} from "@mcw/database/mock-data";
 // Create mock user and clinician data
-const mockUser = {
-  id: faker.string.uuid(),
-  email: faker.internet.email(),
-  password_hash: "mock-hash",
-  last_login: new Date(),
-  date_of_birth: new Date(),
-  phone: faker.phone.number(),
-  profile_photo: faker.image.url(),
-};
-
-const mockClinician = {
-  id: faker.string.uuid(),
-  user_id: mockUser.id,
-  first_name: "Test",
-  last_name: "Clinician",
-  address: "123 Test St",
-  percentage_split: 100,
-};
+const mockUser = UserFactory.build();
+const mockClinician = ClinicianFactory.build({ user_id: mockUser.id });
 
 // Mock helpers
 vi.mock("@/utils/helpers");
@@ -135,16 +122,7 @@ describe("TeleHealth API Integration Tests", () => {
   });
 
   describe("PUT /api/teleHealth", () => {
-    const validData = {
-      locationId: faker.string.uuid(),
-      name: "Updated Virtual Office",
-      street: "456 Digital Ave",
-      city: "Tech City",
-      state: "TC",
-      zip: "12345-6789",
-      color: "#4287f5",
-      address: "456 Digital Ave, Tech City, TC 12345-6789",
-    };
+    const validData = LocationFactory.build();
 
     it("should return 403 when user is not a clinician", async () => {
       vi.mocked(getClinicianInfo).mockResolvedValueOnce({
@@ -161,7 +139,10 @@ describe("TeleHealth API Integration Tests", () => {
     });
 
     it("should return 404 when updating non-existent location", async () => {
-      const request = createRequestWithBody("/api/teleHealth", validData);
+      const request = createRequestWithBody("/api/teleHealth", {
+        ...validData,
+        locationId: validData.id,
+      });
       const response = await PUT(request);
       expect(response.status).toBe(404);
       expect(await response.json()).toEqual({

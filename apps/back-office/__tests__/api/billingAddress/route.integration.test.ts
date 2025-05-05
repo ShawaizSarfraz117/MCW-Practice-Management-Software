@@ -11,27 +11,11 @@ import { GET, POST } from "@/api/billingAddress/route";
 import { prisma } from "@mcw/database";
 import { getClinicianInfo } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
-import { faker } from "@faker-js/faker";
+import { ClinicianFactory, UserFactory } from "@mcw/database/mock-data";
 
 // Create mock user and clinician data
-const mockUser = {
-  id: faker.string.uuid(),
-  email: faker.internet.email(),
-  password_hash: "mock-hash",
-  last_login: new Date(),
-  date_of_birth: new Date(),
-  phone: faker.phone.number(),
-  profile_photo: faker.image.url(),
-};
-
-const mockClinician = {
-  id: faker.string.uuid(),
-  user_id: mockUser.id,
-  first_name: "Test",
-  last_name: "Clinician",
-  address: "123 Test St",
-  percentage_split: 100,
-};
+const mockUser = UserFactory.build();
+const mockClinician = ClinicianFactory.build({ user_id: mockUser.id });
 
 // Mock helpers
 vi.mock("@/utils/helpers");
