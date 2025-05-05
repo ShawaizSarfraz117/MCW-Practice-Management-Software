@@ -1,8 +1,17 @@
 "use client";
 
-import { MenuItem, ProfileSidebarProps } from "@/types/profile";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+interface MenuItem {
+  label: string;
+  id?: string;
+  href?: string;
+  description?: string;
+  children?: MenuItem[];
+}
 
 const menuItems = {
   operations: [
@@ -12,11 +21,13 @@ const menuItems = {
         {
           label: "Profile and security",
           id: "profile-security",
+          href: "/settings/profile-security",
           description: "Personal info and security preferences",
         },
         {
           label: "Clinical info",
           id: "clinical-info",
+          href: "/settings/clinical-info",
           description: "NPI number and licenses",
         },
       ],
@@ -27,10 +38,12 @@ const menuItems = {
         {
           label: "Practice Info",
           id: "practice-info",
+          href: "/settings/practice-info",
         },
         {
           label: "Locations",
           id: "locations",
+          href: "/settings/locations",
         },
       ],
     },
@@ -40,10 +53,12 @@ const menuItems = {
         {
           label: "Team Members",
           id: "team-members",
+          href: "/settings/team-members",
         },
         {
           label: "Roles & Permissions",
           id: "roles",
+          href: "/settings/roles",
         },
       ],
     },
@@ -52,41 +67,61 @@ const menuItems = {
     {
       label: "Client billing and insurance",
       id: "billing",
+      href: "/settings/billing",
     },
     {
       label: "Payment processing",
       id: "payment",
+      href: "/settings/payment",
     },
     {
       label: "Services and products",
       id: "service",
+      href: "/settings/service",
     },
   ],
   clientCare: [
     {
       label: "Scheduling and inquiries",
       id: "scheduling",
+      href: "/settings/scheduling",
     },
     {
       label: "Documentation",
       id: "documentation",
+      href: "/settings/documentation",
     },
     {
       label: "Client notifications",
       id: "notifications",
+      href: "/settings/notifications",
     },
     {
       label: "Messaging",
       id: "messaging",
+      href: "/settings/messaging",
     },
   ],
 };
 
-export default function ProfileSidebar({
-  activeSection,
-  onSectionChange,
-}: ProfileSidebarProps) {
+export default function ProfileSidebar() {
+  const pathname = usePathname();
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+  useState(() => {
+    let foundParentLabel: string | null = null;
+    Object.values(menuItems).forEach((section) => {
+      section.forEach((item: MenuItem) => {
+        if (item.children && item.children.some((child: MenuItem) => child.href === pathname)) {
+          foundParentLabel = item.label;
+        }
+      });
+    });
+
+    if (foundParentLabel) {
+      setExpandedMenus([foundParentLabel]);
+    }
+  });
 
   const toggleMenu = (menuLabel: string) => {
     setExpandedMenus((prev) =>
@@ -96,14 +131,13 @@ export default function ProfileSidebar({
     );
   };
 
-  const renderMenuItem = (item: MenuItem) => {
+  const renderMenuItem = (item: MenuItem): JSX.Element => {
     const isExpanded = expandedMenus.includes(item.label);
-    const isActive = item.id === activeSection;
+    const isActive = item.href === pathname;
 
     return (
       <div key={item.label}>
         {item.children ? (
-          // Parent menu item with children
           <div>
             <div
               className="flex cursor-pointer items-center justify-between py-2 text-sm"
@@ -118,44 +152,45 @@ export default function ProfileSidebar({
             </div>
             {isExpanded && (
               <div className="ml-2">
-                {item.children.map((child) => renderMenuItem(child))}
+                {item.children.map((child: MenuItem) => renderMenuItem(child))}
               </div>
             )}
           </div>
-        ) : (
-          // Leaf menu item
-          <div
-            className={`cursor-pointer ${
-              isActive ? "bg-green-50 rounded-md p-3 my-1" : "py-2 text-sm"
-            }`}
-            onClick={() => item.id && onSectionChange(item.id)}
-          >
+        ) : item.href ? (
+          <Link href={item.href} legacyBehavior={false}>
             <div
-              className={`${
-                isActive ? "text-green-700 font-medium" : ""
-              } text-sm`}
+              className={`cursor-pointer ${
+                isActive ? "bg-green-50 rounded-md p-3 my-1" : "py-2 text-sm"
+              }`}
             >
-              {item.label}
-            </div>
-            {item.description && (
               <div
-                className={`mt-1 text-xs ${
-                  isActive ? "text-green-600" : "text-gray-500"
-                }`}
+                className={`${
+                  isActive ? "text-green-700 font-medium" : ""
+                } text-sm`}
               >
-                {item.description}
+                {item.label}
               </div>
-            )}
-          </div>
+              {item.description && (
+                <div
+                  className={`mt-1 text-xs ${
+                    isActive ? "text-green-600" : "text-gray-500"
+                  }`}
+                >
+                  {item.description}
+                </div>
+              )}
+            </div>
+          </Link>
+        ) : (
+          <div className="py-2 text-sm text-gray-400">{item.label}</div>
         )}
       </div>
     );
   };
 
   return (
-    <div className="w-56 flex-shrink-0 border-r border-gray-200">
-      {/* Search */}
-      <div className="p-4">
+    <div className="w-64 flex-shrink-0 border-r border-gray-200 h-full overflow-y-auto bg-white">
+      <div className="p-4 sticky top-0 bg-white z-10 border-b">
         <div className="relative">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <svg
@@ -173,34 +208,33 @@ export default function ProfileSidebar({
             </svg>
           </div>
           <input
-            className="w-full rounded-md border-0 bg-gray-100 py-2 pl-10 pr-4 text-sm"
-            placeholder="Search"
+            className="w-full rounded-md border-0 bg-gray-100 py-2 pl-10 pr-4 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="Search settings"
             type="text"
           />
         </div>
       </div>
 
-      {/* Operations Section */}
-      <div className="px-4 py-2">
-        <div className="text-xs font-semibold text-green-600">OPERATIONS</div>
-        <div className="mt-2">
-          {menuItems.operations.map((item) => renderMenuItem(item))}
+      <div className="p-4">
+        <div className="py-2">
+          <div className="px-2 text-xs font-semibold uppercase text-gray-500 tracking-wider">Operations</div>
+          <div className="mt-2 space-y-1">
+            {menuItems.operations.map((item) => renderMenuItem(item))}
+          </div>
         </div>
-      </div>
 
-      {/* Billing Section */}
-      <div className="mt-4 px-4 py-2">
-        <div className="text-xs font-semibold text-green-600">BILLING</div>
-        <div className="mt-2">
-          {menuItems.billing.map((item) => renderMenuItem(item))}
+        <div className="mt-4 py-2">
+          <div className="px-2 text-xs font-semibold uppercase text-gray-500 tracking-wider">Billing</div>
+          <div className="mt-2 space-y-1">
+            {menuItems.billing.map((item) => renderMenuItem(item))}
+          </div>
         </div>
-      </div>
 
-      {/* Client Care Section */}
-      <div className="mt-4 px-4 py-2">
-        <div className="text-xs font-semibold text-green-600">CLIENT CARE</div>
-        <div className="mt-2">
-          {menuItems.clientCare.map((item) => renderMenuItem(item))}
+        <div className="mt-4 py-2">
+          <div className="px-2 text-xs font-semibold uppercase text-gray-500 tracking-wider">Client Care</div>
+          <div className="mt-2 space-y-1">
+            {menuItems.clientCare.map((item) => renderMenuItem(item))}
+          </div>
         </div>
       </div>
     </div>
