@@ -32,20 +32,23 @@ export default function TeleHealth({
 
   return (
     <>
-      {isLoading && <div className="mt-1">Loading...</div>}
-      {error && (
-        <div className="500 mt-1">Telehealth information is not available.</div>
-      )}
-      {teleHealthInfo && (
-        <div className="mt-4">
-          <Label className="text-base font-medium">Telehealth</Label>
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Your video appointments are conducted through the Telehealth
-              feature. You and your clients will get a unique link to access
-              these appointments.
-            </p>
-            <div className="overflow-x-auto">
+      <div className="mt-4">
+        <Label className="text-base font-medium">Telehealth</Label>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Your video appointments are conducted through the Telehealth
+            feature. You and your clients will get a unique link to access these
+            appointments.
+          </p>
+          {isLoading && <div className="mt-1">Loading...</div>}
+
+          <div className="overflow-x-auto">
+            {error && (
+              <div className="500 mt-1">
+                Telehealth information is not available.
+              </div>
+            )}
+            {teleHealthInfo?.location && (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -95,16 +98,16 @@ export default function TeleHealth({
                   </TableRow>
                 </TableBody>
               </Table>
-            </div>
+            )}
           </div>
-          <TelehealthDialog
-            isOpen={isDialogOpen}
-            practiceInfoState={practiceInfoState}
-            setPracticeInfoState={setPracticeInfoState}
-            onClose={() => setIsDialogOpen(false)}
-          />
         </div>
-      )}
+        <TelehealthDialog
+          isOpen={isDialogOpen}
+          practiceInfoState={practiceInfoState}
+          setPracticeInfoState={setPracticeInfoState}
+          onClose={() => setIsDialogOpen(false)}
+        />
+      </div>
     </>
   );
 }

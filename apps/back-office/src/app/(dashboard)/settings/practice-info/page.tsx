@@ -58,11 +58,12 @@ export default function PracticeDetailsForm() {
   });
 
   const handleSave = () => {
+    console.log("practiceInfoState", practiceInfoState);
     if (
-      !practiceInfoState.practice_name.trim() ||
-      !practiceInfoState.practice_email.trim() ||
-      !practiceInfoState.time_zone.trim() ||
-      !practiceInfoState.practice_logo.trim() ||
+      !practiceInfoState.practice_name ||
+      !practiceInfoState.practice_email ||
+      !practiceInfoState.time_zone ||
+      !practiceInfoState.practice_logo ||
       practiceInfoState.phone_numbers.length === 0
     ) {
       toast({
@@ -86,7 +87,10 @@ export default function PracticeDetailsForm() {
         practiceInfoState={practiceInfoState}
         setPracticeInfoState={setPracticeInfoState}
       />
-      <PracticePhoneForm setPracticeInfoState={setPracticeInfoState} />
+      <PracticePhoneForm
+        practiceInfoState={practiceInfoState}
+        setPracticeInfoState={setPracticeInfoState}
+      />
 
       <TeleHealth
         practiceInfoState={practiceInfoState}
