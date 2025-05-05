@@ -17,16 +17,16 @@ function Calendar({
 }: CalendarProps) {
   return (
     <DayPicker
-      className={cn("p-3", className)}
+      className={cn("ui-p-3", className)}
       classNames={{
         ...classNames,
       }}
       components={{
         Chevron: ({ orientation }) => {
           return orientation === "left" ? (
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="ui-h-4 ui-w-4" />
           ) : (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="ui-h-4 ui-w-4" />
           );
         },
       }}

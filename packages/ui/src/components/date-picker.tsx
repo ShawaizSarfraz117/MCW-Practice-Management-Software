@@ -28,20 +28,20 @@ export function DatePicker({
       <PopoverTrigger asChild>
         <Button
           className={cn(
-            "w-full justify-start text-left font-normal rounded-none border-gray-200",
-            !value && "text-muted-foreground",
+            "ui-w-full ui-justify-start ui-text-left ui-font-normal ui-rounded-none ui-border-gray-200",
+            !value && "ui-text-muted-foreground",
             className,
           )}
           variant="outline"
           onClick={onInteractiveClick}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <CalendarIcon className="ui-mr-2 ui-h-4 ui-w-4" />
           {value ? format(value, "MM/dd/yyyy") : "MM/DD/YYYY"}
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-auto p-0 rounded-none"
+        className="ui-w-auto ui-p-0 ui-rounded-none"
         onClick={onInteractiveClick}
       >
         <Calendar

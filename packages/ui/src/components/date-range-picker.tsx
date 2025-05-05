@@ -41,17 +41,20 @@ export function DateRangePicker({
       <PopoverTrigger asChild>
         <Button
           className={cn(
-            "w-full justify-start text-left font-normal rounded-none border-gray-200",
-            !value?.from && "text-muted-foreground",
+            "ui-w-full ui-justify-start ui-text-left ui-font-normal ui-rounded-none ui-border-gray-200",
+            !value?.from && "ui-text-muted-foreground",
             className,
           )}
           variant="outline"
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <CalendarIcon className="ui-mr-2 ui-h-4 ui-w-4" />
           {formattedDate}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-0 rounded-none">
+      <PopoverContent
+        align="start"
+        className="ui-w-auto ui-p-0 ui-rounded-none"
+      >
         <Calendar
           initialFocus
           defaultMonth={value?.from}

@@ -47,34 +47,34 @@ export function TimePicker({
         <Button
           aria-expanded={open}
           className={cn(
-            "w-full justify-start text-left font-normal rounded-none border-gray-200",
-            !value && "text-muted-foreground",
+            "ui-w-full ui-justify-start ui-text-left ui-font-normal ui-rounded-none ui-border-gray-200",
+            !value && "ui-text-muted-foreground",
             className,
           )}
           role="combobox"
           variant="outline"
           onClick={onInteractiveClick}
         >
-          <Clock className="mr-2 h-4 w-4" />
+          <Clock className="ui-mr-2 ui-h-4 ui-w-4" />
           {value || "Select time"}
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[200px] p-0 rounded-none"
+        className="ui-w-[200px] ui-p-0 ui-rounded-none"
         onClick={onInteractiveClick}
       >
         <Command>
           <CommandInput
-            className="h-9 rounded-none"
+            className="ui-h-9 ui-rounded-none"
             placeholder="Search time..."
           />
           <CommandList>
             <CommandEmpty>No time found.</CommandEmpty>
-            <CommandGroup className="max-h-[200px] overflow-auto">
+            <CommandGroup className="ui-max-h-[200px] ui-overflow-auto">
               {times.map((time) => (
                 <CommandItem
                   key={time}
-                  className="rounded-none"
+                  className="ui-rounded-none"
                   value={time}
                   onSelect={() => {
                     onChange?.(time);

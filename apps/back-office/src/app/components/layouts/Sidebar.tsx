@@ -35,14 +35,16 @@ export default function Sidebar({ mobile = false }: SidebarProps) {
   return (
     <div
       className={cn(
-        "bg-white border-r border-[#e5e7eb] flex flex-col transition-all duration-300 ease-in-out",
-        isShrunk ? "w-[70px]" : "w-[230px] min-w-[230px]",
-        !mobile && "hidden md:flex", // Use flex instead of block
+        "bg-white flex-col  transition-all duration-300 ease-in-out",
+
+        mobile
+          ? "flex"
+          : `hidden md:flex border-r ${isShrunk ? "w-[70px]" : "w-[230px] min-w-[230px]"} border-[#e5e7eb]`, // Use flex instead of block
       )}
     >
       <div
         className={cn(
-          "py-4 border-b border-[#e5e7eb] flex items-center justify-between",
+          "py-4 border-b h-20 border-[#e5e7eb] flex items-center justify-between",
           isShrunk ? "justify-center" : "px-7",
         )}
       >
@@ -58,13 +60,15 @@ export default function Sidebar({ mobile = false }: SidebarProps) {
             </h1>
           </Link>
         )}
-        <Button size="icon" variant="ghost" onClick={toggleShrink}>
-          {isShrunk ? (
-            <ChevronsRightIcon className="w-5 h-5" />
-          ) : (
-            <ChevronsLeftIcon className="w-5 h-5" />
-          )}
-        </Button>
+        {!mobile && (
+          <Button size="icon" variant="ghost" onClick={toggleShrink}>
+            {isShrunk ? (
+              <ChevronsRightIcon className="w-5 h-5" />
+            ) : (
+              <ChevronsLeftIcon className="w-5 h-5" />
+            )}
+          </Button>
+        )}
       </div>
 
       <nav className="py-2 flex-grow">

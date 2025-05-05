@@ -71,13 +71,13 @@ export function SearchSelect({
   );
 
   return (
-    <div className="relative">
+    <div className="ui-relative">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             aria-expanded={open}
             className={cn(
-              "flex w-full items-center gap-2 rounded-none border border-gray-300 bg-background px-2 py-2 text-sm",
+              "ui-flex ui-w-full ui-items-center ui-gap-2 ui-rounded-none ui-border ui-border-gray-300 ui-bg-background ui-px-2 ui-py-2 ui-text-sm",
               className,
             )}
             role="combobox"
@@ -89,21 +89,21 @@ export function SearchSelect({
             }}
           >
             {icon}
-            <span className="flex-1 text-left truncate">
+            <span className="ui-flex-1 ui-text-left ui-truncate">
               {selectedOption ? selectedOption.label : placeholder}
             </span>
-            <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+            <ChevronDown className="ui-ml-auto ui-h-4 ui-w-4 ui-shrink-0 ui-opacity-50" />
           </button>
         </PopoverTrigger>
         <PopoverContent
           align="start"
-          className="w-[--radix-popover-trigger-width] p-0 rounded-none"
+          className="ui-w-[--radix-popover-trigger-width] ui-p-0 ui-rounded-none"
           sideOffset={4}
         >
-          <Command className="overflow-hidden" shouldFilter={false}>
+          <Command className="ui-overflow-hidden" shouldFilter={false}>
             {searchable && (
               <CommandInput
-                className="border-0 py-3 focus:ring-0"
+                className="ui-border-0 ui-py-3 focus:ui-ring-0"
                 placeholder={`Search ${placeholder.toLowerCase()}`}
                 value={searchTerm}
                 onValueChange={handleSearch}
@@ -115,7 +115,7 @@ export function SearchSelect({
                 {options.map((option) => (
                   <CommandItem
                     key={option.value}
-                    className="cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
+                    className="ui-cursor-pointer data-[selected=true]:ui-bg-accent data-[selected=true]:ui-text-accent-foreground"
                     value={option.value}
                     onMouseDown={(e) => {
                       e.preventDefault();
@@ -128,9 +128,9 @@ export function SearchSelect({
                 ))}
               </CommandGroup>
               {showPagination && totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-gray-200 px-2 py-2">
+                <div className="ui-flex ui-items-center ui-justify-between ui-border-t ui-border-gray-200 ui-px-2 ui-py-2">
                   <button
-                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                    className="ui-text-sm ui-text-gray-500 hover:ui-text-gray-700 disabled:ui-opacity-50"
                     disabled={currentPage === 1}
                     type="button"
                     onClick={(e) => {
@@ -141,11 +141,11 @@ export function SearchSelect({
                   >
                     Previous
                   </button>
-                  <span className="text-sm text-gray-500">
+                  <span className="ui-text-sm ui-text-gray-500">
                     Page {currentPage} of {totalPages}
                   </span>
                   <button
-                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                    className="ui-text-sm ui-text-gray-500 hover:ui-text-gray-700 disabled:ui-opacity-50"
                     disabled={currentPage === totalPages}
                     type="button"
                     onClick={(e) => {
@@ -165,7 +165,7 @@ export function SearchSelect({
       </Popover>
       {showCreateOption && (
         <button
-          className="absolute right-0 top-1/2 -translate-y-1/2 px-3 text-sm font-medium text-[#16A34A]"
+          className="ui-absolute ui-right-0 ui-top-1/2 ui--translate-y-1/2 ui-px-3 ui-text-sm ui-font-medium ui-text-[#16A34A]"
           type="button"
           onClick={(e) => {
             e.stopPropagation();

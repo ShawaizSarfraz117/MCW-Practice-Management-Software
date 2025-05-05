@@ -15,24 +15,24 @@ const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
     const [showPassword, setShowPassword] = React.useState(false);
 
     return (
-      <div className="relative">
+      <div className="ui-relative">
         <Input
           ref={ref}
-          className={cn("pr-10", className)}
+          className={cn("ui-pr-10", className)}
           type={showPassword ? "text" : "password"}
           {...props}
         />
         <button
-          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+          className="ui-absolute ui-inset-y-0 ui-right-0 ui-flex ui-items-center ui-pr-3 ui-text-gray-400 hover:ui-text-gray-600"
           type="button"
           onClick={() => setShowPassword(!showPassword)}
         >
           {showPassword ? (
-            <EyeOff className="h-4 w-4" />
+            <EyeOff className="ui-h-4 ui-w-4" />
           ) : (
-            <Eye className="h-4 w-4" />
+            <Eye className="ui-h-4 ui-w-4" />
           )}
-          <span className="sr-only">
+          <span className="ui-sr-only">
             {showPassword ? "Hide password" : "Show password"}
           </span>
         </button>

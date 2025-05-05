@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsMobile } from "@mcw/ui";
 import React, { createContext, useState, useContext, useMemo } from "react";
 
 interface SidebarContextType {
@@ -12,14 +13,19 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isShrunk, setIsShrunk] = useState(false);
+  const isMobile = useIsMobile();
 
   const toggleShrink = () => {
     setIsShrunk((prev) => !prev);
   };
 
   const value = useMemo(
-    () => ({ isShrunk, toggleShrink, setIsShrunk }),
-    [isShrunk],
+    () => ({
+      isShrunk: isMobile ? false : isShrunk,
+      toggleShrink,
+      setIsShrunk,
+    }),
+    [isMobile, isShrunk],
   );
 
   return (

@@ -41,7 +41,7 @@ export default function TopBar({
   const isMobile = useIsMobile();
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
+    <header className="flex items-center justify-between h-20 px-6 py-4 border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
       <div className="flex items-center gap-2">
         {isMobile && (
           <Sheet>

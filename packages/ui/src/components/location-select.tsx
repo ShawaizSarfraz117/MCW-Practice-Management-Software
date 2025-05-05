@@ -55,11 +55,11 @@ export function LocationSelect({
   const getLocationIcon = (type?: Location["type"]) => {
     switch (type) {
       case "virtual":
-        return <Video className="h-4 w-4 text-blue-500" />;
+        return <Video className="ui-h-4 ui-w-4 ui-text-blue-500" />;
       case "unassigned":
         return null;
       default:
-        return <MapPin className="h-4 w-4 text-emerald-500" />;
+        return <MapPin className="ui-h-4 ui-w-4 ui-text-emerald-500" />;
     }
   };
 
@@ -68,12 +68,12 @@ export function LocationSelect({
       <PopoverTrigger asChild>
         <Button
           aria-expanded={open}
-          className="w-[130px] justify-between text-sm font-normal"
+          className="ui-w-[130px] ui-justify-between ui-text-sm ui-font-normal"
           role="combobox"
           variant="outline"
         >
-          <div className="flex items-center gap-2 truncate">
-            <span className="truncate">
+          <div className="ui-flex ui-items-center ui-gap-2 ui-truncate">
+            <span className="ui-truncate">
               {selectedItems.length === options.length
                 ? "All locations"
                 : selectedItems.length === 0
@@ -81,15 +81,15 @@ export function LocationSelect({
                   : `${selectedItems.length} locations`}
             </span>
           </div>
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <ChevronDown className="ui-h-4 ui-w-4 ui-opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[320px] p-0">
+      <PopoverContent align="end" className="ui-w-[320px] ui-p-0">
         <Command>
-          <div className="flex items-center border-b px-3">
-            <Search className="h-4 w-4 shrink-0 opacity-50" />
+          <div className="ui-flex ui-items-center ui-border-b ui-px-3">
+            <Search className="ui-h-4 ui-w-4 ui-shrink-0 ui-opacity-50" />
             <input
-              className="flex h-10 w-full rounded-md bg-transparent py-3 px-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="ui-flex ui-h-10 ui-w-full ui-rounded-md ui-bg-transparent ui-py-3 ui-px-2 ui-text-sm ui-outline-none placeholder:ui-text-muted-foreground disabled:ui-cursor-not-allowed disabled:ui-opacity-50"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -99,7 +99,7 @@ export function LocationSelect({
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
               <CommandItem
-                className="flex items-center gap-2 px-3"
+                className="ui-flex ui-items-center ui-gap-2 ui-px-3"
                 onSelect={() => {
                   const allValues = options.map((option) => option.value);
                   onChange(selected.length === options.length ? [] : allValues);
@@ -107,7 +107,7 @@ export function LocationSelect({
               >
                 <Checkbox
                   checked={selected.length === options.length}
-                  className="border-muted data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+                  className="ui-border-muted data-[state=checked]:ui-border-primary data-[state=checked]:ui-bg-primary"
                 />
                 <span>All locations</span>
               </CommandItem>
@@ -117,12 +117,12 @@ export function LocationSelect({
               {filteredOptions.map((option) => (
                 <CommandItem
                   key={option.value}
-                  className="flex items-center gap-2 px-3"
+                  className="ui-flex ui-items-center ui-gap-2 ui-px-3"
                   onSelect={() => toggleOption(option.value)}
                 >
                   <Checkbox
                     checked={selected.includes(option.value)}
-                    className="border-muted data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+                    className="ui-border-muted data-[state=checked]:ui-border-primary data-[state=checked]:ui-bg-primary"
                   />
                   {getLocationIcon(option.type)}
                   <span>{option.label}</span>

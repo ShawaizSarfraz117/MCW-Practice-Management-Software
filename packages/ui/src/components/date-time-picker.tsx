@@ -64,7 +64,7 @@ export function DateTimePicker({
 
   return (
     <Input
-      className={cn("text-sm rounded-none", className)}
+      className={cn("ui-text-sm ui-rounded-none", className)}
       placeholder={showTime ? "12:00 PM" : "MM/DD/YYYY"}
       type="text"
       value={showTime ? formattedTime : formattedDate}

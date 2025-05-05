@@ -92,14 +92,14 @@ export function MultiSelect({
       <PopoverTrigger asChild>
         <Button
           aria-expanded={open}
-          className="w-[200px] h-8 justify-between text-sm font-normal"
+          className="ui-w-[200px] ui-h-8 ui-justify-between ui-text-sm ui-font-normal"
           role="combobox"
           variant="outline"
         >
-          <div className="flex items-center gap-2 truncate">
+          <div className="ui-flex ui-items-center ui-gap-2 ui-truncate">
             {selectedItems.length > 0 ? (
               <>
-                <span className="truncate">
+                <span className="ui-truncate">
                   {selectedItems.length === 1
                     ? selectedItems[0].label
                     : `${selectedItems.length} team members selected`}
@@ -109,15 +109,15 @@ export function MultiSelect({
               placeholder
             )}
           </div>
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <ChevronDown className="ui-h-4 ui-w-4 ui-opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[320px] p-0">
+      <PopoverContent align="start" className="ui-w-[320px] ui-p-0">
         <Command>
-          <div className="flex items-center border-b px-3">
-            <Search className="h-4 w-4 shrink-0 opacity-50" />
+          <div className="ui-flex ui-items-center ui-border-b ui-px-3">
+            <Search className="ui-h-4 ui-w-4 ui-shrink-0 ui-opacity-50" />
             <input
-              className="flex h-10 w-full rounded-md bg-transparent py-3 px-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="ui-flex ui-h-10 ui-w-full ui-rounded-md ui-bg-transparent ui-py-3 ui-px-2 ui-text-sm ui-outline-none placeholder:ui-text-muted-foreground disabled:ui-cursor-not-allowed disabled:ui-opacity-50"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -127,7 +127,7 @@ export function MultiSelect({
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
               <CommandItem
-                className="flex items-center gap-2 px-3"
+                className="ui-flex ui-items-center ui-gap-2 ui-px-3"
                 onSelect={() => {
                   const allValues = options.map((option) => option.value);
                   onChange(selected.length === options.length ? [] : allValues);
@@ -135,7 +135,7 @@ export function MultiSelect({
               >
                 <Checkbox
                   checked={selected.length === options.length}
-                  className="border-muted data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+                  className="ui-border-muted data-[state=checked]:ui-border-primary data-[state=checked]:ui-bg-primary"
                 />
                 <span>All team members</span>
               </CommandItem>
@@ -148,12 +148,12 @@ export function MultiSelect({
                     key={groupKey}
                     heading={
                       groups && groupKey !== "ungrouped" ? (
-                        <div className="flex items-center justify-between px-3 py-2">
-                          <span className="text-xs font-medium text-muted-foreground">
+                        <div className="ui-flex ui-items-center ui-justify-between ui-px-3 ui-py-2">
+                          <span className="ui-text-xs ui-font-medium ui-text-muted-foreground">
                             {groups[groupKey]}
                           </span>
                           <button
-                            className="text-xs text-primary hover:underline"
+                            className="ui-text-xs ui-text-primary hover:ui-underline"
                             onClick={(e) => {
                               e.preventDefault();
                               toggleGroup(groupKey);
@@ -168,12 +168,12 @@ export function MultiSelect({
                     {groupOptions.map((option) => (
                       <CommandItem
                         key={option.value}
-                        className="flex items-center gap-2 px-3"
+                        className="ui-flex ui-items-center ui-gap-2 ui-px-3"
                         onSelect={() => toggleOption(option.value)}
                       >
                         <Checkbox
                           checked={selected.includes(option.value)}
-                          className="border-muted data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+                          className="ui-border-muted data-[state=checked]:ui-border-primary data-[state=checked]:ui-bg-primary"
                         />
                         <span>{option.label}</span>
                       </CommandItem>
