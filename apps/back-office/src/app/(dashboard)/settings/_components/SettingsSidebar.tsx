@@ -108,7 +108,7 @@ export default function SettingsSidebar() {
   const pathname = usePathname();
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
-  useState(() => {
+  useEffect(() => {
     let foundParentLabel: string | null = null;
     Object.values(menuItems).forEach((section) => {
       section.forEach((item: MenuItem) => {
@@ -124,7 +124,7 @@ export default function SettingsSidebar() {
     if (foundParentLabel) {
       setExpandedMenus([foundParentLabel]);
     }
-  });
+  }, [pathname]);
 
   const toggleMenu = (menuLabel: string) => {
     setExpandedMenus((prev) =>
