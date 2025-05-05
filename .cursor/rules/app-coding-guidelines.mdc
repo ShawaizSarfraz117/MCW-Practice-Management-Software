@@ -20,6 +20,82 @@ This document outlines the key conventions and libraries used in the application
 -   **Testing**: Use Vitest for testing. Write integration tests (interacting with the database using Prisma factories like `UserPrismaFactory`) and unit tests (using mock factories like `UserFactory`). Place tests in the application's `__tests__` directory (e.g., [apps/back-office/src/__tests__](mdc:apps/back-office/src/__tests__)). Refer to the application's `vitest.config.*.ts` files for configuration.
 -   **API Routes**: Create API endpoints using Next.js Route Handlers within the `src/app/api` directory (e.g., `src/app/api/your-feature/route.ts`). Export async functions named `GET`, `POST`, `PUT`, `DELETE`, etc., accepting `NextRequest`. Use `NextResponse.json()` for responses, setting appropriate status codes. Handle errors using `try...catch` blocks and log errors using the shared `@mcw/logger`. Perform necessary request validation. Interact with the database using the shared Prisma client (`@mcw/database`). See [apps/back-office/src/app/api/client/route.ts](mdc:apps/back-office/src/app/api/client/route.ts) for a detailed example.
 
+## Type Safety
+
+- **Avoid `any` Type**: Never use the `any` type unless absolutely necessary. Instead:
+  - Use `unknown` for values whose type cannot be determined at compile time
+  - Use proper type narrowing with `instanceof` or type guards
+  - Create specific interfaces/types for complex data structures
+  - Use union types like `Error | unknown` when appropriate
+  
+- **Error Handling**: When catching errors, use proper typing:
+  ```typescript
+  // Incorrect
+  try {
+    // code that might throw
+  } catch (error: any) { // ❌ Avoid using any
+    logger.error(error);
+  }
+  
+  // Correct
+  try {
+    // code that might throw
+  } catch (error: unknown) { // ✅ Use unknown
+    // Type narrow before using the error
+    if (error instanceof Error) {
+      logger.error(error);
+    } else {
+      logger.error({ message: String(error) }, "Unknown error type");
+    }
+  }
+  ```
+
+- **Unused Variables**: Prefix intentionally unused variables with an underscore to signal intent and avoid linter warnings:
+  ```typescript
+  // Instead of:
+  const result = someOperation(); // Linter warning if unused
+  
+  // Use:
+  const _result = someOperation(); // No warning, clear signal of intent
+  ```
+
+## Component Design
+
+- **Minimize Props**: Only include props that the component actually uses. Remove unused props from interfaces and component parameters.
+- **Props Interface**: Define a clear interface for component props that accurately reflects what the component needs.
+- **Prop Destructuring**: When destructuring props, only include those that are actually used in the component.
+
+## Code Structure and Size
+
+- **File Length**: Keep files under 400 lines total. If a file grows beyond this limit:
+  - Extract components, functions, or types into separate files
+  - Group related functionality in subdirectories
+  - Split complex pages into smaller component parts
+
+- **Function/Component Length**: Keep functions and components under 200 lines. When exceeding this limit:
+  - Break large components into smaller, focused subcomponents
+  - Extract utility functions or hooks for repeated logic
+  - Consider if the component is handling too many responsibilities (violating Single Responsibility Principle)
+
+- **Code Organization Techniques**:
+  - Use feature folders to group related components and logic
+  - Extract API calls to separate files (e.g., `api.ts`)
+  - Create dedicated component folders with index files
+  - Consider splitting by domain or functionality (e.g., forms, lists, etc.)
+
+- **Example Refactoring Structure**:
+  ```
+  settings/products/
+  ├── api.ts               # API functions
+  ├── page.tsx             # Main page component (lean)
+  ├── components/
+  │   ├── AddProductForm.tsx  # Form component
+  │   ├── ProductsList.tsx    # List component
+  │   └── ProductItem.tsx     # Individual item component
+  └── hooks/
+      └── useProductOperations.ts  # Custom hooks for logic
+  ```
+
 ## General Principles
 
 -   Follow the project structure outlined in the main [README.md](mdc:README.md#project-structure).

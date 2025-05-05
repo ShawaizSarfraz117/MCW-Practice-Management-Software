@@ -406,3 +406,14 @@ model AppointmentLimit {
   @@index([clinician_id], name: "IX_AppointmentLimit_clinician_id")
   @@index([date], name: "IX_AppointmentLimit_date")
 }
+
+// PRODUCTS
+//==================================================
+model Product {
+  id    String  @id @default(cuid())
+  name  String
+  price Decimal @db.Decimal(10, 2) // Example precision: 10 total digits, 2 decimal places
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

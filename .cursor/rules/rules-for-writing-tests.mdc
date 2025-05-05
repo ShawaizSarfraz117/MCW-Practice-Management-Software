@@ -1,0 +1,62 @@
+---
+description: 
+globs: *test*
+alwaysApply: false
+---
+-   **Testing**: Use Vitest for testing. Write integration tests (interacting with the database using Prisma factories like `UserPrismaFactory`) and unit tests (using mock factories like `UserFactory`). Place tests in the application's `__tests__` directory (e.g., @apps/back-office/src/__tests__). Refer to the application's `vitest.config.*.ts` files for configuration.
+-   **Integration Tests**: Interact with the database using Prisma factories (e.g., `UserPrismaFactory`).
+-   **Unit Tests (General)**: Use mock factories (e.g., `UserFactory`).
+-   **Unit Tests (API Routes)**:
+-   Mock database interactions using `prismaMock` from `@mcw/database/mock`. See @apps/back-office/__tests__/api/location/route.unit.test.ts for setup.
+-   **Avoid explicitly mocking `@mcw/logger` or `next/server` (`NextResponse`)**. Rely on the `prismaMock` and use the actual `NextResponse` returned by the route handler.
+-   Use `vi.resetAllMocks()` in `beforeEach` hooks.
+-   When asserting against `response.json()`, account for JSON serialization. Types like `Date` and `Decimal` will be converted to strings. Compare against expected data that has been similarly serialized:
+    ```typescript
+    // Example assertion for an array of objects with Date and Decimal
+    const responseData = await response.json();
+    const expectedSerializedData = mockDataArray.map(item => ({
+        ...item,
+        createdAt: item.createdAt.toISOString(), // Serialize Date
+        price: item.price.toString(),         // Serialize Decimal
+    }));
+    expect(responseData).toEqual(expectedSerializedData);
+    ```
+
+-  **Location**: Place tests in the `apps/<app-name>/__tests__` directory, mirroring the structure of the `src` directory. For example, tests for `src/app/api/products/route.ts` should go in `__tests__/api/products/route.unit.test.ts` or `route.integration.test.ts`.
+-  **Unit Tests (`.unit.test.ts`)**: 
+-   Focus on testing the logic within a single file/module in isolation.
+-   **Mock Dependencies**: Use Vitest's mocking capabilities (`vi.mock`) to isolate the unit under test.
+-   **Database Mocking**: For database interactions, use the shared Prisma mock setup: `import prismaMock from "@mcw/database/mock";`. Use `prismaMock.<model>.<method>.mockResolvedValueOnce(...)` or `.mockRejectedValueOnce(...)` to simulate database responses.
+-   **Factory Usage**: Use mock factories defined in `@mcw/database/src/__mocks__/data.ts` for creating test data if needed, BUT prefer defining simple mock objects directly within the test file for clarity if the structure is simple, similar to the `location` unit test.
+-   **Path Aliases**: When importing the module under test (e.g., an API route handler), use the `@/` alias which maps to the application's `src` directory (e.g., `import { GET } from "@/app/api/products/route";` for a route located in `src/app/api/products/`).
+-   **Example**: Refer to @apps/back-office/__tests__/api/location/route.unit.test.ts for a canonical example.
+
+-   **Integration Tests (`.integration.test.ts`)**: 
+-   Test the interaction between multiple modules, including database interactions.
+-   **Database Interaction**: Use the real Prisma client (`import { prisma } from "@mcw/database";`).
+-   **Data Setup/Teardown**: Use `beforeEach` and `afterEach` hooks with the Prisma client to set up necessary data (`prisma.<model>.create()`) and clean up (`prisma.<model>.deleteMany({})`) to ensure tests are isolated.
+-   **Database State**: For integration tests that modify the database, use `beforeEach` and `afterEach` to clean up and ensure tests are isolated.
+-   **Factory Usage**: Generate mock data objects using the factories exported from `@mcw/database/mock-data` (e.g., `import { ProductFactory } from "@mcw/database/mock-data";`). Use the generated object with `prisma.<model>.create({ data: ... })` to insert it into the database. (Using the auto-generated Prisma factories from `@quramy/prisma-fabbrica` has proven difficult due to path resolution issues in tests).
+-   **Path Aliases**: Use the `@/` alias for importing application API route handlers. This alias maps to `src/app`, so the import path will look like `import { GET } from "@/api/your-feature/route";`. For importing database utilities, use the `@mcw/database` alias (e.g., `@mcw/database/mock-data`).
+-   **Example**: Refer to @apps/back-office/__tests__/api/products/route.integration.test.ts for a current example using mock factories, and @apps/back-office/__tests__/api/location/route.integration.test.ts for another example.
+
+-   **Test Structure**: Organize API route tests into separate describe blocks for each HTTP method (GET, POST, PUT, DELETE), with clear test cases covering successful operations and error conditions.
+
+## Code Quality in Tests
+
+- **Type Safety**: Tests deserve the same level of type safety as production code:
+  - Avoid `any` types in test code
+  - Define proper interfaces for test data
+  - Use type assertions only when necessary
+  
+- **Mocking and Fixtures**:
+  - When creating mock implementations, ensure they follow the correct interface
+  - For API tests, define proper request/response object types rather than using generic `Record<string, any>`
+  
+- **Unused Variables**:
+  - In test files, follow the same convention of using underscore prefix (`_unused`) for intentionally unused variables
+  - This is particularly relevant for destructured objects where you might only need certain properties
+
+
+
+

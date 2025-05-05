@@ -140,3 +140,5 @@ dist
 
 .DS_Store
 /.specstory/history
+# SpecStory explanation file
+.specstory/.what-is-this.md
