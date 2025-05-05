@@ -21,23 +21,24 @@ import {
 } from "lucide-react";
 import { cn } from "@mcw/utils";
 import { useSidebar } from "../../contexts/SidebarContext";
-import { Button } from "@mcw/ui";
+import { Button, useIsMobile } from "@mcw/ui";
 
 // Update the Sidebar component to accept a 'mobile' prop
 interface SidebarProps {
-  mobile?: boolean;
+  isSheet?: boolean;
 }
 
-export default function Sidebar({ mobile = false }: SidebarProps) {
+export default function Sidebar({ isSheet = false }: SidebarProps) {
   const pathname = usePathname();
   const { isShrunk, toggleShrink } = useSidebar();
+  const isMobile = useIsMobile();
 
   return (
     <div
       className={cn(
         "bg-white border-r border-[#e5e7eb] flex flex-col transition-all duration-300 ease-in-out",
         isShrunk ? "w-[70px]" : "w-[230px] min-w-[230px]",
-        !mobile && "hidden md:flex", // Use flex instead of block
+        !isSheet ? (isMobile ? "hidden" : "flex") : "flex", // Use flex instead of block
       )}
     >
       <div
