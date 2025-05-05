@@ -16,8 +16,12 @@ import {
   Bell,
   Send,
   Megaphone,
+  ChevronsRightIcon,
+  ChevronsLeftIcon,
 } from "lucide-react";
 import { cn } from "@mcw/utils";
+import { useSidebar } from "../../contexts/SidebarContext";
+import { Button } from "@mcw/ui";
 
 // Update the Sidebar component to accept a 'mobile' prop
 interface SidebarProps {
@@ -26,21 +30,44 @@ interface SidebarProps {
 
 export default function Sidebar({ mobile = false }: SidebarProps) {
   const pathname = usePathname();
+  const { isShrunk, toggleShrink } = useSidebar();
 
   return (
     <div
       className={cn(
-        "w-[230px] min-w-[230px] bg-white border-r border-[#e5e7eb]",
-        !mobile && "hidden md:block", // Only hide on small screens if not mobile version
+        "bg-white border-r border-[#e5e7eb] flex flex-col transition-all duration-300 ease-in-out",
+        isShrunk ? "w-[70px]" : "w-[230px] min-w-[230px]",
+        !mobile && "hidden md:flex", // Use flex instead of block
       )}
     >
-      <div className="p-6 border-b border-[#e5e7eb]">
-        <Link className="block" href="/">
-          <h1 className="text-2xl font-bold text-[#2d8467]">MCW</h1>
-        </Link>
+      <div
+        className={cn(
+          "py-4 border-b border-[#e5e7eb] flex items-center justify-between",
+          isShrunk ? "justify-center" : "px-7",
+        )}
+      >
+        {!isShrunk && (
+          <Link className="block" href="/">
+            <h1
+              className={cn(
+                "text-2xl font-bold text-[#2d8467]",
+                isShrunk && "text-center", // Center text when shrunk
+              )}
+            >
+              MCW
+            </h1>
+          </Link>
+        )}
+        <Button size="icon" variant="ghost" onClick={toggleShrink}>
+          {isShrunk ? (
+            <ChevronsRightIcon className="w-5 h-5" />
+          ) : (
+            <ChevronsLeftIcon className="w-5 h-5" />
+          )}
+        </Button>
       </div>
 
-      <nav className="py-2">
+      <nav className="py-2 flex-grow">
         <SidebarItem
           active={pathname === "/calendar"}
           href="/calendar"
@@ -132,21 +159,27 @@ function SidebarItem({
   active = false,
   badge,
 }: SidebarItemProps) {
+  const { isShrunk } = useSidebar();
+
   return (
     <Link
       className={cn(
-        "flex items-center justify-between px-6 py-3 text-sm font-medium transition-colors",
+        "flex items-center justify-between py-3 text-sm font-medium border-l-4 border-transparent transition-colors",
         active
-          ? "bg-[#d1e4de] text-[#2d8467] border-l-4 border-[#2d8467] pl-[22px]"
-          : "text-[#4b5563] hover:bg-gray-50",
+          ? "bg-[#d1e4de] text-[#2d8467]  border-[#2d8467]"
+          : "text-[#4b5563] hover:bg-gray-50 ",
+        isShrunk ? "px-0 justify-center" : "px-6",
       )}
       href={href}
+      title={isShrunk ? label : undefined}
     >
-      <div className="flex items-center">
-        <div className="mr-3">{icon}</div>
-        <span>{label}</span>
+      <div
+        className={cn("flex items-center", isShrunk ? "justify-center" : "")}
+      >
+        <div className={cn(isShrunk ? "mx-auto" : "mr-3")}>{icon}</div>
+        {!isShrunk && <span>{label}</span>}
       </div>
-      {badge && <div>{badge}</div>}
+      {!isShrunk && badge && <div>{badge}</div>}
     </Link>
   );
 }

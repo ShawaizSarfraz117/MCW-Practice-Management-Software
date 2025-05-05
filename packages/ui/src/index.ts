@@ -43,7 +43,6 @@ export * from "./components/resizable";
 export * from "./components/scroll-area";
 export * from "./components/search-select";
 export * from "./components/separator";
-export * from "./components/sidebar";
 export * from "./components/skeleton";
 export * from "./components/slider";
 export * from "./hooks/use-toast";

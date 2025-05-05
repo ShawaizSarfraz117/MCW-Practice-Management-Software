@@ -44,15 +44,15 @@ export function EditConfirmationModal({
             </div>
             <div>
               <input
-                id="one"
-                type="radio"
-                name="editOption"
-                value="this"
                 checked={selectedOption === "this"}
-                onChange={(e) => setSelectedOption(e.target.value)}
                 className="h-[18px] w-[18px] mr-2 relative top-1"
+                id="one"
+                name="editOption"
+                type="radio"
+                value="this"
+                onChange={(e) => setSelectedOption(e.target.value)}
               />
-              <label htmlFor="one" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="one">
                 This event only
               </label>
               <p className="ml-6 text-[15px] text-[#717171]">
@@ -61,15 +61,15 @@ export function EditConfirmationModal({
             </div>
             <div>
               <input
-                id="two"
-                type="radio"
-                name="editOption"
-                value="future"
                 checked={selectedOption === "future"}
-                onChange={(e) => setSelectedOption(e.target.value)}
                 className="h-[18px] w-[18px] mr-2"
+                id="two"
+                name="editOption"
+                type="radio"
+                value="future"
+                onChange={(e) => setSelectedOption(e.target.value)}
               />
-              <label htmlFor="two" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="two">
                 This and all future events
               </label>
             </div>
@@ -90,15 +90,15 @@ export function EditConfirmationModal({
             </div>
             <div>
               <input
-                id="one"
-                type="radio"
-                name="editOption"
-                value="this"
                 checked={selectedOption === "this"}
-                onChange={(e) => setSelectedOption(e.target.value)}
                 className="h-[18px] w-[18px] mr-2 relative top-1"
+                id="one"
+                name="editOption"
+                type="radio"
+                value="this"
+                onChange={(e) => setSelectedOption(e.target.value)}
               />
-              <label htmlFor="one" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="one">
                 This appointment only
               </label>
               <p className="ml-6 text-[15px] text-[#717171]">
@@ -107,15 +107,15 @@ export function EditConfirmationModal({
             </div>
             <div>
               <input
-                id="two"
-                type="radio"
-                name="editOption"
-                value="future"
                 checked={selectedOption === "future"}
-                onChange={(e) => setSelectedOption(e.target.value)}
                 className="h-[18px] w-[18px] mr-2"
+                id="two"
+                name="editOption"
+                type="radio"
+                value="future"
+                onChange={(e) => setSelectedOption(e.target.value)}
               />
-              <label htmlFor="two" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="two">
                 This and all future appointments
               </label>
             </div>
@@ -123,8 +123,8 @@ export function EditConfirmationModal({
         )}
         <DialogFooter>
           <Button
-            variant="outline"
             className="bg-gray-100 hover:bg-gray-200 hover:text-gray-700 text-gray-500"
+            variant="outline"
             onClick={() => onOpenChange(false)}
           >
             Cancel

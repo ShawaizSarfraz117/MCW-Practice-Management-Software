@@ -27,30 +27,30 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({
     <div className="mt-3">
       <p className="text-[#374151] text-[14px]">Description</p>
       <Input
+        className="text-[#374151] bg-white text-[14px] w-[500px] h-[40px]"
         type="text"
         value={editValues.description || ""}
         onChange={(e) => onEditChange("description", e.target.value)}
-        className="text-[#374151] bg-white text-[14px] w-[500px] h-[40px]"
       />
       <div className="flex items-center gap-10 mt-3">
         <span>
           <p className="text-[#374151] text-[14px]">Rate</p>
           <Input
+            className="text-[#374151]  bg-white text-[14px] w-[200px] h-[40px]"
             type="number"
             value={editValues.rate}
             onChange={(e) => onEditChange("rate", Number(e.target.value))}
-            className="text-[#374151]  bg-white text-[14px] w-[200px] h-[40px]"
           />
         </span>
         <span>
           <p className="text-[#374151] text-[14px]">Default Duration</p>
           <div className="flex items-center">
             <Input
+              className="text-[#374151] bg-white text-[14px] w-[80px] h-[40px]"
+              min={0}
               type="number"
               value={editValues.duration}
-              min={0}
               onChange={(e) => onEditChange("duration", Number(e.target.value))}
-              className="text-[#374151] bg-white text-[14px] w-[80px] h-[40px]"
             />
             <span className="text-[#1F2937] ml-1 text-[14px]">min</span>
           </div>
@@ -58,11 +58,11 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({
 
         <span className="ml-auto">
           <input
+            readOnly
+            checked={true}
+            className="h-[15px] accent-[#afafaf] bg-white w-[15px]"
             id={`active-${service.id}`}
             type="checkbox"
-            checked={true}
-            readOnly
-            className="h-[15px] accent-[#afafaf] bg-white w-[15px]"
           />
           <label
             className="text-[#1F2937] ml-1 text-[15px]"
@@ -74,11 +74,11 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({
       </div>
       <div className="flex gap-2 items-center mt-2">
         <input
+          checked={editValues.bill_in_units}
+          className="h-[15px] accent-[#2D8467] bg-white w-[15px]"
           id={`bill-units-${service.id}`}
           type="checkbox"
-          checked={editValues.bill_in_units}
           onChange={(e) => onEditChange("bill_in_units", e.target.checked)}
-          className="h-[15px] accent-[#2D8467] bg-white w-[15px]"
         />
         <p className="text-[#1F2937] text-[14px]">Bill this code in units</p>
         <Info className="h-4 w-4" />
@@ -87,11 +87,11 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({
         <p className="text-[#1F2937] my-4 text-[16px]">Booking Options</p>
         <div className="flex gap-2 items-center">
           <input
+            checked={editValues.available_online}
+            className="h-[15px] accent-[#2D8467] bg-white w-[15px]"
             id={`online-${service.id}`}
             type="checkbox"
-            checked={editValues.available_online}
             onChange={(e) => onEditChange("available_online", e.target.checked)}
-            className="h-[15px] accent-[#2D8467] bg-white w-[15px]"
           />
           <p className="text-[#1F2937] text-[14px]">
             Available for online appointment requests
@@ -101,26 +101,26 @@ const ServiceEditForm: React.FC<ServiceEditFormProps> = ({
       <div className="text-[#1F2937] text-[14px] flex items-center gap-1 mt-3">
         <p>Block off</p>
         <Input
-          type="number"
+          className="text-[#374151] bg-white text-[14px] w-[60px]"
           min={0}
+          type="number"
           value={editValues.block_before}
           onChange={(e) => onEditChange("block_before", Number(e.target.value))}
-          className="text-[#374151] bg-white text-[14px] w-[60px]"
         />
         <p>minutes before and</p>
         <Input
-          type="number"
+          className="text-[#374151] bg-white text-[14px] w-[60px]"
           min={0}
+          type="number"
           value={editValues.block_after}
           onChange={(e) => onEditChange("block_after", Number(e.target.value))}
-          className="text-[#374151] bg-white text-[14px] w-[60px]"
         />
         <p>minutes after the appointment</p>
       </div>
       <div className="mt-5 flex items-center gap-4">
         <Button
-          onClick={onCancel}
           className="bg-transparent text-black hover:bg-gray-50 border border-[lightgray]"
+          onClick={onCancel}
         >
           Cancel
         </Button>

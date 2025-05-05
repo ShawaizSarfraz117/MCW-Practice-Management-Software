@@ -43,40 +43,40 @@ export function DeleteConfirmationModal({
             </div>
             <div>
               <input
-                id="single"
-                type="radio"
-                name="deleteOption"
                 checked={selectedOption === "single"}
-                onChange={() => onOptionChange("single")}
                 className="h-[18px] w-[18px] mr-2 relative top-1"
+                id="single"
+                name="deleteOption"
+                type="radio"
+                onChange={() => onOptionChange("single")}
               />
-              <label htmlFor="single" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="single">
                 This event only
               </label>
             </div>
             <div>
               <input
-                id="future"
-                type="radio"
-                name="deleteOption"
                 checked={selectedOption === "future"}
-                onChange={() => onOptionChange("future")}
                 className="h-[18px] w-[18px] mr-2"
+                id="future"
+                name="deleteOption"
+                type="radio"
+                onChange={() => onOptionChange("future")}
               />
-              <label htmlFor="future" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="future">
                 This and all future events
               </label>
             </div>
             <div>
               <input
-                id="all"
-                type="radio"
-                name="deleteOption"
                 checked={selectedOption === "all"}
-                onChange={() => onOptionChange("all")}
                 className="h-[18px] w-[18px] mr-2"
+                id="all"
+                name="deleteOption"
+                type="radio"
+                onChange={() => onOptionChange("all")}
               />
-              <label htmlFor="all" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="all">
                 All of the series, including past events
               </label>
             </div>
@@ -97,40 +97,40 @@ export function DeleteConfirmationModal({
             </div>
             <div>
               <input
-                id="single"
-                type="radio"
-                name="deleteOption"
                 checked={selectedOption === "single"}
-                onChange={() => onOptionChange("single")}
                 className="h-[18px] w-[18px] mr-2 relative top-1"
+                id="single"
+                name="deleteOption"
+                type="radio"
+                onChange={() => onOptionChange("single")}
               />
-              <label htmlFor="single" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="single">
                 This appointment only
               </label>
             </div>
             <div>
               <input
-                id="future"
-                type="radio"
-                name="deleteOption"
                 checked={selectedOption === "future"}
-                onChange={() => onOptionChange("future")}
                 className="h-[18px] w-[18px] mr-2"
+                id="future"
+                name="deleteOption"
+                type="radio"
+                onChange={() => onOptionChange("future")}
               />
-              <label htmlFor="future" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="future">
                 This and all future appointments
               </label>
             </div>
             <div>
               <input
-                id="all"
-                type="radio"
-                name="deleteOption"
                 checked={selectedOption === "all"}
-                onChange={() => onOptionChange("all")}
                 className="h-[18px] w-[18px] mr-2"
+                id="all"
+                name="deleteOption"
+                type="radio"
+                onChange={() => onOptionChange("all")}
               />
-              <label htmlFor="all" className="text-[15px] text-[#717171]">
+              <label className="text-[15px] text-[#717171]" htmlFor="all">
                 All of the series, including past appointments
               </label>
             </div>
@@ -138,8 +138,8 @@ export function DeleteConfirmationModal({
         )}
         <DialogFooter>
           <Button
-            variant="outline"
             className="bg-gray-100 hover:bg-gray-200 hover:text-gray-700 text-gray-500"
+            variant="outline"
             onClick={() => onOpenChange(false)}
           >
             Cancel
