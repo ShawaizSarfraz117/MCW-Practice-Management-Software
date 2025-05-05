@@ -76,8 +76,20 @@ const menuItems = {
     },
     {
       label: "Services and products",
-      id: "service",
-      href: "/settings/service",
+      children: [
+        {
+          label: "Services",
+          id: "services",
+          href: "/settings/services",
+          description: "Manage services and set rates.",
+        },
+        {
+          label: "Products",
+          id: "products",
+          href: "/settings/products",
+          description: "Manage products and set rates.",
+        },
+      ],
     },
   ],
   clientCare: [
