@@ -112,7 +112,38 @@ model Client {
   ClinicianClient          ClinicianClient[]
   CreditCard               CreditCard[]
   SurveyAnswers            SurveyAnswers[]
+  ClientAdress             ClientAdress[]
+  ClientProfile            ClientProfile?
 }
+
+model ClientProfile {
+  id                      String    @id @default(dbgenerated("newid()"), map: "PK_ClientProfile_ID") @db.UniqueIdentifier
+  client_id               String    @unique @db.UniqueIdentifier
+  gender                  String    @db.VarChar(50)
+  gender_identity         String    @db.VarChar(50)
+  relationship_status     String    @db.VarChar(50)
+  employment_status       String    @db.VarChar(50)
+  race_ethnicity          String    @db.VarChar(50)
+  race_ethnicity_details  String    @db.VarChar(50)
+  preferred_language      String    @db.VarChar(50)
+  notes                   String    @db.Text
+  first_seen_at           DateTime  @default(now(), map: "ClientProfile_first_seen_at")
+  Client                  Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, onDelete: Cascade, map: "FK_ClientProfile_Client")
+}
+
+model ClientAdress {
+  id              String    @id @default(dbgenerated("newid()"), map: "PK_ClientAddress_ID") @db.UniqueIdentifier
+  client_id       String    @db.UniqueIdentifier
+  address_line1   String    @db.VarChar(255)
+  address_line2   String    @db.VarChar(255)
+  zip_code        String    @db.VarChar(50)
+  city            String    @db.VarChar(50)
+  state           String    @db.VarChar(50)
+  country         String    @db.VarChar(50)
+  is_primary      Boolean   @default(false, map: "DF_ClientAddress_IsPrimary")
+  Client          Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction,onDelete: Cascade, map: "FK_ClientAddress_Client")
+}
+
 
 model ClientContact {
   id           String  @id @default(dbgenerated("newid()"), map: "PK_ClientContact_ID") @db.UniqueIdentifier

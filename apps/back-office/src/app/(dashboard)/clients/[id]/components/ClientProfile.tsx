@@ -24,7 +24,7 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
 import { useQuery } from "@tanstack/react-query";
-
+import { ClientInfoCard } from "./ClientInfoCard";
 interface ClientProfileProps {
   clientId: string;
 }
@@ -79,7 +79,7 @@ export default function ClientProfile({
     return null;
   };
 
-  const { data: _clientGroup } = useQuery({
+  const { data: clientGroup } = useQuery({
     queryKey: ["clientGroup", id],
     queryFn: async () => {
       const [response, error] = await fetchClientGroups({
@@ -294,6 +294,10 @@ export default function ClientProfile({
             onAddPayment={() => setAddPaymentModalOpen(true)}
           />
 
+          <ClientInfoCard
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            clientGroup={clientGroup as any}
+          />
           <InvoicesDocumentsCard invoices={invoices} />
         </div>
       </div>

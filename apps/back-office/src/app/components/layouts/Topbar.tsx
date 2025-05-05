@@ -55,7 +55,7 @@ export default function TopBar({
             )}
 
             <SheetContent className="p-0" side="left">
-              <Sidebar mobile={true} />
+              <Sidebar isSheet={true} />
             </SheetContent>
           </Sheet>
         )}
