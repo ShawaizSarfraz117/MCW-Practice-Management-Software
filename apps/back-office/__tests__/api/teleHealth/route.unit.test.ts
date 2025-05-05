@@ -1,22 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, PUT } from "@/api/teleHealth/route";
-import { prisma } from "@mcw/database";
+import prismaMock from "@mcw/database/mock";
 import { getClinicianInfo } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
 import { ClinicianFactory, LocationFactory } from "@mcw/database/mock-data";
-
-// Mock database
-vi.mock("@mcw/database", () => ({
-  prisma: {
-    clinician: {
-      findUnique: vi.fn(),
-    },
-    location: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
-    },
-  },
-}));
 
 // Mock helpers
 vi.mock("@/utils/helpers", () => ({
@@ -51,9 +38,8 @@ describe("GET /api/teleHealth", () => {
       ],
     });
 
-    const mockFindUnique = prisma.clinician.findUnique as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const mockFindUnique = prismaMock.clinician
+      .findUnique as unknown as ReturnType<typeof vi.fn>;
     mockFindUnique.mockResolvedValueOnce(mockClinician);
 
     const response = await GET();
@@ -85,9 +71,8 @@ describe("GET /api/teleHealth", () => {
   });
 
   it("should return 404 when clinician is not found", async () => {
-    const mockFindUnique = prisma.clinician.findUnique as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const mockFindUnique = prismaMock.clinician
+      .findUnique as unknown as ReturnType<typeof vi.fn>;
     mockFindUnique.mockResolvedValueOnce(null);
 
     const response = await GET();
@@ -108,9 +93,8 @@ describe("GET /api/teleHealth", () => {
       ClinicianLocation: [], // No locations
     };
 
-    const mockFindUnique = prisma.clinician.findUnique as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const mockFindUnique = prismaMock.clinician
+      .findUnique as unknown as ReturnType<typeof vi.fn>;
     mockFindUnique.mockResolvedValueOnce(mockClinician);
 
     const response = await GET();
@@ -121,9 +105,8 @@ describe("GET /api/teleHealth", () => {
   });
 
   it("should handle database errors", async () => {
-    const mockFindUnique = prisma.clinician.findUnique as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const mockFindUnique = prismaMock.clinician
+      .findUnique as unknown as ReturnType<typeof vi.fn>;
     mockFindUnique.mockRejectedValueOnce(new Error("Database error"));
 
     const response = await GET();
@@ -162,12 +145,11 @@ describe("PUT /api/teleHealth", () => {
       is_active: true,
     };
 
-    const mockFindUnique = prisma.location.findUnique as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const mockFindUnique = prismaMock.location
+      .findUnique as unknown as ReturnType<typeof vi.fn>;
     mockFindUnique.mockResolvedValueOnce(mockLocation);
 
-    const mockUpdate = prisma.location.update as unknown as ReturnType<
+    const mockUpdate = prismaMock.location.update as unknown as ReturnType<
       typeof vi.fn
     >;
     mockUpdate.mockResolvedValueOnce(mockLocation);
@@ -212,9 +194,8 @@ describe("PUT /api/teleHealth", () => {
   });
 
   it("should return 404 when location does not exist", async () => {
-    const mockFindUnique = prisma.location.findUnique as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const mockFindUnique = prismaMock.location
+      .findUnique as unknown as ReturnType<typeof vi.fn>;
     mockFindUnique.mockResolvedValueOnce(null);
 
     const request = createRequestWithBody("/api/teleHealth", validUpdateData);
@@ -263,9 +244,8 @@ describe("PUT /api/teleHealth", () => {
     const request = createRequestWithBody("/api/teleHealth", testData);
 
     // Mock findUnique to return a location (passes the existence check)
-    const mockFindUnique = prisma.location.findUnique as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const mockFindUnique = prismaMock.location
+      .findUnique as unknown as ReturnType<typeof vi.fn>;
     mockFindUnique.mockResolvedValueOnce({
       id: testData.locationId,
       ...testData,
@@ -273,7 +253,7 @@ describe("PUT /api/teleHealth", () => {
     });
 
     // Mock update to throw an error
-    const mockUpdate = prisma.location.update as unknown as ReturnType<
+    const mockUpdate = prismaMock.location.update as unknown as ReturnType<
       typeof vi.fn
     >;
     mockUpdate.mockRejectedValueOnce(new Error("Database error"));

@@ -1,20 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, POST } from "@/api/billingAddress/route";
-import { prisma } from "@mcw/database";
+import prismaMock from "@mcw/database/mock";
 import { getClinicianInfo } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
-
-// Mock database
-vi.mock("@mcw/database", () => ({
-  prisma: {
-    billingAddress: {
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    },
-  },
-}));
 
 // Mock helpers
 vi.mock("@/utils/helpers", () => ({
@@ -52,7 +40,7 @@ describe("GET /api/billingAddress", () => {
       },
     ];
 
-    const mockFindMany = prisma.billingAddress
+    const mockFindMany = prismaMock.billingAddress
       .findMany as unknown as ReturnType<typeof vi.fn>;
     mockFindMany.mockResolvedValueOnce(mockAddresses);
 
@@ -91,7 +79,7 @@ describe("GET /api/billingAddress", () => {
   });
 
   it("should handle database errors", async () => {
-    const mockFindMany = prisma.billingAddress
+    const mockFindMany = prismaMock.billingAddress
       .findMany as unknown as ReturnType<typeof vi.fn>;
     mockFindMany.mockRejectedValueOnce(new Error("Database error"));
 
@@ -129,13 +117,12 @@ describe("POST /api/billingAddress", () => {
       clinician_id: mockClinicianId,
     };
 
-    const mockFindFirst = prisma.billingAddress
+    const mockFindFirst = prismaMock.billingAddress
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockResolvedValueOnce(null);
 
-    const mockCreate = prisma.billingAddress.create as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const mockCreate = prismaMock.billingAddress
+      .create as unknown as ReturnType<typeof vi.fn>;
     mockCreate.mockResolvedValueOnce(mockAddress);
 
     const request = createRequestWithBody("/api/billingAddress", validData);
@@ -171,14 +158,13 @@ describe("POST /api/billingAddress", () => {
       ...validData,
     };
 
-    const mockFindFirst = prisma.billingAddress
+    const mockFindFirstUpdate = prismaMock.billingAddress
       .findFirst as unknown as ReturnType<typeof vi.fn>;
-    mockFindFirst.mockResolvedValueOnce(existingAddress);
+    mockFindFirstUpdate.mockResolvedValueOnce(existingAddress);
 
-    const mockUpdate = prisma.billingAddress.update as unknown as ReturnType<
-      typeof vi.fn
-    >;
-    mockUpdate.mockResolvedValueOnce(updatedAddress);
+    const mockUpdateAddress = prismaMock.billingAddress
+      .update as unknown as ReturnType<typeof vi.fn>;
+    mockUpdateAddress.mockResolvedValueOnce(updatedAddress);
 
     const request = createRequestWithBody("/api/billingAddress", validData);
     const response = await POST(request);
@@ -190,7 +176,7 @@ describe("POST /api/billingAddress", () => {
       message: "Existing business billing address was updated",
     });
 
-    expect(mockUpdate).toHaveBeenCalledWith({
+    expect(mockUpdateAddress).toHaveBeenCalledWith({
       where: {
         id: existingAddress.id,
       },
@@ -237,13 +223,12 @@ describe("POST /api/billingAddress", () => {
   });
 
   it("should handle database errors during creation", async () => {
-    const mockFindFirst = prisma.billingAddress
+    const mockFindFirst = prismaMock.billingAddress
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockResolvedValueOnce(null);
 
-    const mockCreate = prisma.billingAddress.create as unknown as ReturnType<
-      typeof vi.fn
-    >;
+    const mockCreate = prismaMock.billingAddress
+      .create as unknown as ReturnType<typeof vi.fn>;
     mockCreate.mockRejectedValueOnce(new Error("Database error"));
 
     const request = createRequestWithBody("/api/billingAddress", validData);
@@ -262,14 +247,13 @@ describe("POST /api/billingAddress", () => {
       clinician_id: mockClinicianId,
     };
 
-    const mockFindFirst = prisma.billingAddress
+    const mockFindFirstUpdateError = prismaMock.billingAddress
       .findFirst as unknown as ReturnType<typeof vi.fn>;
-    mockFindFirst.mockResolvedValueOnce(existingAddress);
+    mockFindFirstUpdateError.mockResolvedValueOnce(existingAddress);
 
-    const mockUpdate = prisma.billingAddress.update as unknown as ReturnType<
-      typeof vi.fn
-    >;
-    mockUpdate.mockRejectedValueOnce(new Error("Database error"));
+    const mockUpdateError = prismaMock.billingAddress
+      .update as unknown as ReturnType<typeof vi.fn>;
+    mockUpdateError.mockRejectedValueOnce(new Error("Database error"));
 
     const request = createRequestWithBody("/api/billingAddress", validData);
     const response = await POST(request);

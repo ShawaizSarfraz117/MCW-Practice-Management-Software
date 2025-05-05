@@ -1,19 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, PUT } from "@/api/practiceInformation/route";
-import { prisma } from "@mcw/database";
+import prismaMock from "@mcw/database/mock";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
-
-// Mock database
-vi.mock("@mcw/database", () => ({
-  prisma: {
-    practiceInformation: {
-      findFirst: vi.fn(),
-      updateMany: vi.fn(),
-      create: vi.fn(),
-    },
-  },
-}));
 
 // Mock helpers
 vi.mock("@/utils/helpers", () => ({
@@ -47,7 +36,7 @@ describe("GET /api/practiceInformation", () => {
       tele_health: true,
     };
 
-    const mockFindFirst = prisma.practiceInformation
+    const mockFindFirst = prismaMock.practiceInformation
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockResolvedValueOnce(mockPracticeInfo);
 
@@ -70,7 +59,7 @@ describe("GET /api/practiceInformation", () => {
   });
 
   it("should return 404 if practice information is not found", async () => {
-    const mockFindFirst = prisma.practiceInformation
+    const mockFindFirst = prismaMock.practiceInformation
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockResolvedValueOnce(null);
 
@@ -82,7 +71,7 @@ describe("GET /api/practiceInformation", () => {
   });
 
   it("should handle database errors", async () => {
-    const mockFindFirst = prisma.practiceInformation
+    const mockFindFirst = prismaMock.practiceInformation
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockRejectedValueOnce(new Error("Database error"));
 
@@ -120,7 +109,7 @@ describe("PUT /api/practiceInformation", () => {
 
   it("should update practice information when record exists", async () => {
     // Mock findFirst to simulate existing record
-    const mockFind = prisma.practiceInformation
+    const mockFind = prismaMock.practiceInformation
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFind.mockResolvedValueOnce({
       id: "existing-id",
@@ -128,7 +117,7 @@ describe("PUT /api/practiceInformation", () => {
     });
 
     // Mock updateMany to simulate successful update
-    const mockUpdate = prisma.practiceInformation
+    const mockUpdate = prismaMock.practiceInformation
       .updateMany as unknown as ReturnType<typeof vi.fn>;
     mockUpdate.mockResolvedValueOnce({ count: 1 });
 
@@ -158,11 +147,11 @@ describe("PUT /api/practiceInformation", () => {
 
   it("should create new practice information when record does not exist", async () => {
     // Mock findFirst to simulate no existing record
-    const mockFind = prisma.practiceInformation
+    const mockFind = prismaMock.practiceInformation
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFind.mockResolvedValueOnce(null);
 
-    const mockCreate = prisma.practiceInformation
+    const mockCreate = prismaMock.practiceInformation
       .create as unknown as ReturnType<typeof vi.fn>;
     const expectedNewRecord = {
       id: "new-id",
@@ -220,14 +209,14 @@ describe("PUT /api/practiceInformation", () => {
   });
 
   it("should handle database errors during update", async () => {
-    const mockFind = prisma.practiceInformation
+    const mockFind = prismaMock.practiceInformation
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFind.mockResolvedValueOnce({
       id: "existing-id",
       user_id: mockSession.user.id,
     });
 
-    const mockUpdate = prisma.practiceInformation
+    const mockUpdate = prismaMock.practiceInformation
       .updateMany as unknown as ReturnType<typeof vi.fn>;
     mockUpdate.mockRejectedValueOnce(new Error("Database error"));
 
@@ -244,11 +233,11 @@ describe("PUT /api/practiceInformation", () => {
   });
 
   it("should handle database errors during create", async () => {
-    const mockFind = prisma.practiceInformation
+    const mockFind = prismaMock.practiceInformation
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFind.mockResolvedValueOnce(null);
 
-    const mockCreate = prisma.practiceInformation
+    const mockCreate = prismaMock.practiceInformation
       .create as unknown as ReturnType<typeof vi.fn>;
     mockCreate.mockRejectedValueOnce(new Error("Database error"));
 

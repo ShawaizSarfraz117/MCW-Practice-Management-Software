@@ -22,13 +22,10 @@ vi.mock("@/utils/helpers");
 
 describe("BillingAddress API Integration Tests", () => {
   beforeAll(async () => {
-    // Create test user and clinician in database
-    await prisma.user.create({
-      data: mockUser,
-    });
-    await prisma.clinician.create({
-      data: mockClinician,
-    });
+    // Create test user and clinician in the DB
+    await prisma.user.create({ data: mockUser });
+    await prisma.clinician.create({ data: mockClinician });
+    // Optionally, set up a session or token for this user
   });
 
   afterAll(async () => {
@@ -150,6 +147,7 @@ describe("BillingAddress API Integration Tests", () => {
     });
 
     it("should create new billing address", async () => {
+      // Create a request as the test user (authenticated)
       const request = createRequestWithBody("/api/billingAddress", validData);
       const response = await POST(request);
       expect(response.status).toBe(201);
