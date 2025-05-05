@@ -3,7 +3,6 @@ description:
 globs: *test*
 alwaysApply: false
 ---
-
 -   **Testing**: Use Vitest for testing. Write integration tests (interacting with the database using Prisma factories like `UserPrismaFactory`) and unit tests (using mock factories like `UserFactory`). Place tests in the application's `__tests__` directory (e.g., @apps/back-office/src/__tests__). Refer to the application's `vitest.config.*.ts` files for configuration.
 -   **Integration Tests**: Interact with the database using Prisma factories (e.g., `UserPrismaFactory`).
 -   **Unit Tests (General)**: Use mock factories (e.g., `UserFactory`).
@@ -36,7 +35,11 @@ alwaysApply: false
 -   Test the interaction between multiple modules, including database interactions.
 -   **Database Interaction**: Use the real Prisma client (`import { prisma } from "@mcw/database";`).
 -   **Data Setup/Teardown**: Use `beforeEach` and `afterEach` hooks with the Prisma client to set up necessary data (`prisma.<model>.create()`) and clean up (`prisma.<model>.deleteMany({})`) to ensure tests are isolated.
+-   **Database State**: For integration tests that modify the database, use `beforeEach` and `afterEach` to clean up and ensure tests are isolated.
 -   **Factory Usage**: Generate mock data objects using the factories exported from `@mcw/database/mock-data` (e.g., `import { ProductFactory } from "@mcw/database/mock-data";`). Use the generated object with `prisma.<model>.create({ data: ... })` to insert it into the database. (Using the auto-generated Prisma factories from `@quramy/prisma-fabbrica` has proven difficult due to path resolution issues in tests).
 -   **Path Aliases**: Use the `@/` alias for importing application API route handlers. This alias maps to `src/app`, so the import path will look like `import { GET } from "@/api/your-feature/route";`. For importing database utilities, use the `@mcw/database` alias (e.g., `@mcw/database/mock-data`).
 -   **Example**: Refer to @apps/back-office/__tests__/api/products/route.integration.test.ts for a current example using mock factories, and @apps/back-office/__tests__/api/location/route.integration.test.ts for another example.
+
+-   **Test Structure**: Organize API route tests into separate describe blocks for each HTTP method (GET, POST, PUT, DELETE), with clear test cases covering successful operations and error conditions.
+
 

@@ -1,74 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Input, Label, toast } from "@mcw/ui";
-import { Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Button, toast } from "@mcw/ui";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-// Assuming the Prisma model looks like this, adjust if necessary
-// Ideally, import from `@mcw/database` if types are generated/exported
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  // Add other fields like is_active if they exist and are needed
-}
-
-// --- API Fetching Functions ---
-
-const fetchProducts = async (): Promise<Product[]> => {
-  const response = await fetch("/api/products");
-  if (!response.ok) {
-    throw new Error("Network response was not ok");
-  }
-  return response.json();
-};
-
-const addProduct = async (newProduct: {
-  name: string;
-  price: number;
-}): Promise<Product> => {
-  const response = await fetch("/api/products", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(newProduct),
-  });
-  if (!response.ok) {
-    // Try to parse error details from the backend
-    const errorData = await response.json().catch(() => ({})); // Catch if body isn't JSON
-    throw new Error(
-      errorData.error || `HTTP error! status: ${response.status}`,
-    );
-  }
-  return response.json();
-};
-
-const deleteProduct = async (
-  productId: string,
-): Promise<{ message: string }> => {
-  const response = await fetch(`/api/products?id=${productId}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.error || `HTTP error! status: ${response.status}`,
-    );
-  }
-  return response.json(); // Contains { message: "..." } on success
-};
-
-// --- Component ---
+import { Product, fetchProducts, updateSingleProduct } from "./api";
+import { AddProductForm } from "./components/AddProductForm";
+import { ProductsList } from "./components/ProductsList";
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
-  const [newProductName, setNewProductName] = useState("");
-  const [newProductPrice, setNewProductPrice] = useState(""); // Keep as string for input
 
   // --- Tanstack Query Hooks ---
-
   const {
     data: products = [], // Default to empty array
     isLoading,
@@ -79,91 +21,120 @@ export default function ProductsPage() {
     queryFn: fetchProducts,
   });
 
-  const addMutation = useMutation<
-    Product, // Type of data returned by mutationFn
-    Error, // Type of error
-    { name: string; price: number } // Type of variables passed to mutationFn
-  >({
-    mutationFn: addProduct,
-    onSuccess: (data) => {
-      // Invalidate and refetch the products query
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      // Clear the form
-      setNewProductName("");
-      setNewProductPrice("");
-      toast({ title: "Success", description: `Product "${data.name}" added.` });
-      console.log("Product added successfully:", data);
+  // State to hold the editable list of products
+  const [editableProducts, setEditableProducts] = useState<Product[]>([]);
+  const [hasChanges, setHasChanges] = useState(false); // Track if changes exist
+
+  // Effect to initialize/update editableProducts when products data changes
+  useEffect(() => {
+    // When fetched data changes, reset editableProducts and hasChanges flag
+    setEditableProducts(products);
+    setHasChanges(false);
+  }, [products]);
+
+  // Mutation hook for updating a single product
+  const updateMutation = useMutation({
+    mutationFn: updateSingleProduct,
+    onSuccess: (updatedProduct) => {
+      toast({
+        title: "Success",
+        description: `Product "${updatedProduct.name}" updated.`,
+      });
+      console.log("Product updated successfully:", updatedProduct);
     },
-    onError: (error) => {
+    onError: (error, productBeingUpdated) => {
       toast({
         title: "Error",
-        description: `Failed to add product: ${error.message}`,
+        description: `Failed to update "${productBeingUpdated.name}": ${error.message}`,
         variant: "destructive",
       });
-      console.error("Error adding product:", error);
+      console.error(
+        `Error updating product ID ${productBeingUpdated.id}:`,
+        error,
+      );
     },
   });
 
-  const deleteMutation = useMutation<
-    { message: string }, // Success response type
-    Error, // Error type
-    string // Type of variable (productId)
-  >({
-    mutationFn: deleteProduct,
-    onSuccess: (data, productId) => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({ title: "Success", description: data.message });
-      console.log("Product deleted successfully, ID:", productId);
-    },
-    onError: (error, productId) => {
-      toast({
-        title: "Error",
-        description: `Failed to delete product: ${error.message}`,
-        variant: "destructive",
+  // Handler to update the editableProducts state
+  const handleProductChange = (
+    productId: string,
+    field: "name" | "price",
+    value: string | number, // Input value can be string or number
+  ) => {
+    setEditableProducts((currentProducts) => {
+      const updatedProducts = currentProducts.map((p) => {
+        if (p.id === productId) {
+          // We're looking up originalProduct but not using it directly,
+          // add underscore prefix to indicate intentional non-usage
+          const _originalProduct = products.find((op) => op.id === productId);
+          // If it's the price field, parse it as a float, ensure it's not NaN
+          const newValue =
+            field === "price"
+              ? parseFloat(String(value)) // Parse string/number input
+              : value; // Use name directly
+          // Return updated product, ensuring price is a valid number or 0
+          const processedNewValue =
+            field === "price"
+              ? isNaN(newValue as number)
+                ? p.price
+                : newValue
+              : newValue;
+
+          return {
+            ...p,
+            [field]: processedNewValue,
+          };
+        }
+        return p;
       });
-      console.error("Error deleting product, ID:", productId, error);
-    },
-  });
 
-  // --- Event Handlers ---
+      // After mapping, check if *any* product differs from the original ones
+      const overallChanges = updatedProducts.some(
+        (ep, index) =>
+          ep.name !== products[index]?.name ||
+          ep.price !== products[index]?.price,
+      );
+      setHasChanges(overallChanges); // Set the global flag
 
-  const handleAddProduct = () => {
-    const name = newProductName.trim();
-    const price = parseFloat(newProductPrice); // Parse price string to number
-
-    // Basic client-side validation
-    if (!name) {
-      toast({
-        title: "Validation Error",
-        description: "Product name cannot be empty.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (isNaN(price) || price < 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter a valid, non-negative price.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    addMutation.mutate({ name, price });
+      return updatedProducts;
+    });
   };
 
-  // Updated to use the mutation
-  const handleDelete = (productId: string) => {
-    // Optional: Add a confirmation dialog here
-    console.log("Requesting delete for product ID:", productId);
-    deleteMutation.mutate(productId);
+  // Handler for the Save Changes button
+  const handleSaveChanges = async () => {
+    // Make async to await potentially
+    // Find products that have actually changed
+    const changedProducts = editableProducts.filter((ep) => {
+      const originalProduct = products.find((op) => op.id === ep.id);
+      // If no original, or name/price differs, include it
+      return (
+        !originalProduct ||
+        originalProduct.name !== ep.name ||
+        originalProduct.price !== ep.price
+      );
+    });
+
+    if (changedProducts.length > 0) {
+      console.log("Saving changed products individually:", changedProducts);
+
+      // Trigger mutation for each changed product
+      changedProducts.forEach((product) => {
+        console.log(`Mutating product: ${product.id} - ${product.name}`);
+        updateMutation.mutate(product);
+      });
+
+      // After attempting all mutations, invalidate the query to refetch the list
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    } else {
+      console.log("No changes detected to save.");
+      toast({ title: "Info", description: "No changes to save." });
+    }
   };
 
   // --- Render Logic ---
 
   if (isLoading) {
-    return <div>Loading products...</div>; // Simple loading state
+    return <div>Loading products...</div>;
   }
 
   if (isError) {
@@ -176,108 +147,34 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-8">
-      {" "}
-      {/* Increased spacing */}
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold">Products</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Manage products and set rates.
-        </p>
-        {/* Save Changes button removed */}
-      </div>
-      {/* Add New Product Form */}
-      <div className="border rounded-md p-4 space-y-4">
-        <h2 className="text-lg font-medium">Add New Product</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div className="md:col-span-2">
-            <Label htmlFor="productName">Product Name</Label>
-            <Input
-              id="productName"
-              value={newProductName}
-              onChange={(e) => setNewProductName(e.target.value)}
-              placeholder="Enter product name"
-              className="mt-1"
-              disabled={addMutation.isPending}
-            />
-          </div>
-          <div>
-            <Label htmlFor="productPrice">Price</Label>
-            <Input
-              id="productPrice"
-              type="number"
-              value={newProductPrice}
-              onChange={(e) => setNewProductPrice(e.target.value)}
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              className="mt-1"
-              prefix="$" // Assuming Input supports prefix
-              disabled={addMutation.isPending}
-            />
-          </div>
-          {/* Add Button for the form */}
-          <div className="md:col-start-3">
-            {" "}
-            {/* Align button under Price */}
-            <Button
-              onClick={handleAddProduct}
-              disabled={
-                addMutation.isPending || !newProductName || !newProductPrice
-              }
-              className="w-full md:w-auto" // Full width on small screens
-            >
-              {addMutation.isPending ? "Adding..." : "Add Product"}
-            </Button>
-          </div>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-semibold">Products</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage products and set rates.
+          </p>
         </div>
+        {/* Save Changes Button */}
+        <Button
+          onClick={handleSaveChanges}
+          disabled={!hasChanges || updateMutation.isPending}
+        >
+          {updateMutation.isPending ? "Saving..." : "Save Changes"}
+        </Button>
       </div>
-      {/* Added Products List */}
+
+      {/* Add New Product Form */}
+      <AddProductForm />
+
+      {/* Products List */}
       <div className="space-y-4">
         <h2 className="text-lg font-medium">Current Products</h2>
-        {products.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No products found. Add one using the form above.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center gap-4 p-3 border rounded-md bg-card"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-grow items-center">
-                  <div className="md:col-span-2">
-                    {/* Consider making these inputs for future editing */}
-                    <span className="font-medium">{product.name}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">
-                      ${product.price.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(product.id)}
-                  disabled={
-                    deleteMutation.isPending &&
-                    deleteMutation.variables === product.id
-                  } // Disable only the button for the product being deleted
-                  aria-label={`Delete ${product.name}`}
-                >
-                  {deleteMutation.isPending &&
-                  deleteMutation.variables === product.id ? (
-                    <span className="animate-spin h-4 w-4 border-b-2 border-current rounded-full"></span> // Simple spinner
-                  ) : (
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  )}
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
+        <ProductsList
+          editableProducts={editableProducts}
+          onProductChange={handleProductChange}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );
