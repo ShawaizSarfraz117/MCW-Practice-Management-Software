@@ -23,8 +23,8 @@ export default function PracticePhoneForm({
       {phoneNumbers.map((phone, index) => (
         <div key={index} className="flex items-center space-x-1 mt-2">
           <Input
-            placeholder="Phone number"
             className="border-gray-300 h-10 rounded-md w-[310px]"
+            placeholder="Phone number"
           />
           <Select defaultValue={phone.type}>
             <SelectTrigger className="w-28 border-gray-300">
@@ -37,8 +37,8 @@ export default function PracticePhoneForm({
             </SelectContent>
           </Select>
           <Button
-            variant="ghost"
             size="icon"
+            variant="ghost"
             onClick={() => removePhoneNumber(index)}
           >
             <Trash2 className="h-5 w-5 text-gray-400" />
@@ -46,8 +46,8 @@ export default function PracticePhoneForm({
         </div>
       ))}
       <Button
-        variant="outline"
         className="mt-5 border-green-300 text-green-700"
+        variant="outline"
         onClick={addPhoneNumber}
       >
         Add Phone Number

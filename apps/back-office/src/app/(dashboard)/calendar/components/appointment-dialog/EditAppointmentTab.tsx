@@ -126,34 +126,34 @@ export function EditAppointmentTab({
         <div className="bg-green-200 text-green-700 rounded-[20px] px-3 py-[2px] text-[13px]">
           Active
         </div>
-        <Image src={CallIcon} alt="" height={18} />
-        <Image src={MessageIcon} alt="" height={20} />
-        <Image src={EmailIcon} alt="" height={20} />
+        <Image alt="" height={18} src={CallIcon} />
+        <Image alt="" height={20} src={MessageIcon} />
+        <Image alt="" height={20} src={EmailIcon} />
       </div>
 
       <div className="flex gap-3 border-b pb-3">
         <div className="flex justify-center items-center w-full bg-[#11bd72] text-white gap-2 rounded-[5px] py-1.5 text-[13px]">
-          <Image src={VideoIcon} alt="" height={20} />
+          <Image alt="" height={20} src={VideoIcon} />
           Start video appointment
         </div>
         <SearchSelect
-          searchable={false}
-          showPagination={false}
           className="border-0 bg-gray-200 w-[150px] rounded-[5px]"
           options={mappedClients}
           placeholder="Share link"
+          searchable={false}
+          showPagination={false}
           value={selectedClient}
           onValueChange={handleClientSelect}
         />
       </div>
       <div className="border-b pb-3">
         <SearchSelect
-          searchable={false}
-          showPagination={false}
-          icon={<Check className="h-4 w-4 text-green-700 font-bold" />}
           className="border-0 bg-green-100 w-[200px] rounded-[24px] px-3 py-1 font-medium text-green-700 focus:outline-none focus:ring-0"
+          icon={<Check className="h-4 w-4 text-green-700 font-bold" />}
           options={appointmentStatusOptions}
           placeholder="Select Status"
+          searchable={false}
+          showPagination={false}
           value={form.getFieldValue("status")}
           onValueChange={handleStatusChange}
         />
@@ -214,8 +214,8 @@ export function EditAppointmentTab({
           <div className="pb-4 border-b">
             <RecurringHeader
               isExpanded={isRecurringExpanded}
-              onToggle={() => setIsRecurringExpanded(!isRecurringExpanded)}
               recurringRule={appointmentData.recurring_rule}
+              onToggle={() => setIsRecurringExpanded(!isRecurringExpanded)}
             />
             {isRecurringExpanded && (
               <RecurringSettings
@@ -253,14 +253,14 @@ export function EditAppointmentTab({
           <div className="flex gap-3">
             <div className="w-full">
               <SearchSelect
-                searchable={false}
-                showPagination={false}
                 className="border w-full rounded-[5px]"
                 options={servicesData.map((service) => ({
                   label: service.type,
                   value: service.id,
                 }))}
                 placeholder="Select service"
+                searchable={false}
+                showPagination={false}
                 value={
                   appointmentData?.PracticeService?.id ||
                   selectedServices[0]?.serviceId
@@ -311,7 +311,7 @@ export function EditAppointmentTab({
             className="h-[40px] w-[40px] bg-gray-100 flex justify-center items-center rounded-[5px] cursor-pointer hover:bg-gray-200"
             onClick={() => setIsDeleteModalOpen(true)}
           >
-            <Image src={DeleteIcon} alt="" />
+            <Image alt="" src={DeleteIcon} />
           </div>
           <Button
             className="py-2 px-3 bg-[#0a96d4] rounded-[5px] text-white"
@@ -325,17 +325,17 @@ export function EditAppointmentTab({
       <EditConfirmationModal
         appointmentData={appointmentData}
         open={isConfirmationOpen}
-        onOpenChange={setIsConfirmationOpen}
-        onConfirm={handleUpdateConfirm}
         status={form.getFieldValue("status")}
+        onConfirm={handleUpdateConfirm}
+        onOpenChange={setIsConfirmationOpen}
       />
 
       <DeleteConfirmationModal
         appointmentData={appointmentData}
         open={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        onConfirm={handleDeleteConfirm}
         selectedOption={selectedDeleteOption}
+        onConfirm={handleDeleteConfirm}
+        onOpenChange={setIsDeleteModalOpen}
         onOptionChange={setSelectedDeleteOption}
       />
     </>
