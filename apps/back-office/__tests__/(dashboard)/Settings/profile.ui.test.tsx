@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import SettingsPage from "@/(dashboard)/settings/page";
+import Profile from "@/(dashboard)/settings/profile-security/page";
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -54,7 +54,7 @@ describe("Profile", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <SettingsPage />
+        <Profile />
       </QueryClientProvider>,
     );
 
@@ -63,7 +63,7 @@ describe("Profile", () => {
       expect(screen.getByText("Date of birth")).toBeTruthy();
     });
 
-    expect(screen.getByText("Profile")).toBeTruthy();
+    expect(screen.getByText(/Profile and Security/)).toBeTruthy();
 
     // 1️⃣ email
     expect(await screen.findByText("test@example.com")).toBeTruthy();
