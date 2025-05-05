@@ -326,11 +326,3 @@ model UserRole {
 
   @@id([user_id, role_id], map: "PK_UserRole_ID")
 }
-
-model ClientLoginLink {
-  id        String   @id @default(dbgenerated("newid()"), map: "PK_ClientLoginLink_ID") @db.UniqueIdentifier
-  email     String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-}
