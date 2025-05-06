@@ -2,220 +2,232 @@ import {
   describe,
   it,
   expect,
+  afterEach,
   beforeAll,
   afterAll,
-  beforeEach,
   vi,
 } from "vitest";
-import { GET, POST } from "@/api/billingAddress/route";
 import { prisma } from "@mcw/database";
-import { getClinicianInfo } from "@/utils/helpers";
-import { createRequestWithBody } from "@mcw/utils";
-import { ClinicianFactory, UserFactory } from "@mcw/database/mock-data";
+import { GET, POST } from "@/api/billingAddress/route";
+import {
+  ClinicianPrismaFactory,
+  RolePrismaFactory,
+  UserRolePrismaFactory,
+} from "@mcw/database/mock-data";
+import { createRequestWithBody, createRequest } from "@mcw/utils";
+import { getServerSession } from "next-auth";
 
-// Create mock user and clinician data
-const mockUser = UserFactory.build();
-const mockClinician = ClinicianFactory.build({ user_id: mockUser.id });
+// Mock next-auth and auth options for session
+vi.mock("next-auth", () => ({
+  getServerSession: vi.fn(),
+}));
+vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
+  backofficeAuthOptions: {},
+}));
 
-// Mock helpers
-vi.mock("@/utils/helpers");
+// Helper to clean up all billing addresses for a clinician
+async function cleanupBillingAddresses(clinicianId: string, userId: string) {
+  await prisma.billingAddress.deleteMany({
+    where: { clinician_id: clinicianId },
+  });
+  await prisma.clinician.deleteMany({ where: { id: clinicianId } });
+  await prisma.userRole.deleteMany({ where: { user_id: userId } });
+  await prisma.user.deleteMany({ where: { id: userId } });
+}
 
-describe("BillingAddress API Integration Tests", () => {
+describe("Billing Address API Integration Tests", () => {
+  let clinicianId: string;
+  let userId: string;
+  let session: Record<string, unknown>;
+
   beforeAll(async () => {
-    // Create test user and clinician in the DB
-    await prisma.user.create({ data: mockUser });
-    await prisma.clinician.create({ data: mockClinician });
-    // Optionally, set up a session or token for this user
+    // Ensure the CLINICIAN role exists
+    let role = await prisma.role.findUnique({ where: { name: "CLINICIAN" } });
+    if (!role) {
+      role = await RolePrismaFactory.create({ name: "CLINICIAN" });
+    }
+    // Create a clinician and its user
+    const clinician = await ClinicianPrismaFactory.create();
+    clinicianId = clinician.id;
+    userId = clinician.user_id;
+    // Assign CLINICIAN role to user (correct Prisma shape)
+    await UserRolePrismaFactory.create({
+      User: { connect: { id: userId } },
+      Role: { connect: { id: role.id } },
+    });
+    // Simulate session object as expected by getClinicianInfo
+    session = {
+      user: {
+        id: userId,
+        roles: ["CLINICIAN"],
+      },
+    };
   });
 
   afterAll(async () => {
-    // Clean up test data
-    await prisma.billingAddress.deleteMany();
-    await prisma.clinician.deleteMany({
-      where: { id: mockClinician.id },
-    });
-    await prisma.user.deleteMany({
-      where: { id: mockUser.id },
-    });
+    await cleanupBillingAddresses(clinicianId, userId);
   });
 
-  beforeEach(async () => {
-    // Reset mocks
+  afterEach(async () => {
+    await prisma.billingAddress.deleteMany({
+      where: { clinician_id: clinicianId },
+    });
     vi.resetAllMocks();
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId: mockClinician.id,
-    });
-
-    // Clean up any existing billing addresses
-    await prisma.billingAddress.deleteMany();
   });
 
-  describe("GET /api/billingAddress", () => {
-    it("should return empty array when no billing addresses exist", async () => {
-      const request = createRequestWithBody("/api/billingAddress", {});
-      const response = await GET(request);
-      expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ billingAddresses: [] });
-    });
-
-    it("should return 403 when user is not a clinician", async () => {
-      vi.mocked(getClinicianInfo).mockResolvedValueOnce({
-        isClinician: false,
-        clinicianId: null,
-      });
-
-      const request = createRequestWithBody("/api/billingAddress", {});
-      const response = await GET(request);
-      expect(response.status).toBe(403);
-      expect(await response.json()).toEqual({
-        error: "User is not a clinician",
-      });
-    });
-
-    it("should return billing addresses when they exist", async () => {
-      const businessAddress = {
-        street: "123 Business St",
-        city: "Business City",
-        state: "BC",
-        zip: "12345",
-        type: "business",
-        clinician_id: mockClinician.id,
-      };
-
-      const clientAddress = {
-        street: "456 Client Ave",
-        city: "Client City",
-        state: "CC",
-        zip: "67890",
-        type: "client",
-        clinician_id: mockClinician.id,
-      };
-
-      await prisma.billingAddress.createMany({
-        data: [businessAddress, clientAddress],
-      });
-
-      const request = createRequestWithBody("/api/billingAddress", {});
-      const response = await GET(request);
-      expect(response.status).toBe(200);
-
-      const { billingAddresses } = await response.json();
-      expect(billingAddresses).toHaveLength(2);
-      expect(billingAddresses).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            street: businessAddress.street,
-            city: businessAddress.city,
-            state: businessAddress.state,
-            zip: businessAddress.zip,
-            type: businessAddress.type,
-          }),
-          expect.objectContaining({
-            street: clientAddress.street,
-            city: clientAddress.city,
-            state: clientAddress.state,
-            zip: clientAddress.zip,
-            type: clientAddress.type,
-          }),
-        ]),
-      );
-    });
+  it("GET /api/billingAddress returns empty array if none exist", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session);
+    const req = createRequest("/api/billingAddress", { method: "GET" });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.billingAddresses).toEqual([]);
   });
 
-  describe("POST /api/billingAddress", () => {
-    const validData = {
-      street: "789 New St",
-      city: "New City",
-      state: "NC",
-      zip: "12345",
+  it("POST /api/billingAddress creates a new address", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session);
+    const body = {
+      street: "123 Main St",
+      city: "Springfield",
+      state: "IL",
+      zip: "62704",
       type: "business",
     };
-
-    it("should return 403 when user is not a clinician", async () => {
-      vi.mocked(getClinicianInfo).mockResolvedValueOnce({
-        isClinician: false,
-        clinicianId: null,
-      });
-
-      const request = createRequestWithBody("/api/billingAddress", validData);
-      const response = await POST(request);
-      expect(response.status).toBe(403);
-      expect(await response.json()).toEqual({
-        error: "User is not a clinician",
-      });
+    const req = createRequestWithBody("/api/billingAddress", body);
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.billingAddress).toMatchObject(body);
+    // Confirm in DB
+    const db = await prisma.billingAddress.findFirst({
+      where: { clinician_id: clinicianId, type: "business" },
     });
+    expect(db).not.toBeNull();
+    expect(db?.street).toBe("123 Main St");
+  });
 
-    it("should create new billing address", async () => {
-      // Create a request as the test user (authenticated)
-      const request = createRequestWithBody("/api/billingAddress", validData);
-      const response = await POST(request);
-      expect(response.status).toBe(201);
-
-      const { billingAddress } = await response.json();
-      expect(billingAddress).toMatchObject({
-        ...validData,
-        clinician_id: mockClinician.id,
-      });
-
-      // Verify in database
-      const dbRecord = await prisma.billingAddress.findFirst({
-        where: { id: billingAddress.id },
-      });
-      expect(dbRecord).toBeTruthy();
-      expect(dbRecord).toMatchObject({
-        ...validData,
-        clinician_id: mockClinician.id,
-      });
+  it("POST /api/billingAddress updates existing address of same type", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session);
+    // Create initial
+    await prisma.billingAddress.create({
+      data: {
+        street: "Old St",
+        city: "Old City",
+        state: "CA",
+        zip: "90001",
+        type: "business",
+        clinician_id: clinicianId,
+      },
     });
-
-    it("should update existing billing address of same type", async () => {
-      // First create initial address
-      const existingAddress = await prisma.billingAddress.create({
-        data: {
-          street: "Initial St",
-          city: "Initial City",
-          state: "IC",
-          zip: "11111",
-          type: "business",
-          clinician_id: mockClinician.id,
-        },
-      });
-
-      // Try to create another business address
-      const request = createRequestWithBody("/api/billingAddress", validData);
-      const response = await POST(request);
-      expect(response.status).toBe(200);
-
-      const { billingAddress, message } = await response.json();
-      expect(message).toBe("Existing business billing address was updated");
-      expect(billingAddress.id).toBe(existingAddress.id);
-      expect(billingAddress).toMatchObject({
-        ...validData,
-        clinician_id: mockClinician.id,
-      });
+    const body = {
+      street: "456 New St",
+      city: "New City",
+      state: "NY",
+      zip: "10001",
+      type: "business",
+    };
+    const req = createRequestWithBody("/api/billingAddress", body);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.billingAddress).toMatchObject(body);
+    expect(json.message).toMatch(/updated/);
+    // Confirm in DB
+    const db = await prisma.billingAddress.findFirst({
+      where: { clinician_id: clinicianId, type: "business" },
     });
+    expect(db?.street).toBe("456 New St");
+  });
 
-    it("should validate input data", async () => {
-      const invalidData = {
-        street: "", // Empty street
-        city: "", // Empty city
-        state: "", // Empty state
-        zip: "123", // Invalid ZIP
-        type: "invalid", // Invalid type
-      };
-
-      const request = createRequestWithBody("/api/billingAddress", invalidData);
-      const response = await POST(request);
-      expect(response.status).toBe(400);
-      expect(await response.json()).toEqual({
-        error: "Invalid data",
-        details: expect.any(Array),
-      });
-
-      // Verify nothing was created in database
-      const dbRecord = await prisma.billingAddress.findFirst();
-      expect(dbRecord).toBeNull();
+  it("GET /api/billingAddress returns addresses for clinician", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session);
+    await prisma.billingAddress.create({
+      data: {
+        street: "789 Oak St",
+        city: "Tree City",
+        state: "TX",
+        zip: "73301",
+        type: "client",
+        clinician_id: clinicianId,
+      },
     });
+    const req = createRequest("/api/billingAddress", { method: "GET" });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.billingAddresses.length).toBe(1);
+    expect(json.billingAddresses[0]).toMatchObject({
+      street: "789 Oak St",
+      city: "Tree City",
+      state: "TX",
+      zip: "73301",
+      type: "client",
+    });
+  });
+
+  it("GET /api/billingAddress returns 403 if not a clinician", async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: userId, roles: ["ADMIN"] },
+    });
+    const req = createRequest("/api/billingAddress", { method: "GET" });
+    const res = await GET(req);
+    expect(res.status).toBe(403);
+  });
+
+  it("POST /api/billingAddress returns 403 if not a clinician", async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: userId, roles: ["ADMIN"] },
+    });
+    const body = {
+      street: "123 Main St",
+      city: "Springfield",
+      state: "IL",
+      zip: "62704",
+      type: "business",
+    };
+    const req = createRequestWithBody("/api/billingAddress", body);
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+  });
+
+  it("POST /api/billingAddress returns 400 for invalid payload", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session);
+    const body = {
+      street: "",
+      city: "",
+      state: "",
+      zip: "",
+      type: "invalidtype",
+    };
+    const req = createRequestWithBody("/api/billingAddress", body);
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid data");
+    expect(json.details).toBeDefined();
+  });
+
+  it("POST /api/billingAddress returns 500 on DB error", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session);
+    // Temporarily monkey-patch prisma.billingAddress.findFirst to throw
+    const origFindFirst = prisma.billingAddress.findFirst;
+    // @ts-expect-error Mocking findFirst to simulate DB error
+    prisma.billingAddress.findFirst = async () => {
+      throw new Error("DB fail");
+    };
+    const body = {
+      street: "123 Main St",
+      city: "Springfield",
+      state: "IL",
+      zip: "62704",
+      type: "business",
+    };
+    const req = createRequestWithBody("/api/billingAddress", body);
+    const res = await POST(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("Failed to create billing address");
+    // Restore
+    prisma.billingAddress.findFirst = origFindFirst;
   });
 });

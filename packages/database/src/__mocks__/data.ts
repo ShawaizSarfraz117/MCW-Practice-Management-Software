@@ -320,7 +320,6 @@ export const RoleFactory = {
   build: <T extends Partial<Role>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
     name: faker.helpers.arrayElement(["admin", "clinician", "receptionist"]),
-    description: faker.lorem.sentence(),
     ...overrides,
   }),
 };

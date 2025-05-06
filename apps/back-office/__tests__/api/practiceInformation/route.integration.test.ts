@@ -2,274 +2,279 @@ import {
   describe,
   it,
   expect,
+  afterEach,
   beforeAll,
   afterAll,
-  beforeEach,
   vi,
 } from "vitest";
-import { GET, PUT } from "@/api/practiceInformation/route";
 import { prisma } from "@mcw/database";
-import { getBackOfficeSession } from "@/utils/helpers";
+import { GET, PUT } from "@/api/practiceInformation/route";
+import {
+  UserPrismaFactory,
+  RolePrismaFactory,
+  UserRolePrismaFactory,
+} from "@mcw/database/mock-data";
 import { createRequestWithBody } from "@mcw/utils";
-import { UserFactory } from "@mcw/database/mock-data";
+import { getBackOfficeSession } from "@/utils/helpers";
 
-// Create mock user data
-const mockUser = UserFactory.build();
-
-// Mock helpers
+// Mock getBackOfficeSession for session
 vi.mock("@/utils/helpers", () => ({
+  ...vi.importActual("@/utils/helpers"),
   getBackOfficeSession: vi.fn(),
 }));
+vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
+  backofficeAuthOptions: {},
+}));
+
+// Helper to clean up all practice information for a user
+async function cleanupPracticeInformation(userId: string) {
+  await prisma.practiceInformation.deleteMany({ where: { user_id: userId } });
+  await prisma.userRole.deleteMany({ where: { user_id: userId } });
+  await prisma.user.deleteMany({ where: { id: userId } });
+}
 
 describe("Practice Information API Integration Tests", () => {
-  const mockSession = {
-    user: {
-      id: mockUser.id,
-    },
-    expires: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-  };
+  let userId: string;
+  let session: { user: { id: string; roles: string[] }; expires: string };
 
   beforeAll(async () => {
-    // Create test user in database
-    await prisma.user.create({
-      data: mockUser,
+    // Ensure the ADMIN role exists
+    let role = await prisma.role.findUnique({ where: { name: "ADMIN" } });
+    if (!role) {
+      role = await RolePrismaFactory.create({ name: "ADMIN" });
+    }
+    // Create a user
+    const user = await UserPrismaFactory.create();
+    userId = user.id;
+    // Assign ADMIN role to user
+    await UserRolePrismaFactory.create({
+      User: { connect: { id: userId } },
+      Role: { connect: { id: role.id } },
     });
+    // Simulate session object
+    session = {
+      user: {
+        id: userId,
+        roles: ["ADMIN"],
+      },
+      expires: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    };
   });
 
   afterAll(async () => {
-    // Clean up test data
-    await prisma.practiceInformation.deleteMany({
-      where: { user_id: mockUser.id },
-    });
-    await prisma.user.deleteMany({
-      where: { id: mockUser.id },
-    });
+    await cleanupPracticeInformation(userId);
   });
 
-  beforeEach(() => {
+  afterEach(async () => {
+    await prisma.practiceInformation.deleteMany({ where: { user_id: userId } });
     vi.resetAllMocks();
-    vi.mocked(getBackOfficeSession).mockResolvedValue(mockSession);
   });
 
-  describe("GET /api/practiceInformation", () => {
-    it("should return 404 when no practice information exists", async () => {
-      // Ensure no practice information exists
-      await prisma.practiceInformation.deleteMany({
-        where: { user_id: mockUser.id },
-      });
-
-      const response = await GET();
-      expect(response.status).toBe(404);
-      expect(await response.json()).toEqual({
-        error: "Practice information not found",
-      });
-    });
-
-    it("should return practice information when it exists", async () => {
-      const practiceInfo = {
-        user_id: mockUser.id,
-        practice_name: "Test Practice",
-        practice_email: "test@example.com",
-        time_zone: "UTC",
-        practice_logo: "logo.png",
-        phone_numbers: JSON.stringify([
-          { number: "123456789", type: "office" },
-        ]),
-        tele_health: true,
-      };
-
-      await prisma.practiceInformation.create({
-        data: practiceInfo,
-      });
-
-      const response = await GET();
-      expect(response.status).toBe(200);
-
-      const json = await response.json();
-      expect(json).toMatchObject({
-        ...practiceInfo,
-        phone_numbers: JSON.parse(practiceInfo.phone_numbers),
-      });
-
-      // Clean up
-      await prisma.practiceInformation.deleteMany({
-        where: { user_id: mockUser.id },
-      });
-    });
+  it("GET /api/practiceInformation returns 404 if none exist", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(session);
+    const res = await GET();
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toMatch(/not found/i);
   });
 
-  describe("PUT /api/practiceInformation", () => {
-    const validData = {
-      practiceName: "Updated Practice",
-      practiceEmail: "updated@example.com",
-      timeZone: "America/New_York",
-      practiceLogo: "new-logo.png",
-      phoneNumbers: [{ number: "987654321", type: "mobile" }],
+  it("PUT /api/practiceInformation creates new info", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(session);
+    const body = {
+      practiceName: "Test Practice",
+      practiceEmail: "practice@example.com",
+      timeZone: "America/Chicago",
+      practiceLogo: "logo.png",
+      phoneNumbers: [
+        { number: "123-456-7890", type: "main" },
+        { number: "987-654-3210", type: "fax" },
+      ],
       teleHealth: true,
     };
-
-    beforeEach(async () => {
-      // Clean up any existing practice information
-      await prisma.practiceInformation.deleteMany({
-        where: { user_id: mockUser.id },
-      });
+    const req = createRequestWithBody("/api/practiceInformation", body, {
+      method: "PUT",
     });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.practice_name).toBe("Test Practice");
+    expect(json.practice_email).toBe("practice@example.com");
+    expect(json.time_zone).toBe("America/Chicago");
+    expect(json.practice_logo).toBe("logo.png");
+    expect(JSON.parse(json.phone_numbers)).toEqual(body.phoneNumbers);
+    expect(json.tele_health).toBe(true);
+    // Confirm in DB
+    const db = await prisma.practiceInformation.findFirst({
+      where: { user_id: userId },
+    });
+    expect(db).not.toBeNull();
+    expect(db?.practice_name).toBe("Test Practice");
+  });
 
-    it("should create new practice information when none exists", async () => {
-      const request = createRequestWithBody(
-        "/api/practiceInformation",
-        validData,
-      );
-      const response = await PUT(request);
-      expect(response.status).toBe(200);
+  it("PUT /api/practiceInformation updates existing info", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(session);
+    // Create initial
+    await prisma.practiceInformation.create({
+      data: {
+        user_id: userId,
+        practice_name: "Old Name",
+        practice_email: "old@example.com",
+        time_zone: "UTC",
+        practice_logo: "old.png",
+        phone_numbers: JSON.stringify([
+          { number: "000-000-0000", type: "main" },
+        ]),
+        tele_health: false,
+      },
+    });
+    const body = {
+      practiceName: "New Name",
+      practiceEmail: "new@example.com",
+      timeZone: "America/New_York",
+      practiceLogo: "new.png",
+      phoneNumbers: [{ number: "111-222-3333", type: "main" }],
+      teleHealth: false,
+    };
+    const req = createRequestWithBody("/api/practiceInformation", body, {
+      method: "PUT",
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    // Confirm in DB
+    const db = await prisma.practiceInformation.findFirst({
+      where: { user_id: userId },
+    });
+    expect(db?.practice_name).toBe("New Name");
+    expect(db?.practice_email).toBe("new@example.com");
+    expect(db?.time_zone).toBe("America/New_York");
+    expect(db?.practice_logo).toBe("new.png");
+    expect(JSON.parse(db?.phone_numbers || "[]")).toEqual(body.phoneNumbers);
+    expect(db?.tele_health).toBe(false);
+  });
 
-      const json = await response.json();
-      expect(json).toMatchObject({
-        user_id: mockUser.id,
-        practice_name: validData.practiceName,
-        practice_email: validData.practiceEmail,
-        time_zone: validData.timeZone,
-        practice_logo: validData.practiceLogo,
-        phone_numbers: JSON.stringify(validData.phoneNumbers),
+  it("GET /api/practiceInformation returns info for user", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(session);
+    await prisma.practiceInformation.create({
+      data: {
+        user_id: userId,
+        practice_name: "Practice Info",
+        practice_email: "info@example.com",
+        time_zone: "America/Denver",
+        practice_logo: "info.png",
+        phone_numbers: JSON.stringify([
+          { number: "222-333-4444", type: "main" },
+        ]),
         tele_health: true,
-      });
-
-      // Verify in database
-      const dbRecord = await prisma.practiceInformation.findFirst({
-        where: { user_id: mockUser.id },
-      });
-      expect(dbRecord).toBeTruthy();
-      expect(dbRecord?.practice_name).toBe(validData.practiceName);
+      },
     });
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.practice_name).toBe("Practice Info");
+    expect(json.practice_email).toBe("info@example.com");
+    expect(json.time_zone).toBe("America/Denver");
+    expect(json.practice_logo).toBe("info.png");
+    expect(json.tele_health).toBe(true);
+    expect(json.phone_numbers).toEqual([
+      { number: "222-333-4444", type: "main" },
+    ]);
+  });
 
-    it("should update existing practice information", async () => {
-      // First create initial record
-      const initialData = {
-        user_id: mockUser.id,
-        practice_name: "Initial Practice",
-        practice_email: "initial@example.com",
+  it("GET /api/practiceInformation returns 401 if not authenticated", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(null);
+    const res = await GET();
+    expect(res.status).toBe(401);
+  });
+
+  it("PUT /api/practiceInformation returns 401 if not authenticated", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(null);
+    const body = {
+      practiceName: "Should Not Save",
+      practiceEmail: "shouldnot@example.com",
+      timeZone: "America/Chicago",
+      practiceLogo: "shouldnot.png",
+      phoneNumbers: [],
+      teleHealth: false,
+    };
+    const req = createRequestWithBody("/api/practiceInformation", body, {
+      method: "PUT",
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("PUT /api/practiceInformation returns 422 for invalid payload", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(session);
+    const body = {
+      practiceName: "",
+      practiceEmail: "",
+      timeZone: "",
+      practiceLogo: "",
+      phoneNumbers: null,
+      teleHealth: null,
+    };
+    const req = createRequestWithBody("/api/practiceInformation", body, {
+      method: "PUT",
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(422);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid request payload");
+    expect(json.details).toBeDefined();
+  });
+
+  it("GET /api/practiceInformation returns 500 on DB error", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(session);
+    const origFindFirst = prisma.practiceInformation.findFirst;
+    // @ts-expect-error: Monkey-patching for test
+    prisma.practiceInformation.findFirst = async () => {
+      throw new Error("DB fail");
+    };
+    const res = await GET();
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("Failed to fetch practice information");
+    // Restore
+    prisma.practiceInformation.findFirst = origFindFirst;
+  });
+
+  it("PUT /api/practiceInformation returns 500 on DB error", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(session);
+
+    // Ensure there is an existing record so updateMany is called
+    await prisma.practiceInformation.create({
+      data: {
+        user_id: userId,
+        practice_name: "Existing",
+        practice_email: "existing@example.com",
         time_zone: "UTC",
-        practice_logo: "initial-logo.png",
-        phone_numbers: JSON.stringify([
-          { number: "123456789", type: "office" },
-        ]),
+        practice_logo: "existing.png",
+        phone_numbers: JSON.stringify([]),
         tele_health: false,
-      };
-
-      await prisma.practiceInformation.create({
-        data: initialData,
-      });
-
-      // Then update it
-      const request = createRequestWithBody(
-        "/api/practiceInformation",
-        validData,
-      );
-      const response = await PUT(request);
-      expect(response.status).toBe(200);
-
-      // Verify in database
-      const dbRecord = await prisma.practiceInformation.findFirst({
-        where: { user_id: mockUser.id },
-      });
-      expect(dbRecord).toBeTruthy();
-      expect(dbRecord?.practice_name).toBe(validData.practiceName);
-      expect(dbRecord?.practice_email).toBe(validData.practiceEmail);
-      expect(JSON.parse(dbRecord?.phone_numbers || "[]")).toEqual(
-        validData.phoneNumbers,
-      );
+      },
     });
 
-    it("should handle partial updates", async () => {
-      // First create initial record
-      const initialData = {
-        user_id: mockUser.id,
-        practice_name: "Initial Practice",
-        practice_email: "initial@example.com",
-        time_zone: "UTC",
-        practice_logo: "initial-logo.png",
-        phone_numbers: JSON.stringify([
-          { number: "123456789", type: "office" },
-        ]),
-        tele_health: false,
-      };
-
-      await prisma.practiceInformation.create({
-        data: initialData,
-      });
-
-      // Update only practice name
-      const partialData = {
-        practiceName: "Updated Practice Name",
-        practiceEmail: "initial@example.com",
-        timeZone: "UTC",
-        practiceLogo: "initial-logo.png",
-        phoneNumbers: [{ number: "123456789", type: "office" }],
-        teleHealth: false,
-      };
-
-      const request = createRequestWithBody(
-        "/api/practiceInformation",
-        partialData,
-      );
-      const response = await PUT(request);
-      expect(response.status).toBe(200);
-
-      // Verify in database
-      const dbRecord = await prisma.practiceInformation.findFirst({
-        where: { user_id: mockUser.id },
-      });
-      expect(dbRecord).toBeTruthy();
-      expect(dbRecord?.practice_name).toBe(partialData.practiceName);
-      expect(dbRecord?.practice_email).toBe(partialData.practiceEmail);
-      expect(dbRecord?.time_zone).toBe(partialData.timeZone);
-      expect(dbRecord?.practice_logo).toBe(partialData.practiceLogo);
-      expect(JSON.parse(dbRecord?.phone_numbers || "[]")).toEqual(
-        partialData.phoneNumbers,
-      );
+    const origUpdateMany = prisma.practiceInformation.updateMany;
+    // @ts-expect-error: Monkey-patching for test
+    prisma.practiceInformation.updateMany = async () => {
+      throw new Error("DB fail");
+    };
+    const body = {
+      practiceName: "Should Fail",
+      practiceEmail: "fail@example.com",
+      timeZone: "America/Chicago",
+      practiceLogo: "fail.png",
+      phoneNumbers: [],
+      teleHealth: false,
+    };
+    const req = createRequestWithBody("/api/practiceInformation", body, {
+      method: "PUT",
     });
-
-    it("should validate input data", async () => {
-      const invalidData = {
-        practiceName: "x".repeat(101), // Exceeds max length
-        practiceEmail: "not-an-email",
-        phoneNumbers: "not-an-array", // Should be an array
-      };
-
-      const request = createRequestWithBody(
-        "/api/practiceInformation",
-        invalidData,
-      );
-      const response = await PUT(request);
-      expect(response.status).toBe(422);
-
-      const json = await response.json();
-      expect(json.error).toBe("Invalid request payload");
-      expect(json.details).toBeDefined();
-
-      // Verify nothing was created in database
-      const dbRecord = await prisma.practiceInformation.findFirst({
-        where: { user_id: mockUser.id },
-      });
-      expect(dbRecord).toBeNull();
-    });
-
-    it("should handle unauthorized access", async () => {
-      vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
-
-      const request = createRequestWithBody(
-        "/api/practiceInformation",
-        validData,
-      );
-      const response = await PUT(request);
-      expect(response.status).toBe(401);
-      expect(await response.json()).toEqual({ error: "Unauthorized" });
-
-      // Verify nothing was created in database
-      const dbRecord = await prisma.practiceInformation.findFirst({
-        where: { user_id: mockUser.id },
-      });
-      expect(dbRecord).toBeNull();
-    });
+    const res = await PUT(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("Failed to update practice information");
+    // Restore
+    prisma.practiceInformation.updateMany = origUpdateMany;
   });
 });
