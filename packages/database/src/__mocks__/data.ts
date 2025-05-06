@@ -48,6 +48,7 @@ import {
   SurveyTemplate,
   SurveyAnswers,
   Product,
+  ClinicianLocation,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
