@@ -9,21 +9,29 @@ BEGIN TRY
 BEGIN TRAN;
 
 -- AlterTable
+ALTER TABLE [dbo].[ClientGroup] ADD [created_at] DATETIME2 CONSTRAINT [ClientGroup_created_at] DEFAULT CURRENT_TIMESTAMP,
+[first_seen_at] DATETIME2 CONSTRAINT [ClientGroup_first_seen_at] DEFAULT CURRENT_TIMESTAMP,
+[notes] TEXT;
+
+-- AlterTable
+ALTER TABLE [dbo].[ClientGroupMembership] ADD [is_emergency_contact] BIT CONSTRAINT [DF_ClientGroupMembership_IsEmergencyContactOnly] DEFAULT 0;
+
+-- AlterTable
 ALTER TABLE [dbo].[PracticeService] ALTER COLUMN [rate] DECIMAL(10,2) NOT NULL;
 
 -- CreateTable
 CREATE TABLE [dbo].[ClientProfile] (
     [id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_ClientProfile_ID] DEFAULT newid(),
     [client_id] UNIQUEIDENTIFIER NOT NULL,
-    [gender] VARCHAR(50) NOT NULL,
-    [gender_identity] VARCHAR(50) NOT NULL,
-    [relationship_status] VARCHAR(50) NOT NULL,
-    [employment_status] VARCHAR(50) NOT NULL,
-    [race_ethnicity] VARCHAR(50) NOT NULL,
-    [race_ethnicity_details] VARCHAR(50) NOT NULL,
-    [preferred_language] VARCHAR(50) NOT NULL,
-    [notes] TEXT NOT NULL,
-    [first_seen_at] DATETIME2 NOT NULL CONSTRAINT [ClientProfile_first_seen_at] DEFAULT CURRENT_TIMESTAMP,
+    [middle_name] VARCHAR(50),
+    [gender] VARCHAR(50),
+    [gender_identity] VARCHAR(50),
+    [relationship_status] VARCHAR(50),
+    [employment_status] VARCHAR(50),
+    [race_ethnicity] TEXT,
+    [race_ethnicity_details] VARCHAR(50),
+    [preferred_language] VARCHAR(50),
+    [notes] TEXT,
     CONSTRAINT [ClientProfile_pkey] PRIMARY KEY CLUSTERED ([id]),
     CONSTRAINT [ClientProfile_client_id_key] UNIQUE NONCLUSTERED ([client_id])
 );

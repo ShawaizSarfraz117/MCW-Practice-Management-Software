@@ -119,15 +119,15 @@ model Client {
 model ClientProfile {
   id                      String    @id @default(dbgenerated("newid()"), map: "PK_ClientProfile_ID") @db.UniqueIdentifier
   client_id               String    @unique @db.UniqueIdentifier
-  gender                  String    @db.VarChar(50)
-  gender_identity         String    @db.VarChar(50)
-  relationship_status     String    @db.VarChar(50)
-  employment_status       String    @db.VarChar(50)
-  race_ethnicity          String    @db.VarChar(50)
-  race_ethnicity_details  String    @db.VarChar(50)
-  preferred_language      String    @db.VarChar(50)
-  notes                   String    @db.Text
-  first_seen_at           DateTime  @default(now(), map: "ClientProfile_first_seen_at")
+  middle_name             String?    @db.VarChar(50)
+  gender                  String?    @db.VarChar(50)
+  gender_identity         String?    @db.VarChar(50)
+  relationship_status     String?    @db.VarChar(50)
+  employment_status       String?    @db.VarChar(50)
+  race_ethnicity          String?   @db.Text
+  race_ethnicity_details  String?    @db.VarChar(50)
+  preferred_language      String?    @db.VarChar(50)
+  notes                   String?    @db.Text
   Client                  Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, onDelete: Cascade, map: "FK_ClientProfile_Client")
 }
 
@@ -163,6 +163,9 @@ model ClientGroup {
   available_credit      Decimal                @default(0)
   clinician_id          String?                 @db.UniqueIdentifier
   is_active             Boolean                 @default(true, map: "DF_ClientGroup_IsActive")
+  first_seen_at         DateTime?               @default(now(), map: "ClientGroup_first_seen_at")
+  created_at            DateTime?               @default(now(), map: "ClientGroup_created_at")
+  notes                 String?                 @db.Text
   Appointment           Appointment[]
   ClientGroupMembership ClientGroupMembership[]
   Invoice               Invoice[]
@@ -176,6 +179,7 @@ model ClientGroupMembership {
   created_at                 DateTime    @default(now(), map: "DF_ClientGroupMembership_CreatedAt")
   is_contact_only            Boolean     @default(false, map: "DF_ClientGroupMembership_IsContactOnly")
   is_responsible_for_billing Boolean?
+  is_emergency_contact       Boolean?    @default(false, map: "DF_ClientGroupMembership_IsEmergencyContactOnly")
   Client                     Client      @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_Client")
   ClientGroup                ClientGroup @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_ClientGroup")
 
