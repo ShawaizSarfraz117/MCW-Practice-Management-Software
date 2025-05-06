@@ -39,40 +39,46 @@ export function EditConfirmationModal({
             </DialogHeader>
             <div className="py-2 text-[15px] text-[#717171]">
               <p>
-                This event is part of a series. What would you like to edit ?
+                {appointmentData?.is_recurring
+                  ? "This event is part of a series. What would you like to edit?"
+                  : "Are you sure you want to edit this event?"}
               </p>
             </div>
-            <div>
-              <input
-                checked={selectedOption === "this"}
-                className="h-[18px] w-[18px] mr-2 relative top-1"
-                id="one"
-                name="editOption"
-                type="radio"
-                value="this"
-                onChange={(e) => setSelectedOption(e.target.value)}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="one">
-                This event only
-              </label>
-              <p className="ml-6 text-[15px] text-[#717171]">
-                (This will remove the event from the recurring series)
-              </p>
-            </div>
-            <div>
-              <input
-                checked={selectedOption === "future"}
-                className="h-[18px] w-[18px] mr-2"
-                id="two"
-                name="editOption"
-                type="radio"
-                value="future"
-                onChange={(e) => setSelectedOption(e.target.value)}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="two">
-                This and all future events
-              </label>
-            </div>
+            {appointmentData?.is_recurring ? (
+              <>
+                <div>
+                  <input
+                    checked={selectedOption === "this"}
+                    className="h-[18px] w-[18px] mr-2 relative top-1"
+                    id="one"
+                    name="editOption"
+                    type="radio"
+                    value="this"
+                    onChange={(e) => setSelectedOption(e.target.value)}
+                  />
+                  <label className="text-[15px] text-[#717171]" htmlFor="one">
+                    This event only
+                  </label>
+                  <p className="ml-6 text-[15px] text-[#717171]">
+                    (This will remove the event from the recurring series)
+                  </p>
+                </div>
+                <div>
+                  <input
+                    checked={selectedOption === "future"}
+                    className="h-[18px] w-[18px] mr-2"
+                    id="two"
+                    name="editOption"
+                    type="radio"
+                    value="future"
+                    onChange={(e) => setSelectedOption(e.target.value)}
+                  />
+                  <label className="text-[15px] text-[#717171]" htmlFor="two">
+                    This and all future events
+                  </label>
+                </div>
+              </>
+            ) : null}
           </>
         ) : (
           <>
@@ -85,40 +91,46 @@ export function EditConfirmationModal({
               <p>
                 {hasStatusChanged
                   ? "You are about to change the status of this appointment. Do you want to update:"
-                  : "This appointment is part of a series. What would you like to edit ?"}
+                  : appointmentData?.is_recurring
+                    ? "This appointment is part of a series. What would you like to edit?"
+                    : "Are you sure you want to edit this appointment?"}
               </p>
             </div>
-            <div>
-              <input
-                checked={selectedOption === "this"}
-                className="h-[18px] w-[18px] mr-2 relative top-1"
-                id="one"
-                name="editOption"
-                type="radio"
-                value="this"
-                onChange={(e) => setSelectedOption(e.target.value)}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="one">
-                This appointment only
-              </label>
-              <p className="ml-6 text-[15px] text-[#717171]">
-                (This will remove the appointment from the recurring series)
-              </p>
-            </div>
-            <div>
-              <input
-                checked={selectedOption === "future"}
-                className="h-[18px] w-[18px] mr-2"
-                id="two"
-                name="editOption"
-                type="radio"
-                value="future"
-                onChange={(e) => setSelectedOption(e.target.value)}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="two">
-                This and all future appointments
-              </label>
-            </div>
+            {appointmentData?.is_recurring ? (
+              <>
+                <div>
+                  <input
+                    checked={selectedOption === "this"}
+                    className="h-[18px] w-[18px] mr-2 relative top-1"
+                    id="one"
+                    name="editOption"
+                    type="radio"
+                    value="this"
+                    onChange={(e) => setSelectedOption(e.target.value)}
+                  />
+                  <label className="text-[15px] text-[#717171]" htmlFor="one">
+                    This appointment only
+                  </label>
+                  <p className="ml-6 text-[15px] text-[#717171]">
+                    (This will remove the appointment from the recurring series)
+                  </p>
+                </div>
+                <div>
+                  <input
+                    checked={selectedOption === "future"}
+                    className="h-[18px] w-[18px] mr-2"
+                    id="two"
+                    name="editOption"
+                    type="radio"
+                    value="future"
+                    onChange={(e) => setSelectedOption(e.target.value)}
+                  />
+                  <label className="text-[15px] text-[#717171]" htmlFor="two">
+                    This and all future appointments
+                  </label>
+                </div>
+              </>
+            ) : null}
           </>
         )}
         <DialogFooter>

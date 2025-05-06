@@ -109,7 +109,10 @@ export function EventTab(): React.ReactNode {
           className="rounded-none border-gray-200"
           placeholder="Event name (optional)"
           value={form.getFieldValue("eventName") || ""}
-          onChange={(e) => form.setFieldValue("eventName", e.target.value)}
+          onChange={(e) => {
+            form.setFieldValue("eventName", e.target.value);
+            forceUpdate();
+          }}
         />
       </div>
 

@@ -21,7 +21,8 @@ interface CreateClientDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultAppointmentDate?: string;
-  fetchClientData: () => void;
+  fetchClientData?: () => void;
+  onClientCreated?: (newClient: { id: string; name: string }) => void;
 }
 
 export interface EmailEntry {
@@ -79,6 +80,7 @@ export function CreateClientDrawer({
   onOpenChange,
   defaultAppointmentDate = "Tuesday, Oct 22, 2025 @ 12:00 PM",
   fetchClientData,
+  onClientCreated,
 }: CreateClientDrawerProps) {
   const [clientType, setClientType] = useState("adult");
   const [activeTab, setActiveTab] = useState("");
@@ -211,11 +213,63 @@ export function CreateClientDrawer({
 
       setIsLoading(true);
       const structuredData = structureData(value);
-      await createClient({ body: structuredData });
+      const [response, error] = await createClient({ body: structuredData });
       setIsLoading(false);
+
+      if (error) {
+        console.error("Failed to create client:", error);
+        return;
+      }
+
+      // Define expected structure for the client object in the response
+      interface CreatedClientResponse {
+        id: string;
+        name?: string; // Optional name on client itself?
+        ClientGroupMembership?: Array<{
+          client_group_id?: string;
+          ClientGroup?: {
+            id?: string;
+            name?: string;
+          };
+        }>;
+        [key: string]: unknown; // Allow other properties
+      }
+
+      const responseArray = response as CreatedClientResponse[];
+      const createdClient = responseArray?.[0];
+
+      // --- FIX: Extract Client Group ID and Name ---
+      let clientGroupId: string | undefined = undefined;
+      let clientGroupName: string | undefined = undefined;
+
+      if (
+        createdClient?.ClientGroupMembership?.length &&
+        createdClient.ClientGroupMembership.length > 0
+      ) {
+        const membership = createdClient.ClientGroupMembership[0];
+        clientGroupId = membership?.client_group_id;
+        clientGroupName = membership?.ClientGroup?.name;
+      }
+      // --- END FIX ---
+
       resetFormState();
-      onOpenChange(false);
-      fetchClientData();
+
+      // Use the extracted group details
+      if (onClientCreated && clientGroupId && clientGroupName) {
+        console.log(
+          `[CreateClientDrawer] Extracted Group ID: ${clientGroupId}, Group Name: ${clientGroupName}`,
+        ); // Keep final confirmation log
+        onClientCreated({ id: clientGroupId, name: clientGroupName });
+      } else if (typeof fetchClientData === "function") {
+        fetchClientData();
+        onOpenChange(false);
+      } else {
+        console.error(
+          "[CreateClientDrawer] Could not extract client group details from response or no callback provided.",
+          createdClient,
+        );
+        onOpenChange(false); // Close drawer if data is unusable or no callback
+      }
     },
   });
 

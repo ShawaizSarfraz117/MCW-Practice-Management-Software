@@ -291,27 +291,24 @@ export function AvailabilitySidebar({
 
   // Helper function to convert date and time to ISO string
   const getDateTimeISOString = (date: Date, timeStr?: string) => {
-    if (!timeStr) return date.toISOString();
-
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    if (!timeStr)
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
     try {
       const [timeValue, period] = timeStr.split(" ");
       const [hours, minutes] = timeValue.split(":").map(Number);
-
       if (isNaN(hours) || isNaN(minutes)) {
         throw new Error("Invalid time format");
       }
-
       let hours24 = hours;
       if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
       if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
-
       const newDate = new Date(date);
       newDate.setHours(hours24, minutes, 0, 0);
-
-      return newDate.toISOString();
+      return `${newDate.getFullYear()}-${pad(newDate.getMonth() + 1)}-${pad(newDate.getDate())}T${pad(newDate.getHours())}:${pad(newDate.getMinutes())}:00`;
     } catch (error) {
       console.error("Error converting date/time:", error);
-      return date.toISOString();
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
     }
   };
 
