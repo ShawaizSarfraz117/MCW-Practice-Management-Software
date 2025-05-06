@@ -4,9 +4,9 @@ import React, { useState } from "react";
 import { Button } from "@mcw/ui";
 import { Check } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Service, ServiceEdit } from "./types";
-import ServiceEditForm from "./ServiceEditForm";
-import AddServiceDialog from "./AddServiceDialog";
+import { Service, ServiceEdit } from "./components/types";
+import ServiceEditForm from "./components/ServiceEditForm";
+import AddServiceDialog from "./components/AddServiceDialog";
 
 const ServiceSection = () => {
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(
@@ -104,8 +104,8 @@ const ServiceSection = () => {
             </p>
           </div>
           <Button
-            onClick={() => setIsModalOpen(true)}
             className="bg-[#2d8467] hover:bg-[#236c53] w-[160px]"
+            onClick={() => setIsModalOpen(true)}
           >
             Add Services
           </Button>
@@ -141,8 +141,8 @@ const ServiceSection = () => {
                 } px-3 rounded-[10px]`}
               >
                 <div
-                  onClick={() => handleServiceClick(service.id)}
                   className="cursor-pointer"
+                  onClick={() => handleServiceClick(service.id)}
                 >
                   <p className="text-[#2D8467] text-[16px]">
                     <span className="mr-2">{service.code}</span> {service.type}
@@ -158,10 +158,10 @@ const ServiceSection = () => {
                 </div>
                 {expandedServiceId === service.id && (
                   <ServiceEditForm
-                    service={service}
                     editValues={editValues}
-                    onEditChange={handleFieldChange}
+                    service={service}
                     onCancel={() => setExpandedServiceId(null)}
+                    onEditChange={handleFieldChange}
                     onSave={handleSave}
                   />
                 )}

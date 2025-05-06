@@ -100,6 +100,7 @@ export function RecurringSettings({
                         isEnabled &&
                         "bg-[#16A34A] text-white border-[#16A34A]",
                     )}
+                    disabled={!isEnabled}
                     onClick={() => {
                       if (!isEnabled) return;
                       const days = localData.selectedDays.includes(code)
@@ -107,7 +108,6 @@ export function RecurringSettings({
                         : [...localData.selectedDays, code];
                       handleChange({ selectedDays: days });
                     }}
-                    disabled={!isEnabled}
                   >
                     {label}
                   </button>

@@ -957,262 +957,257 @@ export function CalendarView({
           setSelectedLocations={setSelectedLocations}
         />
 
-        <div className="flex-1 p-4">
-          <FullCalendar
-            ref={calendarRef}
-            allDaySlot={true}
-            allDayText="All day"
-            dayHeaderFormat={{
-              weekday: "short",
-              month: "numeric",
-              day: "numeric",
-              omitCommas: true,
-            }}
-            dayHeaderContent={
-              isScheduledPage
-                ? (args: DayHeaderContentArg) => {
-                    const dateStr = args.date.toISOString().split("T")[0];
-                    const limit = appointmentLimits[dateStr];
-                    const isDropdownOpen =
-                      addLimitDropdown.open &&
-                      addLimitDropdown.date &&
-                      dropdownPosition &&
-                      addLimitDropdown.date.toDateString() ===
-                        args.date.toDateString();
-                    let buttonText = "+ Appt Limit";
-                    if (limit === 0) buttonText = "No Availability";
-                    else if (limit !== undefined && limit !== null)
-                      buttonText = `${limit} max appts`;
-                    return (
-                      <div className="flex flex-col items-center relative">
-                        <span>{args.text}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full text-[0.7rem] font-medium text-gray-700 mt-1 mb-1"
-                          onClick={(e) => handleAddLimit(args.date, e)}
+        <FullCalendar
+          ref={calendarRef}
+          allDaySlot={true}
+          allDayText="All day"
+          dayHeaderContent={
+            isScheduledPage
+              ? (args: DayHeaderContentArg) => {
+                  const dateStr = args.date.toISOString().split("T")[0];
+                  const limit = appointmentLimits[dateStr];
+                  const isDropdownOpen =
+                    addLimitDropdown.open &&
+                    addLimitDropdown.date &&
+                    dropdownPosition &&
+                    addLimitDropdown.date.toDateString() ===
+                      args.date.toDateString();
+                  let buttonText = "+ Appt Limit";
+                  if (limit === 0) buttonText = "No Availability";
+                  else if (limit !== undefined && limit !== null)
+                    buttonText = `${limit} max appts`;
+                  return (
+                    <div className="flex flex-col items-center relative">
+                      <span>{args.text}</span>
+                      <Button
+                        className="w-full text-[0.7rem] font-medium text-gray-700 mt-1 mb-1"
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => handleAddLimit(args.date, e)}
+                      >
+                        {buttonText}
+                      </Button>
+                      {isDropdownOpen && (
+                        <Card
+                          ref={addLimitDropdownRef}
+                          className="fixed bg-white z-50 min-w-[170px] overflow-hidden p-0"
+                          style={{
+                            top: dropdownPosition.top,
+                            left: dropdownPosition.left,
+                            transform: "translate(-50%, 0)",
+                            marginTop: "4px",
+                          }}
                         >
-                          {buttonText}
-                        </Button>
-                        {isDropdownOpen && (
-                          <Card
-                            ref={addLimitDropdownRef}
-                            className="fixed bg-white z-50 min-w-[170px] overflow-hidden p-0"
-                            style={{
-                              top: dropdownPosition.top,
-                              left: dropdownPosition.left,
-                              transform: "translate(-50%, 0)",
-                              marginTop: "4px",
-                            }}
-                          >
-                            <CardHeader className="p-[10px_10px_6px_10px] border-b border-gray-100">
-                              <div className="font-bold text-[0.6rem] text-gray-800">
-                                Appt limit per day
-                              </div>
-                              <div className="font-medium text-[0.5rem] text-gray-400 mt-0.5">
-                                {addLimitDropdown.date
-                                  ? `All ${addLimitDropdown.date.toLocaleDateString(undefined, { weekday: "long" })}s`
-                                  : ""}
-                              </div>
-                            </CardHeader>
-                            <CardContent className="py-2 px-0 max-h-60 overflow-y-auto">
-                              <div
-                                className={`px-4 py-3 text-left cursor-pointer text-gray-800 font-bold text-[0.7rem] rounded-lg mx-2 mb-1 ${
-                                  appointmentLimits[dateStr] === 0
-                                    ? "bg-gray-100"
-                                    : ""
-                                }`}
-                                onClick={() => handleSelectLimit(null)}
-                                onMouseDown={(e) => e.preventDefault()}
-                              >
-                                No appt limit
-                              </div>
-                              {[...Array(20)].map((_, i: number) => {
-                                const num = i + 1;
-                                return (
-                                  <div
-                                    key={num}
-                                    className={`px-4 py-2.5 text-left cursor-pointer text-gray-800 font-medium text-[0.7rem] rounded-lg mx-2 mb-1 transition-colors ${
-                                      appointmentLimits[dateStr] === num
-                                        ? "bg-gray-100"
-                                        : ""
-                                    }`}
-                                    onClick={() => handleSelectLimit(num)}
-                                    onMouseDown={(e) => e.preventDefault()}
-                                  >
-                                    {num}
-                                  </div>
-                                );
-                              })}
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                    );
-                  }
-                : undefined
-            }
-            eventClick={handleEventClick}
-            events={filteredEvents}
-            headerToolbar={false}
-            height="100%"
-            initialView={currentView}
-            nowIndicator={true}
-            plugins={[
-              resourceTimeGridPlugin,
-              timeGridPlugin,
-              dayGridPlugin,
-              interactionPlugin,
-            ]}
-            resources={isAdmin ? resources : undefined}
-            select={handleDateSelect}
-            selectable={true}
-            slotMaxTime="23:00:00"
-            slotMinTime="07:00:00"
-            timeZone="America/New_York"
-            eventDisplay="block"
-            eventOverlap={true}
-            slotEventOverlap={true}
-            eventDidMount={(info) => {
-              const event = info.event;
-              const type = event.extendedProps?.type;
-              if (type === "availability") {
-                const allowRequests =
-                  event.extendedProps?.allow_online_requests;
-                const isRecurring = event.extendedProps?.is_recurring;
-
-                // Apply Tailwind equivalent classes directly
-                info.el.classList.add(
-                  "bg-[#2d84671a]",
-                  "border-0",
-                  "opacity-85",
-                  "cursor-pointer",
-                  "pointer-events-auto",
-                  "z-10",
-                  "relative",
-                  "pl-4",
-                );
-
-                // Create the colored bar for the left side
-                const leftBar = document.createElement("div");
-                leftBar.classList.add(
-                  "absolute",
-                  "left-0",
-                  "top-0",
-                  "bottom-0",
-                  "w-1",
-                );
-
-                // Set the color based on allowRequests
-                if (allowRequests) {
-                  leftBar.classList.add("bg-green-500");
-                } else {
-                  leftBar.classList.add("bg-red-500");
-                }
-
-                info.el.appendChild(leftBar);
-
-                // Add recurring symbol if needed
-                if (isRecurring) {
-                  const recurringSymbol = document.createElement("div");
-                  recurringSymbol.classList.add(
-                    "absolute",
-                    "top-1",
-                    "right-1",
-                    "text-xs",
-                    "text-gray-500",
+                          <CardHeader className="p-[10px_10px_6px_10px] border-b border-gray-100">
+                            <div className="font-bold text-[0.6rem] text-gray-800">
+                              Appt limit per day
+                            </div>
+                            <div className="font-medium text-[0.5rem] text-gray-400 mt-0.5">
+                              {addLimitDropdown.date
+                                ? `All ${addLimitDropdown.date.toLocaleDateString(undefined, { weekday: "long" })}s`
+                                : ""}
+                            </div>
+                          </CardHeader>
+                          <CardContent className="py-2 px-0 max-h-60 overflow-y-auto">
+                            <div
+                              className={`px-4 py-3 text-left cursor-pointer text-gray-800 font-bold text-[0.7rem] rounded-lg mx-2 mb-1 ${
+                                appointmentLimits[dateStr] === 0
+                                  ? "bg-gray-100"
+                                  : ""
+                              }`}
+                              onClick={() => handleSelectLimit(null)}
+                              onMouseDown={(e) => e.preventDefault()}
+                            >
+                              No appt limit
+                            </div>
+                            {[...Array(20)].map((_, i: number) => {
+                              const num = i + 1;
+                              return (
+                                <div
+                                  key={num}
+                                  className={`px-4 py-2.5 text-left cursor-pointer text-gray-800 font-medium text-[0.7rem] rounded-lg mx-2 mb-1 transition-colors ${
+                                    appointmentLimits[dateStr] === num
+                                      ? "bg-gray-100"
+                                      : ""
+                                  }`}
+                                  onClick={() => handleSelectLimit(num)}
+                                  onMouseDown={(e) => e.preventDefault()}
+                                >
+                                  {num}
+                                </div>
+                              );
+                            })}
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
                   );
-                  recurringSymbol.textContent = "↻";
-                  info.el.appendChild(recurringSymbol);
                 }
+              : undefined
+          }
+          dayHeaderFormat={{
+            weekday: "short",
+            month: "numeric",
+            day: "numeric",
+            omitCommas: true,
+          }}
+          eventClick={handleEventClick}
+          eventContent={(arg) => {
+            const type = arg.event.extendedProps?.type;
+            if (type === "availability") {
+              const start = arg.event.start;
+              const startTime = start
+                ? new Date(start).toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  })
+                : "";
+              const title = arg.event.title || "Available";
 
-                // Apply hover effect
-                info.el.addEventListener("mouseenter", () => {
-                  info.el.classList.replace("opacity-85", "opacity-100");
-                });
-
-                info.el.addEventListener("mouseleave", () => {
-                  info.el.classList.replace("opacity-100", "opacity-85");
-                });
-              }
-            }}
-            eventContent={(arg) => {
-              const type = arg.event.extendedProps?.type;
-              if (type === "availability") {
-                const start = arg.event.start;
-                const startTime = start
-                  ? new Date(start).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })
-                  : "";
-                const title = arg.event.title || "Available";
-
-                return (
-                  <div className="p-1">
-                    <div className="text-xs font-medium text-gray-600 mb-0.5">
-                      {startTime}
-                    </div>
-                    <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
-                      {title}
-                    </div>
-                  </div>
-                );
-              }
               return (
-                <div style={{ padding: "2px 4px" }}>{arg.event.title}</div>
+                <div className="p-1">
+                  <div className="text-xs font-medium text-gray-600 mb-0.5">
+                    {startTime}
+                  </div>
+                  <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
+                    {title}
+                  </div>
+                </div>
               );
-            }}
-            views={{
-              resourceTimeGridDay: {
-                type: "resourceTimeGrid",
-                duration: { days: 1 },
-                slotDuration: "01:00:00",
-                slotLabelFormat: {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  meridiem: "short",
-                },
+            }
+            return <div style={{ padding: "2px 4px" }}>{arg.event.title}</div>;
+          }}
+          eventDidMount={(info) => {
+            const event = info.event;
+            const type = event.extendedProps?.type;
+            if (type === "availability") {
+              const allowRequests = event.extendedProps?.allow_online_requests;
+              const isRecurring = event.extendedProps?.is_recurring;
+
+              // Apply Tailwind equivalent classes directly
+              info.el.classList.add(
+                "bg-[#2d84671a]",
+                "border-0",
+                "opacity-85",
+                "cursor-pointer",
+                "pointer-events-auto",
+                "z-10",
+                "relative",
+                "pl-4",
+              );
+
+              // Create the colored bar for the left side
+              const leftBar = document.createElement("div");
+              leftBar.classList.add(
+                "absolute",
+                "left-0",
+                "top-0",
+                "bottom-0",
+                "w-1",
+              );
+
+              // Set the color based on allowRequests
+              if (allowRequests) {
+                leftBar.classList.add("bg-green-500");
+              } else {
+                leftBar.classList.add("bg-red-500");
+              }
+
+              info.el.appendChild(leftBar);
+
+              // Add recurring symbol if needed
+              if (isRecurring) {
+                const recurringSymbol = document.createElement("div");
+                recurringSymbol.classList.add(
+                  "absolute",
+                  "top-1",
+                  "right-1",
+                  "text-xs",
+                  "text-gray-500",
+                );
+                recurringSymbol.textContent = "↻";
+                info.el.appendChild(recurringSymbol);
+              }
+
+              // Apply hover effect
+              info.el.addEventListener("mouseenter", () => {
+                info.el.classList.replace("opacity-85", "opacity-100");
+              });
+
+              info.el.addEventListener("mouseleave", () => {
+                info.el.classList.replace("opacity-100", "opacity-85");
+              });
+            }
+          }}
+          eventDisplay="block"
+          eventOverlap={true}
+          events={filteredEvents}
+          headerToolbar={false}
+          height="100%"
+          initialView={currentView}
+          nowIndicator={true}
+          plugins={[
+            resourceTimeGridPlugin,
+            timeGridPlugin,
+            dayGridPlugin,
+            interactionPlugin,
+          ]}
+          resources={isAdmin ? resources : undefined}
+          select={handleDateSelect}
+          selectable={true}
+          slotEventOverlap={true}
+          slotMaxTime="23:00:00"
+          slotMinTime="07:00:00"
+          timeZone="America/New_York"
+          views={{
+            resourceTimeGridDay: {
+              type: "resourceTimeGrid",
+              duration: { days: 1 },
+              slotDuration: "01:00:00",
+              slotLabelFormat: {
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: "short",
               },
-              timeGridDay: {
-                type: "timeGrid",
-                duration: { days: 1 },
-                slotDuration: "01:00:00",
-                slotLabelFormat: {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  meridiem: "short",
-                },
+            },
+            timeGridDay: {
+              type: "timeGrid",
+              duration: { days: 1 },
+              slotDuration: "01:00:00",
+              slotLabelFormat: {
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: "short",
               },
-              resourceTimeGridWeek: {
-                type: "resourceTimeGrid",
-                duration: { weeks: 1 },
-                slotDuration: "01:00:00",
-                slotLabelFormat: {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  meridiem: "short",
-                },
+            },
+            resourceTimeGridWeek: {
+              type: "resourceTimeGrid",
+              duration: { weeks: 1 },
+              slotDuration: "01:00:00",
+              slotLabelFormat: {
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: "short",
               },
-              timeGridWeek: {
-                type: "timeGrid",
-                duration: { weeks: 1 },
-                slotDuration: "01:00:00",
-                slotLabelFormat: {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  meridiem: "short",
-                },
+            },
+            timeGridWeek: {
+              type: "timeGrid",
+              duration: { weeks: 1 },
+              slotDuration: "01:00:00",
+              slotLabelFormat: {
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: "short",
               },
-              dayGridMonth: {
-                type: "dayGrid",
-                duration: { months: 1 },
-                dayHeaderFormat: { weekday: "short" },
-              },
-            }}
-          />
-        </div>
+            },
+            dayGridMonth: {
+              type: "dayGrid",
+              duration: { months: 1 },
+              dayHeaderFormat: { weekday: "short" },
+            },
+          }}
+        />
       </div>
 
       <AppointmentDialog
@@ -1241,8 +1236,9 @@ export function CalendarView({
       />
 
       <AvailabilitySidebar
+        availabilityData={selectedAvailability ?? undefined}
+        isEditMode={!!selectedAvailability}
         open={showAvailabilitySidebar}
-        onOpenChange={setShowAvailabilitySidebar}
         selectedDate={
           selectedAvailability?.start_date
             ? new Date(selectedAvailability.start_date)
@@ -1250,8 +1246,7 @@ export function CalendarView({
         }
         selectedResource={selectedAvailability?.clinician_id || null}
         onClose={() => setShowAvailabilitySidebar(false)}
-        availabilityData={selectedAvailability ?? undefined}
-        isEditMode={!!selectedAvailability}
+        onOpenChange={setShowAvailabilitySidebar}
       />
     </div>
   );

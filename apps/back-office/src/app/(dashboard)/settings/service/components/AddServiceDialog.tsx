@@ -167,12 +167,12 @@ const AddServiceDialog = ({
     >
       <DialogContent
         className="max-w-2xl p-6 max-h-[90vh] overflow-auto [&>button]:hidden"
-        onInteractOutside={(e) => {
+        onEscapeKeyDown={(e) => {
           e.preventDefault();
           resetForm();
           onClose();
         }}
-        onEscapeKeyDown={(e) => {
+        onInteractOutside={(e) => {
           e.preventDefault();
           resetForm();
           onClose();
@@ -192,12 +192,12 @@ const AddServiceDialog = ({
         <h2 className="text-2xl font-semibold mb-4">Add New Service</h2>
 
         <form
+          className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
             form.handleSubmit();
           }}
-          className="space-y-4"
         >
           <div className="flex gap-4">
             <div className="w-[180px]">
@@ -207,10 +207,10 @@ const AddServiceDialog = ({
               <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
-                    variant="outline"
-                    role="combobox"
                     aria-expanded={isPopoverOpen}
                     className="w-full justify-between bg-white border-gray-300 text-left font-normal h-[35px]"
+                    role="combobox"
+                    variant="outline"
                   >
                     {selectedService ? (
                       <span>{selectedService.code}</span>
@@ -222,13 +222,13 @@ const AddServiceDialog = ({
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0" align="start">
+                <PopoverContent align="start" className="w-[400px] p-0">
                   <Command className="rounded-lg">
                     <CommandInput
+                      className="w-full pl-2"
                       placeholder="Search or create new service code."
                       value={searchQuery}
                       onValueChange={setSearchQuery}
-                      className="w-full pl-2"
                     />
                     <CommandList>
                       <CommandEmpty className="py-4">
@@ -249,12 +249,12 @@ const AddServiceDialog = ({
                         {filteredServices.map((service) => (
                           <CommandItem
                             key={service.id}
+                            className="flex items-center justify-between"
                             value={service.id}
                             onSelect={() => {
                               handleServiceSelect(service);
                               setIsPopoverOpen(false);
                             }}
-                            className="flex items-center justify-between"
                           >
                             <div>
                               <span className="font-medium">
@@ -277,15 +277,15 @@ const AddServiceDialog = ({
                 Description
               </FormLabel>
               <form.Field
-                name="description"
                 children={(field) => (
                   <Input
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
                     className="text-[#374151] bg-white text-[14px] w-full h-[35px]"
                     placeholder="Description"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
                   />
                 )}
+                name="description"
               />
             </div>
           </div>
@@ -296,36 +296,36 @@ const AddServiceDialog = ({
             </FormLabel>
             <div className="flex items-center gap-4">
               <form.Field
-                name="rate"
                 children={(field) => (
                   <Input
+                    className="text-[#374151] text-[14px] w-[340px] h-[35px]"
                     type="number"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="text-[#374151] text-[14px] w-[340px] h-[35px]"
                     placeholder="0"
                     // step="0.01"
                   />
                 )}
+                name="rate"
               />
               <div className="flex items-center gap-2">
                 <span className="text-[#374151] text-[14px]">
                   Default Duration
                 </span>
                 <form.Field
-                  name="duration"
                   children={(field) => (
                     <Input
-                      type="number"
+                      className="text-[#374151] bg-white text-[14px] w-[80px]  h-[35px]"
                       min={0}
+                      placeholder="50"
+                      type="number"
                       value={field.state.value}
                       onChange={(e) =>
                         field.handleChange(Number(e.target.value))
                       }
-                      className="text-[#374151] bg-white text-[14px] w-[80px]  h-[35px]"
-                      placeholder="50"
                     />
                   )}
+                  name="duration"
                 />
                 <span className="text-[#1F2937] text-[14px]">min</span>
               </div>
@@ -335,40 +335,40 @@ const AddServiceDialog = ({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <form.Field
-                name="is_default"
                 children={(field) => (
                   <input
-                    type="checkbox"
-                    id="defaultService"
                     checked={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.checked)}
                     className="rounded border-gray-300"
+                    id="defaultService"
+                    type="checkbox"
+                    onChange={(e) => field.handleChange(e.target.checked)}
                   />
                 )}
+                name="is_default"
               />
               <label
-                htmlFor="defaultService"
                 className="text-[#1F2937] text-[14px]"
+                htmlFor="defaultService"
               >
                 Make this the default service
               </label>
             </div>
             <div className="flex items-center gap-2">
               <form.Field
-                name="bill_in_units"
                 children={(field) => (
                   <input
-                    type="checkbox"
-                    id="billInUnits"
                     checked={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.checked)}
                     className="rounded border-gray-300"
+                    id="billInUnits"
+                    type="checkbox"
+                    onChange={(e) => field.handleChange(e.target.checked)}
                   />
                 )}
+                name="bill_in_units"
               />
               <label
-                htmlFor="billInUnits"
                 className="text-[#1F2937] text-[14px]"
+                htmlFor="billInUnits"
               >
                 Bill this code in units
               </label>
@@ -380,60 +380,60 @@ const AddServiceDialog = ({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <form.Field
-                  name="available_online"
                   children={(field) => (
                     <input
-                      type="checkbox"
-                      id="onlineBooking"
                       checked={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.checked)}
                       className="rounded border-gray-300"
+                      id="onlineBooking"
+                      type="checkbox"
+                      onChange={(e) => field.handleChange(e.target.checked)}
                     />
                   )}
+                  name="available_online"
                 />
                 <label
-                  htmlFor="onlineBooking"
                   className="text-[#1F2937] text-[14px]"
+                  htmlFor="onlineBooking"
                 >
                   Available for online appointment requests
                 </label>
               </div>
               <div className="flex items-center gap-2">
                 <form.Field
-                  name="allow_new_clients"
                   children={(field) => (
                     <input
-                      type="checkbox"
-                      id="newClients"
                       checked={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.checked)}
                       className="rounded border-gray-300"
+                      id="newClients"
+                      type="checkbox"
+                      onChange={(e) => field.handleChange(e.target.checked)}
                     />
                   )}
+                  name="allow_new_clients"
                 />
                 <label
-                  htmlFor="newClients"
                   className="text-[#1F2937] text-[14px]"
+                  htmlFor="newClients"
                 >
                   Allow for New Clients
                 </label>
               </div>
               <div className="flex items-center gap-2">
                 <form.Field
-                  name="require_call"
                   children={(field) => (
                     <input
-                      type="checkbox"
-                      id="requireCall"
                       checked={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.checked)}
                       className="rounded border-gray-300"
+                      id="requireCall"
+                      type="checkbox"
+                      onChange={(e) => field.handleChange(e.target.checked)}
                     />
                   )}
+                  name="require_call"
                 />
                 <label
-                  htmlFor="requireCall"
                   className="text-[#1F2937] text-[14px]"
+                  htmlFor="requireCall"
                 >
                   Require Clients to call to request available appointment
                 </label>
@@ -444,33 +444,33 @@ const AddServiceDialog = ({
           <div className="flex items-center gap-2 mt-4">
             <span className="text-[#1F2937] text-[14px]">Block off</span>
             <form.Field
-              name="block_before"
               children={(field) => (
                 <Input
-                  type="number"
+                  className="text-[#374151] bg-white text-[14px] w-[60px]"
                   min={0}
+                  placeholder="0"
+                  type="number"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(Number(e.target.value))}
-                  className="text-[#374151] bg-white text-[14px] w-[60px]"
-                  placeholder="0"
                 />
               )}
+              name="block_before"
             />
             <span className="text-[#1F2937] text-[14px]">
               minutes before and
             </span>
             <form.Field
-              name="block_after"
               children={(field) => (
                 <Input
-                  type="number"
+                  className="text-[#374151] bg-white text-[14px] w-[60px]"
                   min={0}
+                  placeholder="0"
+                  type="number"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(Number(e.target.value))}
-                  className="text-[#374151] bg-white text-[14px] w-[60px]"
-                  placeholder="0"
                 />
               )}
+              name="block_after"
             />
             <span className="text-[#1F2937] text-[14px]">
               minutes after the appointment
@@ -479,17 +479,17 @@ const AddServiceDialog = ({
 
           <div className="flex justify-end gap-3 mt-6">
             <Button
+              className="bg-transparent text-black hover:bg-gray-50 border border-[lightgray]"
+              disabled={isSubmitting}
               variant="outline"
               onClick={onClose}
-              disabled={isSubmitting}
-              className="bg-transparent text-black hover:bg-gray-50 border border-[lightgray]"
             >
               Cancel
             </Button>
             <Button
-              type="submit"
-              disabled={isSubmitting}
               className="bg-[#2d8467] hover:bg-[#236c53]"
+              disabled={isSubmitting}
+              type="submit"
             >
               {isSubmitting ? "Saving..." : "Save"}
             </Button>

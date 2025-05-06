@@ -1,5 +1,6 @@
 import ClientProfile from "./components/ClientProfile";
-import TopBar from "@/components/layouts/Topbar";
+// TopBar import removed
+// import TopBar from "@/components/layouts/Topbar";
 
 export default function ClientProfilePage({
   params,
@@ -8,7 +9,7 @@ export default function ClientProfilePage({
 }) {
   return (
     <div className="flex-1 overflow-auto">
-      <TopBar />
+      {/* <TopBar /> Removed */}
       <ClientProfile clientId={params.id} />
     </div>
   );
