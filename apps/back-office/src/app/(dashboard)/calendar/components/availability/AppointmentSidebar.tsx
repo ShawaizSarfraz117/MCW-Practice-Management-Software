@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@mcw/utils";
 import { ValidationError } from "../appointment-dialog/components/ValidationError";
+import { calculateDuration } from "../appointment-dialog/utils/CalculateDuration";
 
 interface AppointmentSidebarProps {
   open: boolean;
@@ -75,6 +76,7 @@ export function AppointmentSidebar({
   const [selectedLocation, setSelectedLocation] = useState("video");
   const [services, setServices] = useState<Service[]>([]);
   const [_clinician, setClinician] = useState<Clinician[]>([]);
+  const [duration, setDuration] = useState<string>("0 mins");
 
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [clinicianPage, setClinicianPage] = useState(1);
@@ -208,13 +210,24 @@ export function AppointmentSidebar({
         console.error("Error converting date/time:", error);
       }
     }
-    // Always return UTC ISO string (with Z)
-    return newDate.toISOString();
+
+    // Get the timezone offset in minutes and convert to milliseconds
+    const tzOffset = newDate.getTimezoneOffset() * 60000;
+
+    // Create a new date that accounts for the timezone offset
+    const localDate = new Date(newDate.getTime() - tzOffset);
+
+    // Return the ISO string with the correct timezone offset
+    return localDate.toISOString();
   };
 
   // Handle save button click
   const handleSave = async () => {
     try {
+      // Clear any existing errors first
+      setValidationState({});
+      setGeneralError(null);
+
       // Validate required fields
       if (!availabilityFormValues.clinician) {
         setValidationState((prev) => ({ ...prev, clinician: true }));
@@ -257,6 +270,13 @@ export function AppointmentSidebar({
 
       // Close the sidebar and refresh the calendar
       onOpenChange(false);
+
+      // Trigger a refresh of availabilities
+      if (typeof window !== "undefined") {
+        // Dispatch a custom event to notify the calendar to refresh
+        window.dispatchEvent(new CustomEvent("refreshAvailabilities"));
+      }
+
       onDone();
     } catch (error) {
       setGeneralError(
@@ -290,7 +310,27 @@ export function AppointmentSidebar({
       ...prev,
       [field]: false,
     }));
+    setGeneralError(null);
   };
+
+  // Update duration when times change
+  useEffect(() => {
+    const startDate = availabilityFormValues.startDate;
+    const endDate = availabilityFormValues.endDate;
+    const startTime = availabilityFormValues.startTime;
+    const endTime = availabilityFormValues.endTime;
+    const allDay = availabilityFormValues.allDay;
+
+    setDuration(
+      calculateDuration(startDate, endDate, startTime, endTime, allDay),
+    );
+  }, [
+    availabilityFormValues.startDate,
+    availabilityFormValues.endDate,
+    availabilityFormValues.startTime,
+    availabilityFormValues.endTime,
+    availabilityFormValues.allDay,
+  ]);
 
   if (!open) return null;
 
@@ -318,10 +358,7 @@ export function AppointmentSidebar({
               !session?.user?.roles?.includes("ADMIN") && (
                 <Button
                   className="bg-[#16A34A] hover:bg-[#16A34A]/90 text-white"
-                  disabled={
-                    !!generalError ||
-                    Object.values(validationState).some((v) => v)
-                  }
+                  disabled={!!generalError}
                   onClick={handleSave}
                 >
                   Save
@@ -331,7 +368,7 @@ export function AppointmentSidebar({
         </div>
 
         <AvailabilityFormProvider
-          duration={"1 hour"}
+          duration={duration}
           forceUpdate={forceUpdate}
           form={{
             ...availabilityFormValues,
@@ -339,11 +376,16 @@ export function AppointmentSidebar({
               field: string,
               value: unknown,
               _options?: unknown,
-            ) =>
+            ) => {
               setAvailabilityFormValues((prev) => ({
                 ...prev,
                 [field]: value,
-              })),
+              }));
+              // Clear validation error when clinician is selected
+              if (field === "clinician" && value) {
+                clearValidationError("clinician");
+              }
+            },
             getFieldValue: <T = unknown,>(field: string): T =>
               availabilityFormValues[
                 field as keyof typeof availabilityFormValues
@@ -358,9 +400,9 @@ export function AppointmentSidebar({
             },
             state: { values: availabilityFormValues },
           }}
-          setGeneralError={() => {}}
-          setValidationErrors={() => {}}
-          validationErrors={{}}
+          setGeneralError={setGeneralError}
+          setValidationErrors={setValidationState}
+          validationErrors={validationState}
         >
           <div className="p-6 space-y-6">
             <div className="flex items-start gap-3">

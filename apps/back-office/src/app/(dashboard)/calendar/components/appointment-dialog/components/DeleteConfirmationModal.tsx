@@ -35,51 +35,62 @@ export function DeleteConfirmationModal({
                 Delete event?
               </DialogTitle>
             </DialogHeader>
-
             <div className="py-2 text-[15px] text-[#717171]">
               <p>
-                This event is part of a series. What would you like to delete?
+                {appointmentData?.is_recurring
+                  ? "This event is part of a series. What would you like to delete?"
+                  : "Are you sure you want to delete this event?"}
               </p>
             </div>
-            <div>
-              <input
-                checked={selectedOption === "single"}
-                className="h-[18px] w-[18px] mr-2 relative top-1"
-                id="single"
-                name="deleteOption"
-                type="radio"
-                onChange={() => onOptionChange("single")}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="single">
-                This event only
-              </label>
-            </div>
-            <div>
-              <input
-                checked={selectedOption === "future"}
-                className="h-[18px] w-[18px] mr-2"
-                id="future"
-                name="deleteOption"
-                type="radio"
-                onChange={() => onOptionChange("future")}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="future">
-                This and all future events
-              </label>
-            </div>
-            <div>
-              <input
-                checked={selectedOption === "all"}
-                className="h-[18px] w-[18px] mr-2"
-                id="all"
-                name="deleteOption"
-                type="radio"
-                onChange={() => onOptionChange("all")}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="all">
-                All of the series, including past events
-              </label>
-            </div>
+            {appointmentData?.is_recurring ? (
+              <>
+                <div>
+                  <input
+                    checked={selectedOption === "single"}
+                    className="h-[18px] w-[18px] mr-2 relative top-1"
+                    id="single"
+                    name="deleteOption"
+                    type="radio"
+                    onChange={() => onOptionChange("single")}
+                  />
+                  <label
+                    className="text-[15px] text-[#717171]"
+                    htmlFor="single"
+                  >
+                    This event only
+                  </label>
+                </div>
+                <div>
+                  <input
+                    checked={selectedOption === "future"}
+                    className="h-[18px] w-[18px] mr-2"
+                    id="future"
+                    name="deleteOption"
+                    type="radio"
+                    onChange={() => onOptionChange("future")}
+                  />
+                  <label
+                    className="text-[15px] text-[#717171]"
+                    htmlFor="future"
+                  >
+                    This and all future events
+                  </label>
+                </div>
+                <div>
+                  <input
+                    checked={selectedOption === "all"}
+                    className="h-[18px] w-[18px] mr-2"
+                    id="all"
+                    name="deleteOption"
+                    type="radio"
+                    onChange={() => onOptionChange("all")}
+                  />
+                  <label className="text-[15px] text-[#717171]" htmlFor="all">
+                    All of the series, including past events
+                  </label>
+                </div>
+              </>
+            ) : null}
           </>
         ) : (
           <>
@@ -88,52 +99,62 @@ export function DeleteConfirmationModal({
                 Delete appointment?
               </DialogTitle>
             </DialogHeader>
-
             <div className="py-2 text-[15px] text-[#717171]">
               <p>
-                This appointment is part of a series. What would you like to
-                delete?
+                {appointmentData?.is_recurring
+                  ? "This appointment is part of a series. What would you like to delete?"
+                  : "Are you sure you want to delete this appointment?"}
               </p>
             </div>
-            <div>
-              <input
-                checked={selectedOption === "single"}
-                className="h-[18px] w-[18px] mr-2 relative top-1"
-                id="single"
-                name="deleteOption"
-                type="radio"
-                onChange={() => onOptionChange("single")}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="single">
-                This appointment only
-              </label>
-            </div>
-            <div>
-              <input
-                checked={selectedOption === "future"}
-                className="h-[18px] w-[18px] mr-2"
-                id="future"
-                name="deleteOption"
-                type="radio"
-                onChange={() => onOptionChange("future")}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="future">
-                This and all future appointments
-              </label>
-            </div>
-            <div>
-              <input
-                checked={selectedOption === "all"}
-                className="h-[18px] w-[18px] mr-2"
-                id="all"
-                name="deleteOption"
-                type="radio"
-                onChange={() => onOptionChange("all")}
-              />
-              <label className="text-[15px] text-[#717171]" htmlFor="all">
-                All of the series, including past appointments
-              </label>
-            </div>
+            {appointmentData?.is_recurring ? (
+              <>
+                <div>
+                  <input
+                    checked={selectedOption === "single"}
+                    className="h-[18px] w-[18px] mr-2 relative top-1"
+                    id="single"
+                    name="deleteOption"
+                    type="radio"
+                    onChange={() => onOptionChange("single")}
+                  />
+                  <label
+                    className="text-[15px] text-[#717171]"
+                    htmlFor="single"
+                  >
+                    This appointment only
+                  </label>
+                </div>
+                <div>
+                  <input
+                    checked={selectedOption === "future"}
+                    className="h-[18px] w-[18px] mr-2"
+                    id="future"
+                    name="deleteOption"
+                    type="radio"
+                    onChange={() => onOptionChange("future")}
+                  />
+                  <label
+                    className="text-[15px] text-[#717171]"
+                    htmlFor="future"
+                  >
+                    This and all future appointments
+                  </label>
+                </div>
+                <div>
+                  <input
+                    checked={selectedOption === "all"}
+                    className="h-[18px] w-[18px] mr-2"
+                    id="all"
+                    name="deleteOption"
+                    type="radio"
+                    onChange={() => onOptionChange("all")}
+                  />
+                  <label className="text-[15px] text-[#717171]" htmlFor="all">
+                    All of the series, including past appointments
+                  </label>
+                </div>
+              </>
+            ) : null}
           </>
         )}
         <DialogFooter>

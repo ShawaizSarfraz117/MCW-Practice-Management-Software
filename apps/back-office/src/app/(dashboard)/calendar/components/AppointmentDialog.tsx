@@ -101,6 +101,7 @@ export function AppointmentDialog({
       } else if (activeTab === "event") {
         if (!value.clinician) errors.clinician = true;
         if (!value.location) errors.location = true;
+        if (!value.eventName) errors.eventName = true;
       }
 
       hasErrors = Object.values(errors).some(Boolean);
@@ -117,6 +118,43 @@ export function AppointmentDialog({
           detail: { formValues: value },
         }),
       );
+
+      // Clear all states after successful submission
+      setAppointmentFormValues({
+        type: "appointment",
+        eventName: "",
+        clientType: "individual",
+        clientGroup: "",
+        clinician: effectiveClinicianId || "",
+        selectedServices: [{ serviceId: "", fee: 0 }],
+        startDate: selectedDate || new Date(),
+        endDate: selectedDate || new Date(),
+        startTime: "12:00 PM",
+        endTime: "12:50 PM",
+        location: "sp",
+        recurring: false,
+        allDay: false,
+        cancelAppointments: true,
+        notifyClients: true,
+      });
+
+      setEventFormValues({
+        type: "event",
+        eventName: "",
+        clientType: "individual",
+        clientGroup: "",
+        clinician: effectiveClinicianId || "",
+        selectedServices: [],
+        startDate: selectedDate || new Date(),
+        endDate: selectedDate || new Date(),
+        startTime: "12:00 PM",
+        endTime: "12:50 PM",
+        location: "sp",
+        recurring: false,
+        allDay: false,
+        cancelAppointments: false,
+        notifyClients: false,
+      });
 
       onOpenChange(false);
       if (onDone) onDone();

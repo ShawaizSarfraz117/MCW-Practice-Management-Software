@@ -8,8 +8,8 @@ export const appointmentStatusOptions = [
   { label: "Show", value: "SHOW" },
   { label: "No Show", value: "NO_SHOW" },
   { label: "Cancelled", value: "CANCELLED" },
-  { label: "Late Canceled", value: "LATE_CANCELLED" },
-  { label: "Clinician Canceled", value: "CLINICIAN_CANCELLED" },
+  { label: "Late Canceled", value: "LATE_CANCELED" },
+  { label: "Clinician Canceled", value: "CLINICIAN_CANCELED" },
   { label: "Scheduled", value: "SCHEDULED" },
 ];
 
