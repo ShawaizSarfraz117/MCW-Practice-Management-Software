@@ -406,3 +406,9 @@ model AppointmentLimit {
   @@index([clinician_id], name: "IX_AppointmentLimit_clinician_id")
   @@index([date], name: "IX_AppointmentLimit_date")
 }
+
+model Product {
+  id    String  @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  name  String  @db.VarChar(255)
+  price Decimal @db.Decimal(10, 2)
+}

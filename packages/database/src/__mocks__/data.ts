@@ -22,6 +22,7 @@ import {
   defineSurveyTemplateFactory,
   defineTagFactory,
   defineUserRoleFactory,
+  defineProductFactory,
   registerScalarFieldValueGenerator,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
@@ -46,6 +47,7 @@ import {
   Role,
   SurveyTemplate,
   SurveyAnswers,
+  Product,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
@@ -496,3 +498,19 @@ export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
 export const mockInvoice = (overrides = {}) => {
   return InvoiceFactory.buildComplete(overrides);
 };
+
+export const ProductFactory = {
+  build: <T extends Partial<Product>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    name: faker.commerce.productName(),
+    price: new Decimal(
+      faker.number.float({ min: 1, max: 1000, fractionDigits: 2 }),
+    ),
+    ...overrides,
+  }),
+};
+
+// Product Prisma factory
+export const ProductPrismaFactory = defineProductFactory({
+  defaultData: () => ProductFactory.build(),
+});
