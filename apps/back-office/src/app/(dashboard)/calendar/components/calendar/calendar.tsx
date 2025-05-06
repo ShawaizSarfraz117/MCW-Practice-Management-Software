@@ -10,6 +10,7 @@ import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 import { DayHeaderContentArg } from "@fullcalendar/core";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { AppointmentDialog } from "../AppointmentDialog";
 import { CalendarToolbar } from "./components/CalendarToolbar";
@@ -26,7 +27,14 @@ import {
 import { EditAppointmentDialog } from "../EditAppointmentDialog";
 import { AvailabilitySidebar } from "../availability/AvailabilitySidebar";
 import { ClientGroup } from "../appointment-dialog/types";
-import { Button, Card, CardHeader, CardContent, toast } from "@mcw/ui";
+import {
+  Button,
+  Card,
+  CardHeader,
+  CardContent,
+  toast,
+  useToast,
+} from "@mcw/ui";
 
 declare global {
   interface Window {
@@ -95,6 +103,10 @@ export function CalendarView({
     top: number;
     left: number;
   } | null>(null);
+
+  // Add useToast hook
+  const { toast: showToast } = useToast();
+  const queryClient = useQueryClient();
 
   // Get session data to check if user is admin
   const { data: session } = useSession();
@@ -659,93 +671,293 @@ export function CalendarView({
     return payload;
   };
 
-  // Effect to fetch events
-  useEffect(() => {
-    async function fetchEventsForCurrentView() {
-      if (!calendarRef.current) return;
-      const calendarApi = calendarRef.current.getApi();
-      const view = calendarApi.view;
-      const startDate = view.activeStart.toISOString().split("T")[0];
-      const endDate = view.activeEnd.toISOString().split("T")[0];
+  // Get the current date range from the calendar
+  const getDateRange = () => {
+    if (!calendarRef.current) return { startDate: "", endDate: "" };
+    const calendarApi = calendarRef.current.getApi();
+    const view = calendarApi.view;
+    const startDate = view.activeStart.toISOString().split("T")[0];
+    const endDate = view.activeEnd.toISOString().split("T")[0];
+    return { startDate, endDate };
+  };
 
-      try {
-        // Fetch appointments
-        let appointmentUrl = `/api/appointment?startDate=${startDate}&endDate=${endDate}`;
-        if (!isAdmin && selectedClinicians.length > 0) {
-          appointmentUrl += `&clinicianId=${selectedClinicians[0]}`;
-        }
+  // Fetch events using React Query
+  const { data: eventsData, isLoading: _isLoadingEvents } = useQuery({
+    queryKey: [
+      "calendarEvents",
+      currentView,
+      currentDate,
+      selectedClinicians,
+      isAdmin,
+      isScheduledPage,
+    ],
+    queryFn: async () => {
+      const { startDate, endDate } = getDateRange();
 
-        // Fetch availabilities
-        let availabilityUrl = `/api/availability?startDate=${startDate}&endDate=${endDate}`;
-        if (!isAdmin && selectedClinicians.length > 0) {
-          availabilityUrl += `&clinicianId=${selectedClinicians[0]}`;
-        }
+      // Construct URLs with parameters
+      let appointmentUrl = `/api/appointment?startDate=${startDate}&endDate=${endDate}`;
+      let availabilityUrl = `/api/availability?startDate=${startDate}&endDate=${endDate}`;
 
-        // Fetch both appointments and availabilities in parallel
-        const [appointmentsResponse, availabilitiesResponse] =
-          await Promise.all([fetch(appointmentUrl), fetch(availabilityUrl)]);
+      if (!isAdmin && selectedClinicians.length > 0) {
+        const clinicianId = selectedClinicians[0];
+        appointmentUrl += `&clinicianId=${clinicianId}`;
+        availabilityUrl += `&clinicianId=${clinicianId}`;
+      }
 
-        if (!appointmentsResponse.ok)
-          throw new Error("Failed to fetch appointments");
-        if (!availabilitiesResponse.ok)
-          throw new Error("Failed to fetch availabilities");
+      // Fetch both in parallel
+      const [appointmentsResponse, availabilitiesResponse] = await Promise.all([
+        fetch(appointmentUrl),
+        fetch(availabilityUrl),
+      ]);
 
-        const [appointments, availabilities] = await Promise.all([
-          appointmentsResponse.json(),
-          availabilitiesResponse.json(),
-        ]);
+      if (!appointmentsResponse.ok)
+        throw new Error("Failed to fetch appointments");
+      if (!availabilitiesResponse.ok)
+        throw new Error("Failed to fetch availabilities");
 
-        // Format appointments
-        const formattedAppointments = appointments.map(
-          (
-            appointment: AppointmentData & {
-              isFirstAppointmentForGroup?: boolean;
-            },
-          ) => ({
-            id: appointment.id,
-            resourceId: appointment.clinician_id || "",
-            title: appointment.title,
-            start: appointment.start_date,
-            end: appointment.end_date,
-            location: appointment.location_id || "",
-            extendedProps: {
-              type: "appointment",
-              isFirstAppointmentForGroup:
-                appointment.isFirstAppointmentForGroup,
-            },
-          }),
-        );
+      const [appointments, availabilities] = await Promise.all([
+        appointmentsResponse.json(),
+        availabilitiesResponse.json(),
+      ]);
 
-        // Format availabilities to match appointment pattern
-        const formattedAvailabilities = availabilities.map(
-          (availability: AvailabilityData) => {
-            const event = {
-              id: availability.id,
-              resourceId: availability.clinician_id,
-              title: availability.title || "Available",
-              start: availability.start_date,
-              end: availability.end_date,
-              location: availability.location || "",
-              extendedProps: {
-                type: "availability",
-                clinician_id: availability.clinician_id,
-                allow_online_requests: availability.allow_online_requests,
-                is_recurring: availability.is_recurring,
-                recurring_rule: availability.recurring_rule,
-              },
-            };
-            return event;
+      // Format appointments
+      const formattedAppointments = appointments.map(
+        (
+          appointment: AppointmentData & {
+            isFirstAppointmentForGroup?: boolean;
           },
-        );
+        ) => ({
+          id: appointment.id,
+          resourceId: appointment.clinician_id || "",
+          title: appointment.title,
+          start: appointment.start_date,
+          end: appointment.end_date,
+          location: appointment.location_id || "",
+          extendedProps: {
+            type: "appointment",
+            isFirstAppointmentForGroup: appointment.isFirstAppointmentForGroup,
+          },
+        }),
+      );
 
-        // Set all events
-        setEvents([...formattedAvailabilities, ...formattedAppointments]);
-      } catch (error) {
-        console.error("Error fetching events:", error);
+      // Format availabilities
+      const formattedAvailabilities = availabilities.map(
+        (availability: AvailabilityData) => ({
+          id: availability.id,
+          resourceId: availability.clinician_id,
+          title: availability.title || "Available",
+          start: availability.start_date,
+          end: availability.end_date,
+          location: availability.location || "",
+          extendedProps: {
+            type: "availability",
+            clinician_id: availability.clinician_id,
+            allow_online_requests: availability.allow_online_requests,
+            is_recurring: availability.is_recurring,
+            recurring_rule: availability.recurring_rule,
+          },
+        }),
+      );
+
+      return [...formattedAvailabilities, ...formattedAppointments];
+    },
+    enabled: !!calendarRef.current,
+  });
+
+  // Set events from query data when it changes
+  useEffect(() => {
+    if (eventsData) {
+      setEvents(eventsData);
+    }
+  }, [eventsData]);
+
+  // React Query for appointment limits
+  const { data: limitsData } = useQuery({
+    queryKey: [
+      "appointmentLimits",
+      currentView,
+      currentDate,
+      selectedClinicians,
+      isScheduledPage,
+    ],
+    queryFn: async () => {
+      if (
+        !isScheduledPage ||
+        selectedClinicians.length === 0 ||
+        !calendarRef.current
+      ) {
+        return {};
+      }
+
+      const { startDate, endDate } = getDateRange();
+      const clinicianId = selectedClinicians[0];
+
+      // Get all dates in range
+      const dates: string[] = [];
+      const d = new Date(startDate);
+      const end = new Date(endDate);
+      while (d <= end) {
+        dates.push(d.toISOString().split("T")[0]);
+        d.setDate(d.getDate() + 1);
+      }
+
+      // Fetch all limits in parallel
+      const results = await Promise.all(
+        dates.map((date) =>
+          fetch(
+            `/api/appointment-limit?clinicianId=${clinicianId}&date=${date}`,
+          )
+            .then((res) => res.json())
+            .then((data) => ({ date, limit: data.limit ?? null }))
+            .catch(() => ({ date, limit: null })),
+        ),
+      );
+
+      const limits: Record<string, number | null> = {};
+      results.forEach(({ date, limit }) => {
+        limits[date] = limit;
+      });
+      return limits;
+    },
+    enabled:
+      isScheduledPage && selectedClinicians.length > 0 && !!calendarRef.current,
+  });
+
+  // Set appointment limits from query data when it changes
+  useEffect(() => {
+    if (limitsData) {
+      setAppointmentLimits(limitsData);
+    }
+  }, [limitsData]);
+
+  // Function to handle adding a limit
+  function handleAddLimit(
+    date: Date,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY,
+      left: rect.left + rect.width / 2 + window.scrollX,
+    });
+    setAddLimitDropdown({ open: true, anchor: event.currentTarget, date });
+  }
+
+  // Mutation for setting appointment limit
+  const setLimitMutation = useMutation({
+    mutationFn: async ({
+      clinicianId,
+      date,
+      maxLimit,
+    }: {
+      clinicianId: string;
+      date: string;
+      maxLimit: number;
+    }) => {
+      const response = await fetch("/api/appointment-limit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clinician_id: clinicianId,
+          date,
+          max_limit: maxLimit,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to set limit");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      // Update the local state
+      setAppointmentLimits((prev) => ({
+        ...prev,
+        [variables.date]: variables.maxLimit,
+      }));
+
+      // Invalidate the related query to refetch data
+      queryClient.invalidateQueries({
+        queryKey: ["appointmentLimits"],
+      });
+    },
+    onError: (error) => {
+      console.error("Error setting limit:", error);
+      showToast({
+        title: "Failed to set limit",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update only the selected date's limit
+  async function handleSelectLimit(limit: number | null) {
+    if (!addLimitDropdown.date || selectedClinicians.length === 0) {
+      console.log("Missing date or clinician:", {
+        date: addLimitDropdown.date,
+        clinicians: selectedClinicians,
+      });
+      return;
+    }
+
+    const clinicianId = selectedClinicians[0];
+    const date = addLimitDropdown.date.toISOString().split("T")[0];
+    const apiLimit = limit === null ? 0 : limit;
+
+    try {
+      await setLimitMutation.mutateAsync({
+        clinicianId,
+        date,
+        maxLimit: apiLimit,
+      });
+    } finally {
+      setAddLimitDropdown({ open: false, anchor: null, date: null });
+    }
+  }
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        addLimitDropdown.open &&
+        addLimitDropdownRef.current &&
+        !addLimitDropdownRef.current.contains(event.target as Node)
+      ) {
+        setAddLimitDropdown({ open: false, anchor: null, date: null });
+        setDropdownPosition(null);
       }
     }
-    fetchEventsForCurrentView();
-  }, [currentView, currentDate, selectedClinicians, isAdmin]);
+    if (addLimitDropdown.open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [addLimitDropdown.open]);
+
+  // Effect to handle availability refresh
+  useEffect(() => {
+    const handleAvailabilityRefresh = () => {
+      // Invalidate the events query to refresh data
+      queryClient.invalidateQueries({
+        queryKey: ["calendarEvents"],
+      });
+    };
+
+    window.addEventListener(
+      "refreshAvailabilities",
+      handleAvailabilityRefresh as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "refreshAvailabilities",
+        handleAvailabilityRefresh as EventListener,
+      );
+    };
+  }, [queryClient]);
 
   // Handle event click to view appointment details
   const handleEventClick = async (clickInfo: EventClickArg) => {
@@ -876,198 +1088,6 @@ export function CalendarView({
       id: clinician.value,
       title: clinician.label,
     }));
-
-  // Fetch limits for all days in view
-  useEffect(() => {
-    if (
-      !isScheduledPage ||
-      selectedClinicians.length === 0 ||
-      !calendarRef.current
-    ) {
-      setAppointmentLimits({});
-      return;
-    }
-    const calendarApi = calendarRef.current.getApi();
-    const view = calendarApi.view;
-    const startDate = view.activeStart;
-    const endDate = view.activeEnd;
-    const clinicianId = selectedClinicians[0];
-
-    // Get all dates in range
-    const dates: string[] = [];
-    const d = new Date(startDate);
-    while (d <= endDate) {
-      dates.push(d.toISOString().split("T")[0]);
-      d.setDate(d.getDate() + 1);
-    }
-
-    // Fetch all limits in parallel
-    Promise.all(
-      dates.map((date) =>
-        fetch(`/api/appointment-limit?clinicianId=${clinicianId}&date=${date}`)
-          .then((res) => res.json())
-          .then((data) => ({ date, limit: data.limit ?? null }))
-          .catch(() => ({ date, limit: null })),
-      ),
-    ).then((results) => {
-      const limits: Record<string, number | null> = {};
-      results.forEach(({ date, limit }) => {
-        limits[date] = limit;
-      });
-      setAppointmentLimits(limits);
-    });
-  }, [isScheduledPage, selectedClinicians, currentView, currentDate]);
-
-  function handleAddLimit(
-    date: Date,
-    event: React.MouseEvent<HTMLButtonElement>,
-  ) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setDropdownPosition({
-      top: rect.bottom + window.scrollY,
-      left: rect.left + rect.width / 2 + window.scrollX,
-    });
-    setAddLimitDropdown({ open: true, anchor: event.currentTarget, date });
-  }
-
-  // Update only the selected date's limit after adding
-  async function handleSelectLimit(limit: number | null) {
-    console.log("handleSelectLimit called with:", limit);
-    if (!addLimitDropdown.date || selectedClinicians.length === 0) {
-      console.log("Missing date or clinician:", {
-        date: addLimitDropdown.date,
-        clinicians: selectedClinicians,
-      });
-      return;
-    }
-
-    // The selectedClinicians array already contains the clinician IDs
-    const clinician_id = selectedClinicians[0];
-    const date = addLimitDropdown.date.toISOString().split("T")[0];
-    const apiLimit = limit === null ? 0 : limit;
-
-    console.log("Sending request with:", {
-      clinician_id,
-      date,
-      max_limit: apiLimit,
-    });
-
-    try {
-      const res = await fetch("/api/appointment-limit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clinician_id,
-          date,
-          max_limit: apiLimit,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Failed to set limit:", errorData);
-        throw new Error(errorData.error || "Failed to set limit");
-      }
-
-      const result = await res.json();
-      console.log("Successfully set limit:", result);
-
-      setAppointmentLimits((prev) => ({ ...prev, [date]: apiLimit }));
-    } catch (error) {
-      console.error("Error setting limit:", error);
-      if (typeof window !== "undefined" && window.toast) {
-        window.toast.error("Failed to set limit");
-      } else {
-        alert("Failed to set limit");
-      }
-    } finally {
-      setAddLimitDropdown({ open: false, anchor: null, date: null });
-    }
-  }
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        addLimitDropdown.open &&
-        addLimitDropdownRef.current &&
-        !addLimitDropdownRef.current.contains(event.target as Node)
-      ) {
-        setAddLimitDropdown({ open: false, anchor: null, date: null });
-        setDropdownPosition(null);
-      }
-    }
-    if (addLimitDropdown.open) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [addLimitDropdown.open]);
-
-  // Effect to handle availability refresh
-  useEffect(() => {
-    const handleAvailabilityRefresh = async () => {
-      if (!calendarRef.current) return;
-      const calendarApi = calendarRef.current.getApi();
-      const view = calendarApi.view;
-      const startDate = view.activeStart.toISOString().split("T")[0];
-      const endDate = view.activeEnd.toISOString().split("T")[0];
-
-      try {
-        // Fetch availabilities
-        let availabilityUrl = `/api/availability?startDate=${startDate}&endDate=${endDate}`;
-        if (!isAdmin && selectedClinicians.length > 0) {
-          availabilityUrl += `&clinicianId=${selectedClinicians[0]}`;
-        }
-
-        const response = await fetch(availabilityUrl);
-        if (!response.ok) throw new Error("Failed to fetch availabilities");
-        const availabilities = await response.json();
-
-        // Format availabilities
-        const formattedAvailabilities = availabilities.map(
-          (availability: AvailabilityData) => ({
-            id: availability.id,
-            resourceId: availability.clinician_id,
-            title: availability.title || "Available",
-            start: availability.start_date,
-            end: availability.end_date,
-            location: availability.location || "",
-            extendedProps: {
-              type: "availability",
-              clinician_id: availability.clinician_id,
-              allow_online_requests: availability.allow_online_requests,
-              is_recurring: availability.is_recurring,
-              recurring_rule: availability.recurring_rule,
-            },
-          }),
-        );
-
-        // Update events, keeping existing appointments
-        setEvents((prevEvents) => {
-          const appointments = prevEvents.filter(
-            (event) => event.extendedProps?.type !== "availability",
-          );
-          return [...appointments, ...formattedAvailabilities];
-        });
-      } catch (error) {
-        console.error("Error refreshing availabilities:", error);
-      }
-    };
-
-    window.addEventListener(
-      "refreshAvailabilities",
-      handleAvailabilityRefresh as EventListener,
-    );
-
-    return () => {
-      window.removeEventListener(
-        "refreshAvailabilities",
-        handleAvailabilityRefresh as EventListener,
-      );
-    };
-  }, [selectedClinicians, isAdmin]);
 
   return (
     <div className="flex h-full bg-background">
