@@ -4,18 +4,20 @@ import type React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button, Toaster } from "@mcw/ui";
+import { Button } from "@mcw/ui";
 import { Input } from "@mcw/ui";
+import { useToast } from "@mcw/ui";
 import Image from "next/image";
-import emailIcon from "../../assets/images/mailIcon.svg";
-import googleIcon from "../../assets/images/googleIcon.svg";
-import { Footer } from "../../Components/footer";
-import { toast } from "sonner";
+import emailIcon from "@/assets/images/mailIcon.svg";
+import googleIcon from "@/assets/images/googleIcon.svg";
+import { Footer } from "@/components/footer";
 
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -31,16 +33,32 @@ export default function SignInPage() {
 
       if (res.ok) {
         if (data.statusCode === 201) {
-          toast.success(data.message);
+          toast({
+            title: "Sent Link Successfully",
+            description: "Please check your email for the link to sign in.",
+            variant: "success",
+          });
         } else if (data.statusCode === 200) {
-          toast.success(data.message);
+          toast({
+            title: "Sent Link Successfully",
+            description: "Please check your email for the link to sign in.",
+            variant: "success",
+          });
         }
         router.push(`/link-sent?email=${encodeURIComponent(email)}`);
       } else {
-        toast.error(data.error);
+        toast({
+          title: "Error Sending Link",
+          description: data.error,
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      toast.error("Something went wrong. Please try again.");
+      toast({
+        title: "Error Sending Link",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
       console.log(error);
     } finally {
       setIsLoading(false);
@@ -48,10 +66,7 @@ export default function SignInPage() {
   };
   return (
     <div>
-      {/* Toaster component */}
-      <Toaster />
-
-      <div className="flex flex-col items-center justify-center px-4 pb-12 h-screen custom-bg-heder">
+      <div className="flex flex-col items-center justify-center px-4 pb-12 h-screen custom-bg-header">
         <h1 className="text-2xl font-bold text-gray-900 mb-7">
           McNulty Counseling and Wellness
         </h1>
@@ -92,10 +107,9 @@ export default function SignInPage() {
               <Button
                 type="submit"
                 className="w-full text-white p-2 rounded-lg bg-green-700 hover:bg-green-800"
-                disabled={isLoading} // Disable button while loading
+                disabled={isLoading}
               >
-                {isLoading ? "SENDING..." : "SEND LINK"}{" "}
-                {/* Button text changes */}
+                {isLoading ? "SENDING..." : "SEND LINK"}
               </Button>
 
               <div className="relative">

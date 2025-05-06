@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@mcw/ui";
 import { MoveLeft } from "lucide-react";
-import { Footer } from "@/Components/footer";
+import { Footer } from "@/components/footer";
 
 export default function VerifyPage() {
   const router = useRouter();
@@ -61,7 +61,7 @@ export default function VerifyPage() {
   if (status === "error") {
     return (
       <div className="flex flex-col min-h-screen">
-        <div className="flex flex-col flex-wrap items-center custom-bg-heder justify-center px-4 pb-12 bg-gray-50 flex-grow">
+        <div className="flex flex-col flex-wrap items-center custom-bg-header justify-center px-4 pb-12 bg-gray-50 flex-grow">
           <h1 className="text-2xl font-bold text-gray-900 mb-7">
             McNulty Counseling and Wellness
           </h1>

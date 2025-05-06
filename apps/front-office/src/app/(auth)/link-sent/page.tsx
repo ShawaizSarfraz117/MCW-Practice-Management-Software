@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@mcw/ui";
 import { MoveLeft } from "lucide-react";
-import successImage from "../../assets/images/mailSent.svg";
+import successImage from "@/assets/images/mailSent.svg";
 import Image from "next/image";
-import { Footer } from "@/Components/footer";
+import { Footer } from "@/components/footer";
 
 export default function LinkSentPage() {
   const searchParams = useSearchParams();
@@ -14,7 +14,7 @@ export default function LinkSentPage() {
 
   return (
     <div>
-      <div className="flex flex-col items-center justify-center px-4 pb-12 h-screen custom-bg-heder ">
+      <div className="flex flex-col items-center justify-center px-4 pb-12 h-screen custom-bg-header ">
         <h1 className="text-2xl font-bold text-gray-900 mb-7">
           McNulty Counseling and Wellness
         </h1>

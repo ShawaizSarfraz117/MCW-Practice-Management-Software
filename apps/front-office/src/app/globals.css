@@ -15,7 +15,7 @@ body {
   flex-direction: column;
 }
 
-.custom-bg-heder {
+.custom-bg-header {
   background: linear-gradient(
     180deg,
     rgba(248, 246, 240, 1) 31%,
