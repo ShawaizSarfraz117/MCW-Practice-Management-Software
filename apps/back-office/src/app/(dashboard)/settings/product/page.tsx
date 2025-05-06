@@ -43,9 +43,8 @@ const ProductRow = ({
         form.handleSubmit();
       }}
     >
-      <form.Field
-        name="name"
-        children={(field) => (
+      <form.Field name="name">
+        {(field) => (
           <Input
             className="w-full rounded-[6px] border h-[42px] mt-[12px]"
             value={field.state.value}
@@ -53,11 +52,10 @@ const ProductRow = ({
             onBlur={() => form.handleSubmit()}
           />
         )}
-      />
+      </form.Field>
       <div className="flex items-center gap-2">
-        <form.Field
-          name="price"
-          children={(field) => (
+        <form.Field name="price">
+          {(field) => (
             <Input
               className="rounded-[6px] border w-[162px] h-[42px] mt-[12px] border-gray-300"
               value={`$${field.state.value}`}
@@ -68,7 +66,7 @@ const ProductRow = ({
               onBlur={() => form.handleSubmit()}
             />
           )}
-        />
+        </form.Field>
         <Trash2
           className={`text-gray-500 cursor-pointer mt-[12px] hover:text-red-600 h-[16px] w-[14px] ${
             isDeleting ? "opacity-50 pointer-events-none" : ""
@@ -187,7 +185,7 @@ const ProductSection = () => {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update product: " + error.message,
+        description: "Failed to delete product: " + error.message,
         variant: "destructive",
       });
     },
