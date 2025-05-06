@@ -406,3 +406,23 @@ model AppointmentLimit {
   @@index([clinician_id], name: "IX_AppointmentLimit_clinician_id")
   @@index([date], name: "IX_AppointmentLimit_date")
 }
+
+model EmailTemplate {
+  id              String    @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  name            String    @db.VarChar(255)
+  subject         String    @db.VarChar(255)
+  content         String    @db.Text
+  type            String    @db.VarChar(50) // 'automated', 'reminder', 'billing'
+  is_active       Boolean   @default(true)
+  is_enabled      Boolean   @default(true)
+  reminder_time   Int?      // hours before the event
+  include_attachments Boolean? @default(false)
+  send_to_client  Boolean   @default(true)
+  send_to_clinician Boolean @default(false)
+  send_to_practice Boolean  @default(false)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  created_by      String    @db.UniqueIdentifier
+  @@index([type])
+  @@index([created_by])
+}
