@@ -99,6 +99,22 @@ interface UpdateTeleHealthLocationParams {
   street: string;
 }
 
+export interface TelehealthFormProps {
+  practiceInfoState: PracticeInformation;
+  setPracticeInfoState: (practiceInfoState: PracticeInformation) => void;
+  onClose: () => void;
+}
+
+// Define the form values type
+export interface TelehealthFormValues {
+  officeName: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  color: string;
+}
+
 const useTeleHealthInfo = () => {
   const queryClient = useQueryClient();
 
