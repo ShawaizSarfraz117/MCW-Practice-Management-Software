@@ -150,8 +150,8 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-semibold">Products</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-2xl font-semibold text-gray-800">Products</h1>
+          <p className="text-gray-600 text-base mt-1">
             Manage products and set rates.
           </p>
         </div>
@@ -159,6 +159,7 @@ export default function ProductsPage() {
         <Button
           onClick={handleSaveChanges}
           disabled={!hasChanges || updateMutation.isPending}
+          className="bg-[#2D8467] hover:bg-[#256D53] text-white font-normal text-base"
         >
           {updateMutation.isPending ? "Saving..." : "Save Changes"}
         </Button>
@@ -169,7 +170,9 @@ export default function ProductsPage() {
 
       {/* Products List */}
       <div className="space-y-4">
-        <h2 className="text-lg font-medium">Current Products</h2>
+        <h2 className="text-base font-normal text-gray-700">
+          Current Products
+        </h2>
         <ProductsList
           editableProducts={editableProducts}
           onProductChange={handleProductChange}
