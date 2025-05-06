@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Button, Input } from "@mcw/ui";
+import { Button, Input, toast } from "@mcw/ui";
 import { Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
@@ -121,6 +121,17 @@ const ProductSection = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({
+        title: "Product created",
+        description: "The product has been created successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create product: " + error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -144,6 +155,17 @@ const ProductSection = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({
+        title: "Product updated",
+        description: "The product has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update product: " + error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -157,6 +179,17 @@ const ProductSection = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({
+        title: "Product Deleted",
+        description: "The product has been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update product: " + error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -185,7 +218,6 @@ const ProductSection = () => {
             : "Save Changes"}
         </Button>
       </div>
-
       <form
         className="grid grid-cols-2 gap-4 max-w-4xl mt-5 mb-6"
         onSubmit={(e) => {
