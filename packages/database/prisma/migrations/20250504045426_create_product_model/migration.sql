@@ -18,6 +18,10 @@ BEGIN TRY
 
 BEGIN TRAN;
 
+
+-- Drop default constraint from available_credit column
+ALTER TABLE [ClientGroup] DROP CONSTRAINT [ClientGroup_available_credit_df];
+
 -- DropForeignKey
 ALTER TABLE [dbo].[Invoice] DROP CONSTRAINT [FK_Invoice_Clinician];
 
