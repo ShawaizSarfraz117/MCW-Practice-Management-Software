@@ -97,7 +97,7 @@ jobs:
       - name: Comment PR with deployment URLs
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.TOKEN }}
           script: |
             const backOfficeUrl = "${{ steps.deploy-to-qa.outputs.back_office_url }}";
             const frontOfficeUrl = "${{ steps.deploy-to-qa.outputs.front_office_url }}";
