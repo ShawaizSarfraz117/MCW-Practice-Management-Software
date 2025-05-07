@@ -13,7 +13,7 @@ const nextConfig = {
   reactStrictMode: true,
 
   experimental: {
-    serverExternalPackages: ["pino", "pino-pretty", "thread-stream"],
+    serverComponentsExternalPackages: ["pino", "pino-pretty", "thread-stream"],
   },
 
   // Add webpack configuration to handle node-pre-gyp
