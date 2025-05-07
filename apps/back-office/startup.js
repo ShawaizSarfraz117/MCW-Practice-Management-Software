@@ -40,9 +40,9 @@ async function startup() {
         JSON.stringify(tempPackageJson, null, 2),
       );
 
-      // Install only what's needed
+      // Install only what's needed (excluding private @mcw/* packages)
       console.log("Running npm install for critical dependencies");
-      execSync("npm install --omit=dev --no-package-lock", {
+      execSync("npm install --no-package-lock --no-save next react react-dom", {
         stdio: "inherit",
         cwd: __dirname,
         env: process.env,
@@ -153,38 +153,34 @@ async function startup() {
     );
   }
 
-  // Start the Next.js application
+  // Start the Next.js application with appropriate method
   console.log("Starting Next.js application...");
   try {
-    // Try the direct path first
-    if (
-      fs.existsSync(
-        path.join(__dirname, "node_modules", "next", "dist", "bin", "next"),
-      )
-    ) {
-      execSync("node ./node_modules/next/dist/bin/next start -p 8080", {
-        stdio: "inherit",
-        cwd: __dirname,
-        env: process.env,
-      });
-    } else {
-      // Fall back to npm start which uses the modified package.json
-      execSync("npm start", {
-        stdio: "inherit",
-        cwd: __dirname,
-        env: process.env,
-      });
-    }
-  } catch (error) {
-    console.error("Error starting Next.js:", error);
-
-    // Ultimate fallback - try npx
-    console.log("Attempting to start with npx next...");
+    // Try using npx next
     execSync("npx next start -p 8080", {
       stdio: "inherit",
       cwd: __dirname,
       env: process.env,
     });
+  } catch (error) {
+    console.error("Error starting Next.js:", error);
+
+    // Try local next binary
+    try {
+      if (fs.existsSync(path.join(__dirname, "node_modules", ".bin", "next"))) {
+        execSync("node ./node_modules/.bin/next start -p 8080", {
+          stdio: "inherit",
+          cwd: __dirname,
+          env: process.env,
+        });
+      } else {
+        console.error("Cannot find next binary. Exiting.");
+        process.exit(1);
+      }
+    } catch (finalError) {
+      console.error("All start attempts failed:", finalError);
+      process.exit(1);
+    }
   }
 }
 

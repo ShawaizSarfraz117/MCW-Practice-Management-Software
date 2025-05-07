@@ -11,10 +11,9 @@ const nextConfig = {
     "@mcw/logger",
   ],
   reactStrictMode: true,
-  output: "standalone", // Add standalone output for Azure deployment
 
   experimental: {
-    serverComponentsExternalPackages: ["pino", "pino-pretty", "thread-stream"],
+    serverExternalPackages: ["pino", "pino-pretty", "thread-stream"],
   },
 
   // Add webpack configuration to handle node-pre-gyp
