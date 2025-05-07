@@ -16,6 +16,11 @@ describe("Location API Unit Tests", () => {
     address: "123 Test Street",
     is_active: true,
     created_at: new Date(),
+    street: "123 Test Street",
+    city: "Test City",
+    state: "Test State",
+    zip: "12345",
+    color: "#000000",
     ...overrides,
   });
 

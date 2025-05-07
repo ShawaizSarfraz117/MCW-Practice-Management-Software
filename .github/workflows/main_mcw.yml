@@ -1,9 +1,7 @@
-name: Deploy MCW Apps to Azure (Development)
-
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:  # Manual trigger
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy-front-office:
@@ -12,63 +10,63 @@ jobs:
     environment: development
     permissions:
       contents: read
-      id-token: write  # Required for Azure login with OIDC
-    
+      id-token: write
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 2  # Needed for Turborepo to detect changes
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20.x'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+          cache: "npm"
 
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Generate Prisma Client
-      run: |
-        if [ -d "packages/database" ]; then
-          cd packages/database
-          npx prisma generate
-          cd ../..
-        fi
-    
-    - name: Build with Turborepo
-      run: npx turbo build --filter=front-office...
-    
-    - name: Run front-office deployment script
-      run: |
-        if [ -d "apps/front-office" ]; then
-          cd apps/front-office
-          
-          # Install fs-extra if needed for the deployment script
-          npm install --save-dev fs-extra
-          
-          # Run the existing deployment script
-          node deploy.js
-        else
-          echo "Front-office directory not found!"
-          exit 1
-        fi
-    
-    - name: Login to Azure
-      uses: azure/login@v2
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    
-    - name: Deploy front-office to Azure Web App
-      id: deploy-front-office
-      uses: azure/webapps-deploy@v3
-      with:
-        app-name: 'front-office-mcw-dev'
-        slot-name: 'Production'
-        package: 'apps/front-office/deploy'  # Use the deploy directory created by your script
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma Client
+        run: |
+          if [ -d "packages/database" ]; then
+            cd packages/database
+            npx prisma generate
+            cd ../..
+          fi
+
+      - name: Build with Turborepo
+        run: npx turbo build --filter=front-office...
+
+      - name: Run front-office deployment script
+        run: |
+          if [ -d "apps/front-office" ]; then
+            cd apps/front-office
+            
+            # Install fs-extra if needed for the deployment script
+            npm install --save-dev fs-extra
+            
+            # Run the existing deployment script
+            node deploy.js
+          else
+            echo "Front-office directory not found!"
+            exit 1
+          fi
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy front-office to Azure Web App
+        id: deploy-front-office
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "front-office-mcw-dev"
+          slot-name: "Production"
+          package: "apps/front-office/deploy"
 
   deploy-back-office:
     name: Build and Deploy Back Office (Dev)
@@ -76,60 +74,59 @@ jobs:
     environment: development
     permissions:
       contents: read
-      id-token: write  # Required for Azure login with OIDC
-    
+      id-token: write
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 2  # Needed for Turborepo to detect changes
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20.x'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+          cache: "npm"
 
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Generate Prisma Client
-      run: |
-        if [ -d "packages/database" ]; then
-          cd packages/database
-          npx prisma generate
-          cd ../..
-        fi
-    
-    - name: Build with Turborepo
-      run: npx turbo build --filter=back-office...
-    
-    - name: Run back-office deployment script
-      run: |
-        if [ -d "apps/back-office" ]; then
-          cd apps/back-office
-          
-          # Install fs-extra if needed for the deployment script
-          npm install --save-dev fs-extra
-          
-          # Run the existing deployment script
-          node deploy.js
-        else
-          echo "Back-office directory not found!"
-          exit 1
-        fi
-    
-    - name: Login to Azure
-      uses: azure/login@v2
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    
-    - name: Deploy back-office to Azure Web App
-      id: deploy-back-office
-      uses: azure/webapps-deploy@v3
-      with:
-        app-name: 'back-office-mcw-dev'
-        slot-name: 'Production'
-        package: 'apps/back-office/deploy'  
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma Client
+        run: |
+          if [ -d "packages/database" ]; then
+            cd packages/database
+            npx prisma generate
+            cd ../..
+          fi
+
+      - name: Build with Turborepo
+        run: npx turbo build --filter=back-office...
+
+      - name: Run back-office deployment script
+        run: |
+          if [ -d "apps/back-office" ]; then
+            cd apps/back-office
+            
+            # Install fs-extra if needed for the deployment script
+            npm install --save-dev fs-extra
+            
+            # Run the existing deployment script
+            node deploy.js
+          else
+            echo "Back-office directory not found!"
+            exit 1
+          fi
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy back-office to Azure Web App
+        id: deploy-back-office
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "back-office-mcw-dev"
+          slot-name: "Production"
