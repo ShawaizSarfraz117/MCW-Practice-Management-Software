@@ -1,4 +1,4 @@
-name: Deploy MCW Apps to Azure (Development)
+name: Deploy to Azure (Development)
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy Applications
     runs-on: ubuntu-latest
     environment: development
     permissions:
@@ -17,8 +16,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -29,21 +26,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Generate Prisma Client
+      - name: Generate Prisma Client & Run Database Migrations
         run: |
           cd packages/database
           npx prisma generate
+          npx prisma migrate deploy
 
-      # Front Office App
-      - name: Build front-office
-        run: npx turbo build --filter=front-office...
+      # Build all applications
+      - name: Build applications
+        run: npx turbo build --filter=front-office... --filter=back-office...
 
-      - name: Prepare front-office deployment
+      # Prepare apps for deployment
+      - name: Run deployment scripts
         run: |
-          cd apps/front-office
-          npm install --save-dev fs-extra
-          node deploy.js
+          node apps/front-office/deploy.js
+          node apps/back-office/deploy.js
 
+      # Login to Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -51,28 +50,17 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy front-office to Azure Web App
+      # Deploy applications
+      - name: Deploy front-office
         uses: azure/webapps-deploy@v3
         with:
           app-name: "front-office-mcw-dev"
-          slot-name: "Production"
-          package: "./apps/front-office/deploy"
-          startup-command: "npm start -- -p 8080"
+          package: "./apps/front-office"
+          startup-command: "npx next start -p 8080"
 
-      # Back Office App
-      - name: Build back-office
-        run: npx turbo build --filter=back-office...
-
-      - name: Prepare back-office deployment (with migrations)
-        run: |
-          cd apps/back-office
-          npm install --save-dev fs-extra
-          node deploy.js
-
-      - name: Deploy back-office to Azure Web App
+      - name: Deploy back-office
         uses: azure/webapps-deploy@v3
         with:
           app-name: "back-office-mcw-dev"
-          slot-name: "Production"
-          package: "./apps/back-office/deploy"
-          startup-command: "npm start -- -p 8080"
+          package: "./apps/back-office"
+          startup-command: "npx next start -p 8080"
