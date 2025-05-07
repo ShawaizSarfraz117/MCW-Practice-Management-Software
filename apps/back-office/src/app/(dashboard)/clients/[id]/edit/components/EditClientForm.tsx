@@ -19,9 +19,14 @@ import { ClientMembership } from "./ClientEdit";
 interface EditClientFormProps {
   clientData?: ClientMembership | null;
   onSave: (values: ClientFormValues) => Promise<void>;
+  className?: string;
 }
 
-export function EditClientForm({ clientData, onSave }: EditClientFormProps) {
+export function EditClientForm({
+  clientData,
+  onSave,
+  className,
+}: EditClientFormProps) {
   // Map client data to initial values or use defaults if clientData is null
   const mapClientDataToInitialValues = (): Partial<ClientFormValues> => {
     if (!clientData) {
@@ -245,7 +250,11 @@ export function EditClientForm({ clientData, onSave }: EditClientFormProps) {
   };
 
   return (
-    <form className="h-full" id="client-edit-form" onSubmit={handleSubmit}>
+    <form
+      className={`h-full max-w-3xl w-full ${className ?? ""}`}
+      id="client-edit-form"
+      onSubmit={handleSubmit}
+    >
       <div className="px-4 py-4 space-y-5">
         {/* Name Section */}
         <div>

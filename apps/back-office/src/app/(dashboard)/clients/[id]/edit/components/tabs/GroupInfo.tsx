@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Button,
@@ -25,6 +25,7 @@ export function GroupInfo({
 }: {
   clientGroup: ClientGroupFromAPI;
 }) {
+  const router = useRouter();
   const { toast } = useToast();
   // State for form fields
   const [status, setStatus] = useState(
@@ -72,7 +73,7 @@ export function GroupInfo({
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-4">
-        <div>
+        <div className="px-4 py-4 space-y-5">
           <h2 className="text-lg font-semibold mb-4">Client Status</h2>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-32">
@@ -85,12 +86,16 @@ export function GroupInfo({
           </Select>
         </div>
         {clientGroup.type === "adult" && (
-          <EditClientForm
-            clientData={clientGroup.ClientGroupMembership[0]}
-            onSave={handleSave}
-          />
+          <div className="w-full">
+            <EditClientForm
+              className="w-full max-w-3xl"
+              clientData={clientGroup.ClientGroupMembership[0]}
+              onSave={handleSave}
+            />
+          </div>
         )}
-        <div className="pt-4 border-t">
+        <div className="pt-4 px-4 py-4 space-y-5">
+          <div className="border-t" />
           <h2 className="text-lg font-semibold mb-4">About Client</h2>
 
           <div className="mb-4">
@@ -98,8 +103,9 @@ export function GroupInfo({
               Client Notes
             </label>
             <Textarea
-              className="w-full h-24"
+              className="w-full max-w-3xl"
               id="notes"
+              rows={4}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -123,8 +129,15 @@ export function GroupInfo({
         </div>
       </div>
 
-      <div className="flex space-x-4 pt-4">
-        <Button variant="outline">Cancel</Button>
+      <div className="flex space-x-4">
+        <div className="border-t" />
+        <Button
+          disabled={updateClientMutation.isPending || isLoading}
+          variant="outline"
+          onClick={() => router.back()}
+        >
+          Cancel
+        </Button>
         {clientGroup.type === "adult" ? (
           <Button
             disabled={updateClientMutation.isPending || isLoading}
@@ -140,9 +153,10 @@ export function GroupInfo({
             Save Client
           </Button>
         )}
-        <div className="flex-grow"></div>
+        <div className="flex-grow" />
         <Button
           className="text-red-500 hover:text-red-700 hover:bg-red-50"
+          disabled={updateClientMutation.isPending || isLoading}
           variant="outline"
         >
           Delete this {clientGroup.type}

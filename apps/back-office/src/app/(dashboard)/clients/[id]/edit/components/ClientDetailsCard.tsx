@@ -10,6 +10,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  useToast,
 } from "@mcw/ui";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
@@ -213,10 +214,16 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
 function ManageButton({ clientData }: { clientData: ClientMembership }) {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const updateClientMutation = useUpdateClient();
+  const { toast } = useToast();
 
   const handleSaveClient = async (formData: ClientFormValues) => {
     await updateClientMutation.mutateAsync({
       body: { ...formData, id: clientData.Client.id },
+    });
+    toast({
+      title: "Client updated",
+      variant: "success",
+      description: "Client information updated successfully",
     });
   };
 

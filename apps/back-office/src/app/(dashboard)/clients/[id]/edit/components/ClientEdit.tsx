@@ -9,7 +9,7 @@ import Link from "next/link";
 import { getClientGroupInfo } from "@/(dashboard)/clients/[id]/components/ClientProfile";
 import { GroupInfo } from "./tabs/GroupInfo";
 import { useSearchParams, useRouter } from "next/navigation";
-
+import Loading from "@/components/Loading";
 // Matching the structure in ClientDetailsCard
 export interface ClientMembership {
   client_id: string;
@@ -111,7 +111,7 @@ export default function ClientEdit({
   };
 
   // Fetch client group data
-  const { data: clientGroupData, isLoading } = useQuery({
+  const { data: clientGroupData = {}, isLoading } = useQuery({
     queryKey: ["clientGroup", clientGroupId],
     queryFn: async () => {
       const [data, error] = await fetchClientGroups({
@@ -141,14 +141,6 @@ export default function ClientEdit({
     ? (clientGroupData as unknown as ClientGroupFromAPI)
     : null;
 
-  if (isLoading) {
-    return <div className="p-6">Loading client information...</div>;
-  }
-
-  if (!clientData) {
-    return <div className="p-6">Client group not found</div>;
-  }
-
   const clientType = {
     adult: "Client",
     minor: "Minor",
@@ -156,20 +148,24 @@ export default function ClientEdit({
     family: "Family",
   };
 
+  if (isLoading) {
+    return <Loading className="items-center" />;
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6">
         <nav className="flex items-center text-sm text-gray-500 mb-2">
           <Link href="/clients">Clients and contacts</Link>
           <span className="mx-2">/</span>
-          <Link href={`/clients/${clientGroupId}`}>{clientData.name}</Link>
+          <Link href={`/clients/${clientGroupId}`}>{clientData?.name}</Link>
           <span className="mx-2">/</span>
           <span className="text-gray-700">Edit client</span>
         </nav>
         <h1 className="text-2xl font-semibold mb-4">
           Edit client{" "}
           <span className="text-[#2D8467]">
-            {getClientGroupInfo(clientData)}
+            {clientData ? getClientGroupInfo(clientData) : ""}
           </span>
         </h1>
       </div>
@@ -186,10 +182,10 @@ export default function ClientEdit({
               className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "group-info" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
               value="group-info"
             >
-              {clientType[clientData.type as keyof typeof clientType]} Info
+              {clientType[clientData?.type as keyof typeof clientType]} Info
             </TabsTrigger>
 
-            {clientData.type !== "adult" && (
+            {clientData?.type !== "adult" && (
               <TabsTrigger
                 className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "clients" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
                 value="clients"
@@ -208,14 +204,14 @@ export default function ClientEdit({
 
         <TabsContent value="group-info">
           <div className="mt-6">
-            <GroupInfo clientGroup={clientData} />
+            {clientData && <GroupInfo clientGroup={clientData} />}
           </div>
         </TabsContent>
 
-        {clientData.type !== "adult" && (
+        {clientData?.type !== "adult" && (
           <TabsContent value="clients">
             <div className="mt-6">
-              {clientData.ClientGroupMembership.map((membership) => (
+              {clientData?.ClientGroupMembership.map((membership) => (
                 <ClientDetailsCard
                   key={membership.client_id}
                   client={membership}
