@@ -60,12 +60,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy front-office to Azure Web App
+      - name: Deploy front-office to Azure Web App main slot
         id: deploy-front-office
         uses: azure/webapps-deploy@v3
         with:
           app-name: "front-office-mcw-dev"
-          slot-name: "Production"
           package: "apps/front-office/deploy"
 
   deploy-back-office:
@@ -124,10 +123,9 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy back-office to Azure Web App
+      - name: Deploy back-office to Azure Web App main slot
         id: deploy-back-office
         uses: azure/webapps-deploy@v3
         with:
           app-name: "back-office-mcw-dev"
-          slot-name: "Production"
           package: "apps/back-office/deploy"

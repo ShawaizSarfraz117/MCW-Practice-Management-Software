@@ -1,0 +1,117 @@
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-to-qa:
+    name: Deploy PR to QA Slot
+    runs-on: ubuntu-latest
+    environment: qa
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma Client
+        run: |
+          if [ -d "packages/database" ]; then
+            cd packages/database
+            npx prisma generate
+            cd ../..
+          fi
+
+      - name: Build with Turborepo (both apps)
+        run: npx turbo build --filter={back-office,front-office}...
+
+      - name: Run deployment scripts
+        run: |
+          # Back office deployment
+          if [ -d "apps/back-office" ]; then
+            cd apps/back-office
+            npm install --save-dev fs-extra
+            node deploy.js
+            cd ../..
+          else
+            echo "Back-office directory not found!"
+            exit 1
+          fi
+
+          # Front office deployment
+          if [ -d "apps/front-office" ]; then
+            cd apps/front-office
+            npm install --save-dev fs-extra
+            node deploy.js
+            cd ../..
+          else
+            echo "Front-office directory not found!"
+            exit 1
+          fi
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to QA slots
+        id: deploy-to-qa
+        run: |
+          # Fixed QA slot name
+          SLOT_NAME="qa"
+
+          # Create slots if they don't exist (will skip if they do)
+          echo "Creating/deploying to slot: $SLOT_NAME"
+
+          # Deploy back office to QA slot
+          az webapp deployment slot create --name "back-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" --configuration-source Production || true
+          az webapp deployment source config-zip --name "back-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" --src "apps/back-office/deploy"
+
+          # Deploy front office to QA slot
+          az webapp deployment slot create --name "front-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" --configuration-source Production || true
+          az webapp deployment source config-zip --name "front-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" --src "apps/front-office/deploy"
+
+          # Get the QA URLs
+          BACK_OFFICE_URL="https://back-office-mcw-dev-${SLOT_NAME}.azurewebsites.net"
+          FRONT_OFFICE_URL="https://front-office-mcw-dev-${SLOT_NAME}.azurewebsites.net"
+
+          echo "back_office_url=$BACK_OFFICE_URL" >> $GITHUB_OUTPUT
+          echo "front_office_url=$FRONT_OFFICE_URL" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with deployment URLs
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const backOfficeUrl = "${{ steps.deploy-to-qa.outputs.back_office_url }}";
+            const frontOfficeUrl = "${{ steps.deploy-to-qa.outputs.front_office_url }}";
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🚀 PR Deployment to QA
+              
+              This PR has been deployed to QA slots for testing:
+              
+              - **Back Office QA:** [${backOfficeUrl}](${backOfficeUrl})
+              - **Front Office QA:** [${frontOfficeUrl}](${frontOfficeUrl})
+              
+              Please verify your changes in these environments before merging.`
+            });
