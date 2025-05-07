@@ -39,57 +39,7 @@ jobs:
       - name: Build with Turborepo (both apps)
         run: npx turbo build --filter={back-office,front-office}...
 
-      - name: Run deployment scripts
-        run: |
-          # Back office deployment
-          if [ -d "apps/back-office" ]; then
-            cd apps/back-office
-            npm install --save-dev fs-extra
-            node deploy.js
-            cd ../..
-          else
-            echo "Back-office directory not found!"
-            exit 1
-          fi
-
-          # Front office deployment
-          if [ -d "apps/front-office" ]; then
-            cd apps/front-office
-            npm install --save-dev fs-extra
-            node deploy.js
-            cd ../..
-          else
-            echo "Front-office directory not found!"
-            exit 1
-          fi
-
-      # Check and fix node_modules in the deployment package
-      - name: Ensure node_modules are included
-        run: |
-          # List contents of deploy directories
-          echo "Checking deployment packages:"
-          ls -la apps/back-office/deploy
-          ls -la apps/front-office/deploy
-
-          # Check native modules
-          echo "Checking for native modules in back-office:"
-          if [ -d "apps/back-office/deploy/node_modules/bcrypt" ]; then
-            echo "✅ bcrypt module exists"
-          else
-            echo "❌ bcrypt module missing, manually copying..."
-            mkdir -p apps/back-office/deploy/node_modules/bcrypt
-            cp -r node_modules/bcrypt/* apps/back-office/deploy/node_modules/bcrypt/
-          fi
-
-          echo "Checking for native modules in front-office:"
-          if [ -d "apps/front-office/deploy/node_modules/bcrypt" ]; then
-            echo "✅ bcrypt module exists"
-          else
-            echo "❌ bcrypt module missing, manually copying..."
-            mkdir -p apps/front-office/deploy/node_modules/bcrypt
-            cp -r node_modules/bcrypt/* apps/front-office/deploy/node_modules/bcrypt/
-          fi
-
+      # Create the slots first, before running deploy.js
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -110,6 +60,27 @@ jobs:
 
           echo "slot_name=$SLOT_NAME" >> $GITHUB_OUTPUT
 
+      # Run the deployment scripts after slot creation
+      - name: Run back-office deployment script and deploy
+        run: |
+          # Run deploy.js
+          if [ -d "apps/back-office" ]; then
+            cd apps/back-office
+            npm install --save-dev fs-extra
+            node deploy.js
+            cd ../..
+            
+            # Debug: Check what's in the deploy directory
+            echo "Contents of back-office deploy directory:"
+            ls -la apps/back-office/deploy
+            echo "Node modules in back-office deploy:"
+            ls -la apps/back-office/deploy/node_modules || echo "No node_modules found"
+          else
+            echo "Back-office directory not found!"
+            exit 1
+          fi
+
+      # Deploy back-office immediately after running deploy.js
       - name: Deploy back-office to QA slot
         id: deploy-back-office
         uses: azure/webapps-deploy@v3
@@ -118,6 +89,27 @@ jobs:
           slot-name: "${{ steps.create-slots.outputs.slot_name }}"
           package: "apps/back-office/deploy"
 
+      # Run the front-office deployment script
+      - name: Run front-office deployment script and deploy
+        run: |
+          # Run deploy.js
+          if [ -d "apps/front-office" ]; then
+            cd apps/front-office
+            npm install --save-dev fs-extra
+            node deploy.js
+            cd ../..
+            
+            # Debug: Check what's in the deploy directory
+            echo "Contents of front-office deploy directory:"
+            ls -la apps/front-office/deploy
+            echo "Node modules in front-office deploy:"
+            ls -la apps/front-office/deploy/node_modules || echo "No node_modules found"
+          else
+            echo "Front-office directory not found!"
+            exit 1
+          fi
+
+      # Deploy front-office immediately after running deploy.js
       - name: Deploy front-office to QA slot
         id: deploy-front-office
         uses: azure/webapps-deploy@v3
