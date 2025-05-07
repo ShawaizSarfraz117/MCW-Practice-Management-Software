@@ -130,3 +130,4 @@ jobs:
         with:
           app-name: "back-office-mcw-dev"
           slot-name: "Production"
+          package: "apps/back-office/deploy"
