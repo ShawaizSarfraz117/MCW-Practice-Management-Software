@@ -35,7 +35,7 @@ jobs:
       - name: Build applications
         run: npx turbo build --filter=front-office... --filter=back-office...
 
-      # Prepare apps for deployment
+      # Run deployment scripts
       - name: Run deployment scripts
         run: |
           node apps/front-office/deploy.js
@@ -55,7 +55,7 @@ jobs:
         with:
           app-name: "front-office-mcw-dev"
           package: "./apps/front-office"
-          startup-command: "npx next start -p 8080"
+          startup-command: "node startup.js"
 
       - name: Deploy back-office
         uses: azure/webapps-deploy@v3

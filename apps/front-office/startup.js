@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 
 async function startup() {
-  console.log("Running back-office startup script...");
+  console.log("Running front-office startup script...");
   console.log("Current directory:", process.cwd());
   console.log("Directory contents:", fs.readdirSync(__dirname));
 
@@ -24,7 +24,7 @@ async function startup() {
     try {
       // Create a minimal package.json for installation
       const tempPackageJson = {
-        name: "back-office-runtime-deps",
+        name: "front-office-runtime-deps",
         private: true,
         dependencies: {
           next: "^14.2.25",
@@ -86,71 +86,6 @@ async function startup() {
     }
   } else {
     console.warn("package.json not found, skipping update");
-  }
-
-  // Setup Prisma schema for migrations
-  const dbDir = path.join(__dirname, "packages/database");
-  if (!fs.existsSync(path.join(dbDir, "prisma"))) {
-    try {
-      console.log("Creating Prisma schema directory");
-      fs.mkdirSync(path.join(dbDir, "prisma"), { recursive: true });
-
-      // Copy schema.prisma file if found in parent directories
-      const possibleSchemaLocations = [
-        path.join(
-          __dirname,
-          "..",
-          "..",
-          "packages",
-          "database",
-          "prisma",
-          "schema.prisma",
-        ),
-        path.join(
-          __dirname,
-          "..",
-          "packages",
-          "database",
-          "prisma",
-          "schema.prisma",
-        ),
-      ];
-
-      for (const schemaPath of possibleSchemaLocations) {
-        if (fs.existsSync(schemaPath)) {
-          console.log(`Found schema at ${schemaPath}, copying to deployment`);
-          fs.copyFileSync(
-            schemaPath,
-            path.join(dbDir, "prisma", "schema.prisma"),
-          );
-          break;
-        }
-      }
-    } catch (error) {
-      console.error("Error setting up Prisma schema:", error);
-    }
-  }
-
-  // Run Prisma migrations if DATABASE_URL is available
-  if (process.env.DATABASE_URL) {
-    console.log("Running database migrations...");
-    try {
-      execSync("npx prisma migrate deploy", {
-        stdio: "inherit",
-        cwd: dbDir,
-        env: process.env,
-      });
-      console.log("Database migrations completed successfully!");
-    } catch (error) {
-      console.error("Failed to run migrations:", error.message);
-      console.log(
-        "Continuing with application startup despite migration issues...",
-      );
-    }
-  } else {
-    console.warn(
-      "Warning: DATABASE_URL environment variable not found. Skipping database migrations.",
-    );
   }
 
   // Start the Next.js application
