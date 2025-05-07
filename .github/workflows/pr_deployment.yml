@@ -63,6 +63,33 @@ jobs:
             exit 1
           fi
 
+      # Check and fix node_modules in the deployment package
+      - name: Ensure node_modules are included
+        run: |
+          # List contents of deploy directories
+          echo "Checking deployment packages:"
+          ls -la apps/back-office/deploy
+          ls -la apps/front-office/deploy
+
+          # Check native modules
+          echo "Checking for native modules in back-office:"
+          if [ -d "apps/back-office/deploy/node_modules/bcrypt" ]; then
+            echo "✅ bcrypt module exists"
+          else
+            echo "❌ bcrypt module missing, manually copying..."
+            mkdir -p apps/back-office/deploy/node_modules/bcrypt
+            cp -r node_modules/bcrypt/* apps/back-office/deploy/node_modules/bcrypt/
+          fi
+
+          echo "Checking for native modules in front-office:"
+          if [ -d "apps/front-office/deploy/node_modules/bcrypt" ]; then
+            echo "✅ bcrypt module exists"
+          else
+            echo "❌ bcrypt module missing, manually copying..."
+            mkdir -p apps/front-office/deploy/node_modules/bcrypt
+            cp -r node_modules/bcrypt/* apps/front-office/deploy/node_modules/bcrypt/
+          fi
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
