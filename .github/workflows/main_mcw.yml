@@ -6,10 +6,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build Applications
+  build-and-deploy:
+    name: Build and Deploy Applications
     runs-on: ubuntu-latest
     environment: development
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -31,8 +34,9 @@ jobs:
           cd packages/database
           npx prisma generate
 
-      - name: Build applications
-        run: npx turbo build --filter=front-office... --filter=back-office...
+      # Front Office App
+      - name: Build front-office
+        run: npx turbo build --filter=front-office...
 
       - name: Prepare front-office deployment
         run: |
@@ -40,82 +44,35 @@ jobs:
           npm install --save-dev fs-extra
           node deploy.js
 
-      - name: Prepare back-office deployment
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy front-office to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "front-office-mcw-dev"
+          slot-name: "Production"
+          package: "./apps/front-office/deploy"
+          startup-command: "npm start"
+
+      # Back Office App
+      - name: Build back-office
+        run: npx turbo build --filter=back-office...
+
+      - name: Prepare back-office deployment (with migrations)
         run: |
           cd apps/back-office
           npm install --save-dev fs-extra
           node deploy.js
 
-      - name: Upload front-office build
-        uses: actions/upload-artifact@v3
-        with:
-          name: front-office-build
-          path: apps/front-office/deploy
-
-      - name: Upload back-office build
-        uses: actions/upload-artifact@v3
-        with:
-          name: back-office-build
-          path: apps/back-office/deploy
-
-  deploy-front-office:
-    name: Deploy Front Office
-    needs: build
-    runs-on: ubuntu-latest
-    environment: development
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Download front-office build
-        uses: actions/download-artifact@v3
-        with:
-          name: front-office-build
-          path: ./front-office-deploy
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: "front-office-mcw-dev"
-          slot-name: "Production"
-          package: "./front-office-deploy"
-          startup-command: "npm start"
-
-  deploy-back-office:
-    name: Deploy Back Office
-    needs: build
-    runs-on: ubuntu-latest
-    environment: development
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Download back-office build
-        uses: actions/download-artifact@v3
-        with:
-          name: back-office-build
-          path: ./back-office-deploy
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy to Azure Web App
+      - name: Deploy back-office to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: "back-office-mcw-dev"
           slot-name: "Production"
-          package: "./back-office-deploy"
+          package: "./apps/back-office/deploy"
           startup-command: "npm start"
