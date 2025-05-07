@@ -47,14 +47,46 @@ async function startup() {
     );
   }
 
-  // Start the Next.js application
+  // Start the Next.js application using the local installation
   console.log("Starting Next.js application...");
   try {
-    execSync("npx next start -p 8080", {
-      stdio: "inherit",
-      cwd: __dirname,
-      env: process.env,
-    });
+    // First, check if we have a local Next.js binary
+    const localNextBin = path.join(__dirname, "node_modules", ".bin", "next");
+    if (fs.existsSync(localNextBin)) {
+      console.log("Using locally installed Next.js");
+      execSync(`${localNextBin} start -p 8080`, {
+        stdio: "inherit",
+        cwd: __dirname,
+        env: process.env,
+      });
+    } else {
+      // Alternative approach - use node with the Next.js start script
+      const nextStartScript = path.join(
+        __dirname,
+        "node_modules",
+        "next",
+        "dist",
+        "bin",
+        "next",
+      );
+
+      if (fs.existsSync(nextStartScript)) {
+        console.log("Using Next.js start script directly");
+        execSync(`node ${nextStartScript} start -p 8080`, {
+          stdio: "inherit",
+          cwd: __dirname,
+          env: process.env,
+        });
+      } else {
+        // Fall back to npx as last resort
+        console.log("Falling back to npx next start");
+        execSync("npx next start -p 8080", {
+          stdio: "inherit",
+          cwd: __dirname,
+          env: process.env,
+        });
+      }
+    }
   } catch (error) {
     console.error("Error starting Next.js application:", error);
     process.exit(1);
