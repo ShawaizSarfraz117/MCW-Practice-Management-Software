@@ -162,6 +162,20 @@ model ClientReminderPreference {
   @@unique([client_id, reminder_type])
 }
 
+model BillingAddress {
+  id           String     @id @default(dbgenerated("newid()"), map: "PK_BillingAddress_ID") @db.UniqueIdentifier
+  street       String     @db.VarChar(255)
+  city         String     @db.VarChar(100)
+  state        String     @db.VarChar(50)
+  zip          String     @db.VarChar(20)
+  type         String     @db.VarChar(50) // 'business' or 'client'
+  clinician_id String     @db.UniqueIdentifier
+  Clinician    Clinician  @relation("ManyBillingAddresses", fields: [clinician_id], references: [id], onDelete: Cascade, map: "FK_BillingAddress_Clinician")
+
+  @@index([clinician_id], map: "IX_BillingAddress_clinician_id")
+  @@unique([clinician_id, type], map: "UQ_BillingAddress_Clinician_Type")
+}
+
 model Clinician {
   id                String              @id @default(dbgenerated("newid()"), map: "PK_Clinician_ID") @db.UniqueIdentifier
   user_id           String              @unique @db.UniqueIdentifier
@@ -180,6 +194,7 @@ model Clinician {
   Invoice           Invoice[]
   ClientGroup       ClientGroup[]
   Availability      Availability[]
+  billingAddresses  BillingAddress[]    @relation("ManyBillingAddresses")
 }
 
 model ClinicianClient {
@@ -255,6 +270,11 @@ model Location {
   id                String              @id @default(dbgenerated("newid()"), map: "PK_Location_ID") @db.UniqueIdentifier
   name              String              @db.VarChar(255)
   address           String              @db.Text
+  street            String?             @db.VarChar(255)
+  city              String?             @db.VarChar(100)
+  state              String?             @db.VarChar(100)
+  zip               String?             @db.VarChar(20)
+  color             String?             @db.VarChar(50)
   is_active         Boolean             @default(true, map: "DF_Location_IsActive")
   Appointment       Appointment[]
   Client            Client[]
@@ -362,6 +382,7 @@ model User {
   phone         String?   @db.VarChar(20)
   profile_photo String?   @db.VarChar(500)
   clinicalInfos ClinicalInfo[]
+  practiceInformation PracticeInformation[]
 }
 
 model UserRole {
@@ -391,6 +412,18 @@ model License {
   expiration_date DateTime     // Use Date type for expiration date
   state           String   // State
   clinicalInfo    ClinicalInfo @relation(fields: [clinical_info_id], references: [id]) // Establishing the relation
+}
+
+model PracticeInformation {
+  id            String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  practice_name String
+  practice_email String
+  time_zone     String
+  practice_logo String
+  phone_numbers String
+  tele_health   Boolean
+  user_id       String @db.UniqueIdentifier
+  User User @relation(fields: [user_id], references: [id], map: "FK_practiceInformation_User")
 }
 
 model AppointmentLimit {

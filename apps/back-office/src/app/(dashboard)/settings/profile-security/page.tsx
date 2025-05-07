@@ -6,7 +6,8 @@ import { useState, useCallback } from "react";
 import ProfileHeader from "./profile/ProfileHeader";
 import ProfileInfo from "./profile/ProfileInfo";
 import ProfilePhoto from "./profile/ProfilePhoto";
-import { toast } from "sonner";
+import { toast } from "@mcw/ui";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const profileSchema = z.object({
   dateOfBirth: z.string().optional().nullable(),
@@ -29,6 +30,7 @@ export type ProfileFormData = {
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
+  const queryClient = useQueryClient();
 
   const form = useForm({
     onSubmit: async ({ value }: { value: ProfileFormData }) => {
@@ -55,15 +57,19 @@ export default function Profile() {
           throw new Error("Failed to update profile");
         }
 
-        toast.success("Profile updated successfully", {
-          duration: 4000,
-          position: "top-center", // you can adjust this if needed
+        toast({
+          title: "Profile updated successfully",
+          variant: "success",
         });
 
         setIsEditing(false);
-        form.reset(value);
+        queryClient.refetchQueries({ queryKey: ["profile"] });
       } catch (error) {
         console.error("Error updating profile:", error);
+        toast({
+          title: "Error updating profile",
+          variant: "destructive",
+        });
       }
     },
   });
