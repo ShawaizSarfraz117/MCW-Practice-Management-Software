@@ -70,24 +70,39 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy to QA slots
-        id: deploy-to-qa
+      - name: Create QA slots
+        id: create-slots
         run: |
           # Fixed QA slot name
           SLOT_NAME="qa"
+          echo "Creating QA slots if they don't exist: $SLOT_NAME"
 
-          # Create slots if they don't exist (will skip if they do)
-          echo "Creating/deploying to slot: $SLOT_NAME"
+          # Create slots (will skip if they already exist)
+          az webapp deployment slot create --name "back-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" || true
+          az webapp deployment slot create --name "front-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" || true
 
-          # Deploy back office to QA slot
-          az webapp deployment slot create --name "back-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" --configuration-source Production || true
-          az webapp deployment source config-zip --name "back-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" --src "apps/back-office/deploy"
+          echo "slot_name=$SLOT_NAME" >> $GITHUB_OUTPUT
 
-          # Deploy front office to QA slot
-          az webapp deployment slot create --name "front-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" --configuration-source Production || true
-          az webapp deployment source config-zip --name "front-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" --src "apps/front-office/deploy"
+      - name: Deploy back-office to QA slot
+        id: deploy-back-office
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "back-office-mcw-dev"
+          slot-name: "${{ steps.create-slots.outputs.slot_name }}"
+          package: "apps/back-office/deploy"
 
-          # Get the QA URLs
+      - name: Deploy front-office to QA slot
+        id: deploy-front-office
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "front-office-mcw-dev"
+          slot-name: "${{ steps.create-slots.outputs.slot_name }}"
+          package: "apps/front-office/deploy"
+
+      - name: Get deployment URLs
+        id: get-urls
+        run: |
+          SLOT_NAME="${{ steps.create-slots.outputs.slot_name }}"
           BACK_OFFICE_URL="https://back-office-mcw-dev-${SLOT_NAME}.azurewebsites.net"
           FRONT_OFFICE_URL="https://front-office-mcw-dev-${SLOT_NAME}.azurewebsites.net"
 
@@ -99,8 +114,8 @@ jobs:
         with:
           github-token: ${{ secrets.TOKEN }}
           script: |
-            const backOfficeUrl = "${{ steps.deploy-to-qa.outputs.back_office_url }}";
-            const frontOfficeUrl = "${{ steps.deploy-to-qa.outputs.front_office_url }}";
+            const backOfficeUrl = "${{ steps.get-urls.outputs.back_office_url }}";
+            const frontOfficeUrl = "${{ steps.get-urls.outputs.front_office_url }}";
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
