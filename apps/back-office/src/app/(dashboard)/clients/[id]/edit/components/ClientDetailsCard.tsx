@@ -1,6 +1,6 @@
 "use client";
 
-import { ClientMembership } from "@/(dashboard)/clients/types";
+import type { ClientMembership } from "./ClientEdit";
 import {
   Card,
   CardContent,
@@ -13,7 +13,9 @@ import {
 } from "@mcw/ui";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-// import { EditClientDrawer } from "./EditClientDrawer";
+import { EditClientDrawer } from "./EditClientDrawer";
+import { ClientFormValues } from "../types";
+import { useUpdateClient } from "@/(dashboard)/clients/services/client.service";
 
 type ClientDetailsRowProps = {
   label: string;
@@ -32,15 +34,15 @@ const ClientDetailsRow: React.FC<ClientDetailsRowProps> = ({
 
 export function ClientDetailsCard({ client }: { client: ClientMembership }) {
   const emails = client.Client.ClientContact.filter(
-    (contact) => contact.contact_type === "EMAIL",
+    (contact: { contact_type: string }) => contact.contact_type === "EMAIL",
   );
   const phones = client.Client.ClientContact.filter(
-    (contact) => contact.contact_type === "PHONE",
+    (contact: { contact_type: string }) => contact.contact_type === "PHONE",
   );
 
   return (
     <Card className="mb-6">
-      <CardHeader className="flex flex-row items-center justify-between py-4 px-6">
+      <CardHeader className="flex flex-row items-center border-b justify-between py-2 px-6">
         <h3 className="text-base font-medium">
           {client.Client.legal_first_name} {client.Client.legal_last_name}
         </h3>
@@ -51,7 +53,7 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
           label="Phone"
           value={
             phones.length > 0
-              ? phones.map((contact) => (
+              ? phones.map((contact: { id: string; value: string }) => (
                   <div key={contact.id} className="flex items-center">
                     <span>{contact.value}</span>
                   </div>
@@ -63,16 +65,22 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
           label="Email"
           value={
             emails.length > 0
-              ? emails.map((contact) => (
-                  <div key={contact.id} className="flex items-center">
-                    <span>{contact.value}</span>
-                    {contact.is_primary && (
-                      <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                        Home
-                      </span>
-                    )}
-                  </div>
-                ))
+              ? emails.map(
+                  (contact: {
+                    id: string;
+                    value: string;
+                    is_primary?: boolean;
+                  }) => (
+                    <div key={contact.id} className="flex items-center">
+                      <span>{contact.value}</span>
+                      {contact.is_primary && (
+                        <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                          Home
+                        </span>
+                      )}
+                    </div>
+                  ),
+                )
               : "No email listed"
           }
         />
@@ -101,10 +109,10 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
                     viewBox="0 0 24 24"
                   >
                     <path
+                      d="M5 13l4 4L19 7"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M5 13l4 4L19 7"
                     />
                   </svg>
                   <span>Has access for this Couple</span>
@@ -127,10 +135,10 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
                     viewBox="0 0 24 24"
                   >
                     <path
+                      d="M5 13l4 4L19 7"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M5 13l4 4L19 7"
                     />
                   </svg>
                   <span>Request new appointments for this Couple</span>
@@ -143,10 +151,10 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
                     viewBox="0 0 24 24"
                   >
                     <path
+                      d="M5 13l4 4L19 7"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M5 13l4 4L19 7"
                     />
                   </svg>
                   <span>Send and receive secure messages</span>
@@ -159,10 +167,10 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
                     viewBox="0 0 24 24"
                   >
                     <path
+                      d="M5 13l4 4L19 7"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M5 13l4 4L19 7"
                     />
                   </svg>
                   <span>Access billing documents for this Couple</span>
@@ -175,10 +183,10 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
                     viewBox="0 0 24 24"
                   >
                     <path
+                      d="M5 13l4 4L19 7"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M5 13l4 4L19 7"
                     />
                   </svg>
                   <span>Receive this Couple's announcements</span>
@@ -203,20 +211,20 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
 }
 
 function ManageButton({ clientData }: { clientData: ClientMembership }) {
-  console.log("🚀 ~ ManageButton ~ clientData:", clientData);
-  const [_isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const updateClientMutation = useUpdateClient();
 
-  // const handleSaveClient = async (formData: EditClientFormValues) => {
-  //   console.log("Saving client data:", formData);
-  //   // In a real app, you would call an API to save the data
-  //   // await updateClient(clientData.Client.id, formData);
-  // };
+  const handleSaveClient = async (formData: ClientFormValues) => {
+    await updateClientMutation.mutateAsync({
+      body: { ...formData, id: clientData.Client.id },
+    });
+  };
 
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="flex items-center">
+        <DropdownMenuTrigger asChild className="flex items-center">
+          <Button className="flex items-center" size="sm" variant="outline">
             Manage
             <ChevronDown className="ml-1 h-4 w-4" />
           </Button>
@@ -228,12 +236,13 @@ function ManageButton({ clientData }: { clientData: ClientMembership }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* <EditClientDrawer
+      <EditClientDrawer
+        clientData={clientData}
         isOpen={isEditDrawerOpen}
+        title={`Edit ${clientData.Client.legal_first_name} ${clientData.Client.legal_last_name}`}
         onClose={() => setIsEditDrawerOpen(false)}
-        client={clientData}
         onSave={handleSaveClient}
-      /> */}
+      />
     </>
   );
 }

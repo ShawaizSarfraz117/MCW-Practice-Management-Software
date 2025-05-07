@@ -25,6 +25,23 @@ import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
 import { useQuery } from "@tanstack/react-query";
 import { ClientInfoCard } from "./ClientInfoCard";
+
+export function getClientGroupInfo(client: unknown) {
+  const name = (
+    client as {
+      ClientGroupMembership: {
+        Client: { legal_first_name: string; legal_last_name: string };
+      }[];
+    }
+  ).ClientGroupMembership.map((m) =>
+    `${m.Client?.legal_first_name ?? ""} ${m.Client?.legal_last_name ?? ""}`.trim(),
+  )
+    .filter(Boolean)
+    .join(" & ");
+
+  return name;
+}
+
 interface ClientProfileProps {
   clientId: string;
 }
@@ -90,12 +107,8 @@ export default function ClientProfile({
         setCredit(Number(response.available_credit) || 0);
 
         if (response.ClientGroupMembership?.length) {
-          const name = response.ClientGroupMembership.map((m) =>
-            `${m.Client?.legal_first_name ?? ""} ${m.Client?.legal_last_name ?? ""}`.trim(),
-          )
-            .filter(Boolean)
-            .join(" & ");
-          setClientName(name);
+          const name = getClientGroupInfo(response);
+          setClientName(name || "");
         }
       }
       return response;
@@ -196,7 +209,12 @@ export default function ClientProfile({
             {getNextAppointmentDate() && (
               <span>Next Appt: {getNextAppointmentDate()}</span>
             )}
-            <button className="text-blue-500 hover:underline">Edit</button>
+            <button
+              className="text-blue-500 hover:underline"
+              onClick={() => router.push(`/clients/${id}/edit`)}
+            >
+              Edit
+            </button>
           </div>
         </div>
         <div className="flex gap-2">

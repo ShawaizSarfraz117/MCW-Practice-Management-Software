@@ -44,29 +44,54 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse date and set to start of day
-    const day = new Date(date);
-    day.setHours(0, 0, 0, 0);
+    const inputDate = new Date(date);
 
-    // Upsert (update if exists, otherwise create)
-    const limitRecord = await prisma.appointmentLimit.upsert({
+    const dayUTC = new Date(
+      Date.UTC(
+        inputDate.getUTCFullYear(),
+        inputDate.getUTCMonth(),
+        inputDate.getUTCDate(),
+        0,
+        0,
+        0,
+        0,
+      ),
+    );
+
+    const existingLimit = await prisma.appointmentLimit.findUnique({
       where: {
         UQ_AppointmentLimit_Date_Clinician: {
-          date: day,
+          date: dayUTC,
           clinician_id,
         },
       },
-      update: {
-        max_limit,
-      },
-      create: {
-        date: day,
-        clinician_id,
-        max_limit,
-      },
     });
 
-    return NextResponse.json(limitRecord, { status: 201 });
+    let limitRecord;
+    if (existingLimit) {
+      // Update if exists
+      limitRecord = await prisma.appointmentLimit.update({
+        where: {
+          id: existingLimit.id,
+        },
+        data: {
+          max_limit,
+        },
+      });
+    } else {
+      // Create if not exists
+      limitRecord = await prisma.appointmentLimit.create({
+        data: {
+          date: dayUTC,
+          clinician_id,
+          max_limit,
+        },
+      });
+    }
+
+    return NextResponse.json(limitRecord, {
+      status: existingLimit ? 200 : 201,
+    });
   } catch (error) {
     return NextResponse.json(
       {

@@ -168,13 +168,19 @@ const Scheduled = () => {
     });
 
   // Transform API data to match the format expected by CalendarView
-  const formattedClinicians = Array.isArray(cliniciansData)
-    ? cliniciansData.map((clinician) => ({
-        value: clinician.id,
-        label: `${clinician.first_name} ${clinician.last_name}`,
-        group: "clinicians",
-      }))
-    : [];
+  const formattedClinicians = React.useMemo(() => {
+    if (!cliniciansData) return [];
+
+    const data = Array.isArray(cliniciansData)
+      ? cliniciansData
+      : [cliniciansData];
+    return data.map((clinician) => ({
+      value: clinician.id,
+      label: `${clinician.first_name} ${clinician.last_name}`,
+      group: "clinicians",
+      user_id: clinician.user_id,
+    }));
+  }, [cliniciansData]);
 
   const formattedLocations = Array.isArray(locationsData)
     ? locationsData.map((location) => ({

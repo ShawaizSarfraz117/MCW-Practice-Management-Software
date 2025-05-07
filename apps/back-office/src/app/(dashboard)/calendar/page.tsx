@@ -330,7 +330,7 @@ const CalendarPage: React.FC = () => {
 
   const handleAppointmentDone = () => {
     setShowCreateClient(false);
-    setShowIntakeForm(true);
+    // setShowIntakeForm(true);
   };
 
   // Show loading state if waiting for clinician data or API data

@@ -44,7 +44,18 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      return NextResponse.json(appointment);
+      // For a single appointment, we still need to check if its group is unique overall
+      let isFirstForGroup = false;
+      if (appointment.client_group_id) {
+        const count = await prisma.appointment.count({
+          where: { client_group_id: appointment.client_group_id },
+        });
+        isFirstForGroup = count === 1;
+      }
+      return NextResponse.json({
+        ...appointment,
+        isFirstAppointmentForGroup: isFirstForGroup,
+      });
     } else {
       logger.info("Retrieving appointments with filters");
       // Construct where clause based on provided filters
@@ -92,7 +103,8 @@ export async function GET(request: NextRequest) {
           ClientGroup: {
             include: {
               ClientGroupMembership: {
-                include: {
+                select: {
+                  client_id: true,
                   Client: true,
                 },
               },
@@ -118,9 +130,77 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      return NextResponse.json(appointments);
+      // 1. Extract unique non-null client_group_ids from the results
+      const uniqueGroupIds = Array.from(
+        new Set(
+          appointments
+            .map((a) => a.client_group_id)
+            .filter((id): id is string => id !== null),
+        ),
+      );
+
+      let groupCountMap = new Map<string, number>();
+
+      // 2. If there are groups, count their total occurrences in the entire table
+      if (uniqueGroupIds.length > 0) {
+        try {
+          const groupCounts = await prisma.appointment.groupBy({
+            by: ["client_group_id"],
+            where: {
+              client_group_id: {
+                in: uniqueGroupIds,
+              },
+            },
+            _count: {
+              client_group_id: true,
+            },
+          });
+
+          // Convert result to a Map<client_group_id, count>
+          groupCountMap = new Map(
+            groupCounts.map((g) => [
+              g.client_group_id!, // Non-null asserted as we filtered nulls and queried non-nulls
+              g._count.client_group_id,
+            ]),
+          );
+        } catch (groupCountError) {
+          if (groupCountError instanceof Error) {
+            logger.error(
+              groupCountError,
+              "Error counting client group occurrences:",
+            );
+          } else {
+            logger.error(
+              { error: groupCountError },
+              "Unknown error counting client group occurrences:",
+            );
+          }
+          // Proceed without the flag if counting fails
+          groupCountMap = new Map<string, number>();
+        }
+      }
+
+      // 3. Map results back to appointments, adding the flag
+      const appointmentsWithFlag = appointments.map((a) => {
+        const isFirst = a.client_group_id
+          ? groupCountMap.get(a.client_group_id) === 1
+          : false;
+        return {
+          ...a,
+          isFirstAppointmentForGroup: isFirst,
+        };
+      });
+
+      return NextResponse.json(appointmentsWithFlag);
     }
   } catch (error) {
+    // Log the main error (ensure it's handled correctly)
+    if (error instanceof Error) {
+      logger.error(error, "Error fetching appointments:");
+    } else {
+      logger.error({ error: error }, "Unknown error fetching appointments:");
+    }
+    // Use console.error as a fallback if logger fails or for visibility
     console.error("Error fetching appointments:", error);
     return NextResponse.json(
       { error: "Failed to fetch appointments" },

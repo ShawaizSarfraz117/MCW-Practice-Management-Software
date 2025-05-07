@@ -4,6 +4,7 @@ import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
 export interface Clinician {
   first_name?: string;
   last_name?: string;
+  user_id?: string;
   id?: string;
   value: string;
   label: string;

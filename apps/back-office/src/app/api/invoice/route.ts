@@ -51,10 +51,6 @@ export async function GET(request: NextRequest) {
       logger.info("Retrieving all invoices");
       const whereCondition: Prisma.InvoiceWhereInput = {};
 
-      whereCondition["type"] = {
-        not: "SUPERBILL",
-      };
-
       if (clientGroupId) {
         whereCondition["client_group_id"] = clientGroupId;
       }
@@ -131,29 +127,6 @@ export async function POST(request: NextRequest) {
         });
       }
       return NextResponse.json(invoice, { status: 201 });
-    } else if (data.invoice_type === "SUPERBILL") {
-      const dataToCreate = data.appointments.map(
-        ({ id, fee }: { id: string; fee: number }) => {
-          const invoiceNumber = `SB-${Date.now()}`;
-          return {
-            appointment_id: id,
-            invoice_number: invoiceNumber,
-            client_group_id: data.client_group_id,
-            clinician_id: data.clinician_id || null,
-            issued_date: new Date(), // Current date
-            due_date: new Date(),
-            amount: Number(fee),
-            status: "SUPERBILL", // Default status
-            type: data.invoice_type,
-          };
-        },
-      );
-      // Create new invoice
-      const newInvoice = await prisma.invoice.createMany({
-        data: dataToCreate,
-      });
-
-      return NextResponse.json(newInvoice, { status: 201 });
     } else {
       const invoiceNumber = `INV-${Date.now()}`;
       // Create new invoice

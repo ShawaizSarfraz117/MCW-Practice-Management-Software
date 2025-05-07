@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
@@ -163,6 +164,223 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching clients:", error);
     return NextResponse.json(
       { error: "Failed to fetch clients" },
+      { status: 500 },
+    );
+  }
+}
+
+// PUT - Update a client
+export async function PUT(request: NextRequest) {
+  try {
+    const data = await request.json();
+    const { id } = data;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Client ID is required" },
+        { status: 400 },
+      );
+    }
+
+    // Check if client exists
+    const existingClient = await prisma.client.findUnique({
+      where: { id },
+      include: {
+        ClientContact: true,
+      },
+    });
+
+    if (!existingClient) {
+      return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    // Update client basic info first
+    await prisma.client.update({
+      where: { id },
+      data: {
+        legal_first_name: data.legal_first_name,
+        legal_last_name: data.legal_last_name,
+        preferred_name: data.preferred_name,
+        date_of_birth: data.date_of_birth ? new Date(data.date_of_birth) : null,
+      },
+    });
+
+    // Handle email contacts
+    if (Array.isArray(data.emails)) {
+      // Get existing email contacts
+      const existingEmails = existingClient.ClientContact.filter(
+        (contact: { contact_type: string }) => contact.contact_type === "EMAIL",
+      );
+
+      // Delete emails that are no longer in the new list
+      const emailsToKeep = data.emails
+        .filter((email: { id?: string }) => email.id)
+        .map((email: { id?: string }) => email.id);
+
+      // Delete emails not in the new list
+      for (const existingEmail of existingEmails) {
+        if (!emailsToKeep.includes(existingEmail.id)) {
+          await prisma.clientContact.delete({
+            where: { id: existingEmail.id },
+          });
+        }
+      }
+
+      // Update or create emails
+      for (const email of data.emails) {
+        if (email.id) {
+          // Update existing email
+          await prisma.clientContact.update({
+            where: { id: email.id },
+            data: {
+              value: email.value,
+              type: email.type,
+              permission: email.permission,
+            },
+          });
+        } else {
+          // Create new email
+          await prisma.clientContact.create({
+            data: {
+              client_id: id,
+              contact_type: "EMAIL",
+              value: email.value,
+              type: email.type,
+              permission: email.permission,
+              is_primary: false, // Set primary status as needed
+            },
+          });
+        }
+      }
+    }
+
+    // Handle phone contacts
+    if (Array.isArray(data.phones)) {
+      // Get existing phone contacts
+      const existingPhones = existingClient.ClientContact.filter(
+        (contact: { contact_type: string }) => contact.contact_type === "PHONE",
+      );
+
+      // Get IDs of phones to keep
+      const phonesToKeep = data.phones
+        .filter((phone: { id?: string }) => phone.id)
+        .map((phone: { id?: string }) => phone.id);
+
+      // Delete phones not in the new list
+      for (const existingPhone of existingPhones) {
+        if (!phonesToKeep.includes(existingPhone.id)) {
+          await prisma.clientContact.delete({
+            where: { id: existingPhone.id },
+          });
+        }
+      }
+
+      // Update or create phones
+      for (const phone of data.phones) {
+        if (phone.id) {
+          // Update existing phone
+          await prisma.clientContact.update({
+            where: { id: phone.id },
+            data: {
+              value: phone.value,
+              type: phone.type,
+              permission: phone.permission,
+            },
+          });
+        } else {
+          // Create new phone
+          await prisma.clientContact.create({
+            data: {
+              client_id: id,
+              contact_type: "PHONE",
+              value: phone.value,
+              type: phone.type,
+              permission: phone.permission,
+              is_primary: false, // Set primary status as needed
+            },
+          });
+        }
+      }
+    }
+
+    // Handle client profile data using Prisma functions
+    // Update or create profile using upsert
+    await prisma.clientProfile.upsert({
+      where: { client_id: id },
+      update: {
+        middle_name: data.middle_name || null,
+        gender: data.sex || null,
+        gender_identity: data.gender_identity || null,
+        relationship_status: data.relationship_status || null,
+        employment_status: data.employment_status || null,
+        race_ethnicity: Array.isArray(data.race_ethnicity)
+          ? JSON.stringify(data.race_ethnicity)
+          : null,
+        race_ethnicity_details: data.race_ethnicity_details || null,
+        preferred_language: data.preferred_language || null,
+        notes: data.notes || null,
+      },
+      create: {
+        client_id: id,
+        middle_name: data.middle_name || null,
+        gender: data.sex || null,
+        gender_identity: data.gender_identity || null,
+        relationship_status: data.relationship_status || null,
+        employment_status: data.employment_status || null,
+        race_ethnicity: Array.isArray(data.race_ethnicity)
+          ? JSON.stringify(data.race_ethnicity)
+          : null,
+        race_ethnicity_details: data.race_ethnicity_details || null,
+        preferred_language: data.preferred_language || null,
+        notes: data.notes || null,
+      },
+    });
+
+    // Handle addresses using Prisma functions
+    if (Array.isArray(data.addresses)) {
+      // Delete existing addresses
+      await prisma.clientAdress.deleteMany({
+        where: { client_id: id },
+      });
+
+      // Create new addresses
+      for (const address of data.addresses) {
+        if (address.street || address.city || address.state || address.zip) {
+          await prisma.clientAdress.create({
+            data: {
+              client_id: id,
+              address_line1: address.street || "",
+              address_line2: "",
+              city: address.city || "",
+              state: address.state || "",
+              zip_code: address.zip || "",
+              country: "United States",
+              is_primary: false,
+            },
+          });
+        }
+      }
+    }
+
+    // Get updated client with related data
+    const updatedClient = await prisma.client.findUnique({
+      where: { id },
+      include: {
+        ClientContact: true,
+      },
+    });
+
+    return NextResponse.json({
+      message: "Client updated successfully",
+      client: updatedClient,
+    });
+  } catch (error) {
+    console.error("Error updating client:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to update client",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 },
     );
   }

@@ -7,7 +7,7 @@ import {
   Invoice,
   Payment,
 } from "@prisma/client";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 
 interface Location {
   id: string;
@@ -130,6 +130,55 @@ export const createClient = async ({ body = {} }) => {
   } catch (error) {
     return [null, error];
   }
+};
+
+export const updateClient = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: "/client",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const updateClientGroup = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: "/client/group",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const useUpdateClient = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateClient,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clientGroup"] });
+    },
+  });
+};
+export const useUpdateClientGroup = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateClientGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clientGroup"] });
+    },
+  });
 };
 
 export const fetchClientGroups = async ({
