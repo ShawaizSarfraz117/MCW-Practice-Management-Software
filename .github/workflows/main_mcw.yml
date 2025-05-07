@@ -57,7 +57,7 @@ jobs:
           app-name: "front-office-mcw-dev"
           slot-name: "Production"
           package: "./apps/front-office/deploy"
-          startup-command: "npm start"
+          startup-command: "npm start -- -p 8080"
 
       # Back Office App
       - name: Build back-office
@@ -75,4 +75,4 @@ jobs:
           app-name: "back-office-mcw-dev"
           slot-name: "Production"
           package: "./apps/back-office/deploy"
-          startup-command: "npm start"
+          startup-command: "npm start -- -p 8080"

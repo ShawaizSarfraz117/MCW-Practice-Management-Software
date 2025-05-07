@@ -79,6 +79,19 @@ if (fs.existsSync(path.join(appDir, "package.json"))) {
     path.join(deployDir, "package.json"),
   );
   console.log("Copied package.json");
+
+  // Modify package.json to remove cross-env dependency
+  const packagePath = path.join(deployDir, "package.json");
+  const packageData = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+
+  // Update the start script to not use cross-env
+  if (packageData.scripts && packageData.scripts.start) {
+    packageData.scripts.start = "next start";
+    console.log("Updated start script to remove cross-env dependency");
+  }
+
+  // Write the updated package.json
+  fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 } else {
   console.warn("package.json not found!");
 }
@@ -108,4 +121,4 @@ console.log(
 );
 
 console.log(`Deployment package created at: ${deployDir}`);
-console.log("Set startup command in Azure to: npm start");
+console.log("Set startup command in Azure to: npm start -- -p 8080");
