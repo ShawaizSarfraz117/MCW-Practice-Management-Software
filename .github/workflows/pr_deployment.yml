@@ -7,7 +7,7 @@ jobs:
   deploy-to-qa:
     name: Deploy PR to QA Slot
     runs-on: ubuntu-latest
-    environment: qa
+    environment: development
     permissions:
       contents: read
       id-token: write
