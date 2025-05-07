@@ -26,11 +26,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Generate Prisma Client & Run Database Migrations
+      - name: Generate Prisma Client
         run: |
           cd packages/database
           npx prisma generate
-          npx prisma migrate deploy
 
       # Build all applications
       - name: Build applications
@@ -63,4 +62,4 @@ jobs:
         with:
           app-name: "back-office-mcw-dev"
           package: "./apps/back-office"
-          startup-command: "npx next start -p 8080"
+          startup-command: "node startup.js"
