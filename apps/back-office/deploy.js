@@ -5,6 +5,7 @@ const fs = require("fs-extra");
 // Paths
 const appDir = path.resolve(__dirname);
 const prismaDir = path.join(appDir, "../../packages/database/prisma");
+const rootDir = path.join(appDir, "../..");
 
 // Main function
 async function prepareForDeployment() {
@@ -18,39 +19,43 @@ async function prepareForDeployment() {
     console.log("Copied Prisma directory for deployment");
   }
 
-  // Check if we need to create a simple package.json with just the essential dependencies
+  // Update package.json start script
   const packageJsonPath = path.join(appDir, "package.json");
   if (fs.existsSync(packageJsonPath)) {
     try {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
-      // Ensure the package has the most critical dependencies for standalone mode
-      packageJson.dependencies = packageJson.dependencies || {};
-
-      // Remove problematic private dependencies
-      Object.keys(packageJson.dependencies).forEach((dep) => {
-        if (dep.startsWith("@mcw/")) {
-          delete packageJson.dependencies[dep];
-        }
-      });
-
-      // Ensure essential dependencies for standalone
-      const essentialDeps = {
-        next: "^14.0.0",
-        react: "^18.2.0",
-        "react-dom": "^18.2.0",
-      };
-
-      packageJson.dependencies = {
-        ...packageJson.dependencies,
-        ...essentialDeps,
-      };
+      // Simply update the start script to use Next.js directly
+      packageJson.scripts = packageJson.scripts || {};
+      packageJson.scripts.start = "next start -p 8080";
 
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-      console.log("Updated package.json for deployment");
+      console.log("Updated package.json start script to: next start -p 8080");
     } catch (error) {
       console.error("Error updating package.json:", error);
     }
+  }
+
+  // Copy node_modules from root to app directory
+  const rootNodeModules = path.join(rootDir, "node_modules");
+  const appNodeModules = path.join(appDir, "node_modules");
+
+  if (fs.existsSync(rootNodeModules)) {
+    console.log("Copying node_modules to deployment directory...");
+    try {
+      // Ensure target directory exists and is empty
+      fs.ensureDirSync(appNodeModules);
+
+      // Copy node_modules
+      fs.copySync(rootNodeModules, appNodeModules);
+      console.log("Successfully copied node_modules to deployment directory");
+    } catch (error) {
+      console.error("Error copying node_modules:", error);
+    }
+  } else {
+    console.warn(
+      "Root node_modules directory not found, cannot copy dependencies",
+    );
   }
 
   console.log("Back-office deployment preparation completed!");
