@@ -266,3 +266,30 @@ export const fetchServices = async () => {
     return [null, error];
   }
 };
+
+export const fetchClientContacts = async ({ searchParams = {} }) => {
+  try {
+    const response: unknown = await FETCH.get({
+      url: "/client/contact",
+      searchParams,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const updateClientReminderPref = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: "/client/contact",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};

@@ -154,6 +154,7 @@ model ClientContact {
   type         String  @db.VarChar(50)
   value        String  @db.VarChar(255)
   Client       Client  @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientContact_Client")
+  ClientReminderPreference ClientReminderPreference[]
 }
 
 model ClientGroup {
@@ -190,11 +191,14 @@ model ClientGroupMembership {
 model ClientReminderPreference {
   id            String  @id @default(dbgenerated("newid()"), map: "PK_ClientReminderPreference_ID") @db.UniqueIdentifier
   client_id     String  @db.UniqueIdentifier
+  contact_id    String  @db.UniqueIdentifier
   reminder_type String  @db.VarChar(100)
+  channel       String
+  ClientContact ClientContact  @relation(fields: [contact_id], references: [id], onDelete:Cascade, map: "FK_ClientReminderPreference_ClientContact")
   is_enabled    Boolean @default(true, map: "DF_ClientReminderPreference_IsEnabled")
   Client        Client  @relation(fields: [client_id], references: [id], onDelete: Cascade, map: "FK_ClientReminderPreference_Client")
 
-  @@unique([client_id, reminder_type])
+  @@unique([client_id, reminder_type, channel])
 }
 
 model BillingAddress {

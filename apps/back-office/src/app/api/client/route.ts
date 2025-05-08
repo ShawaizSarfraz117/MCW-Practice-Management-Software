@@ -6,7 +6,28 @@ import { logger, config } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import { getClinicianInfo } from "@/utils/helpers";
+import { PrismaClient } from "@prisma/client";
 
+interface NotificationOptions {
+  upcomingAppointments: {
+    enabled: boolean;
+    emailId: string | null;
+    phoneId: string | null;
+    method: string;
+  };
+  incompleteDocuments: {
+    enabled: boolean;
+    emailId: string | null;
+    phoneId: string | null;
+    method: string;
+  };
+  cancellations: {
+    enabled: boolean;
+    emailId: string | null;
+    phoneId: string | null;
+    method: string;
+  };
+}
 interface ClientData {
   legalFirstName: string;
   legalLastName: string;
@@ -16,13 +37,9 @@ interface ClientData {
   addToWaitlist?: boolean;
   primaryClinicianId?: string;
   locationId?: string;
-  emails?: { value: string; type: string; permission: string }[];
-  phones?: { value: string; type: string; permission: string }[];
-  notificationOptions?: {
-    upcomingAppointments?: boolean;
-    incompleteDocuments?: boolean;
-    cancellations?: boolean;
-  };
+  emails: { value: string; type: string; permission: string }[];
+  phones: { value: string; type: string; permission: string }[];
+  notificationOptions: NotificationOptions;
   clientGroup: string;
   isResponsibleForBilling?: boolean;
   role?: string;
@@ -405,11 +422,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create all clients in a single transaction
-    const results = await prisma.$transaction(async (prisma) => {
+    // Create all clients in a single transaction with increased timeout
+    const results = await prisma.$transaction(async (tx) => {
       const createdClients = [];
 
-      const clientGroup = await prisma.clientGroup.create({
+      const clientGroup = await tx.clientGroup.create({
         data: {
           id: uuidv4(),
           name:
@@ -433,7 +450,7 @@ export async function POST(request: NextRequest) {
           clientId = data.clientId;
 
           // Fetch existing client to check against later
-          const existingClient = await prisma.client.findUnique({
+          const existingClient = await tx.client.findUnique({
             where: { id: clientId },
             include: { ClientContact: true },
           });
@@ -443,7 +460,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Create ClientGroupMembership for the existing client
-          await prisma.clientGroupMembership.create({
+          await tx.clientGroupMembership.create({
             data: {
               client_group_id: clientGroup.id,
               client_id: clientId,
@@ -477,7 +494,7 @@ export async function POST(request: NextRequest) {
 
             // Create new email contacts if any
             if (emailContacts.length > 0) {
-              await prisma.clientContact.createMany({
+              await tx.clientContact.createMany({
                 data: emailContacts,
               });
             }
@@ -507,14 +524,14 @@ export async function POST(request: NextRequest) {
 
             // Create new phone contacts if any
             if (phoneContacts.length > 0) {
-              await prisma.clientContact.createMany({
+              await tx.clientContact.createMany({
                 data: phoneContacts,
               });
             }
           }
         } else {
           // Create a new client
-          const client = await prisma.client.create({
+          const client = await tx.client.create({
             data: {
               legal_first_name: data.legalFirstName,
               legal_last_name: data.legalLastName,
@@ -530,7 +547,7 @@ export async function POST(request: NextRequest) {
           clientId = client.id;
 
           // Create ClientGroupMembership
-          await prisma.clientGroupMembership.create({
+          await tx.clientGroupMembership.create({
             data: {
               client_group_id: clientGroup.id,
               client_id: clientId,
@@ -572,55 +589,48 @@ export async function POST(request: NextRequest) {
 
           // Create all contacts
           if (emailContacts.length > 0 || phoneContacts.length > 0) {
-            await prisma.clientContact.createMany({
+            await tx.clientContact.createMany({
               data: [...emailContacts, ...phoneContacts],
             });
           }
         }
 
-        // Create reminder preferences if provided (for both new and existing clients)
-        if (data.notificationOptions) {
-          // First check if reminder preferences already exist for this client
-          const existingPreferences =
-            await prisma.clientReminderPreference.findMany({
-              where: { client_id: clientId },
-            });
+        const { upcomingAppointments, incompleteDocuments, cancellations } =
+          data.notificationOptions;
 
-          // Only create if none exist
-          if (existingPreferences.length === 0) {
-            const reminderPreferences = [];
-            if (data.notificationOptions.upcomingAppointments !== undefined) {
-              reminderPreferences.push({
-                client_id: clientId,
-                reminder_type: "UPCOMING_APPOINTMENTS",
-                is_enabled: data.notificationOptions.upcomingAppointments,
-              });
-            }
-            if (data.notificationOptions.incompleteDocuments !== undefined) {
-              reminderPreferences.push({
-                client_id: clientId,
-                reminder_type: "INCOMPLETE_DOCUMENTS",
-                is_enabled: data.notificationOptions.incompleteDocuments,
-              });
-            }
-            if (data.notificationOptions.cancellations !== undefined) {
-              reminderPreferences.push({
-                client_id: clientId,
-                reminder_type: "CANCELLATIONS",
-                is_enabled: data.notificationOptions.cancellations,
-              });
-            }
-
-            if (reminderPreferences.length > 0) {
-              await prisma.clientReminderPreference.createMany({
-                data: reminderPreferences,
-              });
-            }
-          }
+        if (upcomingAppointments.emailId || upcomingAppointments.phoneId) {
+          await createClientReminderPreferences(
+            tx,
+            data.emails,
+            data.phones,
+            clientId,
+            "UPCOMING_APPOINTMENTS",
+            upcomingAppointments,
+          );
+        }
+        if (incompleteDocuments.emailId || incompleteDocuments.phoneId) {
+          await createClientReminderPreferences(
+            tx,
+            data.emails,
+            data.phones,
+            clientId,
+            "INCOMPLETE_DOCUMENTS",
+            incompleteDocuments,
+          );
+        }
+        if (cancellations.emailId || cancellations.phoneId) {
+          await createClientReminderPreferences(
+            tx,
+            data.emails,
+            data.phones,
+            clientId,
+            "CANCELLATIONS",
+            cancellations,
+          );
         }
 
         // Get the created or updated client with all related data
-        const resultClient = await prisma.client.findUnique({
+        const resultClient = await tx.client.findUnique({
           where: { id: clientId },
           include: {
             ClientContact: true,
@@ -650,7 +660,11 @@ export async function POST(request: NextRequest) {
       !(error instanceof Error) ||
       !error.message.includes("Conversion failed")
     ) {
-      console.error("Error creating clients:", error);
+      if (error instanceof Error) {
+        logger.error(error);
+      } else {
+        logger.error(new Error(String(error)));
+      }
     }
     return NextResponse.json(
       {
@@ -703,4 +717,78 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
+async function createClientReminderPreferences(
+  prisma: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >,
+  emails: { value: string; type: string; permission: string }[],
+  phones: { value: string; type: string; permission: string }[],
+  clientId: string,
+  type: string,
+  notification: {
+    emailId: string | null;
+    phoneId: string | null;
+    enabled: boolean;
+    method: string;
+  },
+) {
+  if (notification.emailId || notification.phoneId) {
+    const clientReminderPreference: {
+      client_id: string;
+      contact_id: string;
+      reminder_type: string;
+      is_enabled: boolean;
+      channel: string;
+    }[] = [];
+
+    if (notification.emailId && emails.length) {
+      const emailIndex = parseInt(notification.emailId.split("-")[1], 10);
+      if (!isNaN(emailIndex) && emailIndex < emails.length) {
+        const email = emails[emailIndex];
+
+        const clientContactEmail = await prisma.clientContact.findFirst({
+          where: { value: email.value },
+        });
+
+        if (clientContactEmail?.id) {
+          clientReminderPreference.push({
+            client_id: clientId,
+            reminder_type: type,
+            is_enabled: notification.enabled,
+            contact_id: clientContactEmail.id,
+            channel: "email",
+          });
+        }
+      }
+    }
+
+    if (notification.phoneId && phones.length) {
+      const phoneIndex = parseInt(notification.phoneId.split("-")[1], 10);
+      if (!isNaN(phoneIndex) && phoneIndex < phones.length) {
+        const phone = phones[phoneIndex];
+
+        const clientContactPhone = await prisma.clientContact.findFirst({
+          where: { value: phone.value },
+        });
+
+        if (clientContactPhone?.id) {
+          clientReminderPreference.push({
+            client_id: clientId,
+            reminder_type: type,
+            is_enabled: notification.enabled,
+            contact_id: clientContactPhone.id,
+            channel: notification.method,
+          });
+        }
+      }
+    }
+
+    if (clientReminderPreference.length > 0) {
+      await prisma.clientReminderPreference.createMany({
+        data: clientReminderPreference,
+      });
+    }
+  }
+}
 config.setLevel("error");

@@ -213,6 +213,8 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
 
 function ManageButton({ clientData }: { clientData: ClientMembership }) {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [drawerType, setDrawerType] = useState<"edit" | "reminders">("edit");
+
   const updateClientMutation = useUpdateClient();
   const { toast } = useToast();
 
@@ -227,6 +229,11 @@ function ManageButton({ clientData }: { clientData: ClientMembership }) {
     });
   };
 
+  const toggleDrawer = (type: "edit" | "reminders") => {
+    setIsEditDrawerOpen(!isEditDrawerOpen);
+    setDrawerType(type);
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -237,14 +244,18 @@ function ManageButton({ clientData }: { clientData: ClientMembership }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem onSelect={() => setIsEditDrawerOpen(true)}>
+          <DropdownMenuItem onSelect={() => toggleDrawer("edit")}>
             View/Edit Client Info
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => toggleDrawer("reminders")}>
+            Edit Appointment Reminders
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <EditClientDrawer
         clientData={clientData}
+        drawerType={drawerType}
         isOpen={isEditDrawerOpen}
         title={`Edit ${clientData.Client.legal_first_name} ${clientData.Client.legal_last_name}`}
         onClose={() => setIsEditDrawerOpen(false)}

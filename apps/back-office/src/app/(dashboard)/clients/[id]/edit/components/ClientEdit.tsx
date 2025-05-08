@@ -185,14 +185,12 @@ export default function ClientEdit({
               {clientType[clientData?.type as keyof typeof clientType]} Info
             </TabsTrigger>
 
-            {clientData?.type !== "adult" && (
-              <TabsTrigger
-                className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "clients" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
-                value="clients"
-              >
-                Clients
-              </TabsTrigger>
-            )}
+            <TabsTrigger
+              className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "clients" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
+              value="clients"
+            >
+              Clients
+            </TabsTrigger>
             <TabsTrigger
               className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "billing" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
               value="billing"
@@ -208,18 +206,16 @@ export default function ClientEdit({
           </div>
         </TabsContent>
 
-        {clientData?.type !== "adult" && (
-          <TabsContent value="clients">
-            <div className="mt-6">
-              {clientData?.ClientGroupMembership.map((membership) => (
-                <ClientDetailsCard
-                  key={membership.client_id}
-                  client={membership}
-                />
-              ))}
-            </div>
-          </TabsContent>
-        )}
+        <TabsContent value="clients">
+          <div className="mt-6">
+            {clientData?.ClientGroupMembership.map((membership) => (
+              <ClientDetailsCard
+                key={membership.client_id}
+                client={membership}
+              />
+            ))}
+          </div>
+        </TabsContent>
 
         <TabsContent value="billing">
           <div className="mt-6">
