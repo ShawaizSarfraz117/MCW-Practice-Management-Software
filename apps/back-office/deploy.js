@@ -8,27 +8,25 @@ const nextAppDir = path.resolve(__dirname);
 const standaloneBuildDir = path.join(nextAppDir, ".next/standalone");
 const staticDir = path.join(nextAppDir, ".next/static");
 const publicDir = path.join(nextAppDir, "public");
-const sourcePrismaDir = path.join(nextAppDir, "packages/database/prisma");
+const rootDir = path.resolve(nextAppDir, "../..");
+const databaseDir = path.join(rootDir, "packages/database");
+const prismaDir = path.join(databaseDir, "prisma");
+const webConfigPath = path.join(nextAppDir, "web.config");
+const startupJsPath = path.join(nextAppDir, "startup.js");
 
-// Make sure Next.js config has output: 'standalone'
-// Create a backup of the original next.config file
+// Check if output: 'standalone' is set in next.config.js
+console.log("Checking Next.js config...");
 const configFile = fs.existsSync("next.config.js")
   ? "next.config.js"
   : "next.config.mjs";
-fs.copyFileSync(configFile, `${configFile}.backup`);
-
-// Update the config to ensure it has standalone output
 const configContent = fs.readFileSync(configFile, "utf8");
 if (
   !configContent.includes("output: 'standalone'") &&
   !configContent.includes('output: "standalone"')
 ) {
-  console.log(`Adding 'output: standalone' to ${configFile}`);
-  const updatedConfig = configContent.replace(
-    /const nextConfig = {/,
-    "const nextConfig = {\n  output: 'standalone',",
-  );
-  fs.writeFileSync(configFile, updatedConfig);
+  console.log("Warning: output: 'standalone' is not set in next.config.js.");
+  console.log("Please add it to your configuration for proper deployment.");
+  process.exit(1);
 }
 
 // Build the Next.js app with standalone output
@@ -120,11 +118,20 @@ if (fs.existsSync(publicDir)) {
   });
 }
 
-// Copy prisma directory to deployment package
-if (fs.existsSync(sourcePrismaDir)) {
-  const nestedPrismaDirDest = path.join(deployDir, "packages/database/prisma");
-  fs.ensureDirSync(path.dirname(nestedPrismaDirDest));
-  fs.copySync(sourcePrismaDir, nestedPrismaDirDest, { overwrite: true });
+// Copy Prisma directory to deployment package
+if (fs.existsSync(prismaDir)) {
+  // Create the database package structure in the deployment directory
+  const deployPrismaDir = path.join(deployDir, "prisma");
+  fs.ensureDirSync(deployPrismaDir);
+
+  // Copy all Prisma files including schema.prisma, migrations, etc.
+  fs.copySync(prismaDir, deployPrismaDir, { overwrite: true });
+  console.log(
+    "Copied Prisma directory to deployment package:",
+    deployPrismaDir,
+  );
+} else {
+  console.warn("Prisma directory not found at:", prismaDir);
 }
 
 // Handle native modules if they exist in node_modules
@@ -143,45 +150,27 @@ for (const moduleName of nativeModules) {
   }
 }
 
-// Create web.config for Azure
-const webConfig = `<?xml version="1.0" encoding="utf-8"?>
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <system.webServer>
-    <handlers>
-      <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
-    </handlers>
-    <rewrite>
-      <rules>
-        <!-- Don't interfere with requests for static files -->
-        <rule name="StaticContent" stopProcessing="true">
-          <match url="(.*\.(css|js|jpg|jpeg|png|gif|ico|wasm|svg|webp|woff|woff2|ttf|eot))" ignoreCase="true" />
-          <action type="None" />
-        </rule>
-        
-        <!-- All other requests go to Next.js -->
-        <rule name="NextJS">
-          <match url="/*" />
-          <action type="Rewrite" url="server.js" />
-        </rule>
-      </rules>
-    </rewrite>
-    <iisnode watchedFiles="web.config;*.js"/>
-    
-    <!-- Configure proper MIME types for static files -->
-    <staticContent>
-      <remove fileExtension=".json" />
-      <mimeMap fileExtension=".json" mimeType="application/json" />
-      <remove fileExtension=".wasm" />
-      <mimeMap fileExtension=".wasm" mimeType="application/wasm" />
-      <remove fileExtension=".webp" />
-      <mimeMap fileExtension=".webp" mimeType="image/webp" />
-    </staticContent>
-  </system.webServer>
-</configuration>`;
+// Copy web.config from project to deployment
+if (fs.existsSync(webConfigPath)) {
+  fs.copyFileSync(webConfigPath, path.join(deployDir, "web.config"));
+  console.log("Copied web.config from project.");
+} else {
+  console.error(
+    "Error: Required web.config file not found in project directory!",
+  );
+  process.exit(1);
+}
 
-fs.writeFileSync(path.join(deployDir, "web.config"), webConfig);
-console.log("Created web.config for Azure.");
+// Copy startup.js from project to deployment
+if (fs.existsSync(startupJsPath)) {
+  fs.copyFileSync(startupJsPath, path.join(deployDir, "startup.js"));
+  console.log("Copied startup.js from project.");
+} else {
+  console.error(
+    "Error: Required startup.js file not found in project directory!",
+  );
+  process.exit(1);
+}
 
 // Create a deployment package.json with start script
 const packageJson = {
@@ -189,13 +178,15 @@ const packageJson = {
   version: "1.0.0",
   private: true,
   scripts: {
-    start: "node server.js",
+    start: "node startup.js",
   },
   engines: {
     node: ">=18.0.0",
   },
-  // Include dependencies for native modules if needed
-  dependencies: {},
+  dependencies: {
+    "@prisma/client": "*",
+    prisma: "*",
+  },
 };
 
 // Add native module dependencies if they exist
@@ -217,16 +208,7 @@ const deploymentConfig = `[config]
 SCM_DO_BUILD_DURING_DEPLOYMENT=false`;
 
 fs.writeFileSync(path.join(deployDir, ".deployment"), deploymentConfig);
-console.log(
-  "Created .deployment file to prevent Azure from rebuilding the app.",
-);
-
-// Restore the original next.config if we created a backup
-if (fs.existsSync(`${configFile}.backup`)) {
-  fs.copyFileSync(`${configFile}.backup`, configFile);
-  fs.unlinkSync(`${configFile}.backup`);
-  console.log(`Restored original ${configFile}`);
-}
+console.log("Created .deployment file.");
 
 console.log("Deployment package created at:", deployDir);
 console.log(
