@@ -1,107 +1,107 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-  Switch,
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-  Button,
-} from "@mcw/ui";
+import { useState, useEffect } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent, Button } from "@mcw/ui";
 import { ChevronDown, Pencil } from "lucide-react";
 import EmailTemplateEditSidebar from "./EmailTemplateEditSidebar";
 import { useEmailTemplates, useEmailTemplate } from "./hooks/useEmailTemplate";
 import { useForm } from "@tanstack/react-form";
-import { UpdateTemplateData } from "./types";
+import {
+  UpdateTemplateData,
+  EmailTemplate,
+  ClientGroupData,
+  ClinicianData,
+} from "./types";
+import { ReminderEmails } from "./components/ReminderEmails";
+import { BillingEmails } from "./components/BillingEmails";
+import { renderTemplateWithButton } from "./utils/templateRenderer";
 
-const reminderEmailTabs = [
+const automatedEmailTabs = [
   { label: "Client emails", value: "client" },
   { label: "Contact and couple emails", value: "contact" },
 ];
 
 export default function ClientNotificationEmails() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<EmailTemplate | null>(null);
+  const [clientData, setClientData] = useState<ClientGroupData | null>(null);
+  const [clinicianData, setClinicianData] = useState<ClinicianData | null>(
+    null,
+  );
+  const {
+    error,
+    templates,
+    isLoading,
+    openIndexes,
+    setOpenIndexes,
+    isAutoSectionOpen,
+    setIsAutoSectionOpen,
+  } = useEmailTemplates();
+
+  useEffect(() => {
+    const fetchClientGroupData = async () => {
+      try {
+        const response = await fetch("/api/client/group");
+        const data = await response.json();
+        setClientData(data.data[0]);
+      } catch (error) {
+        console.error("Error fetching client group data:", error);
+      }
+    };
+
+    const fetchClinicianData = async () => {
+      try {
+        const response = await fetch("/api/clinician");
+        const data = await response.json();
+        setClinicianData(data[0]);
+      } catch (error) {
+        console.error("Error fetching clinician data:", error);
+      }
+    };
+
+    fetchClientGroupData();
+    fetchClinicianData();
+  }, []);
 
   const form = useForm({
     defaultValues: {
       autoTab: "client",
-      reminderTab: "client",
-      remindersOn: true,
-      reminderTime: "48",
-      isAutoSectionOpen: true,
-      isReminderSectionOpen: true,
-      isBillingSectionOpen: true,
-      openIndexes: new Set<number>(),
-      openReminderIndexes: new Set<number>(),
-      openBillingIndexes: new Set<number>(),
     },
     onSubmit: async ({ value }) => {
       console.log(value);
     },
   });
 
-  const { templates, isLoading } = useEmailTemplates();
-  const selectedTemplate =
-    editIndex !== null && templates ? templates[editIndex] : null;
-  const templateId = selectedTemplate?.id;
-  const { updateTemplate, isUpdating } = useEmailTemplate(templateId);
+  const { updateTemplate, isUpdating } = useEmailTemplate(selectedTemplate?.id);
 
-  const toggleOpen = (i: number) => {
-    const currentIndexes = form.getFieldValue("openIndexes") as Set<number>;
-    const next = new Set(currentIndexes);
-    if (next.has(i)) {
-      next.delete(i);
-    } else {
-      next.add(i);
-    }
-    form.setFieldValue("openIndexes", next);
+  const automatedTemplates =
+    templates?.filter((template) => template.type === "automated") || [];
+
+  const toggleOpen = (templateId: string) => {
+    setOpenIndexes((prev) => {
+      const next = new Set(prev);
+      if (next.has(templateId)) {
+        next.delete(templateId);
+      } else {
+        next.add(templateId);
+      }
+      return next;
+    });
   };
 
-  const toggleReminderOpen = (i: number) => {
-    const currentIndexes = form.getFieldValue(
-      "openReminderIndexes",
-    ) as Set<number>;
-    const next = new Set(currentIndexes);
-    if (next.has(i)) {
-      next.delete(i);
-    } else {
-      next.add(i);
-    }
-    form.setFieldValue("openReminderIndexes", next);
-  };
-
-  const toggleBillingOpen = (i: number) => {
-    const currentIndexes = form.getFieldValue(
-      "openBillingIndexes",
-    ) as Set<number>;
-    const next = new Set(currentIndexes);
-    if (next.has(i)) {
-      next.delete(i);
-    } else {
-      next.add(i);
-    }
-    form.setFieldValue("openBillingIndexes", next);
-  };
-
-  const handleEdit = (i: number) => {
-    setEditIndex(i);
+  const handleEdit = (template: EmailTemplate) => {
+    setSelectedTemplate(template);
     setDrawerOpen(true);
   };
 
   const closeDrawer = () => {
     setDrawerOpen(false);
-    setTimeout(() => setEditIndex(null), 300);
+    setTimeout(() => setSelectedTemplate(null), 300);
   };
 
   const handleSave = (formData: UpdateTemplateData) => {
-    if (!templateId) return;
+    if (!selectedTemplate?.id) return;
     updateTemplate(formData, {
       onSuccess: () => {
         closeDrawer();
@@ -110,7 +110,33 @@ export default function ClientNotificationEmails() {
   };
 
   if (isLoading) {
-    return <div className="p-4">Loading templates...</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-red-600">Error: {error.message}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (!templates || templates.length === 0) {
+    return (
+      <div className="p-4 text-center text-gray-500">
+        No email templates found. Create your first template to get started.
+      </div>
+    );
   }
 
   return (
@@ -121,25 +147,18 @@ export default function ClientNotificationEmails() {
           <button
             type="button"
             aria-label={
-              form.getFieldValue("isAutoSectionOpen")
-                ? "Collapse section"
-                : "Expand section"
+              isAutoSectionOpen ? "Collapse section" : "Expand section"
             }
-            onClick={() =>
-              form.setFieldValue(
-                "isAutoSectionOpen",
-                !form.getFieldValue("isAutoSectionOpen"),
-              )
-            }
+            onClick={() => setIsAutoSectionOpen(!isAutoSectionOpen)}
             className="transition-transform"
           >
             <ChevronDown
-              className={`w-5 h-5 text-gray-900 transition-transform ${form.getFieldValue("isAutoSectionOpen") ? "" : "rotate-180"}`}
+              className={`w-5 h-5 text-gray-900 transition-transform ${isAutoSectionOpen ? "" : "rotate-180"}`}
             />
           </button>
           <h2 className="font-semibold text-lg">Automated emails</h2>
         </div>
-        {form.getFieldValue("isAutoSectionOpen") && (
+        {isAutoSectionOpen && (
           <>
             <p className="text-gray-600 text-sm mb-4">
               You can view and customize the content of these templates.{" "}
@@ -153,42 +172,29 @@ export default function ClientNotificationEmails() {
               className="mb-4"
             >
               <TabsList className="border-b bg-white justify-start gap-8">
-                <TabsTrigger
-                  value="client"
-                  className={`
-                    pb-2 font-normal text-sm transition
-                    data-[state=active]:!bg-transparent
-                    data-[state=active]:!shadow-none
-                    data-[state=active]:!rounded-none
-                    data-[state=active]:text-[#2D8467]
-                    data-[state=active]:border-b-2
-                    data-[state=active]:border-[#2D8467]
-                    border-b-4 border-transparent
-                    focus:outline-none
-                  `}
-                >
-                  Client emails
-                </TabsTrigger>
-                <TabsTrigger
-                  value="contact"
-                  className={`
-                    pb-2 font-normal text-sm transition
-                    data-[state=active]:!bg-transparent
-                    data-[state=active]:!shadow-none
-                    data-[state=active]:!rounded-none
-                    data-[state=active]:text-[#2D8467]
-                    data-[state=active]:border-b-2
-                    data-[state=active]:border-[#2D8467]
-                    border-b-4 border-transparent
-                    focus:outline-none
-                  `}
-                >
-                  Contact and couple emails
-                </TabsTrigger>
+                {automatedEmailTabs.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className={`
+                      pb-2 font-normal text-sm transition
+                      data-[state=active]:!bg-transparent
+                      data-[state=active]:!shadow-none
+                      data-[state=active]:!rounded-none
+                      data-[state=active]:text-[#2D8467]
+                      data-[state=active]:border-b-2
+                      data-[state=active]:border-[#2D8467]
+                      border-b-4 border-transparent
+                      focus:outline-none
+                    `}
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
               </TabsList>
               <TabsContent value="client">
                 <div className="divide-y divide-gray-200">
-                  {templates?.map((template, i) => (
+                  {automatedTemplates.map((template) => (
                     <div key={template.id}>
                       <div className="flex items-center justify-between py-2">
                         <span className="text-sm text-gray-800">
@@ -198,32 +204,28 @@ export default function ClientNotificationEmails() {
                           <button
                             type="button"
                             aria-label={
-                              (
-                                form.getFieldValue("openIndexes") as Set<number>
-                              ).has(i)
+                              openIndexes.has(template.id)
                                 ? "Collapse"
                                 : "Expand"
                             }
-                            onClick={() => toggleOpen(i)}
+                            onClick={() => toggleOpen(template.id)}
                             className="transition-transform"
                           >
                             <ChevronDown
-                              className={`w-5 h-5 text-gray-900 transition-transform ${(form.getFieldValue("openIndexes") as Set<number>).has(i) ? "rotate-180" : ""}`}
+                              className={`w-5 h-5 text-gray-900 transition-transform ${openIndexes.has(template.id) ? "rotate-180" : ""}`}
                             />
                           </button>
                           <Button
                             size="icon"
                             variant="ghost"
                             className="p-1"
-                            onClick={() => handleEdit(i)}
+                            onClick={() => handleEdit(template)}
                           >
                             <Pencil className="w-5 h-5 text-gray-900" />
                           </Button>
                         </div>
                       </div>
-                      {(form.getFieldValue("openIndexes") as Set<number>).has(
-                        i,
-                      ) && (
+                      {openIndexes.has(template.id) && (
                         <div className="bg-white border rounded-lg p-6 mt-2 mb-4">
                           <div className="font-semibold text-lg mb-2">
                             {template.name}
@@ -231,28 +233,32 @@ export default function ClientNotificationEmails() {
                           <div className="mb-2 flex flex-col gap-1">
                             <div className="flex gap-2 text-sm">
                               <span className="text-gray-500 w-16">From</span>{" "}
-                              <span>yourprovider@simplepractice.com</span>
+                              <span>yourprovider@mcw.com</span>
                             </div>
-                            <div className="flex gap-2 text-sm">
+                            <div className="flex gap-2 text-sm mt-3">
                               <span className="text-gray-500 w-16">
                                 Subject
                               </span>{" "}
-                              <span>{template.subject}</span>
+                              <span className="whitespace-pre-line flex items-center flex-wrap">
+                                {renderTemplateWithButton(
+                                  template.subject || "",
+                                  clientData,
+                                  clinicianData,
+                                )}
+                              </span>
                             </div>
-                            <div className="flex gap-2 text-sm items-start">
+                            <div className="flex gap-2 text-sm items-start mt-3">
                               <span className="text-gray-500 w-16">
                                 Message
                               </span>
-                              <span className="whitespace-pre-line">
-                                {template.content}
+                              <span className="whitespace-pre-line flex items-center flex-wrap">
+                                {renderTemplateWithButton(
+                                  template.content,
+                                  clientData,
+                                  clinicianData,
+                                )}
                               </span>
                             </div>
-                          </div>
-                          <div className="text-xs text-gray-500 mt-2">
-                            Type: {template.type}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Status: {template.isActive ? "Active" : "Inactive"}
                           </div>
                         </div>
                       )}
@@ -271,228 +277,21 @@ export default function ClientNotificationEmails() {
       </section>
 
       {/* Reminder emails */}
-      <section className="bg-white border rounded-lg p-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label={
-                form.getFieldValue("isReminderSectionOpen")
-                  ? "Collapse section"
-                  : "Expand section"
-              }
-              onClick={() =>
-                form.setFieldValue(
-                  "isReminderSectionOpen",
-                  !form.getFieldValue("isReminderSectionOpen"),
-                )
-              }
-              className="transition-transform"
-            >
-              <ChevronDown
-                className={`w-5 h-5 text-gray-900 transition-transform ${form.getFieldValue("isReminderSectionOpen") ? "" : "rotate-180"}`}
-              />
-            </button>
-            <h2 className="font-semibold text-lg">Reminder emails</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-700">Reminders are on</span>
-            <Switch
-              checked={form.getFieldValue("remindersOn")}
-              onCheckedChange={(checked) =>
-                form.setFieldValue("remindersOn", checked)
-              }
-            />
-          </div>
-        </div>
-        {form.getFieldValue("isReminderSectionOpen") && (
-          <>
-            <p className="text-gray-600 text-sm mb-4">
-              Customize the content for your email reminders.
-            </p>
-            <div className="bg-[#EFF6FF] rounded p-3 text-xs text-gray-600 mb-2">
-              Clients only receive reminders if they're also enabled at the
-              client level.
-            </div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-400 text-[#374151]">
-                Send email reminder
-              </span>
-              <Select
-                value={form.getFieldValue("reminderTime")}
-                onValueChange={(value) =>
-                  form.setFieldValue("reminderTime", value)
-                }
-              >
-                <SelectTrigger className="w-28 h-8 text-sm font-400 text-[#374151]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="24">24 hours</SelectItem>
-                  <SelectItem value="48">48 hours</SelectItem>
-                  <SelectItem value="72">72 hours</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm font-400 text-[#374151]">
-                before start time of appointment
-              </span>
-            </div>
-            <div className="text-xs text-gray-500 mb-2">
-              In addition, an email reminder is sent 10 minutes before the start
-              time of Telehealth appointments.
-              <br />
-              Cancellation messages are sent upon the cancellation of an
-              appointment.
-            </div>
-            <Tabs
-              value={form.getFieldValue("reminderTab")}
-              onValueChange={(value) =>
-                form.setFieldValue("reminderTab", value)
-              }
-              className="mt-4"
-            >
-              <TabsList className="border-b bg-white justify-start gap-8">
-                {reminderEmailTabs.map((tab) => (
-                  <TabsTrigger
-                    className={`
-                      pb-2 font-normal text-sm transition
-                      data-[state=active]:!bg-transparent
-                      data-[state=active]:!shadow-none
-                      data-[state=active]:!rounded-none
-                      data-[state=active]:text-[#2D8467]
-                      data-[state=active]:border-b-2
-                      data-[state=active]:border-[#2D8467]
-                      border-b-4 border-transparent
-                      focus:outline-none
-                    `}
-                    key={tab.value}
-                    value={tab.value}
-                  >
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              <TabsContent value="client">
-                <div className="divide-y divide-gray-200">
-                  {[
-                    "Appointment reminder",
-                    "Telehealth appointment reminder",
-                    "Document completion reminder",
-                    "Cancellation message",
-                  ].map((label, i) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between py-2"
-                    >
-                      <span className="text-sm text-gray-800">{label}</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          aria-label={
-                            (
-                              form.getFieldValue(
-                                "openReminderIndexes",
-                              ) as Set<number>
-                            ).has(i)
-                              ? "Collapse"
-                              : "Expand"
-                          }
-                          onClick={() => toggleReminderOpen(i)}
-                          className="transition-transform"
-                        >
-                          <ChevronDown
-                            className={`w-5 h-5 text-gray-900 transition-transform ${(form.getFieldValue("openReminderIndexes") as Set<number>).has(i) ? "rotate-180" : ""}`}
-                          />
-                        </button>
-                        <Button size="icon" variant="ghost" className="p-1">
-                          <Pencil className="w-5 h-5 text-gray-900" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="contact">
-                <div className="text-gray-500 text-sm">
-                  Contact and couple reminders coming soon...
-                </div>
-              </TabsContent>
-            </Tabs>
-          </>
-        )}
-      </section>
+      <ReminderEmails
+        templates={templates}
+        clientData={clientData}
+        clinicianData={clinicianData}
+        onEdit={handleEdit}
+      />
 
       {/* Billing document emails */}
-      <section className="bg-white border rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-2">
-          <button
-            type="button"
-            aria-label={
-              form.getFieldValue("isBillingSectionOpen")
-                ? "Collapse section"
-                : "Expand section"
-            }
-            onClick={() =>
-              form.setFieldValue(
-                "isBillingSectionOpen",
-                !form.getFieldValue("isBillingSectionOpen"),
-              )
-            }
-            className="transition-transform"
-          >
-            <ChevronDown
-              className={`w-5 h-5 text-gray-900 transition-transform ${form.getFieldValue("isBillingSectionOpen") ? "" : "rotate-180"}`}
-            />
-          </button>
-          <h2 className="font-semibold text-lg">Billing document emails</h2>
-        </div>
-        {form.getFieldValue("isBillingSectionOpen") && (
-          <>
-            <p className="text-gray-600 text-sm mb-4">
-              Customize the content for your billing document emails
-            </p>
-            <div className="divide-y divide-gray-200">
-              {[
-                "Default invoice emails",
-                "Default statement emails",
-                "Default superbill emails",
-              ].map((label, i) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between py-2"
-                >
-                  <span className="text-sm text-gray-800">{label}</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      aria-label={
-                        (
-                          form.getFieldValue(
-                            "openBillingIndexes",
-                          ) as Set<number>
-                        ).has(i)
-                          ? "Collapse"
-                          : "Expand"
-                      }
-                      onClick={() => toggleBillingOpen(i)}
-                      className="transition-transform"
-                    >
-                      <ChevronDown
-                        className={`w-5 h-5 text-gray-900 transition-transform ${(form.getFieldValue("openBillingIndexes") as Set<number>).has(i) ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                    <Button size="icon" variant="ghost" className="p-1">
-                      <Pencil className="w-5 h-5 text-gray-900" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </section>
+      <BillingEmails
+        templates={templates}
+        clientData={clientData}
+        clinicianData={clinicianData}
+        onEdit={handleEdit}
+      />
 
-      {/* Edit Message Drawer */}
       <EmailTemplateEditSidebar
         open={drawerOpen}
         onClose={closeDrawer}

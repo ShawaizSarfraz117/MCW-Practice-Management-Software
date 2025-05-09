@@ -37,9 +37,13 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json(updatedTemplate);
+    return NextResponse.json({ data: updatedTemplate });
   } catch (error) {
-    return NextResponse.json({ error: error }, { status: 500 });
+    console.error("Error updating email template:", error);
+    return NextResponse.json(
+      { error: "Failed to update email template" },
+      { status: 500 },
+    );
   }
 }
 
@@ -65,8 +69,12 @@ export async function GET({ params }: { params: { id: string } }) {
       );
     }
 
-    return NextResponse.json(template);
+    return NextResponse.json({ data: template });
   } catch (error) {
-    return NextResponse.json({ error: error }, { status: 500 });
+    console.error("Error fetching email template:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch email template" },
+      { status: 500 },
+    );
   }
 }
