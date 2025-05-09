@@ -47,10 +47,13 @@ export async function PUT(
   }
 }
 
-export async function GET({ params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
     const { id } = params;
-
+    console.log(request);
     if (!id || id === "undefined") {
       return NextResponse.json(
         { error: "Invalid template ID" },

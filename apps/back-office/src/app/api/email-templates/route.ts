@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validate required fields
-    if (!data.subject || !data.body || !data.type) {
+    if (!data.subject || !data.content || !data.type) {
       return NextResponse.json(
-        { error: "Subject, body, and type are required fields" },
+        { error: "Subject, content, and type are required fields" },
         { status: 400 },
       );
     }

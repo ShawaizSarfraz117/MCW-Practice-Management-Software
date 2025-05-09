@@ -40,7 +40,8 @@ describe("Email Templates API", () => {
   });
 
   it("should get a single email template by id", async () => {
-    const response = await GETById({ params: { id: testTemplate.id } });
+    const req = createRequest(`/api/email-templates/${testTemplate.id}`);
+    const response = await GETById(req, { params: { id: testTemplate.id } });
 
     expect(response.status).toBe(200);
     const json = await response.json();

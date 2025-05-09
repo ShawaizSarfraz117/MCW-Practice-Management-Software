@@ -109,7 +109,8 @@ describe("Email Templates API", () => {
         mockTemplate,
       );
 
-      const response = await GET({ params: { id: mockTemplate.id } });
+      const request = createMockRequest({ method: "GET" });
+      const response = await GET(request, { params: { id: mockTemplate.id } });
       const data = await response.json();
 
       expect(prisma.emailTemplate.findUnique).toHaveBeenCalledWith({
@@ -122,7 +123,10 @@ describe("Email Templates API", () => {
     it("should return 404 for non-existent template", async () => {
       vi.mocked(prisma.emailTemplate.findUnique).mockResolvedValue(null);
 
-      const response = await GET({ params: { id: "non-existent-id" } });
+      const request = createMockRequest({ method: "GET" });
+      const response = await GET(request, {
+        params: { id: "non-existent-id" },
+      });
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -130,7 +134,8 @@ describe("Email Templates API", () => {
     });
 
     it("should return 400 for invalid template id", async () => {
-      const response = await GET({ params: { id: "undefined" } });
+      const request = createMockRequest({ method: "GET" });
+      const response = await GET(request, { params: { id: "undefined" } });
       const data = await response.json();
 
       expect(prisma.emailTemplate.findUnique).not.toHaveBeenCalled();
@@ -143,7 +148,8 @@ describe("Email Templates API", () => {
         new Error("Database error"),
       );
 
-      const response = await GET({ params: { id: mockTemplate.id } });
+      const request = createMockRequest({ method: "GET" });
+      const response = await GET(request, { params: { id: mockTemplate.id } });
       const data = await response.json();
 
       expect(response.status).toBe(500);
