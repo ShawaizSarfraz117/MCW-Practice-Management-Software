@@ -68,11 +68,11 @@ export function LicenseInfoSection({
 
       <EditTeamMemberSidebar
         isOpen={isEditing}
-        onClose={onClose}
         title="Edit license info"
         onSave={() => {
           // The save action is handled by the child component
         }}
+        onClose={onClose}
       >
         <LicenseInfoEdit member={member} onClose={onClose} />
       </EditTeamMemberSidebar>

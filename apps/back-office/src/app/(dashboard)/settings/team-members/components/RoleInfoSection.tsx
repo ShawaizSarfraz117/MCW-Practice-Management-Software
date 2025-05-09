@@ -61,10 +61,10 @@ export function RoleInfoSection({
                 viewBox="0 0 24 24"
               >
                 <path
+                  d="M19 9l-7 7-7-7"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
                 />
               </svg>
             </button>
@@ -88,25 +88,25 @@ export function RoleInfoSection({
                         </span>
                         <div className="flex items-center gap-2 text-[#4B5563]">
                           <svg
-                            width="16"
+                            fill="none"
                             height="16"
                             viewBox="0 0 16 16"
-                            fill="none"
+                            width="16"
                             xmlns="http://www.w3.org/2000/svg"
                           >
                             <path
                               d="M8 8C9.933 8 11.5 6.433 11.5 4.5C11.5 2.567 9.933 1 8 1C6.067 1 4.5 2.567 4.5 4.5C4.5 6.433 6.067 8 8 8Z"
                               stroke="currentColor"
-                              strokeWidth="1.5"
                               strokeLinecap="round"
                               strokeLinejoin="round"
+                              strokeWidth="1.5"
                             />
                             <path
                               d="M13.5234 15C13.5234 12.2975 11.0359 10.1125 7.99844 10.1125C4.96094 10.1125 2.47344 12.2975 2.47344 15"
                               stroke="currentColor"
-                              strokeWidth="1.5"
                               strokeLinecap="round"
                               strokeLinejoin="round"
+                              strokeWidth="1.5"
                             />
                           </svg>
                           <span className="text-sm">Entire practice</span>
@@ -132,25 +132,25 @@ export function RoleInfoSection({
                         </span>
                         <div className="flex items-center gap-2 text-[#4B5563]">
                           <svg
-                            width="16"
+                            fill="none"
                             height="16"
                             viewBox="0 0 16 16"
-                            fill="none"
+                            width="16"
                             xmlns="http://www.w3.org/2000/svg"
                           >
                             <path
                               d="M8 8C9.933 8 11.5 6.433 11.5 4.5C11.5 2.567 9.933 1 8 1C6.067 1 4.5 2.567 4.5 4.5C4.5 6.433 6.067 8 8 8Z"
                               stroke="currentColor"
-                              strokeWidth="1.5"
                               strokeLinecap="round"
                               strokeLinejoin="round"
+                              strokeWidth="1.5"
                             />
                             <path
                               d="M13.5234 15C13.5234 12.2975 11.0359 10.1125 7.99844 10.1125C4.96094 10.1125 2.47344 12.2975 2.47344 15"
                               stroke="currentColor"
-                              strokeWidth="1.5"
                               strokeLinecap="round"
                               strokeLinejoin="round"
+                              strokeWidth="1.5"
                             />
                           </svg>
                           <span className="text-sm">Entire practice</span>
@@ -190,8 +190,8 @@ export function RoleInfoSection({
 
       <EditTeamMemberSidebar
         isOpen={isEditing}
-        onClose={onClose}
         title="Edit role info"
+        onClose={onClose}
         onSave={() => {
           // The save action is handled by the child component
         }}

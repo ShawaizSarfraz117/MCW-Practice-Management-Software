@@ -81,10 +81,10 @@ export default function LicenseInfoEdit({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form className="space-y-4" onSubmit={handleSubmit}>
       <div>
         <Label htmlFor="type">License Type</Label>
-        <Select name="type" defaultValue={member.license?.type}>
+        <Select defaultValue={member.license?.type} name="type">
           <SelectTrigger className="mt-1">
             <SelectValue placeholder="Select license type" />
           </SelectTrigger>
@@ -100,26 +100,26 @@ export default function LicenseInfoEdit({
       <div>
         <Label htmlFor="number">License Number</Label>
         <Input
+          className="mt-1"
+          defaultValue={member.license?.number}
           id="number"
           name="number"
-          defaultValue={member.license?.number}
-          className="mt-1"
           placeholder="Enter license number"
         />
       </div>
       <div>
         <Label htmlFor="expirationDate">Expiration Date</Label>
         <Input
+          className="mt-1"
+          defaultValue={member.license?.expirationDate}
           id="expirationDate"
           name="expirationDate"
           type="date"
-          defaultValue={member.license?.expirationDate}
-          className="mt-1"
         />
       </div>
       <div>
         <Label htmlFor="state">State</Label>
-        <Select name="state" defaultValue={member.license?.state}>
+        <Select defaultValue={member.license?.state} name="state">
           <SelectTrigger className="mt-1">
             <SelectValue placeholder="Select state" />
           </SelectTrigger>

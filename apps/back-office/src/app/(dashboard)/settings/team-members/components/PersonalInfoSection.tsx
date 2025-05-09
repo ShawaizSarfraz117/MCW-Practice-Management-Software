@@ -48,11 +48,11 @@ export function PersonalInfoSection({
 
       <EditTeamMemberSidebar
         isOpen={isEditing}
-        onClose={onClose}
         title="Edit personal info"
         onSave={() => {
           // The save action is handled by the child component
         }}
+        onClose={onClose}
       >
         <PersonalInfoEdit member={member} onClose={onClose} />
       </EditTeamMemberSidebar>

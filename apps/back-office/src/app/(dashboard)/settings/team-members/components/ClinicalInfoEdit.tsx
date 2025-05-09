@@ -70,10 +70,10 @@ export default function ClinicalInfoEdit({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form className="space-y-4" onSubmit={handleSubmit}>
       <div>
         <Label htmlFor="specialty">Specialty</Label>
-        <Select name="specialty" defaultValue={member.specialty}>
+        <Select defaultValue={member.specialty} name="specialty">
           <SelectTrigger className="mt-1">
             <SelectValue placeholder="Select specialty" />
           </SelectTrigger>
@@ -92,10 +92,10 @@ export default function ClinicalInfoEdit({
       <div>
         <Label htmlFor="npiNumber">NPI Number</Label>
         <Input
+          className="mt-1"
+          defaultValue={member.npiNumber}
           id="npiNumber"
           name="npiNumber"
-          defaultValue={member.npiNumber}
-          className="mt-1"
           placeholder="Enter NPI number"
         />
       </div>

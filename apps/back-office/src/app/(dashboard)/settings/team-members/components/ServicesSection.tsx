@@ -44,8 +44,8 @@ export function ServicesSection({
 
       <EditTeamMemberSidebar
         isOpen={isEditing}
-        onClose={onClose}
         title="Edit services"
+        onClose={onClose}
         onSave={() => {
           // The save action is handled by the child component
         }}

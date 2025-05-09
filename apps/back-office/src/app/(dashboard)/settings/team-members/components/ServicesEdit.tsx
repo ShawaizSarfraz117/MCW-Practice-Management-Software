@@ -68,21 +68,21 @@ export default function ServicesEdit({ member, onClose }: ServicesEditProps) {
   ];
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form className="space-y-4" onSubmit={handleSubmit}>
       <div>
         <Label>Selected Services</Label>
         <div className="mt-2 space-y-2">
           {availableServices.map((service) => (
             <div key={service} className="flex items-center gap-2">
               <input
-                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300 text-[#2D8467] focus:ring-[#2D8467]"
+                defaultChecked={member.services?.includes(service)}
                 id={service}
                 name="services"
+                type="checkbox"
                 value={service}
-                defaultChecked={member.services?.includes(service)}
-                className="h-4 w-4 rounded border-gray-300 text-[#2D8467] focus:ring-[#2D8467]"
               />
-              <label htmlFor={service} className="text-sm text-gray-700">
+              <label className="text-sm text-gray-700" htmlFor={service}>
                 {service}
               </label>
             </div>

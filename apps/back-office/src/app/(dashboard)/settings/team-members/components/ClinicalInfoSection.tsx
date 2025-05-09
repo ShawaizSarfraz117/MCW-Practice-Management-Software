@@ -48,8 +48,8 @@ export function ClinicalInfoSection({
 
       <EditTeamMemberSidebar
         isOpen={isEditing}
-        onClose={onClose}
         title="Edit clinical info"
+        onClose={onClose}
         onSave={() => {
           // The save action is handled by the child component
         }}

@@ -23,7 +23,7 @@ export function EditTeamMember({ member }: EditTeamMemberProps) {
     <>
       {/* Backdrop overlay */}
       {editingSection && (
-        <div className="fixed inset-0 bg-black/30 z-40" aria-hidden="true" />
+        <div aria-hidden="true" className="fixed inset-0 bg-black/30 z-40" />
       )}
 
       <div className="w-full max-w-7xl mx-auto pt-2 pb-8 px-2 md:px-8">
@@ -40,34 +40,34 @@ export function EditTeamMember({ member }: EditTeamMemberProps) {
 
         {/* Sections */}
         <PersonalInfoSection
-          member={member}
-          onEdit={() => setEditingSection("personal")}
           isEditing={editingSection === "personal"}
+          member={member}
           onClose={handleClose}
+          onEdit={() => setEditingSection("personal")}
         />
         <ClinicalInfoSection
-          member={member}
-          onEdit={() => setEditingSection("clinical")}
           isEditing={editingSection === "clinical"}
+          member={member}
           onClose={handleClose}
+          onEdit={() => setEditingSection("clinical")}
         />
         <LicenseInfoSection
-          member={member}
-          onEdit={() => setEditingSection("license")}
           isEditing={editingSection === "license"}
+          member={member}
           onClose={handleClose}
+          onEdit={() => setEditingSection("license")}
         />
         <ServicesSection
-          member={member}
-          onEdit={() => setEditingSection("services")}
           isEditing={editingSection === "services"}
+          member={member}
           onClose={handleClose}
+          onEdit={() => setEditingSection("services")}
         />
         <RoleInfoSection
-          member={member}
-          onEdit={() => setEditingSection("role")}
           isEditing={editingSection === "role"}
+          member={member}
           onClose={handleClose}
+          onEdit={() => setEditingSection("role")}
         />
       </div>
     </>

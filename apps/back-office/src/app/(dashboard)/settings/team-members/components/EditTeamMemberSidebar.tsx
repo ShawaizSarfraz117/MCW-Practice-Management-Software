@@ -47,8 +47,8 @@ export default function EditTeamMemberSidebar({
         <div className="border-t p-4">
           <div className="flex gap-2 justify-end">
             <Button
-              variant="ghost"
               className="text-[#4B5563]"
+              variant="ghost"
               onClick={onClose}
             >
               Cancel

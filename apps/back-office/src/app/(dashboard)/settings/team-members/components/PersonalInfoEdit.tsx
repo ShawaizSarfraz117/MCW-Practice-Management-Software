@@ -62,24 +62,24 @@ export default function PersonalInfoEdit({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form className="space-y-4" onSubmit={handleSubmit}>
       <div>
         <Label htmlFor="name">Name</Label>
         <Input
+          className="mt-1"
+          defaultValue={member.name}
           id="name"
           name="name"
-          defaultValue={member.name}
-          className="mt-1"
         />
       </div>
       <div>
         <Label htmlFor="email">Email</Label>
         <Input
+          className="mt-1"
+          defaultValue={member.email}
           id="email"
           name="email"
           type="email"
-          defaultValue={member.email}
-          className="mt-1"
         />
       </div>
     </form>

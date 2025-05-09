@@ -27,7 +27,7 @@ export function BreadcrumbNav({ items, className }: BreadcrumbNavProps) {
           {index === items.length - 1 ? (
             <span>{item.label}</span>
           ) : (
-            <Link href={item.href} className="hover:text-[#2D8467]">
+            <Link className="hover:text-[#2D8467]" href={item.href}>
               {item.label}
             </Link>
           )}

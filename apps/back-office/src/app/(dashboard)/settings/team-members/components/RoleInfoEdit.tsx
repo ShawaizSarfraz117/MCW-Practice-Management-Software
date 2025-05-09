@@ -64,10 +64,10 @@ export default function RoleInfoEdit({ member, onClose }: RoleInfoEditProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit}>
       <div>
         <Label>Role</Label>
-        <Select name="role" defaultValue={member.role}>
+        <Select defaultValue={member.role} name="role">
           <SelectTrigger className="mt-1">
             <SelectValue placeholder="Select role" />
           </SelectTrigger>
@@ -111,21 +111,21 @@ export default function RoleInfoEdit({ member, onClose }: RoleInfoEditProps) {
             <ul className="space-y-2 text-[#4B5563] text-sm">
               <li className="flex items-center gap-2">
                 <input
-                  type="checkbox"
-                  id="chart-notes"
                   checked
                   disabled
                   className="h-4 w-4 rounded border-gray-300"
+                  id="chart-notes"
+                  type="checkbox"
                 />
                 <label htmlFor="chart-notes">View and create chart notes</label>
               </li>
               <li className="flex items-center gap-2">
                 <input
-                  type="checkbox"
-                  id="questionnaires"
                   checked
                   disabled
                   className="h-4 w-4 rounded border-gray-300"
+                  id="questionnaires"
+                  type="checkbox"
                 />
                 <label htmlFor="questionnaires">
                   View completed questionnaires and scored measures
@@ -133,21 +133,21 @@ export default function RoleInfoEdit({ member, onClose }: RoleInfoEditProps) {
               </li>
               <li className="flex items-center gap-2">
                 <input
-                  type="checkbox"
-                  id="documents"
                   checked
                   disabled
                   className="h-4 w-4 rounded border-gray-300"
+                  id="documents"
+                  type="checkbox"
                 />
                 <label htmlFor="documents">View client documents</label>
               </li>
               <li className="flex items-center gap-2">
                 <input
-                  type="checkbox"
-                  id="intake"
                   checked
                   disabled
                   className="h-4 w-4 rounded border-gray-300"
+                  id="intake"
+                  type="checkbox"
                 />
                 <label htmlFor="intake">
                   View intake documents and uploaded files
@@ -155,105 +155,13 @@ export default function RoleInfoEdit({ member, onClose }: RoleInfoEditProps) {
               </li>
               <li className="flex items-center gap-2">
                 <input
-                  type="checkbox"
-                  id="telehealth"
                   checked
                   disabled
                   className="h-4 w-4 rounded border-gray-300"
+                  id="telehealth"
+                  type="checkbox"
                 />
                 <label htmlFor="telehealth">Access telehealth sessions</label>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-medium text-[#374151] mb-2">
-              Operations
-            </h4>
-            <ul className="space-y-2 text-[#4B5563] text-sm">
-              <li className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="financial"
-                  checked
-                  disabled
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label htmlFor="financial">
-                  View financial dashboards and reports
-                </label>
-              </li>
-              <li className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="billing"
-                  checked
-                  disabled
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label htmlFor="billing">Process billing and payments</label>
-              </li>
-              <li className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="scheduling"
-                  checked
-                  disabled
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label htmlFor="scheduling">
-                  Manage appointments and scheduling
-                </label>
-              </li>
-              <li className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="team"
-                  checked
-                  disabled
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label htmlFor="team">Manage team members</label>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-medium text-[#374151] mb-2">
-              Practice Management
-            </h4>
-            <ul className="space-y-2 text-[#4B5563] text-sm">
-              <li className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="settings"
-                  checked
-                  disabled
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label htmlFor="settings">Modify practice settings</label>
-              </li>
-              <li className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="reports"
-                  checked
-                  disabled
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label htmlFor="reports">
-                  Generate and view practice reports
-                </label>
-              </li>
-              <li className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="audit"
-                  checked
-                  disabled
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label htmlFor="audit">Access audit logs</label>
               </li>
             </ul>
           </div>
