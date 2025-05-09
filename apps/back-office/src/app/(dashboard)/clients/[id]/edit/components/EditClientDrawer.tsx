@@ -97,7 +97,6 @@ export function EditClientDrawer({
         method: "text",
       },
     });
-  console.log("🚀 ~ notificationOptions:", notificationOptions);
 
   const handleSave = async (data: ClientFormValues) => {
     setIsSubmitting(true);

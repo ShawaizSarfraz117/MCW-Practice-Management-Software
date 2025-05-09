@@ -88,7 +88,7 @@ export function ContactDetailsSection({
               onChange={(e) => handleEmailChange(index, e.target.value)}
             />
             <Select
-              value={email.type || "home"}
+              value={email.type || "Home"}
               onValueChange={(newValue) => {
                 const newEmails = [...emails];
                 newEmails[index] = { ...email, type: newValue };
@@ -99,8 +99,8 @@ export function ContactDetailsSection({
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="home">Home</SelectItem>
-                <SelectItem value="work">Work</SelectItem>
+                <SelectItem value="Home">Home</SelectItem>
+                <SelectItem value="Work">Work</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -137,7 +137,7 @@ export function ContactDetailsSection({
           onClick={() => {
             const newEmails = [
               ...emails,
-              { value: "", type: "home", permission: "email-ok" },
+              { value: "", type: "Home", permission: "email-ok" },
             ];
             onEmailsChange(newEmails);
           }}
@@ -166,7 +166,7 @@ export function ContactDetailsSection({
               onChange={(e) => handlePhoneChange(index, e.target.value)}
             />
             <Select
-              value={phone.type || "mobile"}
+              value={phone.type || "Mobile"}
               onValueChange={(newValue) => {
                 const newPhones = [...phones];
                 newPhones[index] = { ...phone, type: newValue };
@@ -177,9 +177,9 @@ export function ContactDetailsSection({
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="mobile">Mobile</SelectItem>
-                <SelectItem value="home">Home</SelectItem>
-                <SelectItem value="work">Work</SelectItem>
+                <SelectItem value="Mobile">Mobile</SelectItem>
+                <SelectItem value="Home">Home</SelectItem>
+                <SelectItem value="Work">Work</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -218,7 +218,7 @@ export function ContactDetailsSection({
           onClick={() => {
             const newPhones = [
               ...phones,
-              { value: "", type: "mobile", permission: "text-voicemail" },
+              { value: "", type: "Mobile", permission: "text-voicemail" },
             ];
             onPhonesChange(newPhones);
           }}

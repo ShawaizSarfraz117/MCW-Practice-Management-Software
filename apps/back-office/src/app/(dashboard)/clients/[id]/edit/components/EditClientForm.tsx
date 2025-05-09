@@ -46,7 +46,7 @@ export function EditClientForm({
         id: contact.id,
         value: contact.value,
         type: contact.type || "Work",
-        permission: contact.permission || "Email OK",
+        permission: contact.permission || "email-ok",
       })),
       phones: clientData.Client.ClientContact.filter(
         (contact) => contact.contact_type === "PHONE",
@@ -54,7 +54,7 @@ export function EditClientForm({
         id: contact.id,
         value: contact.value,
         type: contact.type || "Mobile",
-        permission: contact.permission || "Voicemail OK",
+        permission: contact.permission || "text-voicemail",
       })),
       addresses: clientData.Client.ClientAdress
         ? clientData.Client.ClientAdress.map((address) => ({
@@ -433,7 +433,6 @@ export function EditClientForm({
                         <SelectContent>
                           <SelectItem value="Work">Work</SelectItem>
                           <SelectItem value="Home">Home</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                       <Select
@@ -446,8 +445,8 @@ export function EditClientForm({
                           <SelectValue placeholder="Permission" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Email OK">Email OK</SelectItem>
-                          <SelectItem value="No Email">No Email</SelectItem>
+                          <SelectItem value="email-ok">Email OK</SelectItem>
+                          <SelectItem value="no-email">No Email</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -471,7 +470,7 @@ export function EditClientForm({
                   const currentEmails = formData.emails || [];
                   handleChange("emails", [
                     ...currentEmails,
-                    { value: "", type: "Work", permission: "Email OK" },
+                    { value: "", type: "Work", permission: "email-ok" },
                   ]);
                 }}
               >
@@ -525,12 +524,14 @@ export function EditClientForm({
                           <SelectValue placeholder="Permission" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Voicemail OK">
-                            Voicemail OK
+                          <SelectItem value="text-voicemail">
+                            Text/Voicemail
                           </SelectItem>
-                          <SelectItem value="No Voicemail">
-                            No Voicemail
+                          <SelectItem value="text-only">Text Only</SelectItem>
+                          <SelectItem value="voicemail-only">
+                            Voicemail Only
                           </SelectItem>
+                          <SelectItem value="no-contact">No Contact</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -554,7 +555,7 @@ export function EditClientForm({
                   const currentPhones = formData.phones || [];
                   handleChange("phones", [
                     ...currentPhones,
-                    { value: "", type: "Mobile", permission: "Voicemail OK" },
+                    { value: "", type: "Mobile", permission: "text-voicemail" },
                   ]);
                 }}
               >
