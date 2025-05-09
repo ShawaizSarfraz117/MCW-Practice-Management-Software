@@ -19,6 +19,7 @@ export * from "./components/accordion";
 export * from "./components/alert-dialog";
 export * from "./components/aspect-ratio";
 export * from "./components/breadcrumb";
+export * from "./components/breadcrumb-nav";
 export * from "./components/calendar";
 export * from "./components/carousel";
 export * from "./components/chart";
