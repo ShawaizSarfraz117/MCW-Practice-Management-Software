@@ -442,6 +442,7 @@ export const ClientReminderPreferencePrismaFactory =
     defaultData: () => ({
       ...ClientReminderPreferenceFactory.build(),
       Client: ClientPrismaFactory,
+      ClientContact: ClientContactPrismaFactory,
     }),
   });
 

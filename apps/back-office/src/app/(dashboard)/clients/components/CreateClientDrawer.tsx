@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
 import { X } from "lucide-react";
-import { Sheet, SheetContent } from "@mcw/ui";
+import { Sheet, SheetContent, toast } from "@mcw/ui";
 import { Button } from "@mcw/ui";
 import { RadioGroup, RadioGroupItem } from "@mcw/ui";
 import { Label } from "@mcw/ui";
@@ -51,9 +51,24 @@ export interface FormState {
   emails: EmailEntry[];
   phones: PhoneEntry[];
   notificationOptions: {
-    upcomingAppointments: boolean;
-    incompleteDocuments: boolean;
-    cancellations: boolean;
+    upcomingAppointments: {
+      enabled: boolean;
+      emailId: string | null;
+      phoneId: string | null;
+      method: "text" | "voice";
+    };
+    incompleteDocuments: {
+      enabled: boolean;
+      emailId: string | null;
+      phoneId: string | null;
+      method: "text" | "voice";
+    };
+    cancellations: {
+      enabled: boolean;
+      emailId: string | null;
+      phoneId: string | null;
+      method: "text" | "voice";
+    };
   };
   contactMethod: {
     text: boolean;
@@ -78,7 +93,7 @@ const clientGroups: { type: string; name: string }[] = [
 export function CreateClientDrawer({
   open,
   onOpenChange,
-  defaultAppointmentDate = "Tuesday, Oct 22, 2025 @ 12:00 PM",
+  defaultAppointmentDate = "",
   fetchClientData,
   onClientCreated,
 }: CreateClientDrawerProps) {
@@ -113,9 +128,24 @@ export function CreateClientDrawer({
     emails: [],
     phones: [],
     notificationOptions: {
-      upcomingAppointments: true,
-      incompleteDocuments: false,
-      cancellations: false,
+      upcomingAppointments: {
+        enabled: false,
+        emailId: null,
+        phoneId: null,
+        method: "text",
+      },
+      incompleteDocuments: {
+        enabled: false,
+        emailId: null,
+        phoneId: null,
+        method: "text",
+      },
+      cancellations: {
+        enabled: false,
+        emailId: null,
+        phoneId: null,
+        method: "text",
+      },
     },
     contactMethod: {
       text: true,
@@ -217,7 +247,10 @@ export function CreateClientDrawer({
       setIsLoading(false);
 
       if (error) {
-        console.error("Failed to create client:", error);
+        toast({
+          title: "Failed to create client",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -395,9 +428,24 @@ export function CreateClientDrawer({
           ]
         : [],
       notificationOptions: {
-        upcomingAppointments: true,
-        incompleteDocuments: false,
-        cancellations: false,
+        upcomingAppointments: {
+          enabled: false,
+          emailId: null,
+          phoneId: null,
+          method: "text",
+        },
+        incompleteDocuments: {
+          enabled: false,
+          emailId: null,
+          phoneId: null,
+          method: "text",
+        },
+        cancellations: {
+          enabled: false,
+          emailId: null,
+          phoneId: null,
+          method: "text",
+        },
       },
       contactMethod: {
         text: true,
@@ -470,9 +518,11 @@ export function CreateClientDrawer({
             <div className="flex items-center justify-between border-b p-4">
               <div>
                 <h2 className="text-xl font-semibold">Create client</h2>
-                <p className="text-sm text-gray-500">
-                  Appointment: {defaultAppointmentDate}
-                </p>
+                {defaultAppointmentDate && (
+                  <p className="text-sm text-gray-500">
+                    Appointment: {defaultAppointmentDate}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Button
