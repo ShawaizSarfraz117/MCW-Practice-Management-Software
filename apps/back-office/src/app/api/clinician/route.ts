@@ -172,6 +172,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    await prisma.user.update({
+      where: { id: existingClinician.user_id },
+      data: {
+        email: data.email,
+      },
+    });
+
     // Update clinician
     const updatedClinician = await prisma.clinician.update({
       where: { id: data.id },
