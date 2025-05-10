@@ -41,8 +41,8 @@ const NOTES_COLORS = ["#22C55E", "#3B82F6", "#F59E0B", "#D1D5DB"];
 
 export function IncomeChart() {
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Income</h3>
           <p className="text-2xl font-semibold">$100</p>
@@ -55,7 +55,7 @@ export function IncomeChart() {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={incomeData}
-            margin={{ top: 10, right: 10, left: 40, bottom: 20 }}
+            margin={{ top: 5, right: 5, left: 35, bottom: 15 }}
           >
             <CartesianGrid vertical={false} stroke="#f0f0f0" />
             <XAxis
@@ -85,8 +85,8 @@ export function IncomeChart() {
 
 export function OutstandingBalancesChart() {
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Outstanding balances</h3>
           <p className="text-2xl font-semibold">$300</p>
@@ -95,7 +95,7 @@ export function OutstandingBalancesChart() {
           View report
         </button>
       </div>
-      <div className="space-y-3 mt-6">
+      <div className="space-y-3 mt-3">
         <div>
           <div className="flex justify-between text-sm mb-1">
             <span>Clients</span>
@@ -115,7 +115,7 @@ export function OutstandingBalancesChart() {
           </div>
         </div>
       </div>
-      <div className="flex gap-4 mt-4 text-sm">
+      <div className="flex gap-4 mt-3 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-orange-500" />
           <span>Unpaid</span>
@@ -131,8 +131,8 @@ export function OutstandingBalancesChart() {
 
 export function AppointmentsChart() {
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Appointments</h3>
           <p className="text-2xl font-semibold">4</p>
@@ -141,10 +141,10 @@ export function AppointmentsChart() {
           View report
         </button>
       </div>
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-6">
         <div className="relative w-32 h-32">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+            <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie
                 data={appointmentData}
                 innerRadius={35}
@@ -163,7 +163,7 @@ export function AppointmentsChart() {
             <p className="text-gray-500">4 Show</p>
           </div>
         </div>
-        <div className="space-y-2 text-sm">
+        <div className="space-y-1.5 text-sm">
           {appointmentLegend.map((item) => (
             <div key={item.name} className="flex items-center gap-2">
               <span
@@ -181,8 +181,8 @@ export function AppointmentsChart() {
 
 export function NotesChart() {
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Notes</h3>
           <p className="text-2xl font-semibold">12</p>
@@ -191,10 +191,10 @@ export function NotesChart() {
           View report
         </button>
       </div>
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-6">
         <div className="relative w-32 h-32">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+            <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie
                 data={notesData}
                 innerRadius={35}
@@ -217,7 +217,7 @@ export function NotesChart() {
             <p className="text-gray-500">2 Notes</p>
           </div>
         </div>
-        <div className="space-y-2 text-sm">
+        <div className="space-y-1.5 text-sm">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
             <span>No Note</span>

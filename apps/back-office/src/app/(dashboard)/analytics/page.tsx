@@ -22,8 +22,8 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="h-full bg-gray-50">
-      <div className="p-6">
+    <div className="h-full ">
+      <div className="p-6 bg-gray-50">
         <div className="mb-6">
           <AnalyticsHeader activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
