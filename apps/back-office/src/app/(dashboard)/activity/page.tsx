@@ -1,121 +1,95 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ChevronDown } from "lucide-react";
-import { Input } from "@mcw/ui";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@mcw/ui";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@mcw/ui";
 import ActivityTable from "./components/ActivityTable";
+import Filters from "./components/Filters";
+import TabNavigation, { TabType } from "./components/TabNavigation";
+
+interface ActivityPageState {
+  activeTab: TabType;
+  searchQuery: string;
+  selectedClient: string;
+  selectedTimeRange: string;
+  selectedEventType: string;
+  fromDate: string;
+  toDate: string;
+}
 
 export default function AccountActivitySection() {
-  const [showDetails, setShowDetails] = useState(true);
-  const [selectedTimeRange, setSelectedTimeRange] = useState("All Time");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [state, setState] = useState<ActivityPageState>({
+    activeTab: "history",
+    searchQuery: "",
+    selectedClient: "Select Client",
+    selectedTimeRange: "All Time",
+    selectedEventType: "All Events",
+    fromDate: "",
+    toDate: "",
+  });
 
-  const timeRanges = [
-    "All Time",
-    "Last 24 Hours",
-    "Last 7 Days",
-    "Last 30 Days",
-    "Last 90 Days",
-  ];
+  // Helper functions to update specific parts of state
+  const setActiveTab = (activeTab: TabType) =>
+    setState((prev) => ({ ...prev, activeTab }));
+  const setSearchQuery = (searchQuery: string) =>
+    setState((prev) => ({ ...prev, searchQuery }));
+  const setSelectedClient = (selectedClient: string) =>
+    setState((prev) => ({ ...prev, selectedClient }));
+  const setSelectedTimeRange = (selectedTimeRange: string) =>
+    setState((prev) => ({ ...prev, selectedTimeRange }));
+  const setSelectedEventType = (selectedEventType: string) =>
+    setState((prev) => ({ ...prev, selectedEventType }));
+  const setFromDate = (fromDate: string) =>
+    setState((prev) => ({ ...prev, fromDate }));
+  const setToDate = (toDate: string) =>
+    setState((prev) => ({ ...prev, toDate }));
 
   return (
-    <div className="flex-1 overflow-auto">
-      <main className="p-6">
-        <div className="mb-4">
-          <h1 className="text-2xl font-semibold text-[#1f2937]">
-            Account Activity
-          </h1>
-        </div>
+    <div className="p-6">
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold text-gray-900">
+          Account Activity
+        </h1>
+      </div>
 
-        <div className="bg-white rounded-lg shadow">
-          <Tabs className="w-full" defaultValue="history">
-            <TabsList className="border-b w-full justify-start rounded-none p-0 h-auto bg-transparent">
-              <TabsTrigger
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#2d8467] data-[state=active]:text-[#2d8467] px-6 py-3 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-                value="history"
-              >
-                History
-              </TabsTrigger>
-              <TabsTrigger
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#2d8467] data-[state=active]:text-[#2d8467] px-6 py-3 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-                value="signin"
-              >
-                Sign In Events
-              </TabsTrigger>
-              <TabsTrigger
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#2d8467] data-[state=active]:text-[#2d8467] px-6 py-3 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-                value="hipaa"
-              >
-                HIPAA Audit Log
-              </TabsTrigger>
-            </TabsList>
+      {/* Tab Navigation */}
+      <TabNavigation activeTab={state.activeTab} setActiveTab={setActiveTab} />
 
-            <div className="p-6">
-              {/* Search and Filter */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="relative w-[230px]">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      className="px-9 h-10 bg-white border-[#e5e7eb]"
-                      placeholder="Search"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="flex items-center gap-2 px-4 h-10 bg-white border border-[#e5e7eb] rounded-md text-gray-700">
-                      <span>{selectedTimeRange}</span>
-                      <ChevronDown className="h-4 w-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      {timeRanges.map((range) => (
-                        <DropdownMenuItem
-                          key={range}
-                          onClick={() => setSelectedTimeRange(range)}
-                        >
-                          {range}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <button
-                  className="text-[#2d8467] text-sm"
-                  onClick={() => setShowDetails(!showDetails)}
-                >
-                  {showDetails ? "Hide details" : "Show details"}
-                </button>
-              </div>
+      <div className="bg-white rounded-lg border shadow-sm">
+        {/* Filters Section */}
+        <Filters
+          searchQuery={state.searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedClient={state.selectedClient}
+          setSelectedClient={setSelectedClient}
+          selectedTimeRange={state.selectedTimeRange}
+          setSelectedTimeRange={setSelectedTimeRange}
+          selectedEventType={state.selectedEventType}
+          setSelectedEventType={setSelectedEventType}
+          fromDate={state.fromDate}
+          setFromDate={setFromDate}
+          toDate={state.toDate}
+          setToDate={setToDate}
+        />
 
-              <ActivityTable
-                searchQuery={searchQuery}
-                showDetails={showDetails}
-                timeRange={selectedTimeRange}
-              />
-            </div>
+        {/* Activity Content */}
+        {state.activeTab === "history" && (
+          <ActivityTable
+            searchQuery={state.searchQuery}
+            timeRange={state.selectedTimeRange}
+          />
+        )}
 
-            <TabsContent value="signin">
-              <div className="flex items-center justify-center h-40 text-gray-500">
-                Sign In Events content
-              </div>
-            </TabsContent>
+        {state.activeTab === "signin" && (
+          <div className="p-8 text-center text-gray-500">
+            Sign In Events will be displayed here
+          </div>
+        )}
 
-            <TabsContent value="hipaa">
-              <div className="flex items-center justify-center h-40 text-gray-500">
-                HIPAA Audit Log content
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
+        {state.activeTab === "hipaa" && (
+          <div className="p-8 text-center text-gray-500">
+            HIPAA Audit Log will be displayed here
+          </div>
+        )}
+      </div>
     </div>
   );
 }
