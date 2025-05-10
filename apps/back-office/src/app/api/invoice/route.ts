@@ -63,20 +63,7 @@ export async function GET(request: NextRequest) {
       const invoices = await prisma.invoice.findMany({
         where: whereCondition,
         include: {
-          ClientGroup: {
-            include: {
-              ClientGroupMembership: {
-                include: {
-                  Client: {
-                    select: {
-                      legal_first_name: true,
-                      legal_last_name: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
+          ClientGroup: true,
           Appointment: true,
           Payment: true,
         },
@@ -97,16 +84,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-
-    // Validate required fields
-    if (!data.amount) {
-      return NextResponse.json(
-        {
-          error: "Missing required fields: amount",
-        },
-        { status: 400 },
-      );
-    }
 
     if (data.invoice_type === "adjustment") {
       const appointment = await prisma.appointment.findUnique({

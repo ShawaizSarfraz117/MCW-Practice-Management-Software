@@ -267,9 +267,9 @@ describe("Invoice API - Integration Tests", () => {
     const response = await POST(req);
 
     // Assert
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(500);
     const errorResponse = await response.json();
     expect(errorResponse).toHaveProperty("error");
-    expect(errorResponse.error).toContain("Missing required fields");
+    expect(errorResponse.error).toContain("Failed to create invoice");
   });
 });

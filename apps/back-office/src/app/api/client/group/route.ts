@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const sortBy = searchParams.get("sortBy") || "name";
     const status = searchParams.get("status");
-
+    const includeProfile = searchParams.get("includeProfile");
+    const includeAdress = searchParams.get("includeAdress");
     const { clinicianId } = await getClinicianInfo();
     // Parse status parameter (could be a comma-separated list)
     const statusArray = status ? status.split(",") : ["all"];
@@ -42,6 +43,8 @@ export async function GET(request: NextRequest) {
               Client: {
                 include: {
                   ClientContact: true,
+                  ClientProfile: includeProfile === "true",
+                  ClientAdress: includeAdress === "true",
                 },
               },
             },
@@ -183,6 +186,47 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching client groups:", error);
     return NextResponse.json(
       { error: "Failed to fetch client groups" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const data = await request.json();
+    const { id } = data;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Client Group ID is required" },
+        { status: 400 },
+      );
+    }
+
+    // Format the date properly for Prisma (if provided)
+    let formattedDate = undefined;
+    if (data.dateFirstSeen) {
+      // Convert YYYY-MM-DD to ISO date by adding time
+      formattedDate = new Date(`${data.dateFirstSeen}T00:00:00Z`).toISOString();
+    }
+
+    await prisma.clientGroup.update({
+      where: { id },
+      data: {
+        is_active: data.status === "Active",
+        first_seen_at: formattedDate,
+        notes: data.notes,
+      },
+    });
+
+    return NextResponse.json(
+      { message: "Client Group updated successfully" },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("Error updating client group:", error);
+    return NextResponse.json(
+      { error: "Failed to update client group" },
       { status: 500 },
     );
   }

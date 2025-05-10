@@ -105,20 +105,7 @@ describe("Invoice API", () => {
     expect(prisma.invoice.findMany).toHaveBeenCalledWith({
       where: {},
       include: {
-        ClientGroup: {
-          include: {
-            ClientGroupMembership: {
-              include: {
-                Client: {
-                  select: {
-                    legal_first_name: true,
-                    legal_last_name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        ClientGroup: true,
         Appointment: true,
         Payment: true,
       },
@@ -158,20 +145,7 @@ describe("Invoice API", () => {
         status: "PENDING",
       },
       include: {
-        ClientGroup: {
-          include: {
-            ClientGroupMembership: {
-              include: {
-                Client: {
-                  select: {
-                    legal_first_name: true,
-                    legal_last_name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        ClientGroup: true,
         Appointment: true,
         Payment: true,
       },
@@ -325,9 +299,9 @@ describe("Invoice API", () => {
     const response = await POST(req);
 
     // Assert
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(500);
     const json = await response.json();
     expect(json).toHaveProperty("error");
-    expect(json.error).toContain("Missing required fields");
+    expect(json.error).toContain("Failed to create invoice");
   });
 });

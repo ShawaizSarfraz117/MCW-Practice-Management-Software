@@ -45,7 +45,7 @@ const get = async ({
       newurl = `${newurl}?${queryParams}`;
     }
 
-    const promise = await fetch(`${ROUTES.BASE_URL}/${newurl}`, {
+    const promise = await fetch(`${ROUTES.BASE_URL}${newurl}`, {
       method: "GET",
       headers,
     });

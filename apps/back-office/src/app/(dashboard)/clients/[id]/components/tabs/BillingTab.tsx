@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   createInvoice,
-  fetchAppointments,
   updateAppointment,
 } from "@/(dashboard)/clients/services/client.service";
 import { Button } from "@mcw/ui";
@@ -20,7 +19,7 @@ import {
 } from "@mcw/ui";
 import { DateRangePicker } from "@mcw/ui";
 import { DateRange } from "react-day-picker";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import Loading from "@/components/Loading";
 import { format } from "date-fns";
 import { InvoiceDialog } from "../InvoiceDialogue";
@@ -33,12 +32,16 @@ import {
 } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { toast } from "@mcw/ui";
+import { useFetchAppointments } from "@/(dashboard)/clients/services/client.service";
+import { SuperbillModal } from "../SuperbillModal";
+import { SuperbillDialog } from "../SuperbillDialog";
 // Type definitions
 type Invoice = {
   id: string;
   invoice_number: string;
   amount: number;
   status: string;
+  type?: string;
   Payment?: {
     amount: string;
   }[];
@@ -77,38 +80,55 @@ export default function BillingTab({
   const [editingAppointment, setEditingAppointment] =
     useState<Appointment | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
+  const [superbillModalOpen, setSuperbillModalOpen] = useState(false);
+  const [superbillDialogOpen, setSuperbillDialogOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const params = useParams();
   const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
-    queryKey: [
+  const { data, isLoading } = useFetchAppointments(
+    [
       "appointments",
       dateRange,
       statusFilter,
       addPaymentModalOpen,
       invoiceDialogOpen,
     ],
-    queryFn: () =>
-      fetchAppointments({
-        searchParams: {
-          clientGroupId: params.id,
-          startDate: dateRange?.from?.toISOString(),
-          endDate: dateRange?.to?.toISOString(),
-          status: statusFilter !== "billable" ? statusFilter : undefined,
-        },
-      }),
-  });
+    {
+      clientGroupId: params.id,
+      startDate: dateRange?.from?.toISOString(),
+      endDate: dateRange?.to?.toISOString(),
+      status: statusFilter !== "billable" ? statusFilter : undefined,
+    },
+  );
+  const queryClient = useQueryClient();
 
   // Type assertion
   const appointments = data as Appointment[] | undefined;
 
   const handleInvoiceClick = (invoiceId: string) => {
+    // Find the invoice to check if it's a superbill
+    const invoiceApp = appointments?.find((app) =>
+      app.Invoice.some((inv) => inv.id === invoiceId),
+    );
+    const invoice = invoiceApp?.Invoice.find((inv) => inv.id === invoiceId);
+
+    if (invoice?.type === "SUPERBILL") {
+      // For superbills, update URL and open superbill dialog
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("type", "superbill");
+      params.set("invoiceId", invoiceId);
+
+      router.push(`${window.location.pathname}?${params.toString()}`, {
+        scroll: false,
+      });
+      setSuperbillDialogOpen(true);
+      return;
+    }
+
+    // Handle regular invoices as before
     const params = new URLSearchParams(searchParams.toString());
-    // Set or update the tab parameter
     params.set("type", "invoice");
     params.set("invoiceId", invoiceId);
 
@@ -121,6 +141,13 @@ export default function BillingTab({
   const onOpenChange = (invoiceDialogOpen: boolean) => {
     setInvoiceDialogOpen(invoiceDialogOpen);
     if (!invoiceDialogOpen) {
+      router.push(`${pathname}?tab=${searchParams.get("tab")}`);
+    }
+  };
+
+  const onSuperbillOpenChange = (open: boolean) => {
+    setSuperbillDialogOpen(open);
+    if (!open) {
       router.push(`${pathname}?tab=${searchParams.get("tab")}`);
     }
   };
@@ -206,6 +233,19 @@ export default function BillingTab({
       {invoiceDialogOpen && (
         <InvoiceDialog open={invoiceDialogOpen} onOpenChange={onOpenChange} />
       )}
+      {superbillModalOpen && (
+        <SuperbillModal
+          clientId={params.id as string}
+          open={superbillModalOpen}
+          onOpenChange={setSuperbillModalOpen}
+        />
+      )}
+      {superbillDialogOpen && (
+        <SuperbillDialog
+          open={superbillDialogOpen}
+          onOpenChange={onSuperbillOpenChange}
+        />
+      )}
       {/* Date Range and Filter */}
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-2">
@@ -225,7 +265,18 @@ export default function BillingTab({
             </SelectContent>
           </Select>
         </div>
-        <Button className="bg-[#2d8467] hover:bg-[#236c53]">New</Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="bg-[#2d8467] hover:bg-[#236c53] flex items-center gap-1">
+              New <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setSuperbillModalOpen(true)}>
+              Create Superbill
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Billing Table */}
