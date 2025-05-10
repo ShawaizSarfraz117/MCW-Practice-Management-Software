@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function */
 import { beforeEach, describe, expect, it, vi, Mock } from "vitest";
-import { GET, POST, DELETE } from "../../../src/app/api/client/route";
+import { GET, POST, DELETE } from "@/api/client/route";
 import { NextRequest } from "next/server";
 
 // Set up mock values

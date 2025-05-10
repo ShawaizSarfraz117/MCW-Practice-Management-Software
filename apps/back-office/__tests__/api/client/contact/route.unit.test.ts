@@ -1,7 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { GET } from "../../../../src/app/api/client/contact/route";
-import { NextRequest } from "next/server";
-
+import { GET } from "@/api/client/contact/route";
+import { createRequest } from "@mcw/utils";
 // Mock dependencies
 vi.mock("@mcw/database", () => ({
   prisma: {
@@ -22,11 +21,6 @@ vi.mock("@mcw/logger", () => ({
 // Import mocked modules
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
-
-// Helper function to create NextRequest
-function createRequest(url: string): NextRequest {
-  return new NextRequest(`http://localhost${url}`);
-}
 
 describe("Client Contact API - Unit Tests", () => {
   const mockClientId = "mock-client-id";
