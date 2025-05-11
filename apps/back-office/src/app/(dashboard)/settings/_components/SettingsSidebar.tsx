@@ -105,8 +105,18 @@ const menuItems = {
     },
     {
       label: "Client notifications",
-      id: "notifications",
-      href: "/settings/notifications",
+      children: [
+        {
+          label: "Email",
+          id: "email",
+          href: "/settings/email",
+        },
+        {
+          label: "Text",
+          id: "text",
+          href: "/settings/text",
+        },
+      ],
     },
     {
       label: "Messaging",
