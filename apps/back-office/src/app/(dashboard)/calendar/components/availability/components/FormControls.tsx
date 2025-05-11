@@ -34,9 +34,48 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
   };
 
   const handleTimeChange = (field: "startTime" | "endTime", time: string) => {
+    // Get the current values
+    const currentStartTime = form.getFieldValue<string>("startTime");
+    const currentEndTime = form.getFieldValue<string>("endTime");
+
+    // Create a new time data object
+    const timeData = {
+      startTime: field === "startTime" ? time : currentStartTime,
+      endTime: field === "endTime" ? time : currentEndTime,
+    };
+
+    // Store the updated time data
+    window.sessionStorage.setItem("selectedTimeSlot", JSON.stringify(timeData));
+
+    // Update the form value
     form.setFieldValue(field, time);
+
+    // Force update to refresh the UI
     forceUpdate();
   };
+
+  // Helper function to parse time string to raw values
+  // const parseTimeToRaw = (timeStr: string) => {
+  //   try {
+  //     const [time, period] = timeStr.split(" ");
+  //     const [hours, minutes] = time.split(":").map(Number);
+  //     let hours24 = hours;
+
+  //     if (period === "PM" && hours !== 12) hours24 += 12;
+  //     if (period === "AM" && hours === 12) hours24 = 0;
+
+  //     return {
+  //       hours: hours24,
+  //       minutes
+  //     };
+  //   } catch (error) {
+  //     console.error("Error parsing time:", error);
+  //     return {
+  //       hours: 0,
+  //       minutes: 0
+  //     };
+  //   }
+  // };
 
   if (allDay) {
     return (
@@ -87,20 +126,14 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             data-timepicker
             className="border-gray-200"
             value={form.getFieldValue<string>("startTime")}
-            onChange={(time) => {
-              handleTimeChange("startTime", time);
-              forceUpdate();
-            }}
+            onChange={(time) => handleTimeChange("startTime", time)}
           />
           <span className="text-sm text-gray-500">to</span>
           <TimePicker
             data-timepicker
             className="border-gray-200"
             value={form.getFieldValue<string>("endTime")}
-            onChange={(time) => {
-              handleTimeChange("endTime", time);
-              forceUpdate();
-            }}
+            onChange={(time) => handleTimeChange("endTime", time)}
           />
         </div>
         <span className="text-sm text-muted-foreground whitespace-nowrap">

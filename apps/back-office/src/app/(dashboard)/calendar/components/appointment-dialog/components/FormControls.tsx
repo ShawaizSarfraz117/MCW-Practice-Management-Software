@@ -87,6 +87,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             data-timepicker
             className="border-gray-200"
             value={form.getFieldValue<string>("startTime")}
+            selectedDate={startDate}
             onChange={(time) => {
               handleTimeChange("startTime", time);
               forceUpdate(); // Ensure UI updates
@@ -97,6 +98,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             data-timepicker
             className="border-gray-200"
             value={form.getFieldValue<string>("endTime")}
+            selectedDate={startDate}
             onChange={(time) => {
               handleTimeChange("endTime", time);
               forceUpdate(); // Ensure UI updates

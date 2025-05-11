@@ -140,51 +140,76 @@ export function AvailabilitySidebar({
   // Update state when availabilityData changes
   useEffect(() => {
     if (open && availabilityData) {
+      // Format times in local timezone
+      const formatToLocalTime = (dateStr: string) => {
+        // Create a date object from the UTC string
+        const date = new Date(dateStr);
+
+        // Get UTC hours and minutes
+        const utcHours = date.getUTCHours();
+        const utcMinutes = date.getUTCMinutes();
+
+        // Convert to 12-hour format
+        const period = utcHours >= 12 ? "PM" : "AM";
+        const displayHours = utcHours % 12 || 12;
+
+        return `${displayHours.toString().padStart(2, "0")}:${utcMinutes.toString().padStart(2, "0")} ${period}`;
+      };
+
+      // Update the unified form state for editing
+      setAvailabilityFormValues((prev) => ({
+        ...prev,
+        title: availabilityData.title || "",
+        startDate: new Date(availabilityData.start_date),
+        endDate: new Date(availabilityData.end_date),
+        startTime: formatToLocalTime(availabilityData.start_date),
+        endTime: formatToLocalTime(availabilityData.end_date),
+        type: "availability",
+        clinician: availabilityData.clinician_id || "",
+        location: availabilityData.location || "video",
+        allowOnlineRequests: availabilityData.allow_online_requests || false,
+        isRecurring: availabilityData.is_recurring || false,
+        recurringRule: availabilityData.recurring_rule || undefined,
+        selectedServices: availabilityData.service_id
+          ? [availabilityData.service_id]
+          : [],
+      }));
+
+      // Update other state values
       setAllowOnlineRequests(availabilityData.allow_online_requests || false);
       setIsRecurring(availabilityData.is_recurring || false);
       setTitle(availabilityData.title || "");
       setSelectedLocation(availabilityData.location || "video");
 
-      // Handle recurring rule parsing
-      if (availabilityData.recurring_rule && availabilityData.is_recurring) {
-        // Parse BYDAY
-        const byDayMatch =
-          availabilityData.recurring_rule.match(/BYDAY=([^;]+)/);
-        if (byDayMatch) {
-          setSelectedDays(byDayMatch[1].split(","));
+      // Handle recurring rule if present
+      if (availabilityData.is_recurring && availabilityData.recurring_rule) {
+        const ruleParams = availabilityData.recurring_rule.split(";").reduce(
+          (acc: Record<string, string>, param: string) => {
+            const [key, value] = param.split("=");
+            acc[key] = value;
+            return acc;
+          },
+          {} as Record<string, string>,
+        );
+
+        // Set recurring values based on the rule
+        setFrequency(ruleParams.INTERVAL || "1");
+        setPeriod(ruleParams.FREQ?.toLowerCase() || "week");
+
+        if (ruleParams.BYDAY) {
+          setSelectedDays(ruleParams.BYDAY.split(","));
         }
 
-        // Parse INTERVAL
-        const intervalMatch =
-          availabilityData.recurring_rule.match(/INTERVAL=(\d+)/);
-        if (intervalMatch) {
-          setFrequency(intervalMatch[1]);
-        }
-
-        // Parse FREQ
-        const freqMatch = availabilityData.recurring_rule.match(/FREQ=(\w+)/);
-        if (freqMatch) {
-          setPeriod(freqMatch[1].toLowerCase());
-        }
-
-        // Parse end rule
-        if (availabilityData.recurring_rule.includes("COUNT=")) {
+        if (ruleParams.COUNT) {
           setEndType("occurrences");
-          const countMatch =
-            availabilityData.recurring_rule.match(/COUNT=(\d+)/);
-          if (countMatch) {
-            setEndValue(countMatch[1]);
-          }
-        } else if (availabilityData.recurring_rule.includes("UNTIL=")) {
+          setEndValue(ruleParams.COUNT);
+        } else if (ruleParams.UNTIL) {
           setEndType("date");
-          const untilMatch =
-            availabilityData.recurring_rule.match(/UNTIL=(\d{8})/);
-          if (untilMatch) {
-            const year = untilMatch[1].slice(0, 4);
-            const month = untilMatch[1].slice(4, 6);
-            const day = untilMatch[1].slice(6, 8);
-            setEndValue(`${year}-${month}-${day}`);
-          }
+          // Convert UNTIL date from YYYYMMDD format to YYYY-MM-DD
+          const untilDate = ruleParams.UNTIL.substring(0, 8);
+          setEndValue(
+            `${untilDate.substring(0, 4)}-${untilDate.substring(4, 6)}-${untilDate.substring(6, 8)}`,
+          );
         } else {
           setEndType("never");
           setEndValue("");
@@ -197,33 +222,6 @@ export function AvailabilitySidebar({
         setEndType("never");
         setEndValue("");
       }
-
-      // Update the unified form state for editing
-      setAvailabilityFormValues((prev) => ({
-        ...prev,
-        title: availabilityData.title || "",
-        startDate: availabilityData.start_date
-          ? new Date(availabilityData.start_date)
-          : prev.startDate,
-        endDate: availabilityData.end_date
-          ? new Date(availabilityData.end_date)
-          : prev.endDate,
-        startTime: availabilityData.start_date
-          ? format(new Date(availabilityData.start_date), "hh:mm a")
-          : prev.startTime,
-        endTime: availabilityData.end_date
-          ? format(new Date(availabilityData.end_date), "hh:mm a")
-          : prev.endTime,
-        type: "availability",
-        clinician: availabilityData.clinician_id || "",
-        location: availabilityData.location || "video",
-        allowOnlineRequests: availabilityData.allow_online_requests || false,
-        isRecurring: availabilityData.is_recurring || false,
-        recurringRule: availabilityData.recurring_rule || undefined,
-        selectedServices: availabilityData.service_id
-          ? [availabilityData.service_id]
-          : [],
-      }));
     } else {
       // Reset all values if no availabilityData
       setAllowOnlineRequests(false);
@@ -289,26 +287,34 @@ export function AvailabilitySidebar({
     return parts.join(";");
   };
 
-  // Helper function to convert date and time to ISO string
+  // Update getDateTimeISOString function to handle UTC properly
   const getDateTimeISOString = (date: Date, timeStr?: string) => {
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    if (!timeStr)
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
     try {
+      if (!timeStr) {
+        return date.toISOString();
+      }
+
+      // Parse the time string (e.g., "1:00 PM")
       const [timeValue, period] = timeStr.split(" ");
       const [hours, minutes] = timeValue.split(":").map(Number);
+
       if (isNaN(hours) || isNaN(minutes)) {
         throw new Error("Invalid time format");
       }
+
+      // Convert to 24-hour format
       let hours24 = hours;
       if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
       if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+
+      // Create a new date and set UTC time
       const newDate = new Date(date);
-      newDate.setHours(hours24, minutes, 0, 0);
-      return `${newDate.getFullYear()}-${pad(newDate.getMonth() + 1)}-${pad(newDate.getDate())}T${pad(newDate.getHours())}:${pad(newDate.getMinutes())}:00`;
+      newDate.setUTCHours(hours24, minutes, 0, 0);
+
+      return newDate.toISOString();
     } catch (error) {
       console.error("Error converting date/time:", error);
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+      return date.toISOString();
     }
   };
 

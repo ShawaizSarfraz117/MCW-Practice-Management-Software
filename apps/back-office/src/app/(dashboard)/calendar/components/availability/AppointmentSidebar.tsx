@@ -78,15 +78,36 @@ export function AppointmentSidebar({
   const [_clinician, setClinician] = useState<Clinician[]>([]);
   const [duration, setDuration] = useState<string>("0 mins");
 
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  // const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [clinicianPage, setClinicianPage] = useState(1);
   const [_clinicianSearchTerm, setClinicianSearchTerm] = useState("");
 
-  // Get stored time slot from session storage
-  // const timeSlot =
-  //   typeof window !== "undefined"
-  //     ? JSON.parse(window.sessionStorage.getItem("selectedTimeSlot") || "{}")
-  //     : {};
+  // Initialize form values with stored time slot data
+  useEffect(() => {
+    if (open) {
+      // Update form values with selected date from calendar
+      setAvailabilityFormValues((prev) => ({
+        ...prev,
+        startDate: selectedDate,
+        endDate: selectedDate,
+      }));
+
+      const selectedTimeSlotData =
+        window.sessionStorage.getItem("selectedTimeSlot");
+      if (selectedTimeSlotData) {
+        try {
+          const timeData = JSON.parse(selectedTimeSlotData);
+          setAvailabilityFormValues((prev) => ({
+            ...prev,
+            startTime: timeData.startTime || prev.startTime,
+            endTime: timeData.endTime || prev.endTime,
+          }));
+        } catch (error) {
+          console.error("Error parsing time slot data:", error);
+        }
+      }
+    }
+  }, [open, selectedDate]); // Add selectedDate to dependencies
 
   const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
     useFormTabs(selectedResource, selectedDate);
@@ -197,28 +218,36 @@ export function AppointmentSidebar({
 
   // Helper function to convert date and time to local ISO string
   const getDateTimeUTC = (date: Date, timeStr?: string) => {
-    const newDate = new Date(date);
-    if (timeStr) {
-      try {
-        const [timeValue, period] = timeStr.split(" ");
-        const [hours, minutes] = timeValue.split(":").map(Number);
-        let hours24 = hours;
-        if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
-        if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
-        newDate.setHours(hours24, minutes, 0, 0);
-      } catch (error) {
-        console.error("Error converting date/time:", error);
+    if (!timeStr) return date.toISOString();
+
+    try {
+      // Create a new date object from the selected date
+      const newDate = new Date(date);
+
+      // Parse the time string (e.g., "8:00 AM")
+      const [timeValue, period] = timeStr.split(" ");
+      const [hours, minutes] = timeValue.split(":").map(Number);
+
+      if (isNaN(hours) || isNaN(minutes)) {
+        throw new Error("Invalid time format");
       }
+
+      // Convert to 24-hour format
+      let hours24 = hours;
+      if (period?.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
+      if (period?.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+
+      // Set the time components while keeping the original date
+      newDate.setHours(hours24);
+      newDate.setMinutes(minutes);
+      newDate.setSeconds(0);
+      newDate.setMilliseconds(0);
+
+      return newDate.toISOString();
+    } catch (error) {
+      console.error("Error converting date/time:", error);
+      return date.toISOString();
     }
-
-    // Get the timezone offset in minutes and convert to milliseconds
-    const tzOffset = newDate.getTimezoneOffset() * 60000;
-
-    // Create a new date that accounts for the timezone offset
-    const localDate = new Date(newDate.getTime() - tzOffset);
-
-    // Return the ISO string with the correct timezone offset
-    return localDate.toISOString();
   };
 
   // Handle save button click
@@ -235,16 +264,24 @@ export function AppointmentSidebar({
         return;
       }
 
-      // Construct the payload
+      // Get the stored time values
+      const storedTimeData = window.sessionStorage.getItem("selectedTimeSlot");
+      const timeData = storedTimeData ? JSON.parse(storedTimeData) : null;
+
+      // Use stored raw time values if available, otherwise use form values
+      const startTime = timeData?.startTime || availabilityFormValues.startTime;
+      const endTime = timeData?.endTime || availabilityFormValues.endTime;
+
+      // Construct the payload using the form's date values which are now properly synced with selectedDate
       const payload = {
         title: title || "New Availability",
         start_date: getDateTimeUTC(
-          availabilityFormValues.startDate,
-          availabilityFormValues.startTime,
+          selectedDate, // Use selectedDate directly
+          startTime,
         ),
         end_date: getDateTimeUTC(
-          availabilityFormValues.endDate,
-          availabilityFormValues.endTime,
+          selectedDate, // Use selectedDate directly
+          endTime,
         ),
         location: selectedLocation,
         clinician_id: availabilityFormValues.clinician,
@@ -268,12 +305,14 @@ export function AppointmentSidebar({
         throw new Error(responseData.error || "Failed to create availability");
       }
 
+      // Clear the stored time slot after successful save
+      window.sessionStorage.removeItem("selectedTimeSlot");
+
       // Close the sidebar and refresh the calendar
       onOpenChange(false);
 
       // Trigger a refresh of availabilities
       if (typeof window !== "undefined") {
-        // Dispatch a custom event to notify the calendar to refresh
         window.dispatchEvent(new CustomEvent("refreshAvailabilities"));
       }
 
@@ -343,7 +382,7 @@ export function AppointmentSidebar({
         className="fixed right-0 top-0 h-full w-[600px] bg-white shadow-lg overflow-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex sticky top-0 bg-white items-center justify-between p-4 border-b">
+        <div className="flex sticky top-0 bg-white items-center justify-between p-4 border-b z-[100]">
           <div className="flex items-center gap-3">
             <button onClick={() => onOpenChange(false)}>
               <X className="h-5 w-5" />
@@ -367,305 +406,305 @@ export function AppointmentSidebar({
           </div>
         </div>
 
-        <AvailabilityFormProvider
-          duration={duration}
-          forceUpdate={forceUpdate}
-          form={{
-            ...availabilityFormValues,
-            setFieldValue: (
-              field: string,
-              value: unknown,
-              _options?: unknown,
-            ) => {
-              setAvailabilityFormValues((prev) => ({
-                ...prev,
-                [field]: value,
-              }));
-              // Clear validation error when clinician is selected
-              if (field === "clinician" && value) {
-                clearValidationError("clinician");
-              }
-            },
-            getFieldValue: <T = unknown,>(field: string): T =>
-              availabilityFormValues[
-                field as keyof typeof availabilityFormValues
-              ] as T,
-            reset: (values: Partial<typeof availabilityFormValues> = {}) =>
-              setAvailabilityFormValues({
-                ...availabilityFormValues,
-                ...values,
-              }),
-            handleSubmit: () => {
-              /* implement submit logic here */
-            },
-            state: { values: availabilityFormValues },
-          }}
-          setGeneralError={setGeneralError}
-          setValidationErrors={setValidationState}
-          validationErrors={validationState}
-        >
-          <div className="p-6 space-y-6">
-            <div className="flex items-start gap-3">
-              <Checkbox
-                checked={allowOnlineRequests}
-                className="mt-1"
-                id="allowRequests"
-                onCheckedChange={(checked) =>
-                  setAllowOnlineRequests(checked as boolean)
-                }
-              />
-              <label className="text-gray-900" htmlFor="allowRequests">
-                Allow online appointment requests
-              </label>
-            </div>
-
-            <div>
-              <label className="block mb-2">Availability title</label>
-              <Input
-                className="w-full"
-                placeholder="Enter availability title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
-
-            <DateTimeControls id="availability-date-time" />
-
-            <div>
-              <label className="block mb-2">Team member</label>
-              <SearchSelect
-                searchable
-                showPagination
-                className={cn(
-                  "border-gray-200",
-                  validationState.clinician && "border-red-500",
-                )}
-                currentPage={clinicianPage}
-                options={formattedClinicianOptions}
-                placeholder={
-                  isLoadingClinicians
-                    ? "Loading team members..."
-                    : "Search Team Members *"
-                }
-                value={availabilityFormValues.clinician}
-                onPageChange={setClinicianPage}
-                onSearch={setClinicianSearchTerm}
-                onValueChange={(value) => {
-                  setAvailabilityFormValues((prev) => ({
-                    ...prev,
-                    clinician: value,
-                  }));
+        <div className="relative z-[90]">
+          <AvailabilityFormProvider
+            duration={duration}
+            forceUpdate={forceUpdate}
+            form={{
+              ...availabilityFormValues,
+              setFieldValue: (
+                field: string,
+                value: unknown,
+                _options?: unknown,
+              ) => {
+                setAvailabilityFormValues((prev) => ({
+                  ...prev,
+                  [field]: value,
+                }));
+                // Clear validation error when clinician is selected
+                if (field === "clinician" && value) {
                   clearValidationError("clinician");
-                }}
-              />
-              <ValidationError
-                message="Team member is required"
-                show={!!validationState.clinician}
-              />
-            </div>
-
-            <div className="bg-gray-50 p-6 space-y-4">
+                }
+              },
+              getFieldValue: <T = unknown,>(field: string): T =>
+                availabilityFormValues[
+                  field as keyof typeof availabilityFormValues
+                ] as T,
+              reset: (values: Partial<typeof availabilityFormValues> = {}) =>
+                setAvailabilityFormValues({
+                  ...availabilityFormValues,
+                  ...values,
+                }),
+              handleSubmit: () => {
+                /* implement submit logic here */
+              },
+              state: { values: availabilityFormValues },
+            }}
+            setGeneralError={setGeneralError}
+            setValidationErrors={setValidationState}
+            validationErrors={validationState}
+          >
+            <div className="p-6 space-y-6">
               <div className="flex items-start gap-3">
                 <Checkbox
-                  checked={isRecurring}
+                  checked={allowOnlineRequests}
                   className="mt-1"
-                  id="recurring"
+                  id="allowRequests"
                   onCheckedChange={(checked) =>
-                    setIsRecurring(checked as boolean)
+                    setAllowOnlineRequests(checked as boolean)
                   }
                 />
-                <label className="text-gray-900" htmlFor="recurring">
-                  Recurring
+                <label className="text-gray-900" htmlFor="allowRequests">
+                  Allow online appointment requests
                 </label>
               </div>
 
-              {isRecurring && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span>Every</span>
-                    <Select value={frequency} onValueChange={setFrequency}>
-                      <SelectTrigger className="w-[70px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={period} onValueChange={setPeriod}>
-                      <SelectTrigger className="w-[100px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="week">week</SelectItem>
-                        <SelectItem value="month">month</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div>
+                <label className="block mb-2">Availability title</label>
+                <Input
+                  className="w-full"
+                  placeholder="Enter availability title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
 
-                  {period === "week" && (
-                    <div className="flex gap-1">
-                      {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => {
-                        const dayValue = [
-                          "SUN",
-                          "MON",
-                          "TUE",
-                          "WED",
-                          "THU",
-                          "FRI",
-                          "SAT",
-                        ][index];
-                        return (
-                          <button
-                            key={dayValue}
-                            className={`w-9 h-9 rounded-full flex items-center justify-center text-sm
-                              ${
-                                selectedDays.includes(dayValue)
-                                  ? "bg-[#16A34A] text-white"
-                                  : "bg-white border text-gray-700"
-                              }
-                            `}
-                            onClick={() => toggleDay(dayValue)}
-                          >
-                            {day}
-                          </button>
-                        );
-                      })}
-                    </div>
+              <DateTimeControls id="availability-date-time" />
+
+              <div>
+                <label className="block mb-2">Team member</label>
+                <SearchSelect
+                  searchable
+                  showPagination
+                  className={cn(
+                    "border-gray-200",
+                    validationState.clinician && "border-red-500",
                   )}
+                  currentPage={clinicianPage}
+                  options={formattedClinicianOptions}
+                  placeholder={
+                    isLoadingClinicians
+                      ? "Loading team members..."
+                      : "Search Team Members *"
+                  }
+                  value={availabilityFormValues.clinician}
+                  onPageChange={setClinicianPage}
+                  onSearch={setClinicianSearchTerm}
+                  onValueChange={(value) => {
+                    setAvailabilityFormValues((prev) => ({
+                      ...prev,
+                      clinician: value,
+                    }));
+                    clearValidationError("clinician");
+                  }}
+                />
+                <ValidationError
+                  message="Team member is required"
+                  show={!!validationState.clinician}
+                />
+              </div>
 
-                  <div className="flex items-center gap-2">
-                    <span>Ends</span>
-                    <Select value={endType} onValueChange={setEndType}>
-                      <SelectTrigger className="w-[120px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="never">never</SelectItem>
-                        <SelectItem value="date">on date</SelectItem>
-                        <SelectItem value="occurrences">
-                          after occurrences
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {endType === "date" && (
-                      <Input
-                        min={format(new Date(), "yyyy-MM-dd")}
-                        type="date"
-                        value={endValue}
-                        onChange={(e) => setEndValue(e.target.value)}
-                      />
-                    )}
-                    {endType === "occurrences" && (
-                      <Input
-                        max="52"
-                        min="1"
-                        placeholder="Number of occurrences"
-                        type="number"
-                        value={endValue}
-                        onChange={(e) => setEndValue(e.target.value)}
-                      />
-                    )}
-                  </div>
+              <div className="bg-gray-50 p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={isRecurring}
+                    className="mt-1"
+                    id="recurring"
+                    onCheckedChange={(checked) =>
+                      setIsRecurring(checked as boolean)
+                    }
+                  />
+                  <label className="text-gray-900" htmlFor="recurring">
+                    Recurring
+                  </label>
                 </div>
+
+                {isRecurring && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span>Every</span>
+                      <Select value={frequency} onValueChange={setFrequency}>
+                        <SelectTrigger className="w-[70px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={period} onValueChange={setPeriod}>
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="week">week</SelectItem>
+                          <SelectItem value="month">month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {period === "week" && (
+                      <div className="flex gap-1">
+                        {["S", "M", "T", "W", "T", "F", "S"].map(
+                          (day, index) => {
+                            const dayValue = [
+                              "SUN",
+                              "MON",
+                              "TUE",
+                              "WED",
+                              "THU",
+                              "FRI",
+                              "SAT",
+                            ][index];
+                            return (
+                              <button
+                                key={dayValue}
+                                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm
+                                ${
+                                  selectedDays.includes(dayValue)
+                                    ? "bg-[#16A34A] text-white"
+                                    : "bg-white border text-gray-700"
+                                }
+                              `}
+                                onClick={() => toggleDay(dayValue)}
+                              >
+                                {day}
+                              </button>
+                            );
+                          },
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <span>Ends</span>
+                      <Select value={endType} onValueChange={setEndType}>
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="never">never</SelectItem>
+                          <SelectItem value="date">on date</SelectItem>
+                          <SelectItem value="occurrences">
+                            after occurrences
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {endType === "date" && (
+                        <Input
+                          min={format(new Date(), "yyyy-MM-dd")}
+                          type="date"
+                          value={endValue}
+                          onChange={(e) => setEndValue(e.target.value)}
+                        />
+                      )}
+                      {endType === "occurrences" && (
+                        <Input
+                          max="52"
+                          min="1"
+                          placeholder="Number of occurrences"
+                          type="number"
+                          value={endValue}
+                          onChange={(e) => setEndValue(e.target.value)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block mb-2">Location</label>
+                <Select
+                  value={selectedLocation}
+                  onValueChange={setSelectedLocation}
+                >
+                  <SelectTrigger className="w-full">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[#16A34A]" />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="video">Video Office</SelectItem>
+                    <SelectItem value="physical">Physical Office</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Services Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-medium">Services</h3>
+                  <Button
+                    className="text-[#16A34A] hover:text-[#16A34A]/90"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      // Fetch all services again when Add service is clicked
+                      fetch("/api/service")
+                        .then((response) => response.json())
+                        .then((data) => setServices(data))
+                        .catch((error) =>
+                          console.error("Error fetching services:", error),
+                        );
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add service
+                  </Button>
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  Add services that are set up for online requests.{" "}
+                  <button
+                    className="text-[#16A34A] hover:underline"
+                    onClick={() => {
+                      /* Add manage service settings handler */
+                    }}
+                  >
+                    Manage service settings
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {services.map((service, index) => {
+                    return (
+                      <div
+                        key={service?.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div>
+                          <div className="font-medium">
+                            {service.code} {service.type}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {service.duration} min • ${service.rate}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setServices(services.filter((_, i) => i !== index));
+                          }}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {generalError && (
+                <div className="text-red-500 text-sm">{generalError}</div>
               )}
             </div>
-
-            <div>
-              <label className="block mb-2">Location</label>
-              <Select
-                value={selectedLocation}
-                onValueChange={setSelectedLocation}
-              >
-                <SelectTrigger className="w-full">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#16A34A]" />
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="video">Video Office</SelectItem>
-                  <SelectItem value="physical">Physical Office</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Services Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-medium">Services</h3>
-                <Button
-                  className="text-[#16A34A] hover:text-[#16A34A]/90"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (
-                      services.length > 0 &&
-                      !selectedServices.includes(services[0].id)
-                    ) {
-                      setSelectedServices([
-                        ...selectedServices,
-                        services[0].id,
-                      ]);
-                    }
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add service
-                </Button>
-              </div>
-
-              <div className="text-sm text-gray-600">
-                Add services that are set up for online requests.{" "}
-                <button
-                  className="text-[#16A34A] hover:underline"
-                  onClick={() => {
-                    /* Add manage service settings handler */
-                  }}
-                >
-                  Manage service settings
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {services.map((service) => {
-                  return (
-                    <div
-                      key={service?.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div>
-                        <div className="font-medium">
-                          {service.code} {service.type}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {service.duration} min • ${service.rate}
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setSelectedServices(
-                            selectedServices.filter((id) => id !== service.id),
-                          );
-                        }}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {generalError && (
-              <div className="text-red-500 text-sm">{generalError}</div>
-            )}
-          </div>
-        </AvailabilityFormProvider>
+          </AvailabilityFormProvider>
+        </div>
       </div>
     </div>
   );

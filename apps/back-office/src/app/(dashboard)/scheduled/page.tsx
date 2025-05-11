@@ -292,18 +292,35 @@ const Scheduled = () => {
     setSelectedDate(selectInfo.start);
     setSelectedResource(selectInfo.resource?.id || null);
 
-    // Save the selected time info for the availability sidebar
+    // Format time in local timezone
+    const formatTimeFromDate = (date: Date) => {
+      // Create a new date to avoid modifying the original
+      const localDate = new Date(date);
+
+      // Get hours and minutes in local time
+      const hours = localDate.getHours();
+      const minutes = localDate.getMinutes();
+
+      // Convert to 12-hour format
+      const period = hours >= 12 ? "PM" : "AM";
+      const displayHours = hours % 12 || 12;
+
+      // Format the time string with padding for single digit hours
+      return `${displayHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${period}`;
+    };
+
+    // Save both formatted and raw time info
     const eventData = {
-      startTime: new Date(selectInfo.start).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }),
-      endTime: new Date(selectInfo.end).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }),
+      startTime: formatTimeFromDate(selectInfo.start),
+      endTime: formatTimeFromDate(selectInfo.end),
+      rawStartTime: {
+        hours: selectInfo.start.getHours(),
+        minutes: selectInfo.start.getMinutes(),
+      },
+      rawEndTime: {
+        hours: selectInfo.end.getHours(),
+        minutes: selectInfo.end.getMinutes(),
+      },
     };
 
     // Store this data to be accessed by the form

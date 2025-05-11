@@ -742,21 +742,35 @@ export function CalendarView({
 
       // Format availabilities
       const formattedAvailabilities = availabilities.map(
-        (availability: AvailabilityData) => ({
-          id: availability.id,
-          resourceId: availability.clinician_id,
-          title: availability.title || "Available",
-          start: availability.start_date,
-          end: availability.end_date,
-          location: availability.location || "",
-          extendedProps: {
-            type: "availability",
-            clinician_id: availability.clinician_id,
-            allow_online_requests: availability.allow_online_requests,
-            is_recurring: availability.is_recurring,
-            recurring_rule: availability.recurring_rule,
-          },
-        }),
+        (availability: AvailabilityData) => {
+          // Get the UTC dates from the API
+          const utcStart = new Date(availability.start_date);
+          const utcEnd = new Date(availability.end_date);
+
+          // Convert to local time by adjusting for timezone offset
+          const localStart = new Date(utcStart);
+          const localEnd = new Date(utcEnd);
+
+          // Adjust the hours to match local time
+          localStart.setHours(utcStart.getUTCHours(), utcStart.getUTCMinutes());
+          localEnd.setHours(utcEnd.getUTCHours(), utcEnd.getUTCMinutes());
+
+          return {
+            id: availability.id,
+            resourceId: availability.clinician_id,
+            title: availability.title || "Available",
+            start: localStart,
+            end: localEnd,
+            location: availability.location || "",
+            extendedProps: {
+              type: "availability",
+              clinician_id: availability.clinician_id,
+              allow_online_requests: availability.allow_online_requests,
+              is_recurring: availability.is_recurring,
+              recurring_rule: availability.recurring_rule,
+            },
+          };
+        },
       );
 
       return [...formattedAvailabilities, ...formattedAppointments];
@@ -1021,10 +1035,32 @@ export function CalendarView({
     setSelectedDate(selectInfo.start);
     setSelectedResource(selectInfo.resource?.id || null);
 
+    // Format time in local timezone
+    const formatTimeFromDate = (date: Date) => {
+      // Create a new date to avoid modifying the original
+      const localDate = new Date(date);
+
+      // Get hours and minutes in local time
+      const hours = localDate.getHours();
+      const minutes = localDate.getMinutes();
+
+      // Convert to 12-hour format
+      const period = hours >= 12 ? "PM" : "AM";
+      const displayHours = hours % 12 || 12;
+
+      // Format the time string
+      return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
+    };
+
     // Save the selected time info for the appointment dialog
     const eventData = {
-      startTime: format(selectInfo.start, "h:mm a"),
-      endTime: format(selectInfo.end, "h:mm a"),
+      startTime: formatTimeFromDate(selectInfo.start),
+      endTime: formatTimeFromDate(selectInfo.end),
+      // Store local hours and minutes
+      startHour: selectInfo.start.getHours(),
+      endHour: selectInfo.end.getHours(),
+      startMinute: selectInfo.start.getMinutes(),
+      endMinute: selectInfo.end.getMinutes(),
     };
 
     // Store this data to be accessed by the form
@@ -1033,7 +1069,10 @@ export function CalendarView({
       JSON.stringify(eventData),
     );
 
-    setIsDialogOpen(true);
+    // Ensure dialog opens after time is stored
+    setTimeout(() => {
+      setIsDialogOpen(true);
+    }, 0);
   };
 
   // View handling functions
@@ -1189,7 +1228,6 @@ export function CalendarView({
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    console.log("Selecting limit:", num);
                                     handleSelectLimit(num);
                                   }}
                                   onMouseDown={(e) => e.preventDefault()}
@@ -1221,24 +1259,27 @@ export function CalendarView({
             // Handle Availability events separately
             if (type === "availability") {
               const start = arg.event.start;
-              const startTime = start
-                ? new Date(start).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })
-                : "";
+              const end = arg.event.end;
+              const originalStartTime =
+                arg.event.extendedProps?.originalStartTime;
+              const originalEndTime = arg.event.extendedProps?.originalEndTime;
+
+              // Use the original times or fallback to calculated times
+              const startTime =
+                originalStartTime || (start ? format(start, "h:mm a") : "");
+              const endTime =
+                originalEndTime || (end ? format(end, "h:mm a") : "");
+
               const title = arg.event.title || "Available";
 
               return (
                 <div className="p-1">
                   <div className="text-xs font-medium text-gray-600 mb-0.5">
-                    {startTime}
+                    {startTime} - {endTime}
                   </div>
                   <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
                     {title}
                   </div>
-                  {/* Availability events don't get New/Old badges */}
                 </div>
               );
             }
@@ -1356,7 +1397,20 @@ export function CalendarView({
           slotEventOverlap={true}
           slotMaxTime="24:00:00"
           slotMinTime="00:00:00"
-          timeZone="America/New_York"
+          timeZone="local"
+          displayEventTime={true}
+          eventTimeFormat={{
+            hour: "numeric",
+            minute: "2-digit",
+            meridiem: "short",
+            hour12: true,
+          }}
+          slotLabelFormat={{
+            hour: "numeric",
+            minute: "2-digit",
+            meridiem: "short",
+            hour12: true,
+          }}
           views={{
             resourceTimeGridDay: {
               type: "resourceTimeGrid",
