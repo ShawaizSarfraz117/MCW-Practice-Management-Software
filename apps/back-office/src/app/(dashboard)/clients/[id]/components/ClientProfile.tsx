@@ -19,24 +19,33 @@ import {
   fetchInvoices,
   fetchClientGroups,
 } from "@/(dashboard)/clients/services/client.service";
-import {
-  Invoice,
-  Payment,
-  ClientGroup,
-  ClientGroupMembership,
-  Client,
-} from "@prisma/client";
+import { Invoice, Payment } from "@prisma/client";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
+import { useQuery } from "@tanstack/react-query";
+import { ClientInfoCard } from "./ClientInfoCard";
+
+export function getClientGroupInfo(client: unknown) {
+  const name = (
+    client as {
+      ClientGroupMembership: {
+        Client: { legal_first_name: string; legal_last_name: string };
+      }[];
+    }
+  ).ClientGroupMembership.map((m) =>
+    `${m.Client?.legal_first_name ?? ""} ${m.Client?.legal_last_name ?? ""}`.trim(),
+  )
+    .filter(Boolean)
+    .join(" & ");
+
+  return name;
+}
 
 interface ClientProfileProps {
   clientId: string;
 }
 
-interface ClientGroupWithMembership extends ClientGroup {
-  ClientGroupMembership: (ClientGroupMembership & { Client: Client })[];
-}
 export interface InvoiceWithPayments extends Invoice {
   Payment: Payment[];
   ClientGroup: {
@@ -65,8 +74,6 @@ export default function ClientProfile({
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceWithPayments[]>([]);
-  const [_clientGroup, setClientGroup] =
-    useState<ClientGroupWithMembership | null>(null);
   const [creditAmount, setCredit] = useState<number>(0);
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
   const [clientName, setClientName] = useState("");
@@ -89,29 +96,25 @@ export default function ClientProfile({
     return null;
   };
 
-  const clientGroupsData = async () => {
-    const [clientGroupResponse, clientGroupError] = await fetchClientGroups({
-      searchParams: { id },
-    });
-    if (!clientGroupError && clientGroupResponse) {
-      if ("available_credit" in clientGroupResponse) {
-        setCredit(Number(clientGroupResponse.available_credit) || 0);
-        setClientGroup(clientGroupResponse as ClientGroupWithMembership);
+  const { data: clientGroup } = useQuery({
+    queryKey: ["clientGroup", id],
+    queryFn: async () => {
+      const [response, error] = await fetchClientGroups({
+        searchParams: { id },
+      });
+      if (error) throw error;
+      if (response && "available_credit" in response) {
+        setCredit(Number(response.available_credit) || 0);
 
-        if (clientGroupResponse.ClientGroupMembership?.length) {
-          const name = (clientGroupResponse.ClientGroupMembership ?? [])
-            .map((m) =>
-              `${m.Client?.legal_first_name ?? ""} ${
-                m.Client?.legal_last_name ?? ""
-              }`.trim(),
-            )
-            .filter(Boolean)
-            .join(" & ");
-          setClientName(name);
+        if (response.ClientGroupMembership?.length) {
+          const name = getClientGroupInfo(response);
+          setClientName(name || "");
         }
       }
-    }
-  };
+      return response;
+    },
+    enabled: !!id, // Only run when id exists
+  });
 
   const fetchInvoicesData = async () => {
     const [response, error] = await fetchInvoices({
@@ -125,10 +128,6 @@ export default function ClientProfile({
       }
     }
   };
-
-  useEffect(() => {
-    clientGroupsData();
-  }, []);
 
   useEffect(() => {
     fetchInvoicesData();
@@ -210,7 +209,12 @@ export default function ClientProfile({
             {getNextAppointmentDate() && (
               <span>Next Appt: {getNextAppointmentDate()}</span>
             )}
-            <button className="text-blue-500 hover:underline">Edit</button>
+            <button
+              className="text-blue-500 hover:underline"
+              onClick={() => router.push(`/clients/${id}/edit`)}
+            >
+              Edit
+            </button>
           </div>
         </div>
         <div className="flex gap-2">
@@ -308,6 +312,10 @@ export default function ClientProfile({
             onAddPayment={() => setAddPaymentModalOpen(true)}
           />
 
+          <ClientInfoCard
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            clientGroup={clientGroup as any}
+          />
           <InvoicesDocumentsCard invoices={invoices} />
         </div>
       </div>

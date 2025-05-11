@@ -112,7 +112,38 @@ model Client {
   ClinicianClient          ClinicianClient[]
   CreditCard               CreditCard[]
   SurveyAnswers            SurveyAnswers[]
+  ClientAdress             ClientAdress[]
+  ClientProfile            ClientProfile?
 }
+
+model ClientProfile {
+  id                      String    @id @default(dbgenerated("newid()"), map: "PK_ClientProfile_ID") @db.UniqueIdentifier
+  client_id               String    @unique @db.UniqueIdentifier
+  middle_name             String?    @db.VarChar(50)
+  gender                  String?    @db.VarChar(50)
+  gender_identity         String?    @db.VarChar(50)
+  relationship_status     String?    @db.VarChar(50)
+  employment_status       String?    @db.VarChar(50)
+  race_ethnicity          String?   @db.Text
+  race_ethnicity_details  String?    @db.VarChar(50)
+  preferred_language      String?    @db.VarChar(50)
+  notes                   String?    @db.Text
+  Client                  Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, onDelete: Cascade, map: "FK_ClientProfile_Client")
+}
+
+model ClientAdress {
+  id              String    @id @default(dbgenerated("newid()"), map: "PK_ClientAddress_ID") @db.UniqueIdentifier
+  client_id       String    @db.UniqueIdentifier
+  address_line1   String    @db.VarChar(255)
+  address_line2   String    @db.VarChar(255)
+  zip_code        String    @db.VarChar(50)
+  city            String    @db.VarChar(50)
+  state           String    @db.VarChar(50)
+  country         String    @db.VarChar(50)
+  is_primary      Boolean   @default(false, map: "DF_ClientAddress_IsPrimary")
+  Client          Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction,onDelete: Cascade, map: "FK_ClientAddress_Client")
+}
+
 
 model ClientContact {
   id           String  @id @default(dbgenerated("newid()"), map: "PK_ClientContact_ID") @db.UniqueIdentifier
@@ -123,6 +154,7 @@ model ClientContact {
   type         String  @db.VarChar(50)
   value        String  @db.VarChar(255)
   Client       Client  @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientContact_Client")
+  ClientReminderPreference ClientReminderPreference[]
 }
 
 model ClientGroup {
@@ -132,6 +164,9 @@ model ClientGroup {
   available_credit      Decimal                @default(0)
   clinician_id          String?                 @db.UniqueIdentifier
   is_active             Boolean                 @default(true, map: "DF_ClientGroup_IsActive")
+  first_seen_at         DateTime?               @default(now(), map: "ClientGroup_first_seen_at")
+  created_at            DateTime?               @default(now(), map: "ClientGroup_created_at")
+  notes                 String?                 @db.Text
   Appointment           Appointment[]
   ClientGroupMembership ClientGroupMembership[]
   Invoice               Invoice[]
@@ -145,6 +180,7 @@ model ClientGroupMembership {
   created_at                 DateTime    @default(now(), map: "DF_ClientGroupMembership_CreatedAt")
   is_contact_only            Boolean     @default(false, map: "DF_ClientGroupMembership_IsContactOnly")
   is_responsible_for_billing Boolean?
+  is_emergency_contact       Boolean?    @default(false, map: "DF_ClientGroupMembership_IsEmergencyContactOnly")
   Client                     Client      @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_Client")
   ClientGroup                ClientGroup @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_ClientGroup")
 
@@ -155,11 +191,14 @@ model ClientGroupMembership {
 model ClientReminderPreference {
   id            String  @id @default(dbgenerated("newid()"), map: "PK_ClientReminderPreference_ID") @db.UniqueIdentifier
   client_id     String  @db.UniqueIdentifier
+  contact_id    String  @db.UniqueIdentifier
   reminder_type String  @db.VarChar(100)
+  channel       String
+  ClientContact ClientContact  @relation(fields: [contact_id], references: [id], onDelete:Cascade, map: "FK_ClientReminderPreference_ClientContact")
   is_enabled    Boolean @default(true, map: "DF_ClientReminderPreference_IsEnabled")
   Client        Client  @relation(fields: [client_id], references: [id], onDelete: Cascade, map: "FK_ClientReminderPreference_Client")
 
-  @@unique([client_id, reminder_type])
+  @@unique([client_id, reminder_type, channel])
 }
 
 model BillingAddress {

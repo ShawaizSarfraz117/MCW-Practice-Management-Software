@@ -7,6 +7,7 @@ import {
   Invoice,
   Payment,
 } from "@prisma/client";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 
 interface Location {
   id: string;
@@ -59,6 +60,14 @@ export const fetchAppointments = async ({
   } catch (error) {
     throw new Error(error as string);
   }
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useFetchAppointments = (queryKey: any, searchParams: any) => {
+  return useQuery({
+    queryKey: queryKey,
+    queryFn: () => fetchAppointments(searchParams),
+  });
 };
 
 export const updateAppointment = async ({
@@ -121,6 +130,55 @@ export const createClient = async ({ body = {} }) => {
   } catch (error) {
     return [null, error];
   }
+};
+
+export const updateClient = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: "/client",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const updateClientGroup = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: "/client/group",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const useUpdateClient = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateClient,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clientGroup"] });
+    },
+  });
+};
+export const useUpdateClientGroup = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateClientGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clientGroup"] });
+    },
+  });
 };
 
 export const fetchClientGroups = async ({
@@ -201,6 +259,33 @@ export const fetchServices = async () => {
   try {
     const response: unknown = await FETCH.get({
       url: "/service",
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const fetchClientContacts = async ({ searchParams = {} }) => {
+  try {
+    const response: unknown = await FETCH.get({
+      url: "/client/contact",
+      searchParams,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const updateClientReminderPref = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: "/client/contact",
+      body,
+      isFormData: false,
     });
 
     return [response, null];
