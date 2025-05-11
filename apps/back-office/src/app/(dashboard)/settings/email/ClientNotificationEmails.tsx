@@ -131,14 +131,6 @@ export default function ClientNotificationEmails() {
     );
   }
 
-  if (!templates || templates.length === 0) {
-    return (
-      <div className="p-4 text-center text-gray-500">
-        No email templates found. Create your first template to get started.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       {/* Automated emails */}
