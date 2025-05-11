@@ -14,6 +14,20 @@ import { cn } from "@mcw/utils";
 import { useForm } from "@tanstack/react-form";
 import { EmailTemplateEditSidebarProps } from "./types";
 
+type FormData = {
+  name: string;
+  subject: string;
+  content: string;
+  type: string;
+  isActive: boolean;
+  macroClinician: string;
+  macroPractice: string;
+  macroClient: string;
+  macroLinks: string;
+};
+
+type FormField = keyof FormData;
+
 export default function EmailTemplateEditSidebar({
   open,
   onClose,
@@ -21,7 +35,7 @@ export default function EmailTemplateEditSidebar({
   onSave,
   isUpdating,
 }: EmailTemplateEditSidebarProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: template?.name || "",
     subject: template?.subject || "",
     content: template?.content || "",
@@ -52,7 +66,7 @@ export default function EmailTemplateEditSidebar({
   // Reset form when template changes
   useEffect(() => {
     if (template) {
-      const newFormData = {
+      const newFormData: FormData = {
         name: template.name,
         subject: template.subject,
         content: template.content,
@@ -87,7 +101,7 @@ export default function EmailTemplateEditSidebar({
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: FormField, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
