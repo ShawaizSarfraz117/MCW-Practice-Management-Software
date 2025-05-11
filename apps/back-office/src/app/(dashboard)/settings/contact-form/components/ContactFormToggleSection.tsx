@@ -5,7 +5,7 @@ import { Button } from "@mcw/ui";
 import { useState } from "react";
 import ContactFormModal from "./ContactFormModal";
 import Image from "next/image";
-import ProfileLogo from "@/assets/images/Frame.svg";
+import ProfileLogo from "@/assets/images/profile-logo.svg";
 import MonarchWarning from "@/assets/images/MonarchWarning.svg";
 
 export default function ContactFormToggleSection() {

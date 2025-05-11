@@ -1,6 +1,6 @@
 "use client";
 import { Button, Card } from "@mcw/ui";
-import WidgetPreview from "@/assets/images/img.png";
+import WidgetPreview from "@/assets/images/widget-preview.png";
 import Image from "next/image";
 import CopyIcon from "@/assets/images/copy-icon.svg";
 

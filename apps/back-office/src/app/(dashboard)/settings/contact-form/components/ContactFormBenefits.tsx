@@ -1,6 +1,6 @@
 import { Button } from "@mcw/ui";
 import Image from "next/image";
-import WidgetPreview from "@/assets/images/img.svg";
+import ContactFormWidget from "@/assets/images/contact-form-widget.svg";
 import CheckIcon from "@/assets/images/check-icon.svg";
 export default function ContactFormBenefits() {
   return (
@@ -26,7 +26,7 @@ export default function ContactFormBenefits() {
             <Image
               alt="Widget Preview"
               className="max-w-full h-auto rounded-lg shadow-lg"
-              src={WidgetPreview}
+              src={ContactFormWidget}
               style={{ maxWidth: 260 }}
               width={318}
               height={318}
