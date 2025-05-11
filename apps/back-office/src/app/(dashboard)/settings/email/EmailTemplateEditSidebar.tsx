@@ -341,7 +341,7 @@ export default function EmailTemplateEditSidebar({
                 <SelectValue placeholder="Links" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="links">Links</SelectItem>
+                <SelectItem value="link">Links</SelectItem>
                 <SelectItem value="appointment_reminder_links">
                   Appointment Reminder Links
                 </SelectItem>

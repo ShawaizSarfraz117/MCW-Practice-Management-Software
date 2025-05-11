@@ -120,13 +120,11 @@ async function main() {
     });
   }
 
-  console.log("Created sample audit entries");
-
   // Create email templates
   const emailTemplates = [
     {
-      id: "62798300-50F5-4CEE-888C-1DF486A7C28A",
-      name: "Reminder Template Name",
+      id: uuidv4(),
+      name: "Appointment Reminder",
       subject: "Appointment Reminder for {{client_full_name}}",
       content: "Hi {client_first_name},\n\nThis is a reminder that you have an appointment with {practice_full_name} at {appointment_time} on {appointment_date}.\n\nAdd to your Calendar:\n{appointment_reminder_links}\n",
       type: "reminder",
@@ -139,30 +137,30 @@ async function main() {
       send_to_practice: false,
       created_at: new Date("2025-05-06T18:34:05.860Z"),
       updated_at: new Date("2025-05-09T08:00:48.505Z"),
-      created_by: "B10575A0-9F42-414A-AFB2-23A210A01396"
+      created_by: admin.id
     },
     {
-      id: "FDB356C0-930B-40D8-B159-35DD073E7BAB",
-      name: "Reminder Template Name",
-      subject: "Reminder Subject",
-      content: "This is a reminder email content.",
+      id: uuidv4(),
+      name: "Default Invoice Emails",
+      subject: "Your invoice(s) for {{client_first_appointment_date}} {{client_first_appointment_time}}",
+      content: "Hi {{client_full_name}},\n\nYour invoice(s) for {{client_first_appointment_date}} are attached.\n\nThank you.\n{{clinician_first_name}}\nalam@mcnultycw.com\n{{practice_phone_number}}",
       type: "billing",
       is_active: true,
       is_enabled: true,
       reminder_time: 48,
-      include_attachments: false,
+      include_attachments: true,
       send_to_client: true,
       send_to_clinician: false,
       send_to_practice: false,
       created_at: new Date("2025-05-06T18:37:23.203Z"),
       updated_at: new Date("2025-05-06T18:37:23.203Z"),
-      created_by: "563BBE74-AD62-4627-91D4-6E746171116D"
+      created_by: admin.id
     },
     {
-      id: "E7C9CF28-4EF9-4A37-B0F2-7CD44DDDFC27",
+      id: uuidv4(),
       name: "Welcome",
       subject: "Welcome from {{client_full_name}}",
-      content: "{{client_first_name}} offers a secure Client Portal to manage care with ease.\n\nBefore your visit, {{clinician_first_name}} would like you to complete practice documents. Sign in to your Client Portal to get started.\n\n{link}\n{{appointment_reminder_links}}",
+      content: "{{client_first_name}} offers a secure Client Portal to manage care with ease.\n\nBefore your visit, {{clinician_first_name}} would like you to complete practice documents. Sign in to your Client Portal to get started.\n\n{link}",
       type: "automated",
       is_active: true,
       is_enabled: true,
@@ -173,19 +171,24 @@ async function main() {
       send_to_practice: true,
       created_at: new Date("2025-05-06T18:19:22.490Z"),
       updated_at: new Date("2025-05-11T10:12:06.733Z"),
-      created_by: "DF9E840E-CAF9-40A4-9956-F4D233B84341"
+      created_by: admin.id
     }
   ];
 
-  for (const template of emailTemplates) {
-    await prisma.emailTemplate.upsert({
-      where: { id: template.id },
-      update: template,
-      create: template
-    });
+  try {
+    for (const template of emailTemplates) {
+      const result = await prisma.emailTemplate.upsert({
+        where: { id: template.id },
+        update: template,
+        create: template
+      });
+      console.log(`Created/Updated email template: ${result.name}`);
+    }
+    console.log("Successfully created all email templates");
+  } catch (error) {
+    console.error("Error creating email templates:", error);
+    throw error;
   }
-
-  console.log("Created email templates");
 }
 
 main()
