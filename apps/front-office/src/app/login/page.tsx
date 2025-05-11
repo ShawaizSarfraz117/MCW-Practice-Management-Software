@@ -2,8 +2,9 @@
 
 import type React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { Button } from "@mcw/ui";
 import { Input } from "@mcw/ui";
 import { useToast } from "@mcw/ui";
@@ -12,58 +13,76 @@ import emailIcon from "@/assets/images/mailIcon.svg";
 import googleIcon from "@/assets/images/googleIcon.svg";
 import { Footer } from "@/components/footer";
 
-export default function SignInPage() {
+export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    try {
-      const res = await fetch("/api/auth/send-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        if (data.statusCode === 201) {
-          toast({
-            title: "Sent Link Successfully",
-            description: "Please check your email for the link to sign in.",
-            variant: "success",
-          });
-        } else if (data.statusCode === 200) {
-          toast({
-            title: "Sent Link Successfully",
-            description: "Please check your email for the link to sign in.",
-            variant: "success",
-          });
-        }
-        router.push(`/link-sent?email=${encodeURIComponent(email)}`);
-      } else {
-        toast({
-          title: "Error Sending Link",
-          description: data.error,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
+    if (!email || email.trim() === "") {
       toast({
-        title: "Error Sending Link",
-        description: "Something went wrong. Please try again.",
+        title: "Email Required",
+        description: "Please enter your email address.",
         variant: "destructive",
       });
-      console.log(error);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await signIn("email", {
+        email,
+        redirect: false,
+        callbackUrl: callbackUrl,
+      });
+
+      if (res?.error) {
+        if (res.error === "EmailSent") {
+          toast({
+            title: "Check Your Email",
+            description:
+              "A sign-in link has been sent to your email address. Please check your inbox.",
+            variant: "success",
+          });
+          router.push("/auth/verify-request");
+          return;
+        }
+        throw new Error(res.error);
+      }
+
+      if (res?.ok) {
+        toast({
+          title: "Check Your Email",
+          description: "A sign-in link has been sent to your email address.",
+          variant: "success",
+        });
+        router.push("/auth/verify-request");
+      } else {
+        throw new Error("Could not initiate sign-in. Please try again.");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.";
+      toast({
+        title: "Sign-In Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      console.error("Sign-in error:", error);
     } finally {
       setIsLoading(false);
     }
   };
+
   return (
     <div>
       <div className="flex flex-col items-center justify-center px-4 pb-12 h-screen custom-bg-header">
@@ -72,7 +91,6 @@ export default function SignInPage() {
         </h1>
         <div className="w-full max-w-md space-y-6">
           <div className="bg-white border rounded-lg p-8 space-y-6">
-            {/* Top icon */}
             <div className="flex justify-center">
               <Image
                 src={emailIcon}
@@ -82,8 +100,6 @@ export default function SignInPage() {
                 className="mb-2"
               />
             </div>
-
-            {/* Header */}
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900">Sign in</h2>
               <p className="mt-2 text-sm text-gray-400">
@@ -91,8 +107,6 @@ export default function SignInPage() {
                 password-free link to sign in
               </p>
             </div>
-
-            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 id="email"
@@ -102,8 +116,8 @@ export default function SignInPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
-
               <Button
                 type="submit"
                 className="w-full text-white p-2 rounded-lg bg-green-700 hover:bg-green-800"
@@ -111,7 +125,6 @@ export default function SignInPage() {
               >
                 {isLoading ? "SENDING..." : "SEND LINK"}
               </Button>
-
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300" />
@@ -120,12 +133,11 @@ export default function SignInPage() {
                   <span className="bg-white px-2 text-gray-500">OR</span>
                 </div>
               </div>
-
-              {/* Google Button */}
               <Button
                 type="button"
                 variant="outline"
                 className="w-full border border-gray-400 bg-slate-50 p-2"
+                disabled
               >
                 <span className="flex justify-start items-center text-gray-400 gap-4">
                   <Image src={googleIcon} alt="Google" className="w-5 h-5" />
@@ -134,8 +146,6 @@ export default function SignInPage() {
               </Button>
             </form>
           </div>
-
-          {/* New Client Link */}
           <div className="text-center text-sm mt-12">
             <span className="text-gray-400">New client?</span>{" "}
             <Link

@@ -37,7 +37,7 @@ model Appointment {
   recurring_appointment_id String?          @db.UniqueIdentifier
   ClientGroup              ClientGroup?     @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_ClientGroup")
   Clinician                Clinician?       @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Clinician")
-  User                     User?             @relation(fields: [created_by], references: [id], map: "FK_Appointment_User")
+  User                     User?            @relation(fields: [created_by], references: [id], map: "FK_Appointment_User")
   Location                 Location?        @relation(fields: [location_id], references: [id], map: "FK_Appointment_Location")
   Appointment              Appointment?     @relation("AppointmentToAppointment", fields: [recurring_appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_RecurringAppointment")
   other_Appointment        Appointment[]    @relation("AppointmentToAppointment")
@@ -129,13 +129,13 @@ model ClientGroup {
   id                    String                  @id(map: "PK_ClientGroup_ID") @db.UniqueIdentifier
   type                  String                  @db.VarChar(150)
   name                  String                  @db.VarChar(250)
-  available_credit      Decimal                @default(0)
+  available_credit      Decimal                 @default(0)
   clinician_id          String?                 @db.UniqueIdentifier
   is_active             Boolean                 @default(true, map: "DF_ClientGroup_IsActive")
   Appointment           Appointment[]
   ClientGroupMembership ClientGroupMembership[]
   Invoice               Invoice[]
-  Clinician             Clinician?    @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
+  Clinician             Clinician?              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
 }
 
 model ClientGroupMembership {
@@ -231,24 +231,24 @@ model CreditCard {
 }
 
 model Invoice {
-  id                    String       @id @default(dbgenerated("newid()"), map: "PK_Invoice_ID") @db.UniqueIdentifier
-  invoice_number        String       @db.VarChar(50)
-  client_group_id       String?      @db.UniqueIdentifier
-  appointment_id        String?      @db.UniqueIdentifier
-  clinician_id          String?      @db.UniqueIdentifier
-  issued_date           DateTime     @default(now(), map: "DF_Invoice_IssuedDate")
-  due_date              DateTime
-  amount                Decimal      @db.Decimal(10, 2)
-  status                String       @db.VarChar(50)
-  type                  String       @db.VarChar(50)
-  client_info           String?      @db.Text
-  provider_info         String?      @db.Text
-  service_description   String?      @db.Text
-  notes                 String?      @db.Text
-  Appointment           Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
-  ClientGroup           ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
-  Clinician             Clinician?   @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
-  Payment               Payment[]
+  id                  String       @id @default(dbgenerated("newid()"), map: "PK_Invoice_ID") @db.UniqueIdentifier
+  invoice_number      String       @db.VarChar(50)
+  client_group_id     String?      @db.UniqueIdentifier
+  appointment_id      String?      @db.UniqueIdentifier
+  clinician_id        String?      @db.UniqueIdentifier
+  issued_date         DateTime     @default(now(), map: "DF_Invoice_IssuedDate")
+  due_date            DateTime
+  amount              Decimal      @db.Decimal(10, 2)
+  status              String       @db.VarChar(50)
+  type                String       @db.VarChar(50)
+  client_info         String?      @db.Text
+  provider_info       String?      @db.Text
+  service_description String?      @db.Text
+  notes               String?      @db.Text
+  Appointment         Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
+  ClientGroup         ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
+  Clinician           Clinician?   @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
+  Payment             Payment[]
 }
 
 model Location {
@@ -280,7 +280,7 @@ model PracticeService {
   code              String              @db.VarChar(50) // "Service" in UI
   description       String?             @db.Text
   rate              Decimal             @db.Decimal(10, 2)
-  duration          Int                 // Default Duration (minutes)
+  duration          Int // Default Duration (minutes)
   color             String?             @db.VarChar(7)
   is_default        Boolean             @default(false)
   bill_in_units     Boolean             @default(false)
@@ -350,17 +350,19 @@ model Tag {
 }
 
 model User {
-  id            String         @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  email         String         @unique @db.VarChar(255)
-  password_hash String         @db.VarChar(255)
+  id            String    @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  email         String    @unique @db.VarChar(255)
+  emailVerified DateTime?
+  profile_photo String?   @db.VarChar(500)
   last_login    DateTime?
+  date_of_birth DateTime? @db.Date
+  phone         String?   @db.VarChar(20)
+  password_hash String?   @db.VarChar(255)
+
   Appointment   Appointment[]
   Audit         Audit[]
   Clinician     Clinician?
   UserRole      UserRole[]
- date_of_birth  DateTime? @db.Date
-  phone         String?   @db.VarChar(20)
-  profile_photo String?   @db.VarChar(500)
   clinicalInfos ClinicalInfo[]
 }
 
@@ -374,23 +376,23 @@ model UserRole {
 }
 
 model ClinicalInfo {
-  id           Int    @id @default(autoincrement())
-  speciality   String
+  id            Int       @id @default(autoincrement())
+  speciality    String
   taxonomy_code String
   NPI_number    Float
-  user_id       String @db.UniqueIdentifier
+  user_id       String    @db.UniqueIdentifier
   licenses      License[]
-  User User @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
+  User          User      @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
 }
 
 model License {
-  id              Int      @id @default(autoincrement())
+  id               Int          @id @default(autoincrement())
   clinical_info_id Int
-  license_type    String   // License type
-  license_number  String   // License number
-  expiration_date DateTime     // Use Date type for expiration date
-  state           String   // State
-  clinicalInfo    ClinicalInfo @relation(fields: [clinical_info_id], references: [id]) // Establishing the relation
+  license_type     String // License type
+  license_number   String // License number
+  expiration_date  DateTime // Use Date type for expiration date
+  state            String // State
+  clinicalInfo     ClinicalInfo @relation(fields: [clinical_info_id], references: [id]) // Establishing the relation
 }
 
 model AppointmentLimit {
@@ -405,4 +407,12 @@ model AppointmentLimit {
   @@unique([date, clinician_id], name: "UQ_AppointmentLimit_Date_Clinician")
   @@index([clinician_id], name: "IX_AppointmentLimit_clinician_id")
   @@index([date], name: "IX_AppointmentLimit_date")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
