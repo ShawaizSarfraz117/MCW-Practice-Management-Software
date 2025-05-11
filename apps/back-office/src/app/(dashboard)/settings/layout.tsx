@@ -22,7 +22,7 @@ export default function SettingsLayout({
   return (
     <div className="flex flex-1 h-full">
       <SettingsSidebar />
-      <div className="flex-1 p-6 overflow-y-auto">{children}</div>
+      <div className="flex-1 p-6 overflow-y-auto bg-[#F9FAFB]">{children}</div>
     </div>
   );
 }

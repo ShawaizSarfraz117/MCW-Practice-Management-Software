@@ -20,7 +20,7 @@ export default function DashboardLayout({
       <SidebarProvider>
         <div className="flex h-screen">
           <Sidebar />
-          <main className="flex flex-col flex-1 overflow-y-auto">
+          <main className="flex flex-col flex-1 overflow-y-auto no-scrollbar">
             <TopBar />
             {children}
           </main>
