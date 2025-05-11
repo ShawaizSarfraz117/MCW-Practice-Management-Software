@@ -341,24 +341,29 @@ export function ClientForm({
 
       {/* Notification Preferences Section */}
       <NotificationPreferencesSection
-        contactMethod={
-          value.contactMethod || {
-            text: true,
-            voice: false,
-          }
-        }
+        emails={value.emails || []}
+        phones={value.phones || []}
         notificationOptions={
           value.notificationOptions || {
-            upcomingAppointments: true,
-            incompleteDocuments: false,
-            cancellations: false,
+            upcomingAppointments: {
+              enabled: true,
+              emailId: null,
+              phoneId: null,
+              method: "text",
+            },
+            incompleteDocuments: {
+              enabled: false,
+              emailId: null,
+              phoneId: null,
+              method: "text",
+            },
+            cancellations: {
+              enabled: false,
+              emailId: null,
+              phoneId: null,
+              method: "text",
+            },
           }
-        }
-        onContactMethodChange={(newMethod) =>
-          field.setValue({
-            ...value,
-            contactMethod: newMethod,
-          })
         }
         onNotificationOptionsChange={(newOptions) =>
           field.setValue({

@@ -27,6 +27,7 @@ const ProfileInfo = ({
               children: (field) => (
                 <Input
                   className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  max={new Date().toISOString().split("T")[0]}
                   type="date"
                   value={form.getFieldValue("dateOfBirth") as string}
                   onChange={(e) => field.handleChange(e.target.value)}

@@ -37,7 +37,7 @@ model Appointment {
   recurring_appointment_id String?          @db.UniqueIdentifier
   ClientGroup              ClientGroup?     @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_ClientGroup")
   Clinician                Clinician?       @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Clinician")
-  User                     User?             @relation(fields: [created_by], references: [id], map: "FK_Appointment_User")
+  User                     User?            @relation(fields: [created_by], references: [id], map: "FK_Appointment_User")
   Location                 Location?        @relation(fields: [location_id], references: [id], map: "FK_Appointment_Location")
   Appointment              Appointment?     @relation("AppointmentToAppointment", fields: [recurring_appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_RecurringAppointment")
   other_Appointment        Appointment[]    @relation("AppointmentToAppointment")
@@ -112,30 +112,64 @@ model Client {
   ClinicianClient          ClinicianClient[]
   CreditCard               CreditCard[]
   SurveyAnswers            SurveyAnswers[]
+  ClientAdress             ClientAdress[]
+  ClientProfile            ClientProfile?
+}
+
+model ClientProfile {
+  id                     String  @id @default(dbgenerated("newid()"), map: "PK_ClientProfile_ID") @db.UniqueIdentifier
+  client_id              String  @unique @db.UniqueIdentifier
+  middle_name            String? @db.VarChar(50)
+  gender                 String? @db.VarChar(50)
+  gender_identity        String? @db.VarChar(50)
+  relationship_status    String? @db.VarChar(50)
+  employment_status      String? @db.VarChar(50)
+  race_ethnicity         String? @db.Text
+  race_ethnicity_details String? @db.VarChar(50)
+  preferred_language     String? @db.VarChar(50)
+  notes                  String? @db.Text
+  Client                 Client  @relation(fields: [client_id], references: [id], onUpdate: NoAction, onDelete: Cascade, map: "FK_ClientProfile_Client")
+}
+
+model ClientAdress {
+  id            String  @id @default(dbgenerated("newid()"), map: "PK_ClientAddress_ID") @db.UniqueIdentifier
+  client_id     String  @db.UniqueIdentifier
+  address_line1 String  @db.VarChar(255)
+  address_line2 String  @db.VarChar(255)
+  zip_code      String  @db.VarChar(50)
+  city          String  @db.VarChar(50)
+  state         String  @db.VarChar(50)
+  country       String  @db.VarChar(50)
+  is_primary    Boolean @default(false, map: "DF_ClientAddress_IsPrimary")
+  Client        Client  @relation(fields: [client_id], references: [id], onUpdate: NoAction, onDelete: Cascade, map: "FK_ClientAddress_Client")
 }
 
 model ClientContact {
-  id           String  @id @default(dbgenerated("newid()"), map: "PK_ClientContact_ID") @db.UniqueIdentifier
-  client_id    String  @db.UniqueIdentifier
-  is_primary   Boolean @default(false, map: "DF_ClientContact_IsPrimary")
-  permission   String  @db.VarChar(50)
-  contact_type String  @db.VarChar(50)
-  type         String  @db.VarChar(50)
-  value        String  @db.VarChar(255)
-  Client       Client  @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientContact_Client")
+  id                       String                     @id @default(dbgenerated("newid()"), map: "PK_ClientContact_ID") @db.UniqueIdentifier
+  client_id                String                     @db.UniqueIdentifier
+  is_primary               Boolean                    @default(false, map: "DF_ClientContact_IsPrimary")
+  permission               String                     @db.VarChar(50)
+  contact_type             String                     @db.VarChar(50)
+  type                     String                     @db.VarChar(50)
+  value                    String                     @db.VarChar(255)
+  Client                   Client                     @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientContact_Client")
+  ClientReminderPreference ClientReminderPreference[]
 }
 
 model ClientGroup {
   id                    String                  @id(map: "PK_ClientGroup_ID") @db.UniqueIdentifier
   type                  String                  @db.VarChar(150)
   name                  String                  @db.VarChar(250)
-  available_credit      Decimal                @default(0)
+  available_credit      Decimal                 @default(0)
   clinician_id          String?                 @db.UniqueIdentifier
   is_active             Boolean                 @default(true, map: "DF_ClientGroup_IsActive")
+  first_seen_at         DateTime?               @default(now(), map: "ClientGroup_first_seen_at")
+  created_at            DateTime?               @default(now(), map: "ClientGroup_created_at")
+  notes                 String?                 @db.Text
   Appointment           Appointment[]
   ClientGroupMembership ClientGroupMembership[]
   Invoice               Invoice[]
-  Clinician             Clinician?    @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
+  Clinician             Clinician?              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
 }
 
 model ClientGroupMembership {
@@ -145,6 +179,7 @@ model ClientGroupMembership {
   created_at                 DateTime    @default(now(), map: "DF_ClientGroupMembership_CreatedAt")
   is_contact_only            Boolean     @default(false, map: "DF_ClientGroupMembership_IsContactOnly")
   is_responsible_for_billing Boolean?
+  is_emergency_contact       Boolean?    @default(false, map: "DF_ClientGroupMembership_IsEmergencyContactOnly")
   Client                     Client      @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_Client")
   ClientGroup                ClientGroup @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_ClientGroup")
 
@@ -153,13 +188,30 @@ model ClientGroupMembership {
 }
 
 model ClientReminderPreference {
-  id            String  @id @default(dbgenerated("newid()"), map: "PK_ClientReminderPreference_ID") @db.UniqueIdentifier
-  client_id     String  @db.UniqueIdentifier
-  reminder_type String  @db.VarChar(100)
-  is_enabled    Boolean @default(true, map: "DF_ClientReminderPreference_IsEnabled")
-  Client        Client  @relation(fields: [client_id], references: [id], onDelete: Cascade, map: "FK_ClientReminderPreference_Client")
+  id            String        @id @default(dbgenerated("newid()"), map: "PK_ClientReminderPreference_ID") @db.UniqueIdentifier
+  client_id     String        @db.UniqueIdentifier
+  contact_id    String        @db.UniqueIdentifier
+  reminder_type String        @db.VarChar(100)
+  channel       String
+  ClientContact ClientContact @relation(fields: [contact_id], references: [id], onDelete: Cascade, map: "FK_ClientReminderPreference_ClientContact")
+  is_enabled    Boolean       @default(true, map: "DF_ClientReminderPreference_IsEnabled")
+  Client        Client        @relation(fields: [client_id], references: [id], onDelete: Cascade, map: "FK_ClientReminderPreference_Client")
 
-  @@unique([client_id, reminder_type])
+  @@unique([client_id, reminder_type, channel])
+}
+
+model BillingAddress {
+  id           String    @id @default(dbgenerated("newid()"), map: "PK_BillingAddress_ID") @db.UniqueIdentifier
+  street       String    @db.VarChar(255)
+  city         String    @db.VarChar(100)
+  state        String    @db.VarChar(50)
+  zip          String    @db.VarChar(20)
+  type         String    @db.VarChar(50) // 'business' or 'client'
+  clinician_id String    @db.UniqueIdentifier
+  Clinician    Clinician @relation("ManyBillingAddresses", fields: [clinician_id], references: [id], onDelete: Cascade, map: "FK_BillingAddress_Clinician")
+
+  @@unique([clinician_id, type], map: "UQ_BillingAddress_Clinician_Type")
+  @@index([clinician_id], map: "IX_BillingAddress_clinician_id")
 }
 
 model Clinician {
@@ -180,6 +232,7 @@ model Clinician {
   Invoice           Invoice[]
   ClientGroup       ClientGroup[]
   Availability      Availability[]
+  billingAddresses  BillingAddress[]    @relation("ManyBillingAddresses")
 }
 
 model ClinicianClient {
@@ -231,30 +284,35 @@ model CreditCard {
 }
 
 model Invoice {
-  id                    String       @id @default(dbgenerated("newid()"), map: "PK_Invoice_ID") @db.UniqueIdentifier
-  invoice_number        String       @db.VarChar(50)
-  client_group_id       String?      @db.UniqueIdentifier
-  appointment_id        String?      @db.UniqueIdentifier
-  clinician_id          String?      @db.UniqueIdentifier
-  issued_date           DateTime     @default(now(), map: "DF_Invoice_IssuedDate")
-  due_date              DateTime
-  amount                Decimal      @db.Decimal(10, 2)
-  status                String       @db.VarChar(50)
-  type                  String       @db.VarChar(50)
-  client_info           String?      @db.Text
-  provider_info         String?      @db.Text
-  service_description   String?      @db.Text
-  notes                 String?      @db.Text
-  Appointment           Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
-  ClientGroup           ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
-  Clinician             Clinician?   @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
-  Payment               Payment[]
+  id                  String       @id @default(dbgenerated("newid()"), map: "PK_Invoice_ID") @db.UniqueIdentifier
+  invoice_number      String       @db.VarChar(50)
+  client_group_id     String?      @db.UniqueIdentifier
+  appointment_id      String?      @db.UniqueIdentifier
+  clinician_id        String?      @db.UniqueIdentifier
+  issued_date         DateTime     @default(now(), map: "DF_Invoice_IssuedDate")
+  due_date            DateTime
+  amount              Decimal      @db.Decimal(10, 2)
+  status              String       @db.VarChar(50)
+  type                String       @db.VarChar(50)
+  client_info         String?      @db.Text
+  provider_info       String?      @db.Text
+  service_description String?      @db.Text
+  notes               String?      @db.Text
+  Appointment         Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
+  ClientGroup         ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
+  Clinician           Clinician?   @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
+  Payment             Payment[]
 }
 
 model Location {
   id                String              @id @default(dbgenerated("newid()"), map: "PK_Location_ID") @db.UniqueIdentifier
   name              String              @db.VarChar(255)
   address           String              @db.Text
+  street            String?             @db.VarChar(255)
+  city              String?             @db.VarChar(100)
+  state             String?             @db.VarChar(100)
+  zip               String?             @db.VarChar(20)
+  color             String?             @db.VarChar(50)
   is_active         Boolean             @default(true, map: "DF_Location_IsActive")
   Appointment       Appointment[]
   Client            Client[]
@@ -280,7 +338,7 @@ model PracticeService {
   code              String              @db.VarChar(50) // "Service" in UI
   description       String?             @db.Text
   rate              Decimal             @db.Decimal(10, 2)
-  duration          Int                 // Default Duration (minutes)
+  duration          Int // Default Duration (minutes)
   color             String?             @db.VarChar(7)
   is_default        Boolean             @default(false)
   bill_in_units     Boolean             @default(false)
@@ -350,18 +408,19 @@ model Tag {
 }
 
 model User {
-  id            String         @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  email         String         @unique @db.VarChar(255)
-  password_hash String         @db.VarChar(255)
-  last_login    DateTime?
-  Appointment   Appointment[]
-  Audit         Audit[]
-  Clinician     Clinician?
-  UserRole      UserRole[]
- date_of_birth  DateTime? @db.Date
-  phone         String?   @db.VarChar(20)
-  profile_photo String?   @db.VarChar(500)
-  clinicalInfos ClinicalInfo[]
+  id                  String                @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  email               String                @unique @db.VarChar(255)
+  password_hash       String                @db.VarChar(255)
+  last_login          DateTime?
+  Appointment         Appointment[]
+  Audit               Audit[]
+  Clinician           Clinician?
+  UserRole            UserRole[]
+  date_of_birth       DateTime?             @db.Date
+  phone               String?               @db.VarChar(20)
+  profile_photo       String?               @db.VarChar(500)
+  clinicalInfos       ClinicalInfo[]
+  practiceInformation PracticeInformation[]
 }
 
 model UserRole {
@@ -374,23 +433,35 @@ model UserRole {
 }
 
 model ClinicalInfo {
-  id           Int    @id @default(autoincrement())
-  speciality   String
+  id            Int       @id @default(autoincrement())
+  speciality    String
   taxonomy_code String
   NPI_number    Float
-  user_id       String @db.UniqueIdentifier
+  user_id       String    @db.UniqueIdentifier
   licenses      License[]
-  User User @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
+  User          User      @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
 }
 
 model License {
-  id              Int      @id @default(autoincrement())
+  id               Int          @id @default(autoincrement())
   clinical_info_id Int
-  license_type    String   // License type
-  license_number  String   // License number
-  expiration_date DateTime     // Use Date type for expiration date
-  state           String   // State
-  clinicalInfo    ClinicalInfo @relation(fields: [clinical_info_id], references: [id]) // Establishing the relation
+  license_type     String // License type
+  license_number   String // License number
+  expiration_date  DateTime // Use Date type for expiration date
+  state            String // State
+  clinicalInfo     ClinicalInfo @relation(fields: [clinical_info_id], references: [id]) // Establishing the relation
+}
+
+model PracticeInformation {
+  id             String  @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  practice_name  String
+  practice_email String
+  time_zone      String
+  practice_logo  String
+  phone_numbers  String
+  tele_health    Boolean
+  user_id        String  @db.UniqueIdentifier
+  User           User    @relation(fields: [user_id], references: [id], map: "FK_practiceInformation_User")
 }
 
 model AppointmentLimit {
@@ -408,21 +479,28 @@ model AppointmentLimit {
 }
 
 model EmailTemplate {
-  id              String    @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  name            String    @db.VarChar(255)
-  subject         String    @db.VarChar(255)
-  content         String    @db.Text
-  type            String    @db.VarChar(50) // 'automated', 'reminder', 'billing'
-  is_active       Boolean   @default(true)
-  is_enabled      Boolean   @default(true)
-  reminder_time   Int?      // hours before the event
+  id                  String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  name                String   @db.VarChar(255)
+  subject             String   @db.VarChar(255)
+  content             String   @db.Text
+  type                String   @db.VarChar(50) // 'automated', 'reminder', 'billing'
+  is_active           Boolean  @default(true)
+  is_enabled          Boolean  @default(true)
+  reminder_time       Int? // hours before the event
   include_attachments Boolean? @default(false)
-  send_to_client  Boolean   @default(true)
-  send_to_clinician Boolean @default(false)
-  send_to_practice Boolean  @default(false)
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
-  created_by      String    @db.UniqueIdentifier
+  send_to_client      Boolean  @default(true)
+  send_to_clinician   Boolean  @default(false)
+  send_to_practice    Boolean  @default(false)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  created_by          String   @db.UniqueIdentifier
+
   @@index([type])
   @@index([created_by])
+}
+
+model Product {
+  id    String  @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  name  String  @db.VarChar(255)
+  price Decimal @db.Decimal(10, 2)
 }

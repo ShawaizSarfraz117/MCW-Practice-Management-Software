@@ -17,3 +17,17 @@ export function createRequestWithBody(
     }),
   );
 }
+
+export function createRequestWithFormData(
+  path: string,
+  formData: FormData,
+  options?: RequestInit,
+) {
+  return new NextRequest(
+    new Request(`http://localhost:3000${path}`, {
+      method: "POST",
+      ...options,
+      body: formData,
+    }),
+  );
+}

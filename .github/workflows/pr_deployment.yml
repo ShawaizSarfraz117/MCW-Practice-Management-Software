@@ -1,0 +1,151 @@
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-to-qa:
+    name: Deploy PR to QA Slot
+    runs-on: ubuntu-latest
+    environment: development
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma Client
+        run: |
+          if [ -d "packages/database" ]; then
+            cd packages/database
+            npx prisma generate
+            cd ../..
+          fi
+
+      - name: Build with Turborepo (both apps)
+        run: npx turbo build --filter={back-office,front-office}...
+
+      # Create the slots first, before running deploy.js
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create QA slots
+        id: create-slots
+        run: |
+          # Fixed QA slot name
+          SLOT_NAME="qa"
+          echo "Creating QA slots if they don't exist: $SLOT_NAME"
+
+          # Create slots (will skip if they already exist)
+          az webapp deployment slot create --name "back-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" || true
+          az webapp deployment slot create --name "front-office-mcw-dev" --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" --slot "$SLOT_NAME" || true
+
+          echo "slot_name=$SLOT_NAME" >> $GITHUB_OUTPUT
+
+      # Run the deployment scripts after slot creation
+      - name: Run back-office deployment script and deploy
+        run: |
+          # Run deploy.js
+          if [ -d "apps/back-office" ]; then
+            cd apps/back-office
+            npm install --save-dev fs-extra
+            node deploy.js
+            cd ../..
+            
+            # Debug: Check what's in the deploy directory
+            echo "Contents of back-office deploy directory:"
+            ls -la apps/back-office/deploy
+            echo "Node modules in back-office deploy:"
+            ls -la apps/back-office/deploy/node_modules || echo "No node_modules found"
+          else
+            echo "Back-office directory not found!"
+            exit 1
+          fi
+
+      # Deploy back-office immediately after running deploy.js
+      - name: Deploy back-office to QA slot
+        id: deploy-back-office
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "back-office-mcw-dev"
+          slot-name: "${{ steps.create-slots.outputs.slot_name }}"
+          package: "apps/back-office/deploy"
+
+      # Run the front-office deployment script
+      - name: Run front-office deployment script and deploy
+        run: |
+          # Run deploy.js
+          if [ -d "apps/front-office" ]; then
+            cd apps/front-office
+            npm install --save-dev fs-extra
+            node deploy.js
+            cd ../..
+            
+            # Debug: Check what's in the deploy directory
+            echo "Contents of front-office deploy directory:"
+            ls -la apps/front-office/deploy
+            echo "Node modules in front-office deploy:"
+            ls -la apps/front-office/deploy/node_modules || echo "No node_modules found"
+          else
+            echo "Front-office directory not found!"
+            exit 1
+          fi
+
+      # Deploy front-office immediately after running deploy.js
+      - name: Deploy front-office to QA slot
+        id: deploy-front-office
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "front-office-mcw-dev"
+          slot-name: "${{ steps.create-slots.outputs.slot_name }}"
+          package: "apps/front-office/deploy"
+
+      - name: Get deployment URLs
+        id: get-urls
+        run: |
+          SLOT_NAME="${{ steps.create-slots.outputs.slot_name }}"
+          BACK_OFFICE_URL="https://back-office-mcw-dev-${SLOT_NAME}.azurewebsites.net"
+          FRONT_OFFICE_URL="https://front-office-mcw-dev-${SLOT_NAME}.azurewebsites.net"
+
+          echo "back_office_url=$BACK_OFFICE_URL" >> $GITHUB_OUTPUT
+          echo "front_office_url=$FRONT_OFFICE_URL" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with deployment URLs
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.TOKEN }}
+          script: |
+            const backOfficeUrl = "${{ steps.get-urls.outputs.back_office_url }}";
+            const frontOfficeUrl = "${{ steps.get-urls.outputs.front_office_url }}";
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🚀 PR Deployment to QA
+              
+              This PR has been deployed to QA slots for testing:
+              
+              - **Back Office QA:** [${backOfficeUrl}](${backOfficeUrl})
+              - **Front Office QA:** [${frontOfficeUrl}](${frontOfficeUrl})
+              
+              Please verify your changes in these environments before merging.`
+            });

@@ -22,6 +22,7 @@ import {
   defineSurveyTemplateFactory,
   defineTagFactory,
   defineUserRoleFactory,
+  defineProductFactory,
   registerScalarFieldValueGenerator,
   defineEmailTemplateFactory,
 } from "@mcw/database/fabbrica";
@@ -48,6 +49,8 @@ import {
   SurveyTemplate,
   SurveyAnswers,
   EmailTemplate,
+  Product,
+  ClinicianLocation,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
@@ -130,6 +133,19 @@ export const LocationFactory = {
     id: faker.string.uuid(),
     name: faker.company.name(),
     address: faker.location.streetAddress(),
+    color: faker.internet.color(),
+    street: faker.location.streetAddress(),
+    city: faker.location.city(),
+    state: faker.location.state(),
+    zip: faker.location.zipCode(),
+    ...overrides,
+  }),
+};
+
+export const ClinicianLocationFactory = {
+  build: <T extends Partial<ClinicianLocation>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    is_primary: faker.datatype.boolean(),
     ...overrides,
   }),
 };
@@ -235,6 +251,21 @@ export const PracticeServiceFactory = {
   }),
 };
 
+export const ProductFactory = {
+  build: <T extends Partial<Product>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    name: faker.commerce.productName(),
+    price: new Decimal(
+      faker.number.float({ min: 1, max: 1000, fractionDigits: 2 }),
+    ),
+    ...overrides,
+  }),
+};
+
+export const ProductPrismaFactory = defineProductFactory({
+  defaultData: () => ProductFactory.build(),
+});
+
 // PracticeService Prisma factory
 export const PracticeServicePrismaFactory = definePracticeServiceFactory({
   defaultData: () => PracticeServiceFactory.build(),
@@ -308,7 +339,6 @@ export const RoleFactory = {
   build: <T extends Partial<Role>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
     name: faker.helpers.arrayElement(["admin", "clinician", "receptionist"]),
-    description: faker.lorem.sentence(),
     ...overrides,
   }),
 };
@@ -414,6 +444,7 @@ export const ClientReminderPreferencePrismaFactory =
     defaultData: () => ({
       ...ClientReminderPreferenceFactory.build(),
       Client: ClientPrismaFactory,
+      ClientContact: ClientContactPrismaFactory,
     }),
   });
 
@@ -429,6 +460,7 @@ export const ClinicianClientPrismaFactory = defineClinicianClientFactory({
 // ClinicianLocation Prisma factory
 export const ClinicianLocationPrismaFactory = defineClinicianLocationFactory({
   defaultData: () => ({
+    ...ClinicianLocationFactory.build(),
     Clinician: ClinicianPrismaFactory,
     Location: LocationPrismaFactory,
   }),

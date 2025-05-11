@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
 import { X } from "lucide-react";
-import { Sheet, SheetContent } from "@mcw/ui";
+import { Sheet, SheetContent, toast } from "@mcw/ui";
 import { Button } from "@mcw/ui";
 import { RadioGroup, RadioGroupItem } from "@mcw/ui";
 import { Label } from "@mcw/ui";
@@ -21,7 +21,8 @@ interface CreateClientDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultAppointmentDate?: string;
-  fetchClientData: () => void;
+  fetchClientData?: () => void;
+  onClientCreated?: (newClient: { id: string; name: string }) => void;
 }
 
 export interface EmailEntry {
@@ -50,9 +51,24 @@ export interface FormState {
   emails: EmailEntry[];
   phones: PhoneEntry[];
   notificationOptions: {
-    upcomingAppointments: boolean;
-    incompleteDocuments: boolean;
-    cancellations: boolean;
+    upcomingAppointments: {
+      enabled: boolean;
+      emailId: string | null;
+      phoneId: string | null;
+      method: "text" | "voice";
+    };
+    incompleteDocuments: {
+      enabled: boolean;
+      emailId: string | null;
+      phoneId: string | null;
+      method: "text" | "voice";
+    };
+    cancellations: {
+      enabled: boolean;
+      emailId: string | null;
+      phoneId: string | null;
+      method: "text" | "voice";
+    };
   };
   contactMethod: {
     text: boolean;
@@ -77,8 +93,9 @@ const clientGroups: { type: string; name: string }[] = [
 export function CreateClientDrawer({
   open,
   onOpenChange,
-  defaultAppointmentDate = "Tuesday, Oct 22, 2025 @ 12:00 PM",
+  defaultAppointmentDate = "",
   fetchClientData,
+  onClientCreated,
 }: CreateClientDrawerProps) {
   const [clientType, setClientType] = useState("adult");
   const [activeTab, setActiveTab] = useState("");
@@ -111,9 +128,24 @@ export function CreateClientDrawer({
     emails: [],
     phones: [],
     notificationOptions: {
-      upcomingAppointments: true,
-      incompleteDocuments: false,
-      cancellations: false,
+      upcomingAppointments: {
+        enabled: false,
+        emailId: null,
+        phoneId: null,
+        method: "text",
+      },
+      incompleteDocuments: {
+        enabled: false,
+        emailId: null,
+        phoneId: null,
+        method: "text",
+      },
+      cancellations: {
+        enabled: false,
+        emailId: null,
+        phoneId: null,
+        method: "text",
+      },
     },
     contactMethod: {
       text: true,
@@ -211,11 +243,66 @@ export function CreateClientDrawer({
 
       setIsLoading(true);
       const structuredData = structureData(value);
-      await createClient({ body: structuredData });
+      const [response, error] = await createClient({ body: structuredData });
       setIsLoading(false);
+
+      if (error) {
+        toast({
+          title: "Failed to create client",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Define expected structure for the client object in the response
+      interface CreatedClientResponse {
+        id: string;
+        name?: string; // Optional name on client itself?
+        ClientGroupMembership?: Array<{
+          client_group_id?: string;
+          ClientGroup?: {
+            id?: string;
+            name?: string;
+          };
+        }>;
+        [key: string]: unknown; // Allow other properties
+      }
+
+      const responseArray = response as CreatedClientResponse[];
+      const createdClient = responseArray?.[0];
+
+      // --- FIX: Extract Client Group ID and Name ---
+      let clientGroupId: string | undefined = undefined;
+      let clientGroupName: string | undefined = undefined;
+
+      if (
+        createdClient?.ClientGroupMembership?.length &&
+        createdClient.ClientGroupMembership.length > 0
+      ) {
+        const membership = createdClient.ClientGroupMembership[0];
+        clientGroupId = membership?.client_group_id;
+        clientGroupName = membership?.ClientGroup?.name;
+      }
+      // --- END FIX ---
+
       resetFormState();
-      onOpenChange(false);
-      fetchClientData();
+
+      // Use the extracted group details
+      if (onClientCreated && clientGroupId && clientGroupName) {
+        console.log(
+          `[CreateClientDrawer] Extracted Group ID: ${clientGroupId}, Group Name: ${clientGroupName}`,
+        ); // Keep final confirmation log
+        onClientCreated({ id: clientGroupId, name: clientGroupName });
+      } else if (typeof fetchClientData === "function") {
+        fetchClientData();
+        onOpenChange(false);
+      } else {
+        console.error(
+          "[CreateClientDrawer] Could not extract client group details from response or no callback provided.",
+          createdClient,
+        );
+        onOpenChange(false); // Close drawer if data is unusable or no callback
+      }
     },
   });
 
@@ -341,9 +428,24 @@ export function CreateClientDrawer({
           ]
         : [],
       notificationOptions: {
-        upcomingAppointments: true,
-        incompleteDocuments: false,
-        cancellations: false,
+        upcomingAppointments: {
+          enabled: false,
+          emailId: null,
+          phoneId: null,
+          method: "text",
+        },
+        incompleteDocuments: {
+          enabled: false,
+          emailId: null,
+          phoneId: null,
+          method: "text",
+        },
+        cancellations: {
+          enabled: false,
+          emailId: null,
+          phoneId: null,
+          method: "text",
+        },
       },
       contactMethod: {
         text: true,
@@ -416,9 +518,11 @@ export function CreateClientDrawer({
             <div className="flex items-center justify-between border-b p-4">
               <div>
                 <h2 className="text-xl font-semibold">Create client</h2>
-                <p className="text-sm text-gray-500">
-                  Appointment: {defaultAppointmentDate}
-                </p>
+                {defaultAppointmentDate && (
+                  <p className="text-sm text-gray-500">
+                    Appointment: {defaultAppointmentDate}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Button

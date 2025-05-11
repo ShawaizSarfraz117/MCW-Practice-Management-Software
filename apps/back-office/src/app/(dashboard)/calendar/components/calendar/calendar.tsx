@@ -10,6 +10,7 @@ import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 import { DayHeaderContentArg } from "@fullcalendar/core";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { AppointmentDialog } from "../AppointmentDialog";
 import { CalendarToolbar } from "./components/CalendarToolbar";
@@ -26,7 +27,14 @@ import {
 import { EditAppointmentDialog } from "../EditAppointmentDialog";
 import { AvailabilitySidebar } from "../availability/AvailabilitySidebar";
 import { ClientGroup } from "../appointment-dialog/types";
-import { Button, Card, CardHeader, CardContent, toast } from "@mcw/ui";
+import {
+  Button,
+  Card,
+  CardHeader,
+  CardContent,
+  toast,
+  useToast,
+} from "@mcw/ui";
 
 declare global {
   interface Window {
@@ -96,9 +104,14 @@ export function CalendarView({
     left: number;
   } | null>(null);
 
+  // Add useToast hook
+  const { toast: showToast } = useToast();
+  const queryClient = useQueryClient();
+
   // Get session data to check if user is admin
   const { data: session } = useSession();
   const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
+  const userId = session?.user?.id;
 
   // Set the view based on user role
   const [currentView, setCurrentView] = useState(
@@ -107,17 +120,29 @@ export function CalendarView({
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Initialize selected clinicians based on user role
-  const [selectedClinicians, setSelectedClinicians] = useState<string[]>(() => {
-    if (!isAdmin && initialClinicians.length === 1) {
-      // Non-admin users should only see their own clinician
-      return [initialClinicians[0].value];
-    } else {
-      // Admin users get default selection of first two clinicians
-      return initialClinicians
-        .slice(0, Math.min(2, initialClinicians.length))
-        .map((c: Clinician) => c.value);
+  const [selectedClinicians, setSelectedClinicians] = useState<string[]>([]);
+
+  // Update selected clinicians when initialClinicians changes or when user is a clinician
+  useEffect(() => {
+    if (!isAdmin && userId) {
+      // For non-admin users, find their clinician ID
+      const userClinician = initialClinicians.find(
+        (c: Clinician) => c.user_id === userId,
+      );
+      if (userClinician) {
+        setSelectedClinicians([userClinician.value]);
+      } else {
+        console.error("No clinician found for user:", userId);
+      }
+    } else if (initialClinicians.length > 0) {
+      // For admin users, select first two clinicians
+      setSelectedClinicians(
+        initialClinicians
+          .slice(0, Math.min(2, initialClinicians.length))
+          .map((c: Clinician) => c.value),
+      );
     }
-  });
+  }, [initialClinicians, isAdmin, userId]);
 
   const [selectedLocations, setSelectedLocations] = useState<string[]>(
     initialLocations.map((loc: Location) => loc.value),
@@ -147,6 +172,7 @@ export function CalendarView({
     filtered = filtered.filter((event) => {
       // For availability events, only check clinician
       if (event.extendedProps?.type === "availability") {
+        return event.resourceId;
         return event.resourceId;
       }
       // For regular events, filter by location
@@ -239,19 +265,28 @@ export function CalendarView({
         const appointments = await response.json();
 
         // Format appointments for calendar
-        const formattedEvents = appointments.map(
-          (appointment: AppointmentData) => ({
+        const formattedAppointments = appointments.map(
+          (
+            appointment: AppointmentData & {
+              isFirstAppointmentForGroup?: boolean;
+            },
+          ) => ({
             id: appointment.id,
             resourceId: appointment.clinician_id || "",
             title: appointment.title,
             start: appointment.start_date,
             end: appointment.end_date,
             location: appointment.location_id || "",
+            extendedProps: {
+              type: "appointment",
+              isFirstAppointmentForGroup:
+                appointment.isFirstAppointmentForGroup,
+            },
           }),
         );
 
         // Update calendar events
-        setEvents(formattedEvents);
+        setEvents(formattedAppointments);
       } catch (error) {
         console.error("Error refreshing appointments:", error);
       }
@@ -304,12 +339,18 @@ export function CalendarView({
     const values = appointmentFormRef.current as unknown as FormValues;
 
     try {
-      // If client is specified, get client group details for title
-      if (values.client && values.client.trim()) {
-        const response = await fetch(`/api/client-group?id=${values.client}`);
+      // Handle events (no client group)
+      if (values.type === "event") {
+        return createAppointmentWithAPI(values);
+      }
+
+      // Handle appointments with client group
+      if (values.clientGroup) {
+        const response = await fetch(
+          `/api/client/group?id=${values.clientGroup}`,
+        );
         if (response.ok) {
           const clientGroupData = await response.json();
-
           const clientName = clientGroupData.name || "Client Group";
           return createAppointmentWithAPI(values, clientName);
         } else {
@@ -320,6 +361,7 @@ export function CalendarView({
         }
       }
 
+      // Handle appointments without client group
       return createAppointmentWithAPI(values);
     } catch (error) {
       console.error("Error in appointment creation:", error);
@@ -616,6 +658,7 @@ export function CalendarView({
       service_id: values.selectedServices?.[0]?.serviceId || null,
       appointment_fee: values.selectedServices?.[0]?.fee || null,
     };
+    console.log("payload", payload, clientName);
 
     // Validate required fields before sending
     if (!payload.location_id) {
@@ -628,87 +671,293 @@ export function CalendarView({
     return payload;
   };
 
-  // Effect to fetch events
-  useEffect(() => {
-    async function fetchEventsForCurrentView() {
-      if (!calendarRef.current) return;
-      const calendarApi = calendarRef.current.getApi();
-      const view = calendarApi.view;
-      const startDate = view.activeStart.toISOString().split("T")[0];
-      const endDate = view.activeEnd.toISOString().split("T")[0];
+  // Get the current date range from the calendar
+  const getDateRange = () => {
+    if (!calendarRef.current) return { startDate: "", endDate: "" };
+    const calendarApi = calendarRef.current.getApi();
+    const view = calendarApi.view;
+    const startDate = view.activeStart.toISOString().split("T")[0];
+    const endDate = view.activeEnd.toISOString().split("T")[0];
+    return { startDate, endDate };
+  };
 
-      try {
-        // Fetch appointments
-        let appointmentUrl = `/api/appointment?startDate=${startDate}&endDate=${endDate}`;
-        if (!isAdmin && selectedClinicians.length > 0) {
-          appointmentUrl += `&clinicianId=${selectedClinicians[0]}`;
-        }
+  // Fetch events using React Query
+  const { data: eventsData, isLoading: _isLoadingEvents } = useQuery({
+    queryKey: [
+      "calendarEvents",
+      currentView,
+      currentDate,
+      selectedClinicians,
+      isAdmin,
+      isScheduledPage,
+    ],
+    queryFn: async () => {
+      const { startDate, endDate } = getDateRange();
 
-        // Fetch availabilities
-        let availabilityUrl = `/api/availability?startDate=${startDate}&endDate=${endDate}`;
-        if (!isAdmin && selectedClinicians.length > 0) {
-          availabilityUrl += `&clinicianId=${selectedClinicians[0]}`;
-        }
+      // Construct URLs with parameters
+      let appointmentUrl = `/api/appointment?startDate=${startDate}&endDate=${endDate}`;
+      let availabilityUrl = `/api/availability?startDate=${startDate}&endDate=${endDate}`;
 
-        // Fetch both appointments and availabilities in parallel
-        const [appointmentsResponse, availabilitiesResponse] =
-          await Promise.all([fetch(appointmentUrl), fetch(availabilityUrl)]);
+      if (!isAdmin && selectedClinicians.length > 0) {
+        const clinicianId = selectedClinicians[0];
+        appointmentUrl += `&clinicianId=${clinicianId}`;
+        availabilityUrl += `&clinicianId=${clinicianId}`;
+      }
 
-        if (!appointmentsResponse.ok)
-          throw new Error("Failed to fetch appointments");
-        if (!availabilitiesResponse.ok)
-          throw new Error("Failed to fetch availabilities");
+      // Fetch both in parallel
+      const [appointmentsResponse, availabilitiesResponse] = await Promise.all([
+        fetch(appointmentUrl),
+        fetch(availabilityUrl),
+      ]);
 
-        const [appointments, availabilities] = await Promise.all([
-          appointmentsResponse.json(),
-          availabilitiesResponse.json(),
-        ]);
+      if (!appointmentsResponse.ok)
+        throw new Error("Failed to fetch appointments");
+      if (!availabilitiesResponse.ok)
+        throw new Error("Failed to fetch availabilities");
 
-        // Format appointments
-        const formattedAppointments = appointments.map(
-          (appointment: AppointmentData) => ({
-            id: appointment.id,
-            resourceId: appointment.clinician_id || "",
-            title: appointment.title,
-            start: appointment.start_date,
-            end: appointment.end_date,
-            location: appointment.location_id || "",
-            extendedProps: {
-              type: "appointment",
-            },
-          }),
-        );
+      const [appointments, availabilities] = await Promise.all([
+        appointmentsResponse.json(),
+        availabilitiesResponse.json(),
+      ]);
 
-        // Format availabilities to match appointment pattern
-        const formattedAvailabilities = availabilities.map(
-          (availability: AvailabilityData) => {
-            const event = {
-              id: availability.id,
-              resourceId: availability.clinician_id,
-              title: availability.title || "Available",
-              start: availability.start_date,
-              end: availability.end_date,
-              location: availability.location || "",
-              extendedProps: {
-                type: "availability",
-                clinician_id: availability.clinician_id,
-                allow_online_requests: availability.allow_online_requests,
-                is_recurring: availability.is_recurring,
-                recurring_rule: availability.recurring_rule,
-              },
-            };
-            return event;
+      // Format appointments
+      const formattedAppointments = appointments.map(
+        (
+          appointment: AppointmentData & {
+            isFirstAppointmentForGroup?: boolean;
           },
-        );
+        ) => ({
+          id: appointment.id,
+          resourceId: appointment.clinician_id || "",
+          title: appointment.title,
+          start: appointment.start_date,
+          end: appointment.end_date,
+          location: appointment.location_id || "",
+          extendedProps: {
+            type: "appointment",
+            isFirstAppointmentForGroup: appointment.isFirstAppointmentForGroup,
+          },
+        }),
+      );
 
-        // Set all events
-        setEvents([...formattedAvailabilities, ...formattedAppointments]);
-      } catch (error) {
-        console.error("Error fetching events:", error);
+      // Format availabilities
+      const formattedAvailabilities = availabilities.map(
+        (availability: AvailabilityData) => ({
+          id: availability.id,
+          resourceId: availability.clinician_id,
+          title: availability.title || "Available",
+          start: availability.start_date,
+          end: availability.end_date,
+          location: availability.location || "",
+          extendedProps: {
+            type: "availability",
+            clinician_id: availability.clinician_id,
+            allow_online_requests: availability.allow_online_requests,
+            is_recurring: availability.is_recurring,
+            recurring_rule: availability.recurring_rule,
+          },
+        }),
+      );
+
+      return [...formattedAvailabilities, ...formattedAppointments];
+    },
+    enabled: !!calendarRef.current,
+  });
+
+  // Set events from query data when it changes
+  useEffect(() => {
+    if (eventsData) {
+      setEvents(eventsData);
+    }
+  }, [eventsData]);
+
+  // React Query for appointment limits
+  const { data: limitsData } = useQuery({
+    queryKey: [
+      "appointmentLimits",
+      currentView,
+      currentDate,
+      selectedClinicians,
+      isScheduledPage,
+    ],
+    queryFn: async () => {
+      if (
+        !isScheduledPage ||
+        selectedClinicians.length === 0 ||
+        !calendarRef.current
+      ) {
+        return {};
+      }
+
+      const { startDate, endDate } = getDateRange();
+      const clinicianId = selectedClinicians[0];
+
+      // Get all dates in range
+      const dates: string[] = [];
+      const d = new Date(startDate);
+      const end = new Date(endDate);
+      while (d <= end) {
+        dates.push(d.toISOString().split("T")[0]);
+        d.setDate(d.getDate() + 1);
+      }
+
+      // Fetch all limits in parallel
+      const results = await Promise.all(
+        dates.map((date) =>
+          fetch(
+            `/api/appointment-limit?clinicianId=${clinicianId}&date=${date}`,
+          )
+            .then((res) => res.json())
+            .then((data) => ({ date, limit: data.limit ?? null }))
+            .catch(() => ({ date, limit: null })),
+        ),
+      );
+
+      const limits: Record<string, number | null> = {};
+      results.forEach(({ date, limit }) => {
+        limits[date] = limit;
+      });
+      return limits;
+    },
+    enabled:
+      isScheduledPage && selectedClinicians.length > 0 && !!calendarRef.current,
+  });
+
+  // Set appointment limits from query data when it changes
+  useEffect(() => {
+    if (limitsData) {
+      setAppointmentLimits(limitsData);
+    }
+  }, [limitsData]);
+
+  // Function to handle adding a limit
+  function handleAddLimit(
+    date: Date,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY,
+      left: rect.left + rect.width / 2 + window.scrollX,
+    });
+    setAddLimitDropdown({ open: true, anchor: event.currentTarget, date });
+  }
+
+  // Mutation for setting appointment limit
+  const setLimitMutation = useMutation({
+    mutationFn: async ({
+      clinicianId,
+      date,
+      maxLimit,
+    }: {
+      clinicianId: string;
+      date: string;
+      maxLimit: number;
+    }) => {
+      const response = await fetch("/api/appointment-limit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clinician_id: clinicianId,
+          date,
+          max_limit: maxLimit,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to set limit");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      // Update the local state
+      setAppointmentLimits((prev) => ({
+        ...prev,
+        [variables.date]: variables.maxLimit,
+      }));
+
+      // Invalidate the related query to refetch data
+      queryClient.invalidateQueries({
+        queryKey: ["appointmentLimits"],
+      });
+    },
+    onError: (error) => {
+      console.error("Error setting limit:", error);
+      showToast({
+        title: "Failed to set limit",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update only the selected date's limit
+  async function handleSelectLimit(limit: number | null) {
+    if (!addLimitDropdown.date || selectedClinicians.length === 0) {
+      console.log("Missing date or clinician:", {
+        date: addLimitDropdown.date,
+        clinicians: selectedClinicians,
+      });
+      return;
+    }
+
+    const clinicianId = selectedClinicians[0];
+    const date = addLimitDropdown.date.toISOString().split("T")[0];
+    const apiLimit = limit === null ? 0 : limit;
+
+    try {
+      await setLimitMutation.mutateAsync({
+        clinicianId,
+        date,
+        maxLimit: apiLimit,
+      });
+    } finally {
+      setAddLimitDropdown({ open: false, anchor: null, date: null });
+    }
+  }
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        addLimitDropdown.open &&
+        addLimitDropdownRef.current &&
+        !addLimitDropdownRef.current.contains(event.target as Node)
+      ) {
+        setAddLimitDropdown({ open: false, anchor: null, date: null });
+        setDropdownPosition(null);
       }
     }
-    fetchEventsForCurrentView();
-  }, [currentView, currentDate, selectedClinicians, isAdmin]);
+    if (addLimitDropdown.open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [addLimitDropdown.open]);
+
+  // Effect to handle availability refresh
+  useEffect(() => {
+    const handleAvailabilityRefresh = () => {
+      // Invalidate the events query to refresh data
+      queryClient.invalidateQueries({
+        queryKey: ["calendarEvents"],
+      });
+    };
+
+    window.addEventListener(
+      "refreshAvailabilities",
+      handleAvailabilityRefresh as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "refreshAvailabilities",
+        handleAvailabilityRefresh as EventListener,
+      );
+    };
+  }, [queryClient]);
 
   // Handle event click to view appointment details
   const handleEventClick = async (clickInfo: EventClickArg) => {
@@ -840,104 +1089,6 @@ export function CalendarView({
       title: clinician.label,
     }));
 
-  // Fetch limits for all days in view
-  useEffect(() => {
-    if (
-      !isScheduledPage ||
-      selectedClinicians.length === 0 ||
-      !calendarRef.current
-    ) {
-      setAppointmentLimits({});
-      return;
-    }
-    const calendarApi = calendarRef.current.getApi();
-    const view = calendarApi.view;
-    const startDate = view.activeStart;
-    const endDate = view.activeEnd;
-    const clinicianId = selectedClinicians[0];
-
-    // Get all dates in range
-    const dates: string[] = [];
-    const d = new Date(startDate);
-    while (d <= endDate) {
-      dates.push(d.toISOString().split("T")[0]);
-      d.setDate(d.getDate() + 1);
-    }
-
-    // Fetch all limits in parallel
-    Promise.all(
-      dates.map((date) =>
-        fetch(`/api/appointment-limit?clinicianId=${clinicianId}&date=${date}`)
-          .then((res) => res.json())
-          .then((data) => ({ date, limit: data.limit ?? null }))
-          .catch(() => ({ date, limit: null })),
-      ),
-    ).then((results) => {
-      const limits: Record<string, number | null> = {};
-      results.forEach(({ date, limit }) => {
-        limits[date] = limit;
-      });
-      setAppointmentLimits(limits);
-    });
-  }, [isScheduledPage, selectedClinicians, currentView, currentDate]);
-
-  function handleAddLimit(
-    date: Date,
-    event: React.MouseEvent<HTMLButtonElement>,
-  ) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setDropdownPosition({
-      top: rect.bottom + window.scrollY,
-      left: rect.left + rect.width / 2 + window.scrollX,
-    });
-    setAddLimitDropdown({ open: true, anchor: event.currentTarget, date });
-  }
-
-  // Update only the selected date's limit after adding
-  async function handleSelectLimit(limit: number | null) {
-    if (!addLimitDropdown.date || selectedClinicians.length === 0) return;
-    const clinician_id = selectedClinicians[0];
-    const date = addLimitDropdown.date.toISOString().split("T")[0];
-    const apiLimit = limit === null ? 0 : limit;
-    try {
-      const res = await fetch("/api/appointment-limit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clinician_id, date, max_limit: apiLimit }),
-      });
-      if (!res.ok) throw new Error("Failed to set limit");
-      setAppointmentLimits((prev) => ({ ...prev, [date]: apiLimit }));
-    } catch (_e) {
-      if (typeof window !== "undefined" && window.toast) {
-        window.toast.error("Failed to set limit");
-      } else {
-        alert("Failed to set limit");
-      }
-    } finally {
-      setAddLimitDropdown({ open: false, anchor: null, date: null });
-    }
-  }
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        addLimitDropdown.open &&
-        addLimitDropdownRef.current &&
-        !addLimitDropdownRef.current.contains(event.target as Node)
-      ) {
-        setAddLimitDropdown({ open: false, anchor: null, date: null });
-        setDropdownPosition(null);
-      }
-    }
-    if (addLimitDropdown.open) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [addLimitDropdown.open]);
-
   return (
     <div className="flex h-full bg-background">
       <div className="flex-1 flex flex-col">
@@ -1015,7 +1166,12 @@ export function CalendarView({
                                   ? "bg-gray-100"
                                   : ""
                               }`}
-                              onClick={() => handleSelectLimit(null)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log("Selecting no limit");
+                                handleSelectLimit(null);
+                              }}
                               onMouseDown={(e) => e.preventDefault()}
                             >
                               No appt limit
@@ -1030,7 +1186,12 @@ export function CalendarView({
                                       ? "bg-gray-100"
                                       : ""
                                   }`}
-                                  onClick={() => handleSelectLimit(num)}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log("Selecting limit:", num);
+                                    handleSelectLimit(num);
+                                  }}
                                   onMouseDown={(e) => e.preventDefault()}
                                 >
                                   {num}
@@ -1054,6 +1215,10 @@ export function CalendarView({
           eventClick={handleEventClick}
           eventContent={(arg) => {
             const type = arg.event.extendedProps?.type;
+            const isFirstAppointment = arg.event.extendedProps
+              ?.isFirstAppointmentForGroup as boolean | undefined;
+
+            // Handle Availability events separately
             if (type === "availability") {
               const start = arg.event.start;
               const startTime = start
@@ -1073,10 +1238,42 @@ export function CalendarView({
                   <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
                     {title}
                   </div>
+                  {/* Availability events don't get New/Old badges */}
                 </div>
               );
             }
-            return <div style={{ padding: "2px 4px" }}>{arg.event.title}</div>;
+
+            // Handle regular Appointment events
+            const title = arg.event.title; // Or format as needed
+            // Add badge based on isFirstAppointmentForGroup
+            const badgeText =
+              isFirstAppointment === true
+                ? "New"
+                : isFirstAppointment === false
+                  ? ""
+                  : null;
+            const badgeColor =
+              isFirstAppointment === true
+                ? "bg-green-100 text-green-800"
+                : isFirstAppointment === false
+                  ? "bg-blue-100 text-blue-800"
+                  : "";
+
+            return (
+              <div className="p-1 flex flex-col h-full relative">
+                {/* You might want to add time or other info here */}
+                <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis mb-1 flex-grow">
+                  {title}
+                </div>
+                {badgeText && (
+                  <span
+                    className={`absolute top-1.5 right-1.5 text-xs font-medium px-1.5 py-0.5 rounded-full ${badgeColor}`}
+                  >
+                    {badgeText}
+                  </span>
+                )}
+              </div>
+            );
           }}
           eventDidMount={(info) => {
             const event = info.event;
@@ -1157,8 +1354,8 @@ export function CalendarView({
           select={handleDateSelect}
           selectable={true}
           slotEventOverlap={true}
-          slotMaxTime="23:00:00"
-          slotMinTime="07:00:00"
+          slotMaxTime="24:00:00"
+          slotMinTime="00:00:00"
           timeZone="America/New_York"
           views={{
             resourceTimeGridDay: {
