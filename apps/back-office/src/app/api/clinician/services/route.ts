@@ -107,11 +107,29 @@ export async function PUT(request: NextRequest) {
     const existingRelations = await prisma.clinicianServices.findMany({
       where: {
         clinician_id,
-        service_id: { in: service_ids },
       },
     });
 
     const existingServiceIds = existingRelations.map((rel) => rel.service_id);
+
+    // Find service IDs to delete (present in database but not in request)
+    const serviceIdsToDelete = existingServiceIds.filter(
+      (id) => !service_ids.includes(id),
+    );
+
+    // Delete relationships for services that were removed
+    if (serviceIdsToDelete.length > 0) {
+      await prisma.clinicianServices.deleteMany({
+        where: {
+          clinician_id,
+          service_id: { in: serviceIdsToDelete },
+        },
+      });
+
+      logger.info(
+        `Deleted ${serviceIdsToDelete.length} clinician service relations for clinician ${clinician_id}`,
+      );
+    }
 
     // Create new relationships for services that don't have one yet
     const newServiceIds = service_ids.filter(
@@ -141,6 +159,11 @@ export async function PUT(request: NextRequest) {
 
     // Update existing relationships if needed
     for (const relation of existingRelations) {
+      // Skip updating relationships for services that aren't in the request anymore
+      if (!service_ids.includes(relation.service_id)) {
+        continue;
+      }
+
       await prisma.clinicianServices.update({
         where: {
           clinician_id_service_id: {

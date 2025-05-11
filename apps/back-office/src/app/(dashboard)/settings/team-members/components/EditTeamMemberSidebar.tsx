@@ -9,7 +9,9 @@ interface EditTeamMemberSidebarProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
-  onSave: () => void;
+  onSave?: () => void;
+  formId?: string;
+  isLoading?: boolean;
 }
 
 export default function EditTeamMemberSidebar({
@@ -17,8 +19,16 @@ export default function EditTeamMemberSidebar({
   onClose,
   title,
   children,
+  formId,
   onSave,
+  isLoading = false,
 }: EditTeamMemberSidebarProps) {
+  const handleSave = () => {
+    if (onSave) {
+      onSave();
+    }
+  };
+
   return (
     <div
       className={`fixed inset-y-0 right-0 w-[500px] bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 ${
@@ -33,6 +43,7 @@ export default function EditTeamMemberSidebar({
             className="p-2 hover:bg-gray-100 rounded-full"
             variant="ghost"
             onClick={onClose}
+            disabled={isLoading}
           >
             <X className="h-5 w-5 text-gray-500" />
           </Button>
@@ -50,15 +61,28 @@ export default function EditTeamMemberSidebar({
               className="text-[#4B5563]"
               variant="ghost"
               onClick={onClose}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button
-              className="bg-[#2D8467] text-white hover:bg-[#256b53]"
-              onClick={onSave}
-            >
-              Save
-            </Button>
+            {onSave ? (
+              <Button
+                className="bg-[#2D8467] text-white hover:bg-[#256b53]"
+                onClick={handleSave}
+                disabled={isLoading}
+              >
+                {isLoading ? "Saving..." : "Save"}
+              </Button>
+            ) : (
+              <Button
+                form={formId}
+                className="bg-[#2D8467] text-white hover:bg-[#256b53]"
+                type="submit"
+                disabled={isLoading}
+              >
+                {isLoading ? "Saving..." : "Save"}
+              </Button>
+            )}
           </div>
         </div>
       </div>

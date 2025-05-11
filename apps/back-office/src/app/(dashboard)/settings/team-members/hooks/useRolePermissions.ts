@@ -11,6 +11,7 @@ export interface TeamMember {
     expirationDate: string;
     state: string;
   };
+  clinicianId?: string | null;
   services?: string[];
 }
 

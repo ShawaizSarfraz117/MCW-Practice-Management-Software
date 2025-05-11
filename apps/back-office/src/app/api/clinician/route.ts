@@ -1,15 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
+import { getBackOfficeSession } from "@/utils/helpers";
 
 // GET - Retrieve all clinicians or a specific clinician by ID
 export async function GET(request: NextRequest) {
   try {
+    const session = await getBackOfficeSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
     const userId = searchParams.get("userId");
+    const details = searchParams.get("details");
 
-    if (id) {
+    if (details === "true" && userId) {
+      logger.info("Retrieving clinician details");
+
+      const clinician = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          clinicalInfos: {
+            include: {
+              licenses: true,
+            },
+          },
+          Clinician: {
+            include: {
+              ClinicianServices: {
+                include: {
+                  PracticeService: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return NextResponse.json(clinician);
+    } else if (id) {
       logger.info("Retrieving specific clinician by ID");
       // Retrieve specific clinician
       const clinician = await prisma.clinician.findUnique({
@@ -107,7 +138,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validate required fields
-    if (!data.user_id || !data.first_name || !data.last_name || !data.address) {
+    if (!data.user_id || !data.first_name || !data.last_name) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
@@ -132,7 +163,7 @@ export async function POST(request: NextRequest) {
         user_id: data.user_id,
         first_name: data.first_name,
         last_name: data.last_name,
-        address: data.address,
+        address: data.address || "no address found",
         percentage_split: data.percentage_split || 0,
         is_active: data.is_active ?? true,
       },
@@ -155,39 +186,35 @@ export async function PUT(request: NextRequest) {
 
     if (!data.id) {
       return NextResponse.json(
-        { error: "Clinician ID is required" },
+        { error: "User ID is required" },
         { status: 400 },
       );
     }
 
-    // Check if clinician exists
-    const existingClinician = await prisma.clinician.findUnique({
-      where: { id: data.id },
-    });
-
-    if (!existingClinician) {
-      return NextResponse.json(
-        { error: "Clinician not found" },
-        { status: 404 },
-      );
-    }
-
     await prisma.user.update({
-      where: { id: existingClinician.user_id },
+      where: { id: data.user_id },
       data: {
         email: data.email,
       },
     });
 
     // Update clinician
-    const updatedClinician = await prisma.clinician.update({
-      where: { id: data.id },
-      data: {
+    const updatedClinician = await prisma.clinician.upsert({
+      where: { user_id: data.user_id },
+      update: {
         first_name: data.first_name,
         last_name: data.last_name,
         address: data.address,
         percentage_split: data.percentage_split,
         is_active: data.is_active,
+      },
+      create: {
+        user_id: data.user_id,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        address: data.address || "no address found",
+        percentage_split: data.percentage_split || 0,
+        is_active: data.is_active || true,
       },
     });
 

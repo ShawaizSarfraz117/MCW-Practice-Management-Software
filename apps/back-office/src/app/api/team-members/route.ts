@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     // Build where clause
     let where: Prisma.UserWhereInput = {};
 
-    if (search) {
+    if (search && search !== "undefined") {
       where = {
         OR: [
           { email: { contains: search } },
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter by role if specified
-    if (role !== "all") {
+    if (role !== "undefined") {
       where.UserRole = {
         some: {
           Role: {

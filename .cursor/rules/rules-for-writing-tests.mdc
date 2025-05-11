@@ -31,6 +31,8 @@ Unit tests focus on testing individual functions or methods in isolation, with a
 - **Coverage**: Test all code paths, including error cases.
 - **Example**: `apps/back-office/__tests__/api/location/route.unit.test.ts`
 
+- Keep running `npx vitest apps/back-office/__tests__/api/**test-path**` in a loop **until all test cases pass without any failure**. Exit only when the test result is fully green (i.e., no failing or pending tests).
+
 ### Integration Tests
 
 Integration tests verify that different components work together correctly, often involving the database.
