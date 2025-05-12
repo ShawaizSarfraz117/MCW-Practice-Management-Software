@@ -24,6 +24,7 @@ import {
   defineUserRoleFactory,
   defineProductFactory,
   registerScalarFieldValueGenerator,
+  defineEmailTemplateFactory,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcrypt";
@@ -47,6 +48,7 @@ import {
   Role,
   SurveyTemplate,
   SurveyAnswers,
+  EmailTemplate,
   Product,
   ClinicianLocation,
 } from "@prisma/client";
@@ -528,3 +530,28 @@ export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
 export const mockInvoice = (overrides = {}) => {
   return InvoiceFactory.buildComplete(overrides);
 };
+
+export const EmailTemplateFactory = {
+  build: <T extends Partial<EmailTemplate>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    name: faker.lorem.words(3),
+    subject: faker.lorem.sentence(),
+    content: faker.lorem.paragraphs(2),
+    type: faker.helpers.arrayElement(["automated", "reminder", "billing"]),
+    is_active: faker.datatype.boolean(),
+    is_enabled: faker.datatype.boolean(),
+    reminder_time: faker.number.int({ min: 1, max: 72 }),
+    include_attachments: faker.datatype.boolean(),
+    send_to_client: faker.datatype.boolean(),
+    send_to_clinician: faker.datatype.boolean(),
+    send_to_practice: faker.datatype.boolean(),
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
+    created_by: faker.string.uuid(),
+    ...overrides,
+  }),
+};
+
+export const EmailTemplatePrismaFactory = defineEmailTemplateFactory({
+  defaultData: () => EmailTemplateFactory.build(),
+});
