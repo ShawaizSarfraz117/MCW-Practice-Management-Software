@@ -1,38 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { GET } from "@/api/analytics/route";
-import { prisma } from "@mcw/database";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Prisma } from "@prisma/client";
 import { createRequest } from "@mcw/utils";
+import prismaMock from "@mcw/database/mock";
 
-// Mock the logger
-vi.mock("@mcw/logger", () => ({
-  logger: {
-    error: vi.fn(),
-  },
-}));
-
-// Mock Prisma
-vi.mock("@mcw/database", () => ({
-  prisma: {
-    payment: {
-      aggregate: vi.fn(),
-    },
-    invoice: {
-      aggregate: vi.fn(),
-    },
-    appointment: {
-      count: vi.fn(),
-    },
-    surveyAnswers: {
-      count: vi.fn(),
-    },
-  },
+// Mock the database module to use the shared prismaMock
+vi.mock("@mcw/database", async () => ({
+  ...(await vi.importActual("@mcw/database")),
+  prisma: prismaMock,
 }));
 
 describe("Analytics API Unit Tests", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // Reset mocks before each test
+    vi.resetAllMocks();
   });
 
   describe("GET /api/analytics", () => {
@@ -42,7 +24,7 @@ describe("Analytics API Unit Tests", () => {
       const endDate = endOfMonth(now);
 
       // Mock all Prisma aggregate calls
-      vi.mocked(prisma.payment.aggregate).mockResolvedValueOnce({
+      prismaMock.payment.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(1500) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(1500) },
@@ -51,7 +33,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Mock outstanding invoices aggregate
-      vi.mocked(prisma.invoice.aggregate).mockResolvedValueOnce({
+      prismaMock.invoice.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(3000) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(3000) },
@@ -60,7 +42,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Mock total paid amount aggregate
-      vi.mocked(prisma.payment.aggregate).mockResolvedValueOnce({
+      prismaMock.payment.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(1000) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(1000) },
@@ -69,7 +51,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Mock uninvoiced amount aggregate
-      vi.mocked(prisma.invoice.aggregate).mockResolvedValueOnce({
+      prismaMock.invoice.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(1000) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(1000) },
@@ -77,8 +59,8 @@ describe("Analytics API Unit Tests", () => {
         _max: { amount: new Prisma.Decimal(1000) },
       });
 
-      vi.mocked(prisma.appointment.count).mockResolvedValueOnce(2);
-      vi.mocked(prisma.surveyAnswers.count).mockResolvedValueOnce(2);
+      prismaMock.appointment.count.mockResolvedValueOnce(2);
+      prismaMock.surveyAnswers.count.mockResolvedValueOnce(2);
 
       const request = createRequest("/api/analytics");
       const response = await GET(request);
@@ -94,7 +76,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Verify Prisma calls
-      expect(prisma.payment.aggregate).toHaveBeenCalledWith({
+      expect(prismaMock.payment.aggregate).toHaveBeenCalledWith({
         _sum: { amount: true },
         where: {
           payment_date: { gte: startDate, lte: endDate },
@@ -109,7 +91,7 @@ describe("Analytics API Unit Tests", () => {
       const endDate = endOfMonth(lastMonth);
 
       // Mock all Prisma aggregate calls
-      vi.mocked(prisma.payment.aggregate).mockResolvedValueOnce({
+      prismaMock.payment.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(1000) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(1000) },
@@ -118,7 +100,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Mock outstanding invoices aggregate
-      vi.mocked(prisma.invoice.aggregate).mockResolvedValueOnce({
+      prismaMock.invoice.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(2000) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(2000) },
@@ -127,7 +109,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Mock total paid amount aggregate
-      vi.mocked(prisma.payment.aggregate).mockResolvedValueOnce({
+      prismaMock.payment.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(500) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(500) },
@@ -136,7 +118,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Mock uninvoiced amount aggregate
-      vi.mocked(prisma.invoice.aggregate).mockResolvedValueOnce({
+      prismaMock.invoice.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(0) },
         _count: { _all: 0 },
         _avg: { amount: null },
@@ -144,8 +126,8 @@ describe("Analytics API Unit Tests", () => {
         _max: { amount: null },
       });
 
-      vi.mocked(prisma.appointment.count).mockResolvedValueOnce(0);
-      vi.mocked(prisma.surveyAnswers.count).mockResolvedValueOnce(0);
+      prismaMock.appointment.count.mockResolvedValueOnce(0);
+      prismaMock.surveyAnswers.count.mockResolvedValueOnce(0);
 
       const request = createRequest("/api/analytics?range=lastMonth");
       const response = await GET(request);
@@ -160,7 +142,7 @@ describe("Analytics API Unit Tests", () => {
         notes: 0,
       });
 
-      expect(prisma.payment.aggregate).toHaveBeenCalledWith({
+      expect(prismaMock.payment.aggregate).toHaveBeenCalledWith({
         _sum: { amount: true },
         where: {
           payment_date: { gte: startDate, lte: endDate },
@@ -174,7 +156,7 @@ describe("Analytics API Unit Tests", () => {
       const endDate = new Date("2024-01-31");
 
       // Mock all Prisma aggregate calls
-      vi.mocked(prisma.payment.aggregate).mockResolvedValueOnce({
+      prismaMock.payment.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(2000) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(2000) },
@@ -183,7 +165,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Mock outstanding invoices aggregate
-      vi.mocked(prisma.invoice.aggregate).mockResolvedValueOnce({
+      prismaMock.invoice.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(3000) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(3000) },
@@ -192,7 +174,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Mock total paid amount aggregate
-      vi.mocked(prisma.payment.aggregate).mockResolvedValueOnce({
+      prismaMock.payment.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(1000) },
         _count: { _all: 1 },
         _avg: { amount: new Prisma.Decimal(1000) },
@@ -201,7 +183,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Mock uninvoiced amount aggregate
-      vi.mocked(prisma.invoice.aggregate).mockResolvedValueOnce({
+      prismaMock.invoice.aggregate.mockResolvedValueOnce({
         _sum: { amount: new Prisma.Decimal(0) },
         _count: { _all: 0 },
         _avg: { amount: null },
@@ -209,8 +191,8 @@ describe("Analytics API Unit Tests", () => {
         _max: { amount: null },
       });
 
-      vi.mocked(prisma.appointment.count).mockResolvedValueOnce(2);
-      vi.mocked(prisma.surveyAnswers.count).mockResolvedValueOnce(2);
+      prismaMock.appointment.count.mockResolvedValueOnce(2);
+      prismaMock.surveyAnswers.count.mockResolvedValueOnce(2);
 
       const request = createRequest(
         `/api/analytics?range=custom&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
@@ -228,7 +210,7 @@ describe("Analytics API Unit Tests", () => {
       });
 
       // Verify Prisma calls
-      expect(prisma.payment.aggregate).toHaveBeenCalledWith({
+      expect(prismaMock.payment.aggregate).toHaveBeenCalledWith({
         _sum: { amount: true },
         where: {
           payment_date: { gte: startDate, lte: endDate },
@@ -247,9 +229,7 @@ describe("Analytics API Unit Tests", () => {
     });
 
     it("should handle database errors gracefully", async () => {
-      vi.mocked(prisma.payment.aggregate).mockRejectedValueOnce(
-        new Error("DB Error"),
-      );
+      prismaMock.payment.aggregate.mockRejectedValueOnce(new Error("DB Error"));
 
       const request = createRequest("/api/analytics");
       const response = await GET(request);

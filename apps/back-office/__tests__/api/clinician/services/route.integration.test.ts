@@ -6,7 +6,7 @@ import {
 } from "@mcw/database/mock-data";
 import { createRequestWithBody } from "@mcw/utils";
 
-import { PUT } from "../../../../src/app/api/clinician/services/route";
+import { PUT } from "@/api/clinician/services/route";
 
 // Helper function to clean the database before each test
 async function cleanDatabase() {
