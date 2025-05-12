@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Button,
   Table,
@@ -18,8 +20,12 @@ import {
 } from "@mcw/ui";
 import { Search } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import AddTeamMemberDialog from "./components/AddTeamMemberDialog";
 
 export default function TeamMembersPage() {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
   // Placeholder data for demonstration
   const teamMembers = [
     {
@@ -70,6 +76,7 @@ export default function TeamMembersPage() {
           <Button
             className="bg-[#2D8467] text-white hover:bg-[#256b53] rounded-md px-4 py-2 text-base font-normal"
             size="sm"
+            onClick={() => setIsAddDialogOpen(true)}
           >
             Add Team Member
           </Button>
@@ -146,6 +153,12 @@ export default function TeamMembersPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Add Team Member Dialog */}
+      <AddTeamMemberDialog
+        isOpen={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+      />
     </section>
   );
 }
