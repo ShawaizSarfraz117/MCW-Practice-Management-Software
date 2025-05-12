@@ -240,10 +240,21 @@ export function AvailabilitySidebar({
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await fetch(`/api/service`);
+        let url = "/api/service";
+
+        // If user is a clinician and not an admin, fetch only their services
+        if (
+          session?.user?.roles?.includes("CLINICIAN") &&
+          !session?.user?.roles?.includes("ADMIN") &&
+          availabilityFormValues.clinician
+        ) {
+          url += `?clinicianId=${availabilityFormValues.clinician}`;
+        }
+
+        const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
-          setServices(data);
+          setServices(Array.isArray(data) ? data : [data]);
 
           // If editing, set selected services from availability data
           if (isEditMode && availabilityData?.service_id) {
@@ -255,10 +266,17 @@ export function AvailabilitySidebar({
       }
     };
 
-    if (session?.user?.id || selectedResource) {
+    // Only fetch when we have a session and clinician data if needed
+    if (session?.user?.id) {
       fetchServices();
     }
-  }, [session?.user?.id, selectedResource, isEditMode, availabilityData]);
+  }, [
+    session?.user?.id,
+    session?.user?.roles,
+    availabilityFormValues.clinician,
+    isEditMode,
+    availabilityData,
+  ]);
 
   // Helper function to create recurring rule in RFC5545 format
   const createRecurringRule = () => {
@@ -741,6 +759,7 @@ export function AvailabilitySidebar({
 
                   <div className="space-y-3">
                     {services.map((service) => {
+                      const isSelected = selectedServices.includes(service.id);
                       return (
                         <div
                           key={service?.id}
@@ -754,19 +773,22 @@ export function AvailabilitySidebar({
                               {service.duration} min • ${service.rate}
                             </div>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setSelectedServices(
-                                selectedServices.filter(
-                                  (id) => id !== service.id,
-                                ),
-                              );
-                            }}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
+                          {isSelected && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                // Only update the frontend state
+                                setSelectedServices(
+                                  selectedServices.filter(
+                                    (id) => id !== service.id,
+                                  ),
+                                );
+                              }}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       );
                     })}
