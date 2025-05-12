@@ -11,18 +11,13 @@ import {
   NotesChart,
 } from "./components/StatsCard";
 import { LineChart, DollarSign } from "lucide-react";
-import { IncomeTable } from "./components/IncomeTable";
+import Link from "next/link";
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [showIncomeTable, setShowIncomeTable] = useState(false);
-
-  if (showIncomeTable) {
-    return <IncomeTable />;
-  }
 
   return (
-    <div className="h-full ">
+    <div className="h-full">
       <div className="p-6 bg-gray-50">
         <div className="mb-6">
           <AnalyticsHeader activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -60,12 +55,12 @@ export default function AnalyticsPage() {
                   <p className="text-sm text-gray-500">
                     Reports related to your practice income
                   </p>
-                  <div
-                    className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
-                    onClick={() => setShowIncomeTable(true)}
+                  <Link
+                    href="/analytics/income"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline"
                   >
                     <span>Income</span>
-                  </div>
+                  </Link>
                 </div>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-sm space-y-4">
@@ -79,9 +74,12 @@ export default function AnalyticsPage() {
                   <p className="text-sm text-gray-500">
                     Reports related to client billing and payments
                   </p>
-                  <div className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer">
+                  <Link
+                    href="/analytics/outstanding-balances"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
                     <span>Outstanding balances</span>
-                  </div>
+                  </Link>
                 </div>
               </div>
             </div>
