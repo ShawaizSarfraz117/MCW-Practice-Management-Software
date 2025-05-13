@@ -115,6 +115,30 @@ export const useClinicianDetails = (id: string) => {
   });
 };
 
+export const fetchRoleDetails = async (id: string) => {
+  try {
+    const response: unknown = await FETCH.get({
+      url: "/team-members/role",
+      searchParams: {
+        userId: id,
+        details: "true",
+      },
+    });
+
+    return response || [];
+  } catch (error) {
+    return error instanceof Error ? error : new Error("Unknown error");
+  }
+};
+
+export const useRoleDetails = (id: string) => {
+  return useQuery({
+    queryKey: ["role-details", id],
+    queryFn: () => fetchRoleDetails(id),
+    enabled: !!id,
+  });
+};
+
 export const createTeamMember = async ({ body = {} }) => {
   try {
     const response: unknown = await FETCH.post({

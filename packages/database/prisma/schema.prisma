@@ -353,9 +353,11 @@ model PracticeService {
 }
 
 model Role {
-  id       String     @id @default(dbgenerated("newid()"), map: "PK_Role_ID") @db.UniqueIdentifier
-  name     String     @unique @db.VarChar(255)
-  UserRole UserRole[]
+  id             String           @id @default(dbgenerated("newid()"), map: "PK_Role_ID") @db.UniqueIdentifier
+  name           String           @unique @db.VarChar(255)
+  description    String?          @db.Text
+  UserRole       UserRole[]
+  RolePermission RolePermission[]
 }
 
 model SurveyAnswers {
@@ -503,4 +505,22 @@ model Product {
   id    String  @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   name  String  @db.VarChar(255)
   price Decimal @db.Decimal(10, 2)
+}
+
+model Permission {
+  id             String           @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  name           String           @db.VarChar(255)
+  slug           String           @unique @db.VarChar(100)
+  RolePermission RolePermission[]
+}
+
+model RolePermission {
+  role_id       String     @db.UniqueIdentifier
+  permission_id String     @db.UniqueIdentifier
+  Role          Role       @relation(fields: [role_id], references: [id], onDelete: Cascade, map: "FK_RolePermission_Role")
+  Permission    Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade, map: "FK_RolePermission_Permission")
+
+  @@id([role_id, permission_id], map: "PK_RolePermission_ID")
+  @@index([role_id], map: "IX_RolePermission_role_id")
+  @@index([permission_id], map: "IX_RolePermission_permission_id") 
 }
