@@ -1,15 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  FormControl,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  RadioGroup,
-  RadioGroupItem,
-  Card,
-} from "@mcw/ui";
+import { FormControl, FormItem, FormLabel, FormMessage, Card } from "@mcw/ui";
 import {
   TeamMember,
   useRolePermissions,
@@ -89,11 +81,7 @@ export default function RoleInfoForm({
       <FormItem className="space-y-3">
         <FormLabel>Role</FormLabel>
         <FormControl>
-          <RadioGroup
-            value={selectedRole}
-            onValueChange={handleRoleChange}
-            className="space-y-3"
-          >
+          <div className="space-y-3">
             {roleOptions.map((role) => (
               <Card
                 key={role}
@@ -105,11 +93,19 @@ export default function RoleInfoForm({
                 onClick={() => handleRoleChange(role)}
               >
                 <div className="flex items-start gap-3">
-                  <RadioGroupItem value={role} id={`role-${role}`} />
+                  <input
+                    type="radio"
+                    id={`role-${role}`}
+                    name="role"
+                    value={role}
+                    checked={selectedRole === role}
+                    onChange={() => handleRoleChange(role)}
+                    className="h-4 w-4 mt-1 cursor-pointer"
+                  />
                   <div className="flex flex-col">
                     <label
                       htmlFor={`role-${role}`}
-                      className="font-medium text-base"
+                      className="font-medium text-base cursor-pointer"
                     >
                       {role}
                     </label>
@@ -120,7 +116,7 @@ export default function RoleInfoForm({
                 </div>
               </Card>
             ))}
-          </RadioGroup>
+          </div>
         </FormControl>
         {errors.role && <FormMessage>{errors.role}</FormMessage>}
       </FormItem>
