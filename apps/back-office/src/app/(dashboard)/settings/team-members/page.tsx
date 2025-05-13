@@ -21,18 +21,17 @@ import {
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import AddTeamMemberDialog from "./components/AddTeamMemberDialog";
 import ManageListOrderSidebar from "./components/ManageListOrderSidebar";
 
 export default function TeamMembersPage() {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isManageListOrderOpen, setIsManageListOrderOpen] = useState(false);
 
   // Placeholder data for demonstration
   const teamMembers = [
     {
       id: "1",
-      name: "Alam Naqvi",
+      firstName: "Alam",
+      lastName: "Naqvi",
       email: "alam@mcwtlycw.com",
       role: "Clinician with entire practice access",
       avatarUrl: "",
@@ -49,7 +48,8 @@ export default function TeamMembersPage() {
     },
     {
       id: "2",
-      name: "John Doe",
+      firstName: "John",
+      lastName: "Doe",
       email: "john.doe@mcw.com",
       role: "Admin",
       avatarUrl: "",
@@ -76,13 +76,14 @@ export default function TeamMembersPage() {
           >
             Manage List Order
           </Button>
-          <Button
-            className="bg-[#2D8467] text-white hover:bg-[#256b53] rounded-md px-4 py-2 text-base font-normal"
-            size="sm"
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            Add Team Member
-          </Button>
+          <Link href="/settings/team-members/add">
+            <Button
+              className="bg-[#2D8467] text-white hover:bg-[#256b53] rounded-md px-4 py-2 text-base font-normal"
+              size="sm"
+            >
+              Add Team Member
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -126,15 +127,13 @@ export default function TeamMembersPage() {
                     <Avatar>
                       <AvatarImage src={member.avatarUrl} />
                       <AvatarFallback>
-                        {member.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
+                        {member.firstName[0]}
+                        {member.lastName[0]}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="font-medium text-gray-900">
-                        {member.name}
+                        {member.firstName} {member.lastName}
                       </div>
                       <div className="text-gray-500">{member.email}</div>
                     </div>
@@ -157,12 +156,7 @@ export default function TeamMembersPage() {
         </Table>
       </div>
 
-      {/* Dialogs */}
-      <AddTeamMemberDialog
-        isOpen={isAddDialogOpen}
-        onClose={() => setIsAddDialogOpen(false)}
-      />
-
+      {/* Sidebar */}
       <ManageListOrderSidebar
         isOpen={isManageListOrderOpen}
         onClose={() => setIsManageListOrderOpen(false)}

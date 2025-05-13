@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input, FormControl, FormItem, FormLabel, FormMessage } from "@mcw/ui";
 import { TeamMember } from "../../hooks/useRolePermissions";
 
@@ -14,10 +14,20 @@ export default function PersonalInfoForm({
   onSubmit,
 }: PersonalInfoFormProps) {
   const [formData, setFormData] = useState({
-    name: initialData.name || "",
+    firstName: initialData.firstName || "",
+    lastName: initialData.lastName || "",
     email: initialData.email || "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    setFormData({
+      firstName: initialData.firstName || "",
+      lastName: initialData.lastName || "",
+      email: initialData.email || "",
+    });
+  }, [initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -31,13 +41,20 @@ export default function PersonalInfoForm({
         return newErrors;
       });
     }
+
+    // Let the field's ID show through in the DOM for event bubbling
+    e.target.id = name;
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name) {
-      newErrors.name = "Name is required";
+    if (!formData.firstName) {
+      newErrors.firstName = "First name is required";
+    }
+
+    if (!formData.lastName) {
+      newErrors.lastName = "Last name is required";
     }
 
     if (!formData.email) {
@@ -69,20 +86,37 @@ export default function PersonalInfoForm({
         </p>
       </div>
 
-      <FormItem className="space-y-2">
-        <FormLabel htmlFor="name">Name</FormLabel>
-        <FormControl>
-          <Input
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className={errors.name ? "border-red-500" : ""}
-            placeholder="Enter full name"
-          />
-        </FormControl>
-        {errors.name && <FormMessage>{errors.name}</FormMessage>}
-      </FormItem>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormItem className="space-y-2">
+          <FormLabel htmlFor="firstName">First Name</FormLabel>
+          <FormControl>
+            <Input
+              id="firstName"
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
+              className={errors.firstName ? "border-red-500" : ""}
+              placeholder="Enter first name"
+            />
+          </FormControl>
+          {errors.firstName && <FormMessage>{errors.firstName}</FormMessage>}
+        </FormItem>
+
+        <FormItem className="space-y-2">
+          <FormLabel htmlFor="lastName">Last Name</FormLabel>
+          <FormControl>
+            <Input
+              id="lastName"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              className={errors.lastName ? "border-red-500" : ""}
+              placeholder="Enter last name"
+            />
+          </FormControl>
+          {errors.lastName && <FormMessage>{errors.lastName}</FormMessage>}
+        </FormItem>
+      </div>
 
       <FormItem className="space-y-2">
         <FormLabel htmlFor="email">Email</FormLabel>

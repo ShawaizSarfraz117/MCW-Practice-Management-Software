@@ -13,6 +13,9 @@ export default function CompletionStep({
   teamMemberData,
   onClose,
 }: CompletionStepProps) {
+  const fullName =
+    `${teamMemberData.firstName || ""} ${teamMemberData.lastName || ""}`.trim();
+
   return (
     <div className="flex flex-col items-center py-6 text-center space-y-4">
       <div className="rounded-full bg-green-50 p-3">
@@ -24,8 +27,7 @@ export default function CompletionStep({
           Team Member Created Successfully
         </h3>
         <p className="text-gray-600 max-w-md">
-          {teamMemberData.name} has been added to your team as a{" "}
-          {teamMemberData.role}.
+          {fullName} has been added to your team as a {teamMemberData.role}.
         </p>
       </div>
 
@@ -33,7 +35,7 @@ export default function CompletionStep({
         <div className="flex flex-col space-y-3 text-left">
           <div>
             <p className="text-sm text-gray-500">Name</p>
-            <p className="font-medium">{teamMemberData.name}</p>
+            <p className="font-medium">{fullName}</p>
           </div>
 
           <div>

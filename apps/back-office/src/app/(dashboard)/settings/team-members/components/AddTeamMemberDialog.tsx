@@ -28,7 +28,8 @@ export default function AddTeamMemberDialog({
 }: AddTeamMemberDialogProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [teamMemberData, setTeamMemberData] = useState<Partial<TeamMember>>({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     role: "Clinician with entire practice access",
     services: [],
