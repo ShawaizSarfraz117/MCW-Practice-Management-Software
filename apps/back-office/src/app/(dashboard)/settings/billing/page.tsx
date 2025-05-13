@@ -49,7 +49,7 @@ export default function SettingsBillingPage() {
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <div className="space-y-6">
       {/* Main Heading and Save Button */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -62,14 +62,15 @@ export default function SettingsBillingPage() {
         </div>
         <Button
           className="bg-[#2D8467] hover:bg-[#256a53] text-white"
-          type="submit"
+          onClick={handleSubmit}
+          type="button"
         >
           Save Changes
         </Button>
       </div>
 
       {/* Invoices Section */}
-      <Card className="border border-gray-200 shadow-sm">
+      <Card className="border border-gray-200 shadow-sm mb-6">
         <CardHeader className="pb-1 pt-5">
           <CardTitle className="font-semibold text-gray-900 text-xl">
             Invoices
@@ -97,6 +98,6 @@ export default function SettingsBillingPage() {
           />
         </CardContent>
       </Card>
-    </form>
+    </div>
   );
 }

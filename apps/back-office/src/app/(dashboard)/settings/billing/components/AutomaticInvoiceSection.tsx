@@ -23,7 +23,7 @@ export default function AutomaticInvoiceSection({
   };
 
   return (
-    <div>
+    <div style={{ overflow: "visible" }}>
       <h3 className="font-medium text-base text-[#111827] mb-1.5">
         Automatic invoice creation
       </h3>
@@ -31,7 +31,7 @@ export default function AutomaticInvoiceSection({
         Invoices can be created manually anytime. You can set them to be created
         automatically on a daily or monthly basis.
       </p>
-      <div className="space-y-4">
+      <div className="space-y-4" style={{ overflow: "visible" }}>
         <div className="flex items-start gap-3">
           <Checkbox
             checked={autoInvoice === "daily"}
