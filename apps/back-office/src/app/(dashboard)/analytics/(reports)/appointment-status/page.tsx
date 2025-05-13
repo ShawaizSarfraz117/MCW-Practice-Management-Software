@@ -216,11 +216,15 @@ export default function AppointmentStatusPage() {
                     <TableCell>{appointment.ratePerUnit}</TableCell>
                     <TableCell>{appointment.units}</TableCell>
                     <TableCell>{appointment.totalFee}</TableCell>
-                    <TableCell className="text-red-500">
-                      {appointment.progressNoteStatus}
+                    <TableCell>
+                      <span className="bg-red-100 rounded-md px-2 py-1 text-red-500">
+                        {appointment.progressNoteStatus}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-red-500">
-                      {appointment.status}
+                    <TableCell>
+                      <span className="bg-red-100 rounded-md px-2 py-1 text-red-500">
+                        {appointment.status}
+                      </span>
                     </TableCell>
                     <TableCell>{appointment.charge}</TableCell>
                     <TableCell>{appointment.uninvoiced}</TableCell>

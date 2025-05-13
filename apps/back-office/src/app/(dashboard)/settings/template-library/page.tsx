@@ -1,9 +1,16 @@
 "use client";
 
 import { Button, Badge } from "@mcw/ui";
-import { Eye, Copy, FileText } from "lucide-react";
+import { Copy, FileText } from "lucide-react";
+import { ViewTemplate } from "./components/ViewTemplate";
+import { DeleteTemplateDialog } from "./components/DeleteTemplateDialog";
 
 export default function TemplateLibraryPage() {
+  const handleDeleteTemplate = (title: string) => {
+    // This will be replaced with actual API call later
+    console.log(`Deleting template: ${title}`);
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]">
       <div>
@@ -79,20 +86,11 @@ export default function TemplateLibraryPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Copy className="h-4 w-4 text-gray-500" />
-                    </Button>
+                    <ViewTemplate title={title} type="Scored measures" />
+
+                    <DeleteTemplateDialog
+                      onDelete={() => handleDeleteTemplate(title)}
+                    />
                   </div>
                 </div>
               ))}
@@ -138,13 +136,7 @@ export default function TemplateLibraryPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    </Button>
+                    <ViewTemplate title={title} type="Intake forms" />
                     <Button
                       variant="ghost"
                       size="icon"
@@ -199,13 +191,10 @@ export default function TemplateLibraryPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    </Button>
+                    <ViewTemplate
+                      title={title}
+                      type="Progress Notes / Session Notes"
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
@@ -256,13 +245,10 @@ export default function TemplateLibraryPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    </Button>
+                    <ViewTemplate
+                      title={title}
+                      type="Diagnosis and Treatment Plans"
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
@@ -314,13 +300,7 @@ export default function TemplateLibraryPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    </Button>
+                    <ViewTemplate title={title} type="Other Documents" />
                     <Button
                       variant="ghost"
                       size="icon"
