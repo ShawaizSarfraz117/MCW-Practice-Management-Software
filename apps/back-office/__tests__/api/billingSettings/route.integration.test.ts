@@ -12,10 +12,11 @@ import { createRequestWithBody } from "@mcw/utils";
 import { GET, POST, PUT } from "@/api/billingSettings/route";
 import {
   BillingSettingsPrismaFactory,
+  BillingSettingsFactory,
   ClinicianPrismaFactory,
 } from "@mcw/database/mock-data";
 import { getServerSession } from "next-auth";
-import type { Clinician, BillingSettings } from "@prisma/client";
+import type { Clinician } from "@prisma/client";
 
 vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),
@@ -23,7 +24,6 @@ vi.mock("next-auth", () => ({
 
 describe("Billing Settings API Integration Tests", () => {
   let clinician: Clinician;
-  let createdSettingsIds: string[] = [];
 
   beforeEach(async () => {
     clinician = await ClinicianPrismaFactory.create();
@@ -33,59 +33,17 @@ describe("Billing Settings API Integration Tests", () => {
   });
 
   afterEach(async () => {
-    if (createdSettingsIds.length > 0) {
-      await prisma.billingSettings.deleteMany({
-        where: { id: { in: createdSettingsIds } },
-      });
-      createdSettingsIds = [];
-    }
-    await prisma.clinician.deleteMany({});
+    await prisma.billingSettings.deleteMany();
   });
 
   afterAll(async () => {
     await prisma.billingSettings.deleteMany();
-    await prisma.clinician.deleteMany();
-  });
-
-  it("POST /api/billing-settings should create billing settings", async () => {
-    const payload = {
-      autoInvoiceCreation: "daily",
-      pastDueDays: 30,
-      emailClientPastDue: true,
-      invoiceIncludePracticeLogo: true,
-      invoiceFooterInfo: "Footer info",
-      superbillDayOfMonth: 5,
-      superbillIncludePracticeLogo: true,
-      superbillIncludeSignatureLine: true,
-      superbillIncludeDiagnosisDescription: true,
-      superbillFooterInfo: "Superbill footer",
-      billingDocEmailDelayMinutes: 15,
-      createMonthlyStatementsForNewClients: true,
-      createMonthlySuperbillsForNewClients: true,
-      defaultNotificationMethod: "email",
-    };
-
-    const req = createRequestWithBody("/api/billing-settings", payload);
-    const response = await POST(req);
-
-    expect(response.status).toBe(200);
-    const json = await response.json();
-    expect(json).toMatchObject(payload);
-
-    createdSettingsIds.push(json.id);
-
-    // Verify in DB
-    const dbSettings: BillingSettings | null =
-      await prisma.billingSettings.findUnique({ where: { id: json.id } });
-    expect(dbSettings).not.toBeNull();
-    expect(dbSettings?.autoInvoiceCreation).toBe(payload.autoInvoiceCreation);
   });
 
   it("GET /api/billing-settings should return billing settings", async () => {
     const settings = await BillingSettingsPrismaFactory.create({
       Clinician: { connect: { id: clinician.id } },
     });
-    createdSettingsIds.push(settings.id);
 
     const response = await GET();
     expect(response.status).toBe(200);
@@ -94,16 +52,90 @@ describe("Billing Settings API Integration Tests", () => {
       id: settings.id,
       clinician_id: clinician.id,
       autoInvoiceCreation: settings.autoInvoiceCreation,
+      pastDueDays: settings.pastDueDays,
+      emailClientPastDue: settings.emailClientPastDue,
+      invoiceIncludePracticeLogo: settings.invoiceIncludePracticeLogo,
+      invoiceFooterInfo: settings.invoiceFooterInfo,
+      superbillDayOfMonth: settings.superbillDayOfMonth,
+      superbillIncludePracticeLogo: settings.superbillIncludePracticeLogo,
+      superbillIncludeSignatureLine: settings.superbillIncludeSignatureLine,
+      superbillIncludeDiagnosisDescription:
+        settings.superbillIncludeDiagnosisDescription,
+      superbillFooterInfo: settings.superbillFooterInfo,
+      billingDocEmailDelayMinutes: settings.billingDocEmailDelayMinutes,
+      createMonthlyStatementsForNewClients:
+        settings.createMonthlyStatementsForNewClients,
+      createMonthlySuperbillsForNewClients:
+        settings.createMonthlySuperbillsForNewClients,
+      defaultNotificationMethod: settings.defaultNotificationMethod,
     });
+  });
+
+  it("GET /api/billing-settings should return 200 with null when no settings exist", async () => {
+    const response = await GET();
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json).toBeNull();
+  });
+
+  it("POST /api/billing-settings should create billing settings", async () => {
+    const payload = BillingSettingsFactory.build({
+      clinician_id: clinician.id,
+    });
+
+    const req = createRequestWithBody("/api/billing-settings", payload);
+    const response = await POST(req);
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json).toMatchObject({
+      autoInvoiceCreation: payload.autoInvoiceCreation,
+      pastDueDays: payload.pastDueDays,
+      emailClientPastDue: payload.emailClientPastDue,
+      invoiceIncludePracticeLogo: payload.invoiceIncludePracticeLogo,
+      invoiceFooterInfo: payload.invoiceFooterInfo,
+      superbillDayOfMonth: payload.superbillDayOfMonth,
+      superbillIncludePracticeLogo: payload.superbillIncludePracticeLogo,
+      superbillIncludeSignatureLine: payload.superbillIncludeSignatureLine,
+      superbillIncludeDiagnosisDescription:
+        payload.superbillIncludeDiagnosisDescription,
+      superbillFooterInfo: payload.superbillFooterInfo,
+      billingDocEmailDelayMinutes: payload.billingDocEmailDelayMinutes,
+      createMonthlyStatementsForNewClients:
+        payload.createMonthlyStatementsForNewClients,
+      createMonthlySuperbillsForNewClients:
+        payload.createMonthlySuperbillsForNewClients,
+      defaultNotificationMethod: payload.defaultNotificationMethod,
+    });
+
+    // Verify in DB
+    const dbSettings = await prisma.billingSettings.findUnique({
+      where: { id: json.id },
+    });
+    expect(dbSettings).not.toBeNull();
+    expect(dbSettings?.autoInvoiceCreation).toBe(payload.autoInvoiceCreation);
+  });
+
+  it("POST /api/billing-settings should return 500 for invalid payload", async () => {
+    const payload = {
+      autoInvoiceCreation: "invalid_value",
+      pastDueDays: -1,
+      superbillDayOfMonth: 32,
+      billingDocEmailDelayMinutes: -5,
+    };
+
+    const req = createRequestWithBody("/api/billing-settings", payload);
+    const response = await POST(req);
+    expect(response.status).toBe(500);
   });
 
   it("PUT /api/billing-settings should update billing settings", async () => {
     const settings = await BillingSettingsPrismaFactory.create({
       Clinician: { connect: { id: clinician.id } },
     });
-    createdSettingsIds.push(settings.id);
 
-    const updatePayload = {
+    const updateData = BillingSettingsFactory.build({
+      clinician_id: clinician.id,
       autoInvoiceCreation: "monthly",
       pastDueDays: 45,
       emailClientPastDue: false,
@@ -118,31 +150,55 @@ describe("Billing Settings API Integration Tests", () => {
       createMonthlyStatementsForNewClients: false,
       createMonthlySuperbillsForNewClients: false,
       defaultNotificationMethod: "sms",
-    };
+    });
 
-    const req = createRequestWithBody("/api/billing-settings", updatePayload, {
+    const req = createRequestWithBody("/api/billing-settings", updateData, {
       method: "PUT",
     });
     const response = await PUT(req);
 
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json).toMatchObject(updatePayload);
+    expect(json).toMatchObject({
+      id: settings.id,
+      autoInvoiceCreation: updateData.autoInvoiceCreation,
+      pastDueDays: updateData.pastDueDays,
+      emailClientPastDue: updateData.emailClientPastDue,
+      invoiceIncludePracticeLogo: updateData.invoiceIncludePracticeLogo,
+      invoiceFooterInfo: updateData.invoiceFooterInfo,
+      superbillDayOfMonth: updateData.superbillDayOfMonth,
+      superbillIncludePracticeLogo: updateData.superbillIncludePracticeLogo,
+      superbillIncludeSignatureLine: updateData.superbillIncludeSignatureLine,
+      superbillIncludeDiagnosisDescription:
+        updateData.superbillIncludeDiagnosisDescription,
+      superbillFooterInfo: updateData.superbillFooterInfo,
+      billingDocEmailDelayMinutes: updateData.billingDocEmailDelayMinutes,
+      createMonthlyStatementsForNewClients:
+        updateData.createMonthlyStatementsForNewClients,
+      createMonthlySuperbillsForNewClients:
+        updateData.createMonthlySuperbillsForNewClients,
+      defaultNotificationMethod: updateData.defaultNotificationMethod,
+    });
 
     // Verify in DB
-    const dbSettings: BillingSettings | null =
-      await prisma.billingSettings.findUnique({ where: { id: settings.id } });
+    const dbSettings = await prisma.billingSettings.findUnique({
+      where: { id: settings.id },
+    });
     expect(dbSettings?.autoInvoiceCreation).toBe(
-      updatePayload.autoInvoiceCreation,
+      updateData.autoInvoiceCreation,
     );
-    expect(dbSettings?.pastDueDays).toBe(updatePayload.pastDueDays);
+    expect(dbSettings?.pastDueDays).toBe(updateData.pastDueDays);
   });
 
-  it("POST /api/billing-settings should return 400 for missing required fields", async () => {
-    const req = createRequestWithBody("/api/billing-settings", {
-      autoInvoiceCreation: "daily",
+  it("PUT /api/billing-settings should return 500 when settings don't exist", async () => {
+    const updateData = BillingSettingsFactory.build({
+      clinician_id: clinician.id,
     });
-    const response = await POST(req);
-    expect([400, 422, 500]).toContain(response.status);
+
+    const req = createRequestWithBody("/api/billing-settings", updateData, {
+      method: "PUT",
+    });
+    const response = await PUT(req);
+    expect(response.status).toBe(500);
   });
 });
