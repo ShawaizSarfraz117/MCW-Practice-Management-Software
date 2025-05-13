@@ -177,7 +177,6 @@ export function CalendarView({
       // For availability events, only check clinician
       if (event.extendedProps?.type === "availability") {
         return event.resourceId;
-        return event.resourceId;
       }
       // For regular events, filter by location
       return event.location && selectedLocations.includes(event.location);
@@ -751,13 +750,21 @@ export function CalendarView({
           const utcStart = new Date(availability.start_date);
           const utcEnd = new Date(availability.end_date);
 
-          // Convert to local time by adjusting for timezone offset
-          const localStart = new Date(utcStart);
-          const localEnd = new Date(utcEnd);
+          console.log("Processing availability dates:", {
+            originalStartDate: availability.start_date,
+            originalEndDate: availability.end_date,
+            utcStart: utcStart.toISOString(),
+            utcEnd: utcEnd.toISOString(),
+          });
 
-          // Adjust the hours to match local time
-          localStart.setHours(utcStart.getUTCHours(), utcStart.getUTCMinutes());
-          localEnd.setHours(utcEnd.getUTCHours(), utcEnd.getUTCMinutes());
+          // Convert to local time
+          const localStart = new Date(utcStart.getTime());
+          const localEnd = new Date(utcEnd.getTime());
+
+          console.log("Converted to local:", {
+            localStart: localStart.toLocaleString(),
+            localEnd: localEnd.toLocaleString(),
+          });
 
           return {
             id: availability.id,
@@ -1138,24 +1145,51 @@ export function CalendarView({
       (event): event is Event => event.extendedProps?.type === "availability",
     );
 
+    // Only apply business hours in day and week views
+    if (currentView === "dayGridMonth") {
+      return [];
+    }
+
     return availabilityEvents.map((availability) => {
       const start = new Date(availability.start);
       const end = new Date(availability.end);
-      return {
-        daysOfWeek: [start.getDay()], // 0 = Sunday, 1 = Monday, etc.
+
+      console.log("Business Hours Calculation:", {
+        date: start.toLocaleDateString(),
         startTime: format(start, "HH:mm"),
         endTime: format(end, "HH:mm"),
+        dayOfWeek: start.getDay(),
+      });
+
+      // Get the current date being viewed
+      const currentDate = calendarRef.current?.getApi().getDate();
+      const availabilityDate = start.toISOString().split("T")[0];
+      const currentViewDate = currentDate?.toISOString().split("T")[0];
+
+      console.log("Date Comparison:", {
+        availabilityDate,
+        currentViewDate,
+        match: availabilityDate === currentViewDate,
+      });
+
+      return {
+        daysOfWeek: [start.getDay()],
+        startTime: format(start, "HH:mm"),
+        endTime: format(end, "HH:mm"),
+        start: availabilityDate,
+        end: availabilityDate,
       };
     });
-  }, [events]);
+  }, [events, currentView]);
 
   // Adjust events rendering on eventDidMount
   const eventDidMount = (info: EventMountArg) => {
     const event = info.event;
     const type = event.extendedProps?.type;
+    const view = info.view.type;
 
     if (type === "availability") {
-      // Set classes for availability events to ensure visibility
+      // Apply consistent styling for availability events across all views
       info.el.classList.add("bg-[#e6f3ff]", "opacity-80", "cursor-pointer");
 
       // For recurring availability, add a visual indicator
@@ -1173,7 +1207,11 @@ export function CalendarView({
       }
     } else {
       // For regular events, set their styles accordingly
-      info.el.classList.add("bg-gray-200", "cursor-pointer");
+      // Only apply gray background in day and week views
+      if (view !== "dayGridMonth") {
+        info.el.classList.add("bg-gray-200");
+      }
+      info.el.classList.add("cursor-pointer");
     }
   };
 
@@ -1323,7 +1361,7 @@ export function CalendarView({
               const title = arg.event.title || "Available";
 
               return (
-                <div className="p-1 relative text-gray-800 shadow-sm rounded-sm">
+                <div className="p-1 relative text-gray-800 shadow-sm rounded-sm bg-[#e6f3ff] opacity-80">
                   <div className="text-xs font-medium text-gray-600 mb-0.5">
                     {startTime} - {endTime}
                   </div>
@@ -1369,74 +1407,6 @@ export function CalendarView({
               </div>
             );
           }}
-          // eventDidMount={(info) => {
-          //   const event = info.event;
-          //   const type = event.extendedProps?.type;
-
-          //   // Handle availability events
-          //   if (type === "availability") {
-          //     const allowRequests = event.extendedProps?.allow_online_requests;
-          //     const isRecurring = event.extendedProps?.is_recurring;
-
-          //     // Apply Tailwind equivalent classes directly
-          //     info.el.classList.add(
-          //       "bg-white",
-          //       "border",
-          //       "border-gray-200",
-          //       "opacity-85",
-          //       "cursor-pointer",
-          //       "pointer-events-auto",
-          //       "z-10",
-          //       "relative",
-          //       "pl-4",
-          //       "shadow-sm",
-          //       "rounded-sm"
-          //     );
-
-          //     // Create the colored bar for the left side
-          //     const leftBar = document.createElement("div");
-          //     leftBar.classList.add(
-          //       "absolute",
-          //       "left-0",
-          //       "top-0",
-          //       "bottom-0",
-          //       "w-1",
-          //     );
-
-          //     // Set the color based on allowRequests
-          //     if (allowRequests) {
-          //       leftBar.classList.add("bg-green-500");
-          //     } else {
-          //       leftBar.classList.add("bg-red-500");
-          //     }
-
-          //     info.el.appendChild(leftBar);
-
-          //     // Add recurring symbol if needed
-          //     if (isRecurring) {
-          //       const recurringSymbol = document.createElement("div");
-          //       recurringSymbol.classList.add(
-          //         "absolute",
-          //         "top-1",
-          //         "right-1",
-          //         "text-xs",
-          //         "text-gray-500",
-          //       );
-          //       recurringSymbol.textContent = "↻";
-          //       info.el.appendChild(recurringSymbol);
-          //     }
-
-          //     // Apply hover effect
-          //     info.el.addEventListener("mouseenter", () => {
-          //       info.el.classList.replace("opacity-85", "opacity-100");
-          //     });
-
-          //     info.el.addEventListener("mouseleave", () => {
-          //       info.el.classList.replace("opacity-100", "opacity-85");
-          //     });
-          //   }
-          // }}
-          // initialView="timeGridDay"
           eventDisplay="block"
           eventOverlap={true}
           events={filteredEvents}

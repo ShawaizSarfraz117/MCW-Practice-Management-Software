@@ -267,3 +267,15 @@ body {
   margin-top: 2px;
   padding: 2px 4px;
 }
+
+.fc-event.fc-availability {
+  background-color: #e6f3ff !important; /* Light blue background */
+  opacity: 0.8 !important; /* Ensure visibility */
+  z-index: 2; /* Ensure the event is on top of other events */
+}
+
+/* Optionally, add some hover effects to make availability events more noticeable */
+.fc-event.fc-availability:hover {
+  opacity: 1 !important; /* Full opacity on hover */
+  background-color: #b8dbf2 !important; /* Lighter blue when hovered */
+}
