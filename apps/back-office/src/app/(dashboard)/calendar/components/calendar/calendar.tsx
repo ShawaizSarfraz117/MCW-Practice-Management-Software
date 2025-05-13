@@ -6,7 +6,11 @@ import resourceTimeGridPlugin from "@fullcalendar/resource-timegrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
+import {
+  EventClickArg,
+  DateSelectArg,
+  EventMountArg,
+} from "@fullcalendar/core";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 import { DayHeaderContentArg } from "@fullcalendar/core";
@@ -1128,6 +1132,51 @@ export function CalendarView({
       title: clinician.label,
     }));
 
+  // Format availabilities for business hours
+  const businessHoursFromAvailability = useMemo(() => {
+    const availabilityEvents = events.filter(
+      (event): event is Event => event.extendedProps?.type === "availability",
+    );
+
+    return availabilityEvents.map((availability) => {
+      const start = new Date(availability.start);
+      const end = new Date(availability.end);
+      return {
+        daysOfWeek: [start.getDay()], // 0 = Sunday, 1 = Monday, etc.
+        startTime: format(start, "HH:mm"),
+        endTime: format(end, "HH:mm"),
+      };
+    });
+  }, [events]);
+
+  // Adjust events rendering on eventDidMount
+  const eventDidMount = (info: EventMountArg) => {
+    const event = info.event;
+    const type = event.extendedProps?.type;
+
+    if (type === "availability") {
+      // Set classes for availability events to ensure visibility
+      info.el.classList.add("bg-[#e6f3ff]", "opacity-80", "cursor-pointer");
+
+      // For recurring availability, add a visual indicator
+      if (event.extendedProps?.is_recurring) {
+        const recurringSymbol = document.createElement("span");
+        recurringSymbol.textContent = "↻"; // Unicode arrow for recurring
+        recurringSymbol.classList.add(
+          "absolute",
+          "top-0",
+          "right-0",
+          "text-sm",
+          "text-blue-500",
+        );
+        info.el.appendChild(recurringSymbol);
+      }
+    } else {
+      // For regular events, set their styles accordingly
+      info.el.classList.add("bg-gray-200", "cursor-pointer");
+    }
+  };
+
   return (
     <div className="flex h-full bg-background">
       <div className="flex-1 flex flex-col">
@@ -1151,6 +1200,7 @@ export function CalendarView({
           ref={calendarRef}
           allDaySlot={true}
           allDayText="All day"
+          businessHours={businessHoursFromAvailability}
           dayHeaderContent={
             isScheduledPage
               ? (args: DayHeaderContentArg) => {
@@ -1273,13 +1323,16 @@ export function CalendarView({
               const title = arg.event.title || "Available";
 
               return (
-                <div className="p-1">
+                <div className="p-1 relative text-gray-800 shadow-sm rounded-sm">
                   <div className="text-xs font-medium text-gray-600 mb-0.5">
                     {startTime} - {endTime}
                   </div>
-                  <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
+                  <div className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                     {title}
                   </div>
+                  <span className="absolute top-1 right-1 text-[10px] font-medium text-green-600/70 uppercase tracking-wider">
+                    new
+                  </span>
                 </div>
               );
             }
@@ -1316,72 +1369,79 @@ export function CalendarView({
               </div>
             );
           }}
-          eventDidMount={(info) => {
-            const event = info.event;
-            const type = event.extendedProps?.type;
-            if (type === "availability") {
-              const allowRequests = event.extendedProps?.allow_online_requests;
-              const isRecurring = event.extendedProps?.is_recurring;
+          // eventDidMount={(info) => {
+          //   const event = info.event;
+          //   const type = event.extendedProps?.type;
 
-              // Apply Tailwind equivalent classes directly
-              info.el.classList.add(
-                "bg-[#2d84671a]",
-                "border-0",
-                "opacity-85",
-                "cursor-pointer",
-                "pointer-events-auto",
-                "z-10",
-                "relative",
-                "pl-4",
-              );
+          //   // Handle availability events
+          //   if (type === "availability") {
+          //     const allowRequests = event.extendedProps?.allow_online_requests;
+          //     const isRecurring = event.extendedProps?.is_recurring;
 
-              // Create the colored bar for the left side
-              const leftBar = document.createElement("div");
-              leftBar.classList.add(
-                "absolute",
-                "left-0",
-                "top-0",
-                "bottom-0",
-                "w-1",
-              );
+          //     // Apply Tailwind equivalent classes directly
+          //     info.el.classList.add(
+          //       "bg-white",
+          //       "border",
+          //       "border-gray-200",
+          //       "opacity-85",
+          //       "cursor-pointer",
+          //       "pointer-events-auto",
+          //       "z-10",
+          //       "relative",
+          //       "pl-4",
+          //       "shadow-sm",
+          //       "rounded-sm"
+          //     );
 
-              // Set the color based on allowRequests
-              if (allowRequests) {
-                leftBar.classList.add("bg-green-500");
-              } else {
-                leftBar.classList.add("bg-red-500");
-              }
+          //     // Create the colored bar for the left side
+          //     const leftBar = document.createElement("div");
+          //     leftBar.classList.add(
+          //       "absolute",
+          //       "left-0",
+          //       "top-0",
+          //       "bottom-0",
+          //       "w-1",
+          //     );
 
-              info.el.appendChild(leftBar);
+          //     // Set the color based on allowRequests
+          //     if (allowRequests) {
+          //       leftBar.classList.add("bg-green-500");
+          //     } else {
+          //       leftBar.classList.add("bg-red-500");
+          //     }
 
-              // Add recurring symbol if needed
-              if (isRecurring) {
-                const recurringSymbol = document.createElement("div");
-                recurringSymbol.classList.add(
-                  "absolute",
-                  "top-1",
-                  "right-1",
-                  "text-xs",
-                  "text-gray-500",
-                );
-                recurringSymbol.textContent = "↻";
-                info.el.appendChild(recurringSymbol);
-              }
+          //     info.el.appendChild(leftBar);
 
-              // Apply hover effect
-              info.el.addEventListener("mouseenter", () => {
-                info.el.classList.replace("opacity-85", "opacity-100");
-              });
+          //     // Add recurring symbol if needed
+          //     if (isRecurring) {
+          //       const recurringSymbol = document.createElement("div");
+          //       recurringSymbol.classList.add(
+          //         "absolute",
+          //         "top-1",
+          //         "right-1",
+          //         "text-xs",
+          //         "text-gray-500",
+          //       );
+          //       recurringSymbol.textContent = "↻";
+          //       info.el.appendChild(recurringSymbol);
+          //     }
 
-              info.el.addEventListener("mouseleave", () => {
-                info.el.classList.replace("opacity-100", "opacity-85");
-              });
-            }
-          }}
+          //     // Apply hover effect
+          //     info.el.addEventListener("mouseenter", () => {
+          //       info.el.classList.replace("opacity-85", "opacity-100");
+          //     });
+
+          //     info.el.addEventListener("mouseleave", () => {
+          //       info.el.classList.replace("opacity-100", "opacity-85");
+          //     });
+          //   }
+          // }}
+          // initialView="timeGridDay"
           eventDisplay="block"
           eventOverlap={true}
           events={filteredEvents}
           headerToolbar={false}
+          eventDidMount={eventDidMount}
           height="100%"
           initialView={currentView}
           nowIndicator={true}
@@ -1431,6 +1491,8 @@ export function CalendarView({
                 minute: "2-digit",
                 meridiem: "short",
               },
+              resourceOrder: "title",
+              resourceAreaWidth: "150px",
             },
             resourceTimeGridWeek: {
               type: "resourceTimeGrid",
