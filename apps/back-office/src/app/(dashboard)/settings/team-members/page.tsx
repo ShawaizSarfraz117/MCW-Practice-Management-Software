@@ -22,9 +22,11 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import AddTeamMemberDialog from "./components/AddTeamMemberDialog";
+import ManageListOrderSidebar from "./components/ManageListOrderSidebar";
 
 export default function TeamMembersPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isManageListOrderOpen, setIsManageListOrderOpen] = useState(false);
 
   // Placeholder data for demonstration
   const teamMembers = [
@@ -70,6 +72,7 @@ export default function TeamMembersPage() {
           <Button
             className="border border-gray-200 text-[#2B2B2B] bg-white rounded-md px-4 py-2 text-base font-normal"
             variant="outline"
+            onClick={() => setIsManageListOrderOpen(true)}
           >
             Manage List Order
           </Button>
@@ -154,10 +157,15 @@ export default function TeamMembersPage() {
         </Table>
       </div>
 
-      {/* Add Team Member Dialog */}
+      {/* Dialogs */}
       <AddTeamMemberDialog
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
+      />
+
+      <ManageListOrderSidebar
+        isOpen={isManageListOrderOpen}
+        onClose={() => setIsManageListOrderOpen(false)}
       />
     </section>
   );
