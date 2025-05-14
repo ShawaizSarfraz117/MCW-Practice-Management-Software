@@ -2,12 +2,13 @@
 
 import { z } from "zod";
 import { useForm } from "@mcw/ui";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import ProfileHeader from "./profile/ProfileHeader";
 import ProfileInfo from "./profile/ProfileInfo";
 import ProfilePhoto from "./profile/ProfilePhoto";
 import { toast } from "@mcw/ui";
 import { useQueryClient } from "@tanstack/react-query";
+import { useProfile } from "./profile/hooks/useProfile";
 
 export const profileSchema = z.object({
   dateOfBirth: z.string().optional().nullable(),
@@ -31,8 +32,14 @@ export type ProfileFormData = {
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const queryClient = useQueryClient();
+  const { data: profileInfo, isLoading } = useProfile();
 
   const form = useForm({
+    defaultValues: {
+      dateOfBirth: "",
+      phone: "",
+      profilePhoto: "",
+    },
     onSubmit: async ({ value }: { value: ProfileFormData }) => {
       const result = profileSchema.safeParse(value);
       if (!result.success) {
@@ -74,11 +81,29 @@ export default function Profile() {
     },
   });
 
+  // Initialize form with profile data
+  useEffect(() => {
+    if (profileInfo) {
+      form.setFieldValue(
+        "dateOfBirth",
+        profileInfo.date_of_birth
+          ? new Date(profileInfo.date_of_birth).toISOString().split("T")[0]
+          : null,
+      );
+      form.setFieldValue("phone", profileInfo.phone || null);
+      form.setFieldValue("profilePhoto", profileInfo.profile_photo || null);
+    }
+  }, [profileInfo, form]);
+
   const { handleSubmit } = form;
 
   const handleSave = useCallback(() => {
     handleSubmit();
   }, [handleSubmit]);
+
+  if (isLoading) {
+    return <div className="p-4">Loading profile information...</div>;
+  }
 
   return (
     <div>
