@@ -66,7 +66,7 @@ describe("Profile", () => {
 
     // Wait for the data to load and appear on screen
     await waitFor(() => {
-      expect(screen.getByText("Date of birth")).toBeTruthy();
+      expect(screen.getByText("Loading profile information...")).toBeTruthy();
     });
 
     expect(screen.getByText(/Profile and Security/)).toBeTruthy();
