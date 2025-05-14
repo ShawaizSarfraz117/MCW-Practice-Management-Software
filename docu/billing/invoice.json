@@ -1,0 +1,68 @@
+{
+  "wireframeId": "billing/invoice/{invoiceId}",
+  "wireframeTitle": "View Invoice Details",
+  "functionality": "Displays comprehensive details for a specific invoice, including invoice number, issue/due dates, client and provider information, line items (services), total amounts, payment status, and applied payments. Allows actions like adding a payment to this invoice or exporting/downloading the invoice.",
+  "implementation": {
+    "route": {
+      "path": "/billing/invoices/[invoiceId]",
+      "layout": "Uses a dashboard layout.",
+      "components": [
+        "page.tsx",
+        "InvoiceDetailsCard.tsx",
+        "InvoiceLineItemsTable.tsx",
+        "InvoicePaymentsList.tsx"
+      ]
+    },
+    "api": {
+      "endpoints": [
+        {
+          "path": "/api/invoices/{invoiceId}",
+          "method": "GET",
+          "purpose": "Fetch all details for a specific invoice.",
+          "requestBody": "Path parameter: invoiceId.",
+          "responseData": "A single Invoice object including related Client, Clinician, ClientGroup (if applicable), Appointment (and its PracticeService details), and a list of Payments applied to this invoice."
+        },
+        {
+          "path": "/api/invoices/{invoiceId}/export",
+          "method": "GET",
+          "purpose": "Export/Download the specific invoice, typically as a PDF.",
+          "requestBody": "Path parameter: invoiceId. Query parameters: format ('pdf').",
+          "responseData": "File stream (e.g., PDF of the invoice)."
+        }
+      ]
+    },
+    "data": {
+      "tables": [
+        "Invoice",
+        "Client",
+        "Clinician",
+        "Appointment",
+        "PracticeService",
+        "Payment",
+        "ClientGroup"
+      ],
+      "queries": [
+        "Fetch a single Invoice by its ID, including all related data: Client information, Clinician details, ClientGroup (if any), associated Appointment (with service description from PracticeService), and a list of all Payments made towards this invoice."
+      ]
+    },
+    "ui": {
+      "suggestedComponents": [
+        "Card",
+        "DescriptionList (for key-value pairs of invoice metadata)",
+        "Table (for line items and payments)",
+        "Button",
+        "Badge (for status like 'Paid', 'Unpaid', 'Overdue')",
+        "Separator",
+        "DropdownMenu (for actions like 'Export PDF', 'Add Payment')"
+      ],
+      "interactions": [
+        "View all static invoice details (client, provider, dates, amounts, status).",
+        "View list of services/line items with descriptions and costs.",
+        "View history of payments applied to this invoice.",
+        "Trigger 'Add Payment' action (could open the 'Add Payment' modal pre-filled for this invoice).",
+        "Trigger 'Export PDF' or 'Download PDF' action.",
+        "Print invoice (via browser functionality)."
+      ]
+    }
+  }
+}

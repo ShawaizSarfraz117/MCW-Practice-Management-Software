@@ -1,0 +1,71 @@
+{
+  "wireframeId": "billing/add-payment-popup",
+  "wireframeTitle": "Add Client Payment",
+  "functionality": "Allows users to record a new payment for a client (or client group), specifying the payment amount, selecting invoices to apply the payment to, choosing a payment method, and setting the payment date.",
+  "implementation": {
+    "route": {
+      "path": "Not a direct page route; typically a modal dialog triggered from another page like billing overview or client details.",
+      "layout": "Modal/Dialog component context. No separate layout file.",
+      "components": [
+        "AddPaymentDialog.tsx",
+        "AddPaymentForm.tsx",
+        "InvoiceSelectionForPayment.tsx"
+      ]
+    },
+    "api": {
+      "endpoints": [
+        {
+          "path": "/api/payments",
+          "method": "POST",
+          "purpose": "Create a new payment record and apply it to selected invoices.",
+          "requestBody": "{ clientId or clientGroupId, amount, paymentDate, method (e.g., 'Cash', 'Check', 'Online Card'), notes (optional), appliedInvoices: [{invoiceId, appliedAmount}], creditCardId (if method is 'Online Card' and using a saved card), paymentGatewayToken (if method is 'Online Card' and using a new card) }",
+          "responseData": "Created Payment object with details of applied amounts to invoices."
+        },
+        {
+          "path": "/api/clients/{clientId}/invoices",
+          "method": "GET",
+          "purpose": "Fetch outstanding (unpaid or partially paid) invoices for a specific client to allow selection.",
+          "requestBody": "Path parameter: clientId. Query parameters: status ('unpaid', 'partially_paid').",
+          "responseData": "Array of Invoice objects with id, invoice_number, due_date, amount_due."
+        },
+        {
+          "path": "/api/clients/{clientId}/payment-methods",
+          "method": "GET",
+          "purpose": "Fetch saved credit cards for a specific client.",
+          "requestBody": "Path parameter: clientId.",
+          "responseData": "Array of CreditCard objects (id, card_type, last_four, expiry_month, expiry_year)."
+        }
+      ]
+    },
+    "data": {
+      "tables": ["Payment", "Invoice", "Client", "ClientGroup", "CreditCard"],
+      "queries": [
+        "Create a new Payment record.",
+        "Update related Invoice records (status, amount paid).",
+        "Fetch unpaid/partially-paid Invoices for a given Client or ClientGroup.",
+        "Fetch saved CreditCards for a Client."
+      ]
+    },
+    "ui": {
+      "suggestedComponents": [
+        "Dialog",
+        "Form",
+        "Input (for amount, notes)",
+        "DatePicker",
+        "Select (for payment method, client if not pre-selected)",
+        "RadioGroup",
+        "Table (for invoice selection)",
+        "Checkbox",
+        "Button"
+      ],
+      "interactions": [
+        "Enter payment amount.",
+        "Select payment date.",
+        "Choose payment method (e.g., cash, check, new card, existing card).",
+        "Select one or more invoices to apply payment to, potentially specifying amount per invoice.",
+        "Confirm and submit the payment.",
+        "Close dialog."
+      ]
+    }
+  }
+}

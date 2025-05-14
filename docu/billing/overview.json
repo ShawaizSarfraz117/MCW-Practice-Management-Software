@@ -1,0 +1,83 @@
+{
+  "wireframeId": "billing/overview",
+  "wireframeTitle": "Billing Overview",
+  "functionality": "Displays the billing section, showing recent activities (payments, credits), billing documents (invoices), options to filter by date or status, add payments, and export payment data or download invoices.",
+  "implementation": {
+    "route": {
+      "path": "/billing",
+      "layout": "Uses a dashboard layout, potentially with a secondary navigation for billing sub-sections.",
+      "components": [
+        "page.tsx",
+        "BillingActivityFeed.tsx",
+        "InvoiceListTable.tsx",
+        "BillingFilterControls.tsx"
+      ]
+    },
+    "api": {
+      "endpoints": [
+        {
+          "path": "/api/billing/activity",
+          "method": "GET",
+          "purpose": "Fetch recent billing activities like payments made and credits applied.",
+          "requestBody": "Query parameters: dateRange (e.g., 'last_30_days', 'custom_start_end'), limit (e.g., 20), offset (e.g., 0), clientId (optional).",
+          "responseData": "Array of activity objects, e.g., [{type: 'payment', id, date, amount, clientName, method}, {type: 'invoice_created', id, date, amount, clientName, status}]."
+        },
+        {
+          "path": "/api/invoices",
+          "method": "GET",
+          "purpose": "Fetch a list of invoices with filtering options.",
+          "requestBody": "Query parameters: dateRange (issue_date or due_date), status (e.g., 'Not paid', 'Paid', 'Overdue', 'Draft'), clientId, clinicianId, limit, offset, sortBy, sortOrder.",
+          "responseData": "Array of Invoice objects (subset of fields from Prisma model, including related client name and total amount)."
+        },
+        {
+          "path": "/api/billing/export/payments",
+          "method": "GET",
+          "purpose": "Export a list of payments based on filters.",
+          "requestBody": "Query parameters: dateRange, clientId, clinicianId, format (e.g., 'csv').",
+          "responseData": "File stream (e.g., CSV data of payments)."
+        },
+        {
+          "path": "/api/invoices/{invoiceId}/download",
+          "method": "GET",
+          "purpose": "Download a specific invoice as a PDF.",
+          "requestBody": "Path parameter: invoiceId.",
+          "responseData": "File stream (PDF of the invoice)."
+        }
+      ]
+    },
+    "data": {
+      "tables": [
+        "Invoice",
+        "Payment",
+        "Client",
+        "ClientGroup",
+        "Clinician",
+        "Appointment"
+      ],
+      "queries": [
+        "Fetch Invoices with filters for status, date range, client, and clinician, including client details.",
+        "Fetch Payments with filters for date range, client, and clinician.",
+        "Fetch recent generic billing activities (could be a union of payments and invoice status changes)."
+      ]
+    },
+    "ui": {
+      "suggestedComponents": [
+        "Table",
+        "Button",
+        "DatePicker",
+        "Select",
+        "Tabs",
+        "Badge",
+        "DropdownMenu (for actions per row)"
+      ],
+      "interactions": [
+        "Filter invoices/payments by date range.",
+        "Filter invoices by status (e.g., 'Not paid', 'Paid').",
+        "Click on an invoice row to navigate to its detail view.",
+        "Initiate 'Add Payment' action (likely opens a modal).",
+        "Trigger 'Export Payments' action.",
+        "Download individual invoices as PDF."
+      ]
+    }
+  }
+}
