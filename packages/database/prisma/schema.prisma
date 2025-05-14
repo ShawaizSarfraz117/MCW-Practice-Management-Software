@@ -45,6 +45,7 @@ model Appointment {
   AppointmentTag           AppointmentTag[]
   Invoice                  Invoice[]
   SurveyAnswers            SurveyAnswers[]
+  Superbill               Superbill[]
 }
 
 model AppointmentTag {
@@ -170,6 +171,9 @@ model ClientGroup {
   ClientGroupMembership ClientGroupMembership[]
   Invoice               Invoice[]
   Clinician             Clinician?              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
+  ClientGroupFile       ClientGroupFile[]
+  Statement             Statement[]
+  Superbill             Superbill[]
 }
 
 model ClientGroupMembership {
@@ -423,6 +427,9 @@ model User {
   profile_photo       String?               @db.VarChar(500)
   clinicalInfos       ClinicalInfo[]
   practiceInformation PracticeInformation[]
+  ClientGroupFile     ClientGroupFile[]
+  Statement           Statement[]
+  Superbill           Superbill[]
 }
 
 model UserRole {
@@ -523,4 +530,74 @@ model RolePermission {
   @@id([role_id, permission_id], map: "PK_RolePermission_ID")
   @@index([role_id], map: "IX_RolePermission_role_id")
   @@index([permission_id], map: "IX_RolePermission_permission_id") 
+}
+
+model ClientGroupFile {
+  id             String      @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  title          String      @db.VarChar(255)
+  type           String      @default("PRACTICE_UPLOAD") @db.VarChar(50)
+  status         String      @default("UPLOADED") @db.VarChar(50)
+  url            String      @db.Text
+  client_group_id String      @db.UniqueIdentifier
+  uploaded_by_id String?     @db.UniqueIdentifier
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+  
+  ClientGroup    ClientGroup @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, onDelete: Cascade, map: "FK_ClientGroupFile_ClientGroup")
+  User           User?       @relation(fields: [uploaded_by_id], references: [id], onUpdate: NoAction, onDelete: NoAction, map: "FK_ClientGroupFile_User")
+  
+  @@index([client_group_id], map: "IX_ClientGroupFile_client_group_id")
+  @@index([uploaded_by_id], map: "IX_ClientGroupFile_uploaded_by_id")
+}
+
+model Statement {
+  id                String      @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  statement_number  Int         @default(0)
+  client_group_id   String      @db.UniqueIdentifier
+  start_date        DateTime?
+  end_date          DateTime?
+  beginning_balance Decimal     @db.Decimal(10, 2)
+  invoices_total    Decimal     @db.Decimal(10, 2)
+  payments_total    Decimal     @db.Decimal(10, 2)
+  ending_balance    Decimal     @db.Decimal(10, 2)
+  provider_name     String?     @db.VarChar(255)
+  provider_email    String?     @db.VarChar(255)
+  provider_phone    String?     @db.VarChar(255)
+  client_group_name String      @db.VarChar(255)
+  client_name       String      @db.VarChar(255)
+  client_email      String?     @db.VarChar(255)
+  created_at        DateTime    @default(now())
+  created_by        String?     @db.UniqueIdentifier
+  ClientGroup       ClientGroup @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Statement_ClientGroup")
+  User              User?       @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Statement_User")
+  
+  @@index([client_group_id], map: "IX_Statement_client_group_id")
+}
+
+model Superbill {
+  id                String      @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  superbill_number  Int         @default(0)
+  client_group_id   String      @db.UniqueIdentifier
+  appointment_id    String      @db.UniqueIdentifier
+  issued_date       DateTime    @default(now())
+  service_code      String?     @db.VarChar(50)
+  service_description String?   @db.VarChar(255)
+  diagnosis_code    String?     @db.VarChar(50)
+  units             Int?         @default(1)
+  pos               String?     @db.VarChar(10)
+  provider_name     String?     @db.VarChar(255)
+  provider_email    String?     @db.VarChar(255)
+  provider_license  String?     @db.VarChar(100)
+  client_name       String      @db.VarChar(255)
+  amount            Decimal     @db.Decimal(10, 2)
+  paid_amount       Decimal?    @db.Decimal(10, 2)
+  status            String      @db.VarChar(50)
+  created_at        DateTime    @default(now())
+  created_by        String?     @db.UniqueIdentifier
+  ClientGroup       ClientGroup @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Superbill_ClientGroup")
+  Appointment       Appointment @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Superbill_Appointment")
+  User              User?       @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Superbill_User")
+  
+  @@index([client_group_id], map: "IX_Superbill_client_group_id")
+  @@index([appointment_id], map: "IX_Superbill_appointment_id")
 }
