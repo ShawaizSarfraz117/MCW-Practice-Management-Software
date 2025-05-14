@@ -530,3 +530,12 @@ model BillingSettings {
   @@unique([clinician_id])
   @@index([clinician_id])
 }
+
+model SchedulingMessage {
+  id        String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  content   String   @db.Text
+  type      String   @db.VarChar(50)
+  is_active Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}

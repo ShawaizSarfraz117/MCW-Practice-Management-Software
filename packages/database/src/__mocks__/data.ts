@@ -26,6 +26,7 @@ import {
   registerScalarFieldValueGenerator,
   defineEmailTemplateFactory,
   defineBillingSettingsFactory,
+  defineSchedulingMessageFactory,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcrypt";
@@ -52,6 +53,7 @@ import {
   EmailTemplate,
   Product,
   ClinicianLocation,
+  SchedulingMessage,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { BillingSettings } from "../types/billing.js";
@@ -61,7 +63,6 @@ registerScalarFieldValueGenerator({
     new Decimal(faker.number.float({ min: 0, max: 10, fractionDigits: 2 })),
 });
 
-// User factory for generating mock data without Prisma
 export const UserFactory = {
   build: <T extends Partial<User>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -75,7 +76,6 @@ export const UserFactory = {
   }),
 };
 
-// User factory for Prisma operations
 export const UserPrismaFactory = defineUserFactory({
   defaultData: () => UserFactory.build(),
 });
@@ -599,4 +599,20 @@ export const BillingSettingsPrismaFactory = defineBillingSettingsFactory({
       Clinician: ClinicianPrismaFactory,
     };
   },
+});
+
+export const SchedulingMessageFactory = {
+  build: <T extends Partial<SchedulingMessage>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    content: faker.lorem.paragraph(),
+    type: faker.helpers.arrayElement(["reminder", "notification", "alert"]),
+    is_active: faker.datatype.boolean(),
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
+    ...overrides,
+  }),
+};
+
+export const SchedulingMessagePrismaFactory = defineSchedulingMessageFactory({
+  defaultData: () => SchedulingMessageFactory.build(),
 });
