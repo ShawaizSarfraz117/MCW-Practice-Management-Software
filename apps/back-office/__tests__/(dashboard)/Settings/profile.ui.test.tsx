@@ -27,16 +27,22 @@ vi.mock("next-auth/react", async () => {
   };
 });
 
-// Mock API function
-vi.mock("@/app/actions", () => ({
-  fetchProfile: vi.fn().mockResolvedValue({
-    id: "test-id",
-    email: "test@example.com",
-    birthdate: "1990-01-01",
-    phone: "123-456-7890",
-    profilePhoto: "test.jpg",
+// Mock useProfile hook
+vi.mock(
+  "@/app/(dashboard)/settings/profile-security/profile/hooks/useProfile",
+  () => ({
+    useProfile: () => ({
+      data: {
+        email: "test@example.com",
+        date_of_birth: "1990-01-01",
+        phone: "123-456-7890",
+        profile_photo: "test.jpg",
+      },
+      isLoading: false,
+      error: null,
+    }),
   }),
-}));
+);
 
 describe("Profile", () => {
   it("should render profile data without crashing", async () => {
