@@ -95,8 +95,33 @@ const menuItems = {
   clientCare: [
     {
       label: "Scheduling and inquiries",
-      id: "scheduling",
-      href: "/settings/scheduling",
+      children: [
+        {
+          label: "Client Portal Permissions",
+          id: "client-portal-permissions",
+          href: "/settings/client-portal-permissions",
+          description:
+            "Online appointment requests, client permissions and greetings.",
+        },
+        {
+          label: "Calendar",
+          id: "calendar",
+          href: "/settings/calendar",
+          description: "Alerts, Calender sync",
+        },
+        {
+          label: "Appointment Request Widget",
+          id: "appointment-request-widget",
+          href: "/settings/appointment-request-widget",
+          description: "Add appointment request to your website.",
+        },
+        {
+          label: "Contact Form",
+          id: "contact-form",
+          href: "/settings/contact-form",
+          description: "Get website inquiries sent directly to SimplePractice.",
+        },
+      ],
     },
     {
       label: "Documentation",

@@ -25,6 +25,7 @@ import {
   defineProductFactory,
   registerScalarFieldValueGenerator,
   defineEmailTemplateFactory,
+  defineBillingSettingsFactory,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcrypt";
@@ -53,6 +54,7 @@ import {
   ClinicianLocation,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { BillingSettings } from "../types/billing.js";
 
 registerScalarFieldValueGenerator({
   Decimal: () =>
@@ -554,4 +556,47 @@ export const EmailTemplateFactory = {
 
 export const EmailTemplatePrismaFactory = defineEmailTemplateFactory({
   defaultData: () => EmailTemplateFactory.build(),
+});
+
+// BillingSettings factory for generating mock data
+export const BillingSettingsFactory = {
+  build: <T extends Partial<BillingSettings>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    clinician_id: faker.string.uuid(),
+    autoInvoiceCreation: faker.helpers.arrayElement([
+      "daily",
+      "monthly",
+      "manual",
+    ]),
+    pastDueDays: faker.number.int({ min: 1, max: 60 }),
+    emailClientPastDue: faker.datatype.boolean(),
+    invoiceIncludePracticeLogo: faker.datatype.boolean(),
+    invoiceFooterInfo: faker.lorem.sentence(),
+    superbillDayOfMonth: faker.number.int({ min: 1, max: 28 }),
+    superbillIncludePracticeLogo: faker.datatype.boolean(),
+    superbillIncludeSignatureLine: faker.datatype.boolean(),
+    superbillIncludeDiagnosisDescription: faker.datatype.boolean(),
+    superbillFooterInfo: faker.lorem.sentence(),
+    billingDocEmailDelayMinutes: faker.number.int({ min: 0, max: 120 }),
+    createMonthlyStatementsForNewClients: faker.datatype.boolean(),
+    createMonthlySuperbillsForNewClients: faker.datatype.boolean(),
+    defaultNotificationMethod: faker.helpers.arrayElement([
+      "none",
+      "email",
+      "sms",
+    ]),
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
+    ...overrides,
+  }),
+};
+
+export const BillingSettingsPrismaFactory = defineBillingSettingsFactory({
+  defaultData: () => {
+    const { clinician_id, ...rest } = BillingSettingsFactory.build();
+    return {
+      ...rest,
+      Clinician: ClinicianPrismaFactory,
+    };
+  },
 });

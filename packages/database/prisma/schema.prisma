@@ -237,6 +237,7 @@ model Clinician {
   ClientGroup       ClientGroup[]
   Availability      Availability[]
   billingAddresses  BillingAddress[]    @relation("ManyBillingAddresses")
+  billingSettings   BillingSettings?
 }
 
 model ClinicianClient {
@@ -600,4 +601,29 @@ model Superbill {
   
   @@index([client_group_id], map: "IX_Superbill_client_group_id")
   @@index([appointment_id], map: "IX_Superbill_appointment_id")
+}
+
+model BillingSettings {
+  id                                String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  clinician_id                      String   @db.UniqueIdentifier
+  autoInvoiceCreation               String   @db.VarChar(50)
+  pastDueDays                       Int      
+  emailClientPastDue                Boolean  
+  invoiceIncludePracticeLogo        Boolean 
+  invoiceFooterInfo                 String?  @db.VarChar(120) 
+  superbillDayOfMonth               Int      
+  superbillIncludePracticeLogo      Boolean  
+  superbillIncludeSignatureLine     Boolean  
+  superbillIncludeDiagnosisDescription Boolean 
+  superbillFooterInfo               String?  @db.VarChar(120) 
+  billingDocEmailDelayMinutes       Int     
+  createMonthlyStatementsForNewClients Boolean 
+  createMonthlySuperbillsForNewClients Boolean
+  defaultNotificationMethod         String   @db.VarChar(50)
+  created_at                        DateTime @default(now())
+  updated_at                        DateTime @updatedAt
+  Clinician                         Clinician @relation(fields: [clinician_id], references: [id], onDelete: Cascade)
+
+  @@unique([clinician_id])
+  @@index([clinician_id])
 }
