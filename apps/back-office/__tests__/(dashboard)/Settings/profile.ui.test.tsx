@@ -69,7 +69,7 @@ describe("Profile", () => {
       expect(screen.getByText("Loading profile information...")).toBeTruthy();
     });
 
-    expect(screen.getByText(/Profile and Security/)).toBeTruthy();
+    expect(screen.getByText("Profile and Security")).toBeTruthy();
 
     // 1️⃣ email
     expect(await screen.findByText("test@example.com")).toBeTruthy();
