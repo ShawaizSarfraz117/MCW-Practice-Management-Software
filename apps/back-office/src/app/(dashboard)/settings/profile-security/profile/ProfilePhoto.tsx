@@ -1,45 +1,30 @@
 "use client";
 
-import { useDropzone } from "react-dropzone";
-import { useForm } from "@mcw/ui";
-import { SquareUser } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BlobToSaas } from "@/utils/blobToSaas";
 import { useProfile } from "./hooks/useProfile";
+import { ProfileFormType } from "../types";
+import ProfilePhotoUploader from "./components/ProfilePhotoUploader";
+import ImageCropper from "./components/ImageCropper";
+import { uploadFile, saveProfilePhoto } from "./services/profilePhotoService";
 
-async function uploadFile(file: File) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await fetch("/api/upload", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw new Error("Upload failed");
-  }
-
-  return response.json();
-}
-
-const ProfilePhoto = ({
-  form,
-  isEditing,
-}: {
-  form: ReturnType<typeof useForm>;
-  isEditing: boolean;
-}) => {
+const ProfilePhoto = ({ form }: { form: ProfileFormType }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [editImageUrl, setEditImageUrl] = useState<string | null>(null);
+
   const { data: profileInfo } = useProfile();
+  const queryClient = useQueryClient();
 
   const uploadMutation = useMutation({
     mutationFn: uploadFile,
     onSuccess: (data) => {
       form.setFieldValue("profilePhoto", data.blobUrl);
       setError(null);
+      handleSaveProfilePhoto(data.blobUrl);
     },
     onError: (error) => {
       console.error("Upload error:", error);
@@ -47,69 +32,66 @@ const ProfilePhoto = ({
     },
   });
 
-  const validateImage = (file: File): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
+  const handleSaveProfilePhoto = async (photoUrl: string | null) => {
+    try {
+      const dateOfBirth = form.getFieldValue("dateOfBirth") || null;
+      const phone = form.getFieldValue("phone") || null;
+      const username = form.getFieldValue("username") || null;
 
-      img.onload = () => {
-        URL.revokeObjectURL(img.src);
-        if (img.width < 300 || img.height < 300) {
-          setError("Image must be at least 300x300 pixels");
-          resolve(false);
-        } else {
-          setError(null);
-          resolve(true);
-        }
-      };
-
-      img.onerror = () => {
-        setError("Invalid image file");
-        resolve(false);
-      };
-    });
+      await saveProfilePhoto(photoUrl, dateOfBirth, phone, username);
+      queryClient.refetchQueries({ queryKey: ["profile"] });
+    } catch (_error) {
+      // Error already handled in the service
+    }
   };
 
-  const { getRootProps, getInputProps } = useDropzone({
-    accept: {
-      "image/jpeg": [".jpg", ".jpeg"],
-      "image/png": [".png"],
-    },
-    maxSize: 5 * 1024 * 1024, // 5MB
-    onDrop: async (acceptedFiles) => {
-      const file = acceptedFiles[0];
-      if (file) {
-        // Validate image dimensions
-        const isValid = await validateImage(file);
-        if (!isValid) return;
+  const handleRemovePhoto = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setPreviewUrl(null);
+    form.setFieldValue("profilePhoto", null);
+    handleSaveProfilePhoto(null);
+  };
 
-        // Create preview
-        const objectUrl = URL.createObjectURL(file);
-        setPreviewUrl(objectUrl);
+  const handleSelectFile = (file: File) => {
+    setSelectedFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setEditImageUrl(objectUrl);
+    setShowCropModal(true);
+  };
 
-        // Upload file using mutation
-        uploadMutation.mutate(file);
-      }
-    },
-    onDropRejected: (fileRejections) => {
-      const { code, message } = fileRejections[0].errors[0];
-      if (code === "file-too-large") {
-        setError("File is larger than 5MB");
-      } else {
-        setError(message);
-      }
-    },
-    disabled: !isEditing || uploadMutation.isPending,
-  });
+  const handleCropCancel = () => {
+    setShowCropModal(false);
+    setEditImageUrl(null);
+    if (editImageUrl) {
+      URL.revokeObjectURL(editImageUrl);
+    }
+  };
+
+  const handleCropApply = (croppedFile: File) => {
+    uploadMutation.mutate(croppedFile);
+
+    // Create preview
+    const objectUrl = URL.createObjectURL(croppedFile);
+    setPreviewUrl(objectUrl);
+
+    // Close modal
+    setShowCropModal(false);
+    setEditImageUrl(null);
+  };
 
   // Clean up the preview URL when component unmounts
   useEffect(() => {
     return () => {
-      if (previewUrl) {
+      if (previewUrl && !previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
+      if (editImageUrl) {
+        URL.revokeObjectURL(editImageUrl);
+      }
     };
-  }, [previewUrl]);
+  }, [previewUrl, editImageUrl]);
 
   // Show existing profile photo if available
   useEffect(() => {
@@ -129,48 +111,26 @@ const ProfilePhoto = ({
   }, [form, profileInfo]);
 
   return (
-    <div className="mb-8">
-      <h2 className="text-lg font-medium text-gray-800 mb-2">Profile photo</h2>
-      <p className="text-gray-600 mb-4">
-        Add your professional profile image to personalize your account.
-      </p>
+    <>
+      <ProfilePhotoUploader
+        error={error}
+        isUploading={uploadMutation.isPending}
+        previewUrl={previewUrl}
+        onRemovePhoto={handleRemovePhoto}
+        onSelectFile={handleSelectFile}
+      />
 
-      <div
-        {...getRootProps()}
-        className={`mt-1 border-2 border-dashed rounded-lg p-4 text-center hover:bg-gray-50 ${isEditing ? "cursor-pointer" : "cursor-default"} ${
-          uploadMutation.isPending ? "opacity-50 pointer-events-none" : ""
-        }`}
-      >
-        <input
-          {...getInputProps()}
-          disabled={!isEditing || uploadMutation.isPending}
+      {/* Image Edit Modal */}
+      {showCropModal && editImageUrl && selectedFile && (
+        <ImageCropper
+          fileName={selectedFile.name}
+          fileType={selectedFile.type}
+          imageUrl={editImageUrl}
+          onCancel={handleCropCancel}
+          onApply={handleCropApply}
         />
-        <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-2">
-          {previewUrl ? (
-            <img
-              alt="Profile photo preview"
-              className="w-full h-full object-cover rounded-full"
-              src={previewUrl}
-            />
-          ) : (
-            <SquareUser className="h-10 w-10 text-gray-400" />
-          )}
-        </div>
-        {isEditing && (
-          <>
-            <p className="text-sm text-gray-500 mb-1">
-              {uploadMutation.isPending
-                ? "Uploading..."
-                : "Choose image or drag and drop"}
-            </p>
-            <p className="text-xs text-gray-400">
-              Upload a jpg or png image (max 5 MB) with minimum 300x300 pixels
-            </p>
-            {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
-          </>
-        )}
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 

@@ -2,13 +2,15 @@
 
 import { z } from "zod";
 import { useForm } from "@mcw/ui";
-import { useState, useCallback, useEffect } from "react";
-import ProfileHeader from "./profile/ProfileHeader";
-import ProfileInfo from "./profile/ProfileInfo";
-import ProfilePhoto from "./profile/ProfilePhoto";
+import { useEffect } from "react";
 import { toast } from "@mcw/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProfile } from "./profile/hooks/useProfile";
+import ProfileHeader from "./profile/ProfileHeader";
+import ProfileInfo from "./profile/ProfileInfo";
+import SecurityInfo from "./profile/SecurityInfo";
+import ProfilePhoto from "./profile/ProfilePhoto";
+import { ProfileFormData, ProfileFormType } from "./types";
 
 export const profileSchema = z.object({
   dateOfBirth: z.string().optional().nullable(),
@@ -23,18 +25,11 @@ export const profileSchema = z.object({
   profilePhoto: z.string().max(500).optional().nullable(),
 });
 
-export type ProfileFormData = {
-  dateOfBirth?: string | null;
-  phone?: string | null;
-  profilePhoto?: string | null;
-};
-
 export default function Profile() {
-  const [isEditing, setIsEditing] = useState(false);
   const queryClient = useQueryClient();
   const { data: profileInfo, isLoading } = useProfile();
 
-  const form = useForm({
+  const form = useForm<ProfileFormData>({
     defaultValues: {
       dateOfBirth: "",
       phone: "",
@@ -51,17 +46,29 @@ export default function Profile() {
         });
         return; // Stop submission
       }
+
+      // Ensure date is properly formatted
+      const dateOfBirth =
+        value.dateOfBirth && value.dateOfBirth !== ""
+          ? new Date(value.dateOfBirth).toISOString().split("T")[0]
+          : null;
+
       try {
         const response = await fetch("/api/profile", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(value),
+          body: JSON.stringify({
+            ...value,
+            dateOfBirth,
+          }),
         });
 
         if (!response.ok) {
-          throw new Error("Failed to update profile");
+          const errorData = await response.json();
+          console.error("Error response:", errorData);
+          throw new Error(errorData.details || "Failed to update profile");
         }
 
         toast({
@@ -69,7 +76,6 @@ export default function Profile() {
           variant: "success",
         });
 
-        setIsEditing(false);
         queryClient.refetchQueries({ queryKey: ["profile"] });
       } catch (error) {
         console.error("Error updating profile:", error);
@@ -79,48 +85,36 @@ export default function Profile() {
         });
       }
     },
-  });
+  }) as ProfileFormType;
 
   // Initialize form with profile data
   useEffect(() => {
     if (profileInfo) {
-      form.setFieldValue(
-        "dateOfBirth",
-        profileInfo.date_of_birth
-          ? new Date(profileInfo.date_of_birth).toISOString().split("T")[0]
-          : null,
-      );
+      // Format date or set to null
+      const formattedDate = profileInfo.date_of_birth
+        ? new Date(profileInfo.date_of_birth).toISOString().split("T")[0]
+        : null;
+
+      form.setFieldValue("dateOfBirth", formattedDate);
       form.setFieldValue("phone", profileInfo.phone || null);
       form.setFieldValue("profilePhoto", profileInfo.profile_photo || null);
     }
   }, [profileInfo, form]);
 
-  const { handleSubmit } = form;
-
-  const handleSave = useCallback(() => {
-    handleSubmit();
-  }, [handleSubmit]);
-
   if (isLoading) {
-    return <div className="p-4">Loading profile information...</div>;
+    return (
+      <div className="p-6 bg-gray-50 text-gray-500">
+        Loading profile information...
+      </div>
+    );
   }
 
   return (
-    <div>
-      <ProfileHeader
-        form={form as ReturnType<typeof useForm>}
-        handleSave={handleSave}
-        isEditing={isEditing}
-        setIsEditing={setIsEditing}
-      />
-      <ProfileInfo
-        form={form as ReturnType<typeof useForm>}
-        isEditing={isEditing}
-      />
-      <ProfilePhoto
-        form={form as ReturnType<typeof useForm>}
-        isEditing={isEditing}
-      />
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <ProfileHeader />
+      <ProfileInfo form={form} />
+      <SecurityInfo form={form} />
+      <ProfilePhoto form={form} />
     </div>
   );
 }
