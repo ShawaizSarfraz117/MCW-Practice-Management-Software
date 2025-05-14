@@ -30,7 +30,7 @@ export function EditTeamMember({ member }: EditTeamMemberProps) {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-[#1F2937]">
-            {member.name}
+            {`${member.firstName} ${member.lastName}`}
           </h1>
           <p className="text-base text-[#4B5563]">{member.role}</p>
           <button className="text-[#2D8467] text-sm mt-2">

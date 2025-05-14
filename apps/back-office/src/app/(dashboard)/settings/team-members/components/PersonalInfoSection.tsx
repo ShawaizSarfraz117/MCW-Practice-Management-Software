@@ -34,7 +34,7 @@ export function PersonalInfoSection({
           <div>
             <p className="text-base text-[#4B5563]">Name</p>
             <p className="text-base font-medium text-[#1F2937]">
-              {member.name}
+              {`${member.firstName} ${member.lastName}`}
             </p>
           </div>
           <div>
@@ -54,7 +54,15 @@ export function PersonalInfoSection({
         }}
         onClose={onClose}
       >
-        <PersonalInfoEdit member={member} onClose={onClose} />
+        <PersonalInfoEdit
+          member={{
+            id: member.id,
+            firstName: member.firstName,
+            lastName: member.lastName,
+            email: member.email,
+          }}
+          onClose={onClose}
+        />
       </EditTeamMemberSidebar>
     </>
   );

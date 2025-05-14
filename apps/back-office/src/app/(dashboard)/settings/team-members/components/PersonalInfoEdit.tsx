@@ -7,7 +7,8 @@ import { toast } from "@mcw/ui";
 interface PersonalInfoEditProps {
   member: {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
   };
   onClose: () => void;
@@ -20,7 +21,11 @@ export default function PersonalInfoEdit({
   const queryClient = useQueryClient();
 
   const { mutate: updatePersonalInfo } = useMutation({
-    mutationFn: async (data: { name: string; email: string }) => {
+    mutationFn: async (data: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    }) => {
       const response = await fetch(`/api/clinician/${member.id}`, {
         method: "PATCH",
         headers: {
@@ -56,7 +61,8 @@ export default function PersonalInfoEdit({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     updatePersonalInfo({
-      name: formData.get("name") as string,
+      firstName: formData.get("firstName") as string,
+      lastName: formData.get("lastName") as string,
       email: formData.get("email") as string,
     });
   };
@@ -64,12 +70,21 @@ export default function PersonalInfoEdit({
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
       <div>
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="firstName">First Name</Label>
         <Input
           className="mt-1"
-          defaultValue={member.name}
-          id="name"
-          name="name"
+          defaultValue={member.firstName}
+          id="firstName"
+          name="firstName"
+        />
+      </div>
+      <div>
+        <Label htmlFor="lastName">Last Name</Label>
+        <Input
+          className="mt-1"
+          defaultValue={member.lastName}
+          id="lastName"
+          name="lastName"
         />
       </div>
       <div>

@@ -24,7 +24,8 @@ export default function TeamMemberEditPage() {
       // Placeholder data - replace with actual API call
       return {
         id: memberId,
-        name: "Alam Naqvi",
+        firstName: "Alam",
+        lastName: "Naqvi",
         email: "alam@mcwtlycw.com",
         role: "Clinician with entire practice access",
         specialty: "Behavioral health therapy",
@@ -65,7 +66,7 @@ export default function TeamMemberEditPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{member.name}</BreadcrumbPage>
+            <BreadcrumbPage>{`${member.firstName} ${member.lastName}`}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
