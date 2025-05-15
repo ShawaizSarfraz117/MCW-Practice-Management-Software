@@ -17,6 +17,7 @@ describe("GET /api/billingAddress", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId: mockClinicianId,
+      clinician: null,
     });
   });
 
@@ -68,6 +69,7 @@ describe("GET /api/billingAddress", () => {
     vi.mocked(getClinicianInfo).mockResolvedValueOnce({
       isClinician: false,
       clinicianId: null,
+      clinician: null,
     });
 
     const request = createRequestWithBody("/api/billingAddress", {});
@@ -107,6 +109,7 @@ describe("POST /api/billingAddress", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId: mockClinicianId,
+      clinician: null,
     });
   });
 
@@ -193,6 +196,7 @@ describe("POST /api/billingAddress", () => {
     vi.mocked(getClinicianInfo).mockResolvedValueOnce({
       isClinician: false,
       clinicianId: null,
+      clinician: null,
     });
 
     const request = createRequestWithBody("/api/billingAddress", validData);

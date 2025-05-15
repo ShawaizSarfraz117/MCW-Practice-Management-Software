@@ -1,72 +1,136 @@
 "use client";
 
-import { useDropzone } from "react-dropzone";
-import { useForm } from "@mcw/ui";
-import { SquareUser } from "lucide-react";
-const ProfilePhoto = ({
-  form,
-  isEditing,
-}: {
-  form: ReturnType<typeof useForm>;
-  isEditing: boolean;
-}) => {
-  const profilePhoto = form.getFieldValue("profilePhoto");
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { BlobToSaas } from "@/utils/blobToSaas";
+import { useProfile } from "./hooks/useProfile";
+import { ProfileFormType } from "../types";
+import ProfilePhotoUploader from "./components/ProfilePhotoUploader";
+import ImageCropper from "./components/ImageCropper";
+import { uploadFile, saveProfilePhoto } from "./services/profilePhotoService";
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0];
-      if (file) {
-        const filePath = `/uploads/${file.name}`;
-        form.setFieldValue("profilePhoto", filePath);
-      }
+const ProfilePhoto = ({ form }: { form: ProfileFormType }) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [editImageUrl, setEditImageUrl] = useState<string | null>(null);
+
+  const { data: profileInfo } = useProfile();
+  const queryClient = useQueryClient();
+
+  const uploadMutation = useMutation({
+    mutationFn: uploadFile,
+    onSuccess: (data) => {
+      form.setFieldValue("profilePhoto", data.blobUrl);
+      setError(null);
+      handleSaveProfilePhoto(data.blobUrl);
     },
-    accept: {
-      "image/*": [".jpeg", ".jpg", ".png"],
+    onError: (error) => {
+      console.error("Upload error:", error);
+      setError("Failed to upload image");
     },
-    maxFiles: 1,
   });
 
+  const handleSaveProfilePhoto = async (photoUrl: string | null) => {
+    try {
+      const dateOfBirth = form.getFieldValue("dateOfBirth") || null;
+      const phone = form.getFieldValue("phone") || null;
+      const username = form.getFieldValue("username") || null;
+
+      await saveProfilePhoto(photoUrl, dateOfBirth, phone, username);
+      queryClient.refetchQueries({ queryKey: ["profile"] });
+    } catch (_error) {
+      // Error already handled in the service
+    }
+  };
+
+  const handleRemovePhoto = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setPreviewUrl(null);
+    form.setFieldValue("profilePhoto", null);
+    handleSaveProfilePhoto(null);
+  };
+
+  const handleSelectFile = (file: File) => {
+    setSelectedFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setEditImageUrl(objectUrl);
+    setShowCropModal(true);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropModal(false);
+    setEditImageUrl(null);
+    if (editImageUrl) {
+      URL.revokeObjectURL(editImageUrl);
+    }
+  };
+
+  const handleCropApply = (croppedFile: File) => {
+    uploadMutation.mutate(croppedFile);
+
+    // Create preview
+    const objectUrl = URL.createObjectURL(croppedFile);
+    setPreviewUrl(objectUrl);
+
+    // Close modal
+    setShowCropModal(false);
+    setEditImageUrl(null);
+  };
+
+  // Clean up the preview URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl && !previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      if (editImageUrl) {
+        URL.revokeObjectURL(editImageUrl);
+      }
+    };
+  }, [previewUrl, editImageUrl]);
+
+  // Show existing profile photo if available
+  useEffect(() => {
+    const profilePhoto = form.getFieldValue("profilePhoto") as
+      | string
+      | undefined
+      | null;
+    if (profilePhoto) {
+      BlobToSaas(profilePhoto).then((sasToken) => {
+        setPreviewUrl(sasToken);
+      });
+    } else if (profileInfo?.profile_photo) {
+      BlobToSaas(profileInfo.profile_photo).then((sasToken) => {
+        setPreviewUrl(sasToken);
+      });
+    }
+  }, [form, profileInfo]);
+
   return (
-    <div className="mb-8">
-      <h2 className="text-lg font-medium text-gray-800 mb-2">Profile photo</h2>
-      <p className="text-gray-600 mb-4">
-        Add your professional profile image to personalize your SimplePractice
-        account.
-      </p>
-      <div
-        {...getRootProps()}
-        className="border border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center"
-      >
-        {isEditing ? (
-          <div
-            {...getRootProps()}
-            className="border border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center"
-          >
-            <input {...getInputProps()} />
-            <p className="text-sm text-gray-600">
-              {isDragActive
-                ? "Drop the file here"
-                : "Choose image or drag and drop image"}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Upload .jpg or .png image
-              <br />
-              Max upload size: 10MB
-            </p>
-          </div>
-        ) : (
-          <div className="mb-4">
-            {profilePhoto ? (
-              <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                <SquareUser className="h-16 w-16 text-gray-300" />
-              </div>
-            ) : (
-              <SquareUser className="h-16 w-16 text-gray-300" />
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+    <>
+      <ProfilePhotoUploader
+        error={error}
+        isUploading={uploadMutation.isPending}
+        previewUrl={previewUrl}
+        onRemovePhoto={handleRemovePhoto}
+        onSelectFile={handleSelectFile}
+      />
+
+      {/* Image Edit Modal */}
+      {showCropModal && editImageUrl && selectedFile && (
+        <ImageCropper
+          fileName={selectedFile.name}
+          fileType={selectedFile.type}
+          imageUrl={editImageUrl}
+          onCancel={handleCropCancel}
+          onApply={handleCropApply}
+        />
+      )}
+    </>
   );
 };
 

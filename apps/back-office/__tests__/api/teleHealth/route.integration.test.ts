@@ -87,6 +87,7 @@ describe("TeleHealth API Integration Tests", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId,
+      clinician: null,
     });
     const res = await GET();
     expect(res.status).toBe(200);
@@ -99,6 +100,7 @@ describe("TeleHealth API Integration Tests", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: false,
       clinicianId: null,
+      clinician: null,
     });
     const res = await GET();
     expect(res.status).toBe(403);
@@ -111,6 +113,7 @@ describe("TeleHealth API Integration Tests", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId,
+      clinician: null,
     });
     const res = await GET();
     expect(res.status).toBe(404);
@@ -128,6 +131,7 @@ describe("TeleHealth API Integration Tests", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId,
+      clinician: null,
     });
     const body = {
       locationId,
@@ -161,6 +165,7 @@ describe("TeleHealth API Integration Tests", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: false,
       clinicianId: null,
+      clinician: null,
     });
     const body = {
       locationId,
@@ -179,6 +184,7 @@ describe("TeleHealth API Integration Tests", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId,
+      clinician: null,
     });
     const body = {
       locationId: "not-a-uuid",
@@ -200,6 +206,7 @@ describe("TeleHealth API Integration Tests", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId,
+      clinician: null,
     });
     const body = {
       locationId: "00000000-0000-0000-0000-000000000000",
@@ -220,6 +227,7 @@ describe("TeleHealth API Integration Tests", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId,
+      clinician: null,
     });
     const origFindUnique = prisma.clinician.findUnique;
     // @ts-expect-error: Monkey-patching for test
@@ -238,6 +246,7 @@ describe("TeleHealth API Integration Tests", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId,
+      clinician: null,
     });
     const origUpdate = prisma.location.update;
     // @ts-expect-error: Monkey-patching for test

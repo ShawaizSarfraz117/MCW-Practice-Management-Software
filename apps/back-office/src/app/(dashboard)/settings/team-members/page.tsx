@@ -2,15 +2,6 @@
 
 import {
   Button,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
   Input,
   Select,
   SelectTrigger,
@@ -19,44 +10,54 @@ import {
   SelectItem,
 } from "@mcw/ui";
 import { Search } from "lucide-react";
+import { useState, FormEvent, useEffect } from "react";
+import { useTeamMembers } from "./services/member.service";
+import Loading from "@/components/Loading";
+import MemberTable, { TeamMember } from "./components/MemberTable";
 import Link from "next/link";
-import { useState } from "react";
 import ManageListOrderSidebar from "./components/ManageListOrderSidebar";
 
 export default function TeamMembersPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [isManageListOrderOpen, setIsManageListOrderOpen] = useState(false);
+  const [queryParams, setQueryParams] = useState({
+    search: undefined as string | undefined,
+    role: undefined as string | undefined,
+  });
 
-  // Placeholder data for demonstration
-  const teamMembers = [
-    {
-      id: "1",
-      firstName: "Alam",
-      lastName: "Naqvi",
-      email: "alam@mcwtlycw.com",
-      role: "Clinician with entire practice access",
-      avatarUrl: "",
-      twoStepVerification: "Off",
-      lastSignIn: "Mar 13, 2025 at 4:56 PM",
-      specialty: "Behavioral health therapy",
-      license: {
-        type: "LMFT",
-        number: "1234",
-        expirationDate: "July 11, 2025",
-        state: "AL",
-      },
-      services: ["Service 1", "Service 2", "Service 3"],
-    },
-    {
-      id: "2",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@mcw.com",
-      role: "Admin",
-      avatarUrl: "",
-      twoStepVerification: "On",
-      lastSignIn: "Mar 13, 2025 at 4:56 PM",
-    },
-  ];
+  const { data, isLoading, refetch } = useTeamMembers(queryParams);
+
+  const teamMembers = (data?.data || []) as unknown as TeamMember[];
+  const _pagination = data?.pagination;
+
+  useEffect(() => {
+    refetch();
+  }, [queryParams, refetch]);
+
+  const handleSearch = (e: FormEvent) => {
+    e.preventDefault();
+    setQueryParams({
+      search: searchQuery || undefined,
+      role: roleFilter !== "all" ? roleFilter : undefined,
+    });
+  };
+
+  const handleSearchIconClick = () => {
+    setQueryParams({
+      search: searchQuery || undefined,
+      role: roleFilter !== "all" ? roleFilter : undefined,
+    });
+  };
+
+  const handleRowClick = (member: object) => {
+    const teamMember = member as TeamMember;
+    window.location.href = `/settings/team-members/${teamMember.id}`;
+  };
+
+  if (isLoading) {
+    return <Loading fullScreen message="Loading team members..." />;
+  }
 
   return (
     <section className="flex flex-col gap-6 w-full max-w-7xl mx-auto pt-2 pb-8 px-2 md:px-8">
@@ -89,14 +90,31 @@ export default function TeamMembersPage() {
 
       {/* Search and Filter */}
       <div className="flex gap-4">
-        <div className="relative w-[230px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search"
-            className="px-9 h-10 bg-white border-[#e5e7eb]"
+        <form onSubmit={handleSearch} className="relative w-[230px]">
+          <Search
+            aria-label="Search team members"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer"
+            role="button"
+            onClick={handleSearchIconClick}
           />
-        </div>
-        <Select>
+          <Input
+            className="pl-9 px-9 h-10 bg-white border-[#e5e7eb]"
+            placeholder="Search"
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </form>
+        <Select
+          value={roleFilter}
+          onValueChange={(value) => {
+            setRoleFilter(value);
+            setQueryParams({
+              search: searchQuery || undefined,
+              role: value !== "all" ? value : undefined,
+            });
+          }}
+        >
           <SelectTrigger className="w-[180px] bg-white h-10">
             <SelectValue placeholder="All roles" />
           </SelectTrigger>
@@ -110,50 +128,7 @@ export default function TeamMembersPage() {
 
       {/* Team Members Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Last sign in</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teamMembers.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={member.avatarUrl} />
-                      <AvatarFallback>
-                        {member.firstName[0]}
-                        {member.lastName[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {member.firstName} {member.lastName}
-                      </div>
-                      <div className="text-gray-500">{member.email}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-gray-700">{member.role}</TableCell>
-                <TableCell className="text-gray-700">
-                  {member.lastSignIn}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Link href={`/settings/team-members/${member.id}`}>
-                    <Button variant="ghost" className="text-[#2D8467]">
-                      Edit
-                    </Button>
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <MemberTable rows={teamMembers} onRowClick={handleRowClick} />
       </div>
 
       {/* Sidebar */}

@@ -1,7 +1,10 @@
+"use client";
+
 import { Card } from "@mcw/ui";
 import { TeamMember } from "../hooks/useRolePermissions";
 import EditTeamMemberSidebar from "./EditTeamMemberSidebar";
 import ClinicalInfoEdit from "./ClinicalInfoEdit";
+import { useUpdateClinicalInfo } from "../services/member.service";
 
 interface ClinicalInfoSectionProps {
   member: TeamMember;
@@ -16,6 +19,40 @@ export function ClinicalInfoSection({
   isEditing,
   onClose,
 }: ClinicalInfoSectionProps) {
+  const { mutate: updateClinicalInfo, isPending } = useUpdateClinicalInfo();
+
+  const handleClinicalInfoSubmit = (data: {
+    specialty: string;
+    npiNumber: string;
+  }) => {
+    // Convert the NPI number to a number
+    const NPInumber = data.npiNumber ? parseInt(data.npiNumber, 10) : undefined;
+
+    updateClinicalInfo(
+      {
+        speciality: data.specialty,
+        taxonomyCode: "000", // Default taxonomy code
+        NPInumber,
+        user_id: member.id,
+      },
+      {
+        onSuccess: () => {
+          onClose();
+        },
+      },
+    );
+  };
+
+  const handleSave = () => {
+    // Trigger form submission
+    const form = document.getElementById(
+      "clinical-info-edit-form",
+    ) as HTMLFormElement;
+    if (form) {
+      form.requestSubmit();
+    }
+  };
+
   return (
     <>
       <Card className="mb-6">
@@ -47,14 +84,14 @@ export function ClinicalInfoSection({
       </Card>
 
       <EditTeamMemberSidebar
+        formId="clinical-info-edit-form"
+        isLoading={isPending}
         isOpen={isEditing}
         title="Edit clinical info"
         onClose={onClose}
-        onSave={() => {
-          // The save action is handled by the child component
-        }}
+        onSave={handleSave}
       >
-        <ClinicalInfoEdit member={member} onClose={onClose} />
+        <ClinicalInfoEdit member={member} onSubmit={handleClinicalInfoSubmit} />
       </EditTeamMemberSidebar>
     </>
   );
