@@ -5,6 +5,20 @@ import { GET, POST, DELETE, PUT } from "@/api/clinician/route";
 import prismaMock from "@mcw/database/mock";
 import { ClinicianFactory, UserFactory } from "@mcw/database/mock-data";
 
+// Mock the getBackOfficeSession helper
+vi.mock("@/utils/helpers", () => ({
+  getBackOfficeSession: vi.fn(() =>
+    Promise.resolve({
+      user: {
+        id: "test-user-id",
+        email: "test@example.com",
+        roles: ["ADMIN"],
+        isAdmin: true,
+      },
+    }),
+  ),
+}));
+
 describe("Clinician API Unit Tests", async () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -13,8 +27,18 @@ describe("Clinician API Unit Tests", async () => {
   it("GET /api/clinician should return all clinicians", async () => {
     const user0 = UserFactory.build();
     const user1 = UserFactory.build();
-    const clinician0 = ClinicianFactory.build({ user_id: user0.id });
-    const clinician1 = ClinicianFactory.build({ user_id: user1.id });
+    const clinician0 = ClinicianFactory.build({
+      user_id: user0.id,
+      User: {
+        email: user0.email,
+      },
+    });
+    const clinician1 = ClinicianFactory.build({
+      user_id: user1.id,
+      User: {
+        email: user1.email,
+      },
+    });
 
     const clinicians = [clinician0, clinician1];
 
@@ -33,10 +57,12 @@ describe("Clinician API Unit Tests", async () => {
     // Verify first clinician data
     expect(json[0]).toHaveProperty("id", clinician0.id);
     expect(json[0]).toHaveProperty("user_id", clinician0.user_id);
+    expect(json[0]).toHaveProperty("User.email", clinician0.User.email);
 
     // Verify second clinician data
     expect(json[1]).toHaveProperty("id", clinician1.id);
     expect(json[1]).toHaveProperty("user_id", clinician1.user_id);
+    expect(json[1]).toHaveProperty("User.email", clinician1.User.email);
 
     // Verify the mock was called with correct parameters
     expect(prismaMock.clinician.findMany).toHaveBeenCalledWith({
@@ -57,6 +83,9 @@ describe("Clinician API Unit Tests", async () => {
       User: {
         email: user.email,
       },
+      ClinicianLocation: [],
+      ClinicianServices: [],
+      ClinicianClient: [],
     });
 
     // Mock the prisma response for findUnique
@@ -161,17 +190,22 @@ describe("Clinician API Unit Tests", async () => {
   it("PUT /api/clinician should update an existing clinician", async () => {
     const user = UserFactory.build();
     const clinician = ClinicianFactory.build({ user_id: user.id });
-    const updatedClinician = {
-      ...clinician,
+
+    // Create a clean object for the updated clinician to avoid non-serializable properties
+    const updatedClinicianData = {
+      id: clinician.id,
+      user_id: clinician.user_id,
       first_name: "John 2",
+      last_name: clinician.last_name,
+      address: clinician.address,
+      percentage_split: clinician.percentage_split,
+      is_active: clinician.is_active,
     };
 
-    // Mock findUnique to return the existing clinician
-    prismaMock.clinician.findUnique.mockResolvedValueOnce(clinician);
-    // Mock update to return the updated clinician
-    prismaMock.clinician.update.mockResolvedValueOnce(updatedClinician);
+    // Mock upsert instead of update since that's what the route uses
+    prismaMock.clinician.upsert.mockResolvedValueOnce(updatedClinicianData);
 
-    const req = createRequestWithBody("/api/clinician", updatedClinician, {
+    const req = createRequestWithBody("/api/clinician", updatedClinicianData, {
       method: "PUT",
     });
     const response = await PUT(req);
@@ -180,19 +214,20 @@ describe("Clinician API Unit Tests", async () => {
     const json = await response.json();
 
     // Verify response matches updated clinician
-    expect(json).toEqual(updatedClinician);
+    expect(json).toEqual(updatedClinicianData);
 
-    // Verify update was called with correct data
-    expect(prismaMock.clinician.update).toHaveBeenCalledWith(
+    // Verify upsert was called with correct data
+    expect(prismaMock.clinician.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: clinician.id },
-        data: {
-          first_name: updatedClinician.first_name,
-          last_name: updatedClinician.last_name,
-          address: updatedClinician.address,
-          percentage_split: updatedClinician.percentage_split,
-          is_active: updatedClinician.is_active,
+        where: { user_id: updatedClinicianData.user_id },
+        update: {
+          first_name: updatedClinicianData.first_name,
+          last_name: updatedClinicianData.last_name,
+          address: updatedClinicianData.address,
+          percentage_split: updatedClinicianData.percentage_split,
+          is_active: updatedClinicianData.is_active,
         },
+        create: expect.any(Object),
       }),
     );
   });

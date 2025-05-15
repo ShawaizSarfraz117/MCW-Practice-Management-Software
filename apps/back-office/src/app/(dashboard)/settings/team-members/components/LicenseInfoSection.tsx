@@ -1,10 +1,25 @@
+"use client";
+
 import { Card } from "@mcw/ui";
 import { TeamMember } from "../hooks/useRolePermissions";
 import EditTeamMemberSidebar from "./EditTeamMemberSidebar";
 import LicenseInfoEdit from "./LicenseInfoEdit";
+import { useUpdateLicenses } from "../services/member.service";
+import { format } from "date-fns";
+// Extended TeamMember interface to include additional properties
+interface ExtendedTeamMember extends TeamMember {
+  licenses?: Array<{
+    id?: number;
+    license_type: string;
+    license_number: string;
+    expiration_date: string;
+    state: string;
+  }>;
+  clinicalInfoId?: number;
+}
 
 interface LicenseInfoSectionProps {
-  member: TeamMember;
+  member: ExtendedTeamMember;
   onEdit: () => void;
   isEditing: boolean;
   onClose: () => void;
@@ -16,6 +31,28 @@ export function LicenseInfoSection({
   isEditing,
   onClose,
 }: LicenseInfoSectionProps) {
+  const { mutate: updateLicenses, isPending } = useUpdateLicenses();
+
+  // Check if we have any licenses to display
+  const hasLicenses = member.licenses && member.licenses.length > 0;
+
+  const handleSubmit = (data: {
+    licenses: Array<{
+      id?: number;
+      license_type: string;
+      license_number: string;
+      expiration_date: string;
+      state: string;
+    }>;
+    clinical_info_id: number;
+  }) => {
+    updateLicenses(data, {
+      onSuccess: () => {
+        onClose();
+      },
+    });
+  };
+
   return (
     <>
       <Card className="mb-6">
@@ -30,34 +67,39 @@ export function LicenseInfoSection({
             Edit
           </button>
         </div>
-        <div className="px-6 pb-6 space-y-4">
-          {member.license ? (
-            <>
-              <div>
-                <p className="text-base text-[#4B5563]">Type</p>
-                <p className="text-base font-medium text-[#1F2937]">
-                  {member.license.type}
-                </p>
-              </div>
-              <div>
-                <p className="text-base text-[#4B5563]">License number</p>
-                <p className="text-base font-medium text-[#1F2937]">
-                  {member.license.number}
-                </p>
-              </div>
-              <div>
-                <p className="text-base text-[#4B5563]">Expiration date</p>
-                <p className="text-base font-medium text-[#1F2937]">
-                  {member.license.expirationDate}
-                </p>
-              </div>
-              <div>
-                <p className="text-base text-[#4B5563]">State</p>
-                <p className="text-base font-medium text-[#1F2937]">
-                  {member.license.state}
-                </p>
-              </div>
-            </>
+        <div className="px-6 pb-6">
+          {hasLicenses ? (
+            <div className="space-y-8">
+              {member.licenses?.map((license, index) => (
+                <div key={index} className="space-y-4">
+                  {index > 0 && <hr className="border-gray-200" />}
+                  <div>
+                    <p className="text-base text-[#4B5563]">Type</p>
+                    <p className="text-base font-medium text-[#1F2937]">
+                      {license.license_type}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-base text-[#4B5563]">License number</p>
+                    <p className="text-base font-medium text-[#1F2937]">
+                      {license.license_number}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-base text-[#4B5563]">Expiration date</p>
+                    <p className="text-base font-medium text-[#1F2937]">
+                      {format(new Date(license.expiration_date), "MM/dd/yyyy")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-base text-[#4B5563]">State</p>
+                    <p className="text-base font-medium text-[#1F2937]">
+                      {license.state}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <p className="text-base text-[#4B5563]">
               No license information provided
@@ -67,14 +109,19 @@ export function LicenseInfoSection({
       </Card>
 
       <EditTeamMemberSidebar
+        formId="license-info-edit-form"
+        isLoading={isPending}
         isOpen={isEditing}
-        title="Edit license info"
-        onSave={() => {
-          // The save action is handled by the child component
-        }}
+        title="Manage license and degree info"
         onClose={onClose}
       >
-        <LicenseInfoEdit member={member} onClose={onClose} />
+        <LicenseInfoEdit
+          member={{
+            ...member,
+            clinicalInfoId: member.clinicalInfoId,
+          }}
+          onSubmit={handleSubmit}
+        />
       </EditTeamMemberSidebar>
     </>
   );

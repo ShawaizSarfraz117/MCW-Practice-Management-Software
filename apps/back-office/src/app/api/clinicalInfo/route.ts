@@ -32,18 +32,18 @@ export async function PUT(request: NextRequest) {
     // Check if clinical info exists
     const existingClinicalInfo = await prisma.clinicalInfo.findFirst({
       where: {
-        user_id: session.user.id,
+        user_id: data.user_id,
       },
     });
 
     if (existingClinicalInfo) {
       // Update existing clinical info
       const updatedClinicalInfo = await prisma.clinicalInfo.updateMany({
-        where: { user_id: session.user.id },
+        where: { user_id: data.user_id },
         data: {
-          speciality: validationResult.data.speciality ?? undefined,
-          taxonomy_code: validationResult.data.taxonomyCode ?? undefined,
-          NPI_number: validationResult.data.NPInumber ?? undefined,
+          speciality: validationResult.data.speciality ?? "",
+          taxonomy_code: validationResult.data.taxonomyCode ?? "000",
+          NPI_number: validationResult.data.NPInumber ?? 0,
         },
       });
 
@@ -52,9 +52,9 @@ export async function PUT(request: NextRequest) {
       // Insert new clinical info
       const newClinicalInfo = await prisma.clinicalInfo.create({
         data: {
-          user_id: session.user.id,
+          user_id: data.user_id,
           speciality: validationResult.data.speciality ?? "",
-          taxonomy_code: validationResult.data.taxonomyCode ?? "",
+          taxonomy_code: validationResult.data.taxonomyCode ?? "000",
           NPI_number: validationResult.data.NPInumber ?? 0,
         },
       });
