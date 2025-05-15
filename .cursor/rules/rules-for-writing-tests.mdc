@@ -31,6 +31,8 @@ Unit tests focus on testing individual functions or methods in isolation, with a
 - **Coverage**: Test all code paths, including error cases.
 - **Example**: `apps/back-office/__tests__/api/location/route.unit.test.ts`
 
+- Keep running `npx vitest apps/back-office/__tests__/api/**test-path**` in a loop **until all test cases pass without any failure**. Exit only when the test result is fully green (i.e., no failing or pending tests).
+
 ### Integration Tests
 
 Integration tests verify that different components work together correctly, often involving the database.
@@ -44,6 +46,9 @@ Integration tests verify that different components work together correctly, ofte
 
 - Place tests in the `apps/<app-name>/__tests__` directory, mirroring the structure of the `src` directory.
 - Test filenames should match the file they are testing with a `.unit.test.ts` or `.integration.test.ts` suffix.
+- use `import { createRequestWithBody, createRequest } from "@mcw/utils"` to create request
+- import api routes as `@/api/**/route"`
+
 - For example:
   - `src/app/api/product/route.ts` → `__tests__/api/product/route.unit.test.ts`
   - `src/app/api/product/route.ts` → `__tests__/api/product/route.integration.test.ts`

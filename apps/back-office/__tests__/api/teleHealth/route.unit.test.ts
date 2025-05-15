@@ -18,6 +18,7 @@ describe("GET /api/teleHealth", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId: mockClinicianId,
+      clinician: null,
     });
   });
 
@@ -61,6 +62,7 @@ describe("GET /api/teleHealth", () => {
     vi.mocked(getClinicianInfo).mockResolvedValueOnce({
       isClinician: false,
       clinicianId: null,
+      clinician: null,
     });
 
     const response = await GET();
@@ -135,6 +137,7 @@ describe("PUT /api/teleHealth", () => {
     vi.mocked(getClinicianInfo).mockResolvedValue({
       isClinician: true,
       clinicianId: mockClinicianId,
+      clinician: null,
     });
   });
 
@@ -182,6 +185,7 @@ describe("PUT /api/teleHealth", () => {
     vi.mocked(getClinicianInfo).mockResolvedValueOnce({
       isClinician: false,
       clinicianId: null,
+      clinician: null,
     });
 
     const request = createRequestWithBody("/api/teleHealth", validUpdateData);

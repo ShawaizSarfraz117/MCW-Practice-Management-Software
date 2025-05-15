@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@mcw/ui";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@mcw/ui";
+import { Input, Label } from "@mcw/ui";
 
 interface ClinicalInfoEditProps {
   member: {
@@ -18,82 +8,43 @@ interface ClinicalInfoEditProps {
     specialty?: string;
     npiNumber?: string;
   };
-  onClose: () => void;
+  onSubmit: (data: { specialty: string; npiNumber: string }) => void;
 }
 
 export default function ClinicalInfoEdit({
   member,
-  onClose,
+  onSubmit,
 }: ClinicalInfoEditProps) {
-  const queryClient = useQueryClient();
-
-  const { mutate: updateClinicalInfo } = useMutation({
-    mutationFn: async (data: { specialty: string; npiNumber: string }) => {
-      const response = await fetch(`/api/clinician/${member.id}/clinical`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update clinical info");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teamMember", member.id] });
-      toast({
-        title: "Success",
-        description: "Clinical information updated successfully",
-      });
-      onClose();
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update clinical information",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    updateClinicalInfo({
-      specialty: formData.get("specialty") as string,
-      npiNumber: formData.get("npiNumber") as string,
-    });
+    const specialty = formData.get("specialty") as string;
+    const npiNumber = formData.get("npiNumber") as string;
+
+    onSubmit({ specialty, npiNumber });
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <form
+      className="space-y-4"
+      id="clinical-info-edit-form"
+      onSubmit={handleSubmit}
+    >
       <div>
         <Label htmlFor="specialty">Specialty</Label>
-        <Select defaultValue={member.specialty} name="specialty">
-          <SelectTrigger className="mt-1">
-            <SelectValue placeholder="Select specialty" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="behavioral-health">
-              Behavioral Health Therapy
-            </SelectItem>
-            <SelectItem value="clinical-psychology">
-              Clinical Psychology
-            </SelectItem>
-            <SelectItem value="psychiatry">Psychiatry</SelectItem>
-            <SelectItem value="counseling">Counseling</SelectItem>
-          </SelectContent>
-        </Select>
+        <Input
+          className="mt-1"
+          defaultValue={member.specialty || ""}
+          id="specialty"
+          name="specialty"
+          placeholder="Enter specialty"
+        />
       </div>
       <div>
         <Label htmlFor="npiNumber">NPI Number</Label>
         <Input
           className="mt-1"
-          defaultValue={member.npiNumber}
+          defaultValue={member.npiNumber || ""}
           id="npiNumber"
           name="npiNumber"
           placeholder="Enter NPI number"

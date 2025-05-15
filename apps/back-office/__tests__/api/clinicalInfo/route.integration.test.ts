@@ -97,6 +97,7 @@ describe("Clinical Info API Integration Tests", () => {
       speciality: "Dermatology",
       taxonomyCode: "207N00000X",
       NPInumber: 9876543210,
+      user_id: userId,
     } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
@@ -118,6 +119,7 @@ describe("Clinical Info API Integration Tests", () => {
       speciality: "Oncology",
       taxonomyCode: "207R00000X",
       NPInumber: 1002003004,
+      user_id: userId,
     } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
@@ -129,6 +131,7 @@ describe("Clinical Info API Integration Tests", () => {
       speciality: "A".repeat(101), // Invalid: exceeds max length
       taxonomyCode: "123",
       NPInumber: "invalid-npi", // Should be number
+      user_id: userId,
     } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
@@ -143,6 +146,7 @@ describe("Clinical Info API Integration Tests", () => {
       speciality: "Pediatrics",
       taxonomyCode: "208000000X",
       NPInumber: 1003004005,
+      user_id: userId,
     } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);
