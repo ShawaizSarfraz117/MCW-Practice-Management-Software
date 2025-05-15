@@ -1,40 +1,29 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { GET } from "../../../src/app/api/permissions/route";
+import { GET } from "@/api/permissions/route";
 import { createRequest } from "@mcw/utils";
+import prismaMock from "@mcw/database/mock";
 
 // Mock modules before imports that might use them
 vi.mock("@/utils/helpers", () => ({
   getBackOfficeSession: vi.fn(),
 }));
 
+// Mock logger module
 vi.mock("@mcw/logger", () => ({
   logger: {
-    error: vi.fn(),
     info: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
+    error: vi.fn(),
   },
   getDbLogger: vi.fn().mockReturnValue({
     info: vi.fn(),
     error: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
   }),
-}));
-
-// We need to explicitly mock prisma's findMany to override the database/mock
-vi.mock("@mcw/database", () => ({
-  prisma: {
-    permission: {
-      findMany: vi.fn(),
-    },
-  },
+  __esModule: true,
 }));
 
 // Get references to the mocks
 const { getBackOfficeSession } = await import("@/utils/helpers");
 const { logger } = await import("@mcw/logger");
-const { prisma } = await import("@mcw/database");
 
 describe("Permissions API Unit Tests", () => {
   beforeEach(() => {
@@ -94,9 +83,7 @@ describe("Permissions API Unit Tests", () => {
     ];
 
     // Mock the Prisma findMany method
-    vi.mocked(prisma.permission.findMany).mockResolvedValueOnce(
-      mockPermissions,
-    );
+    prismaMock.permission.findMany.mockResolvedValue(mockPermissions);
 
     // Create a request with no query parameters
     const req = createRequest("/api/permissions");
@@ -117,7 +104,7 @@ describe("Permissions API Unit Tests", () => {
     );
 
     // Verify Prisma was called with the correct parameters
-    expect(prisma.permission.findMany).toHaveBeenCalledWith({
+    expect(prismaMock.permission.findMany).toHaveBeenCalledWith({
       where: {},
       include: {
         RolePermission: {
@@ -144,9 +131,7 @@ describe("Permissions API Unit Tests", () => {
     ];
 
     // Mock the Prisma findMany method
-    vi.mocked(prisma.permission.findMany).mockResolvedValueOnce(
-      mockFilteredPermissions,
-    );
+    prismaMock.permission.findMany.mockResolvedValue(mockFilteredPermissions);
 
     // Create a request with roleId filter
     const req = createRequest("/api/permissions?roleId=role-id-2");
@@ -165,7 +150,7 @@ describe("Permissions API Unit Tests", () => {
     );
 
     // Verify Prisma was called with the role filter
-    expect(prisma.permission.findMany).toHaveBeenCalledWith({
+    expect(prismaMock.permission.findMany).toHaveBeenCalledWith({
       where: {
         RolePermission: {
           some: {
@@ -198,9 +183,7 @@ describe("Permissions API Unit Tests", () => {
     ];
 
     // Mock the Prisma findMany method
-    vi.mocked(prisma.permission.findMany).mockResolvedValueOnce(
-      mockFilteredPermissions,
-    );
+    prismaMock.permission.findMany.mockResolvedValue(mockFilteredPermissions);
 
     // Create a request with name filter
     const req = createRequest("/api/permissions?name=Edit");
@@ -215,7 +198,7 @@ describe("Permissions API Unit Tests", () => {
     expect(responseData[0]).toHaveProperty("name", "Edit Client");
 
     // Verify Prisma was called with the name filter
-    expect(prisma.permission.findMany).toHaveBeenCalledWith({
+    expect(prismaMock.permission.findMany).toHaveBeenCalledWith({
       where: {
         name: {
           contains: "Edit",
@@ -248,12 +231,12 @@ describe("Permissions API Unit Tests", () => {
     expect(responseData).toHaveProperty("error", "Unauthorized");
 
     // Verify Prisma was not called
-    expect(prisma.permission.findMany).not.toHaveBeenCalled();
+    expect(prismaMock.permission.findMany).not.toHaveBeenCalled();
   });
 
   it("GET /api/permissions should handle database errors", async () => {
     // Mock Prisma to throw an error
-    vi.mocked(prisma.permission.findMany).mockRejectedValueOnce(
+    prismaMock.permission.findMany.mockRejectedValue(
       new Error("Database error"),
     );
 
