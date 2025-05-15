@@ -11,6 +11,19 @@ import {
 } from "@mcw/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@mcw/ui";
+import { Trash, X } from "lucide-react";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@mcw/ui";
 
 interface LicenseInfoEditProps {
   member: {
@@ -30,6 +43,7 @@ export default function LicenseInfoEdit({
   onClose,
 }: LicenseInfoEditProps) {
   const queryClient = useQueryClient();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { mutate: updateLicenseInfo } = useMutation({
     mutationFn: async (data: {
@@ -69,6 +83,32 @@ export default function LicenseInfoEdit({
     },
   });
 
+  const deleteLicenseMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/clinician/${member.id}/license`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete license");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teamMember", member.id] });
+      toast({
+        title: "License deleted",
+        description: "The license was deleted successfully.",
+      });
+      setShowDeleteModal(false);
+      onClose();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete license",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -81,56 +121,101 @@ export default function LicenseInfoEdit({
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <div>
-        <Label htmlFor="type">License Type</Label>
-        <Select defaultValue={member.license?.type} name="type">
-          <SelectTrigger className="mt-1">
-            <SelectValue placeholder="Select license type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="LMFT">LMFT</SelectItem>
-            <SelectItem value="LCSW">LCSW</SelectItem>
-            <SelectItem value="LPC">LPC</SelectItem>
-            <SelectItem value="PhD">PhD</SelectItem>
-            <SelectItem value="PsyD">PsyD</SelectItem>
-          </SelectContent>
-        </Select>
+    <>
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div>
+          <Label htmlFor="type">License Type</Label>
+          <Select defaultValue={member.license?.type} name="type">
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Select license type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="LMFT">LMFT</SelectItem>
+              <SelectItem value="LCSW">LCSW</SelectItem>
+              <SelectItem value="LPC">LPC</SelectItem>
+              <SelectItem value="PhD">PhD</SelectItem>
+              <SelectItem value="PsyD">PsyD</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="number">License Number</Label>
+          <Input
+            className="mt-1"
+            defaultValue={member.license?.number}
+            id="number"
+            name="number"
+            placeholder="Enter license number"
+          />
+        </div>
+        <div>
+          <Label htmlFor="expirationDate">Expiration Date</Label>
+          <Input
+            className="mt-1"
+            defaultValue={member.license?.expirationDate}
+            id="expirationDate"
+            name="expirationDate"
+            type="date"
+          />
+        </div>
+        <div>
+          <Label htmlFor="state">State</Label>
+          <Select defaultValue={member.license?.state} name="state">
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Select state" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="AL">Alabama</SelectItem>
+              <SelectItem value="AK">Alaska</SelectItem>
+              <SelectItem value="AZ">Arizona</SelectItem>
+              {/* Add more states as needed */}
+            </SelectContent>
+          </Select>
+        </div>
+      </form>
+      {/* Delete License Link */}
+      <div className="flex justify-end mt-6">
+        <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+          <AlertDialogTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center text-red-600 hover:text-red-700 text-sm font-medium gap-1"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              <Trash className="w-4 h-4 mr-1" /> Delete
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="max-w-[400px] w-full p-6 rounded-xl">
+            <button
+              type="button"
+              aria-label="Close"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"
+              onClick={() => setShowDeleteModal(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-lg font-semibold text-gray-900 text-left">
+                Delete License
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-700 text-left mt-2">
+                Are you sure you want to delete this license?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-6 flex-row justify-end gap-2">
+              <AlertDialogCancel className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="px-4 py-2 rounded-md bg-red-600 text-white font-medium hover:bg-red-700"
+                onClick={() => deleteLicenseMutation.mutate()}
+              >
+                Delete License
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-      <div>
-        <Label htmlFor="number">License Number</Label>
-        <Input
-          className="mt-1"
-          defaultValue={member.license?.number}
-          id="number"
-          name="number"
-          placeholder="Enter license number"
-        />
-      </div>
-      <div>
-        <Label htmlFor="expirationDate">Expiration Date</Label>
-        <Input
-          className="mt-1"
-          defaultValue={member.license?.expirationDate}
-          id="expirationDate"
-          name="expirationDate"
-          type="date"
-        />
-      </div>
-      <div>
-        <Label htmlFor="state">State</Label>
-        <Select defaultValue={member.license?.state} name="state">
-          <SelectTrigger className="mt-1">
-            <SelectValue placeholder="Select state" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="AL">Alabama</SelectItem>
-            <SelectItem value="AK">Alaska</SelectItem>
-            <SelectItem value="AZ">Arizona</SelectItem>
-            {/* Add more states as needed */}
-          </SelectContent>
-        </Select>
-      </div>
-    </form>
+    </>
   );
 }
