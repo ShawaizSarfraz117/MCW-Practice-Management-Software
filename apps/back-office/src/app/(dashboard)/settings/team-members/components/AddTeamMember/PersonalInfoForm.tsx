@@ -44,7 +44,15 @@ export default function PersonalInfoForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <form.Field
-          children={(field) => (
+          name="firstName"
+          validators={{
+            onBlur: ({ value }) => {
+              if (!value) return "First name is required";
+              return undefined;
+            },
+          }}
+        >
+          {(field) => (
             <FormItem className="space-y-2">
               <FormLabel htmlFor={field.name}>First Name</FormLabel>
               <FormControl>
@@ -54,10 +62,10 @@ export default function PersonalInfoForm({
                   }
                   id={field.name}
                   name={field.name}
-                  placeholder="Enter first name"
-                  value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="Enter first name"
+                  value={field.state.value}
                 />
               </FormControl>
               {field.state.meta.errors.length > 0 && (
@@ -65,17 +73,18 @@ export default function PersonalInfoForm({
               )}
             </FormItem>
           )}
-          name="firstName"
+        </form.Field>
+
+        <form.Field
+          name="lastName"
           validators={{
             onBlur: ({ value }) => {
-              if (!value) return "First name is required";
+              if (!value) return "Last name is required";
               return undefined;
             },
           }}
-        />
-
-        <form.Field
-          children={(field) => (
+        >
+          {(field) => (
             <FormItem className="space-y-2">
               <FormLabel htmlFor={field.name}>Last Name</FormLabel>
               <FormControl>
@@ -85,10 +94,10 @@ export default function PersonalInfoForm({
                   }
                   id={field.name}
                   name={field.name}
-                  placeholder="Enter last name"
-                  value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="Enter last name"
+                  value={field.state.value}
                 />
               </FormControl>
               {field.state.meta.errors.length > 0 && (
@@ -96,39 +105,10 @@ export default function PersonalInfoForm({
               )}
             </FormItem>
           )}
-          name="lastName"
-          validators={{
-            onBlur: ({ value }) => {
-              if (!value) return "Last name is required";
-              return undefined;
-            },
-          }}
-        />
+        </form.Field>
       </div>
 
       <form.Field
-        children={(field) => (
-          <FormItem className="space-y-2">
-            <FormLabel htmlFor={field.name}>Email</FormLabel>
-            <FormControl>
-              <Input
-                className={
-                  field.state.meta.errors.length ? "border-red-500" : ""
-                }
-                id={field.name}
-                name={field.name}
-                placeholder="Enter email address"
-                type="email"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-            </FormControl>
-            {field.state.meta.errors.length > 0 && (
-              <FormMessage>{field.state.meta.errors[0]}</FormMessage>
-            )}
-          </FormItem>
-        )}
         name="email"
         validators={{
           onBlur: ({ value }) => {
@@ -138,7 +118,30 @@ export default function PersonalInfoForm({
             return undefined;
           },
         }}
-      />
+      >
+        {(field) => (
+          <FormItem className="space-y-2">
+            <FormLabel htmlFor={field.name}>Email</FormLabel>
+            <FormControl>
+              <Input
+                className={
+                  field.state.meta.errors.length ? "border-red-500" : ""
+                }
+                id={field.name}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+                placeholder="Enter email address"
+                type="email"
+                value={field.state.value}
+              />
+            </FormControl>
+            {field.state.meta.errors.length > 0 && (
+              <FormMessage>{field.state.meta.errors[0]}</FormMessage>
+            )}
+          </FormItem>
+        )}
+      </form.Field>
 
       <div className="flex justify-end">
         <button

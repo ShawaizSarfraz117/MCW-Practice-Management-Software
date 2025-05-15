@@ -59,7 +59,15 @@ export default function RoleInfoForm({
       </div>
 
       <form.Field
-        children={(field) => (
+        name="role"
+        validators={{
+          onChange: ({ value }) => {
+            if (!value) return "Role selection is required";
+            return undefined;
+          },
+        }}
+      >
+        {(field) => (
           <FormItem className="space-y-3">
             <FormLabel>Role</FormLabel>
             <FormControl>
@@ -80,9 +88,9 @@ export default function RoleInfoForm({
                         className="h-4 w-4 mt-1 cursor-pointer"
                         id={`role-${role}`}
                         name="role"
+                        onChange={() => field.handleChange(role)}
                         type="radio"
                         value={role}
-                        onChange={() => field.handleChange(role)}
                       />
                       <div className="flex flex-col">
                         <label
@@ -105,14 +113,7 @@ export default function RoleInfoForm({
             )}
           </FormItem>
         )}
-        name="role"
-        validators={{
-          onChange: ({ value }) => {
-            if (!value) return "Role selection is required";
-            return undefined;
-          },
-        }}
-      />
+      </form.Field>
 
       <div className="flex justify-end">
         <button className="hidden" type="submit" />

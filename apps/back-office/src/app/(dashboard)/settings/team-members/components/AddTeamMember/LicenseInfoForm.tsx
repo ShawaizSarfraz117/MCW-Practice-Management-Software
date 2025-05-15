@@ -13,12 +13,23 @@ import {
   SelectValue,
 } from "@mcw/ui";
 import { useForm } from "@tanstack/react-form";
-import { TeamMember } from "../../hooks/useRolePermissions";
-import statesUS from "../../../../clients/services/statesUS.json";
+import statesUS from "@/(dashboard)/clients/services/statesUS.json";
+
+// Define just what we need from TeamMember for this component
+interface License {
+  type: string;
+  number: string;
+  expirationDate: string;
+  state: string;
+}
+
+interface TeamMemberLicense {
+  license?: License;
+}
 
 interface LicenseInfoFormProps {
-  initialData: Partial<TeamMember>;
-  onSubmit: (data: Partial<TeamMember>) => void;
+  initialData: Partial<TeamMemberLicense>;
+  onSubmit: (data: Partial<TeamMemberLicense>) => void;
 }
 
 export default function LicenseInfoForm({
@@ -26,16 +37,22 @@ export default function LicenseInfoForm({
   onSubmit,
 }: LicenseInfoFormProps) {
   const licenseTypes = [
-    "LMFT", // Licensed Marriage and Family Therapist
-    "LCSW", // Licensed Clinical Social Worker
-    "LPC", // Licensed Professional Counselor
-    "LMHC", // Licensed Mental Health Counselor
-    "LP", // Licensed Psychologist
-    "MD", // Medical Doctor
-    "DO", // Doctor of Osteopathic Medicine
-    "PMHNP", // Psychiatric Mental Health Nurse Practitioner
-    "PA", // Physician Assistant
+    "LMFT",
+    "LCSW",
+    "LPC",
+    "LMHC",
+    "LP",
+    "MD",
+    "DO",
+    "PMHNP",
+    "PA",
   ];
+
+  // Common validator for required fields
+  const requiredValidator =
+    (fieldName: string) =>
+    ({ value }: { value: string }) =>
+      !value ? `${fieldName} is required` : undefined;
 
   const form = useForm({
     defaultValues: {
@@ -47,9 +64,13 @@ export default function LicenseInfoForm({
       },
     },
     onSubmit: ({ value }) => {
-      onSubmit(value);
+      onSubmit({ license: value.license });
     },
   });
+
+  // Reusable error display logic
+  const renderError = (errors: unknown[]) =>
+    errors.length > 0 && <FormMessage>{String(errors[0])}</FormMessage>;
 
   return (
     <form
@@ -73,25 +94,23 @@ export default function LicenseInfoForm({
         <form.Field
           name="license.type"
           validators={{
-            onBlur: ({ value }) => {
-              if (!value) return "License type is required";
-              return undefined;
-            },
+            onBlur: requiredValidator("License type"),
           }}
-          children={(field) => (
+        >
+          {(field) => (
             <FormItem className="space-y-2">
               <FormLabel htmlFor={field.name}>License Type</FormLabel>
               <Select
                 value={field.state.value}
-                onValueChange={field.handleChange}
                 onOpenChange={() => field.handleBlur()}
+                onValueChange={field.handleChange}
               >
                 <FormControl>
                   <SelectTrigger
-                    id={field.name}
                     className={
                       field.state.meta.errors.length ? "border-red-500" : ""
                     }
+                    id={field.name}
                   >
                     <SelectValue placeholder="Select license type" />
                   </SelectTrigger>
@@ -104,22 +123,18 @@ export default function LicenseInfoForm({
                   ))}
                 </SelectContent>
               </Select>
-              {field.state.meta.errors.length > 0 && (
-                <FormMessage>{field.state.meta.errors[0]}</FormMessage>
-              )}
+              {renderError(field.state.meta.errors)}
             </FormItem>
           )}
-        />
+        </form.Field>
 
         <form.Field
           name="license.number"
           validators={{
-            onBlur: ({ value }) => {
-              if (!value) return "License number is required";
-              return undefined;
-            },
+            onBlur: requiredValidator("License number"),
           }}
-          children={(field) => (
+        >
+          {(field) => (
             <FormItem className="space-y-2">
               <FormLabel htmlFor={field.name}>License Number</FormLabel>
               <FormControl>
@@ -131,41 +146,37 @@ export default function LicenseInfoForm({
                   name={field.name}
                   placeholder="Enter license number"
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
                 />
               </FormControl>
-              {field.state.meta.errors.length > 0 && (
-                <FormMessage>{field.state.meta.errors[0]}</FormMessage>
-              )}
+              {renderError(field.state.meta.errors)}
             </FormItem>
           )}
-        />
+        </form.Field>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <form.Field
           name="license.state"
           validators={{
-            onBlur: ({ value }) => {
-              if (!value) return "State is required";
-              return undefined;
-            },
+            onBlur: requiredValidator("State"),
           }}
-          children={(field) => (
+        >
+          {(field) => (
             <FormItem className="space-y-2">
               <FormLabel htmlFor={field.name}>State</FormLabel>
               <Select
                 value={field.state.value}
-                onValueChange={field.handleChange}
                 onOpenChange={() => field.handleBlur()}
+                onValueChange={field.handleChange}
               >
                 <FormControl>
                   <SelectTrigger
-                    id={field.name}
                     className={
                       field.state.meta.errors.length ? "border-red-500" : ""
                     }
+                    id={field.name}
                   >
                     <SelectValue placeholder="Select state" />
                   </SelectTrigger>
@@ -181,22 +192,18 @@ export default function LicenseInfoForm({
                   ))}
                 </SelectContent>
               </Select>
-              {field.state.meta.errors.length > 0 && (
-                <FormMessage>{field.state.meta.errors[0]}</FormMessage>
-              )}
+              {renderError(field.state.meta.errors)}
             </FormItem>
           )}
-        />
+        </form.Field>
 
         <form.Field
           name="license.expirationDate"
           validators={{
-            onBlur: ({ value }) => {
-              if (!value) return "Expiration date is required";
-              return undefined;
-            },
+            onBlur: requiredValidator("Expiration date"),
           }}
-          children={(field) => (
+        >
+          {(field) => (
             <FormItem className="space-y-2">
               <FormLabel htmlFor={field.name}>Expiration Date</FormLabel>
               <FormControl>
@@ -208,16 +215,14 @@ export default function LicenseInfoForm({
                   name={field.name}
                   type="date"
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
                 />
               </FormControl>
-              {field.state.meta.errors.length > 0 && (
-                <FormMessage>{field.state.meta.errors[0]}</FormMessage>
-              )}
+              {renderError(field.state.meta.errors)}
             </FormItem>
           )}
-        />
+        </form.Field>
       </div>
 
       <div className="flex justify-end">

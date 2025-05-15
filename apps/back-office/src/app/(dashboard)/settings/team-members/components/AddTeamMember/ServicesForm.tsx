@@ -69,7 +69,16 @@ export default function ServicesForm({
       </div>
 
       <form.Field
-        children={(field) => (
+        name="services"
+        validators={{
+          onChange: ({ value }) => {
+            if (value.length === 0)
+              return "At least one service must be selected";
+            return undefined;
+          },
+        }}
+      >
+        {(field) => (
           <>
             <FormItem className="space-y-2">
               <FormLabel className="text-base">Available Services</FormLabel>
@@ -122,15 +131,7 @@ export default function ServicesForm({
             )}
           </>
         )}
-        name="services"
-        validators={{
-          onChange: ({ value }) => {
-            if (value.length === 0)
-              return "At least one service must be selected";
-            return undefined;
-          },
-        }}
-      />
+      </form.Field>
 
       <div className="flex justify-end">
         <button className="hidden" type="submit" />
