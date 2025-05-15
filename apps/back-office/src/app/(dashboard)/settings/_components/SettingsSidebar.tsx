@@ -131,14 +131,14 @@ const menuItems = {
         {
           label: "Template Library",
           id: "template-library",
-          href: "/settings/template-library",
+          href: "/settings/documentation/template-library",
           description:
             "Intake documents, progress notes, treatment plans, and other documents.",
         },
         {
           label: "Shareable Documents",
           id: "shareable-documents",
-          href: "/settings/shareable-documents",
+          href: "/settings/documentation/shareable-documents",
           description: "Manage default intake documents and uploaded files",
         },
       ],

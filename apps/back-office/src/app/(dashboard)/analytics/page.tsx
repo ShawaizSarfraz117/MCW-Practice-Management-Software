@@ -44,7 +44,7 @@ export default function AnalyticsPage() {
               </span>
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white p-6 rounded-lg shadow-sm space-y-4">
+              <div className="bg-white p-6 border rounded-lg shadow-sm space-y-4">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -63,7 +63,7 @@ export default function AnalyticsPage() {
                   </Link>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm space-y-4">
+              <div className="bg-white border p-6 rounded-lg shadow-sm space-y-4">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -82,7 +82,7 @@ export default function AnalyticsPage() {
                   </Link>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm space-y-4">
+              <div className="bg-white border p-6 rounded-lg shadow-sm space-y-4">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
