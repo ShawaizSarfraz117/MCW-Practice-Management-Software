@@ -1,15 +1,19 @@
+// Mock the database module to use the shared prismaMock
+vi.mock("@mcw/database", () => ({
+  prisma: {
+    payment: { aggregate: vi.fn() },
+    invoice: { aggregate: vi.fn() },
+    appointment: { count: vi.fn() },
+    surveyAnswers: { count: vi.fn() },
+  },
+}));
+
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { GET } from "@/api/analytics/route";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Prisma } from "@prisma/client";
 import { createRequest } from "@mcw/utils";
 import prismaMock from "@mcw/database/mock";
-
-// Mock the database module to use the shared prismaMock
-vi.mock("@mcw/database", async () => ({
-  ...(await vi.importActual("@mcw/database")),
-  prisma: prismaMock,
-}));
 
 describe("Analytics API Unit Tests", () => {
   beforeEach(() => {
