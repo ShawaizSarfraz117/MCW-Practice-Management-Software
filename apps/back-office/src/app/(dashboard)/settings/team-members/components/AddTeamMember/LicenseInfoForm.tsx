@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Input,
   FormControl,
@@ -13,7 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@mcw/ui";
+import { useForm } from "@tanstack/react-form";
 import { TeamMember } from "../../hooks/useRolePermissions";
+import statesUS from "../../../../clients/services/statesUS.json";
 
 interface LicenseInfoFormProps {
   initialData: Partial<TeamMember>;
@@ -24,16 +25,6 @@ export default function LicenseInfoForm({
   initialData,
   onSubmit,
 }: LicenseInfoFormProps) {
-  const [formData, setFormData] = useState({
-    license: {
-      type: initialData.license?.type || "",
-      number: initialData.license?.number || "",
-      expirationDate: initialData.license?.expirationDate || "",
-      state: initialData.license?.state || "",
-    },
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
   const licenseTypes = [
     "LMFT", // Licensed Marriage and Family Therapist
     "LCSW", // Licensed Clinical Social Worker
@@ -46,132 +37,29 @@ export default function LicenseInfoForm({
     "PA", // Physician Assistant
   ];
 
-  const states = [
-    "AL",
-    "AK",
-    "AZ",
-    "AR",
-    "CA",
-    "CO",
-    "CT",
-    "DE",
-    "FL",
-    "GA",
-    "HI",
-    "ID",
-    "IL",
-    "IN",
-    "IA",
-    "KS",
-    "KY",
-    "LA",
-    "ME",
-    "MD",
-    "MA",
-    "MI",
-    "MN",
-    "MS",
-    "MO",
-    "MT",
-    "NE",
-    "NV",
-    "NH",
-    "NJ",
-    "NM",
-    "NY",
-    "NC",
-    "ND",
-    "OH",
-    "OK",
-    "OR",
-    "PA",
-    "RI",
-    "SC",
-    "SD",
-    "TN",
-    "TX",
-    "UT",
-    "VT",
-    "VA",
-    "WA",
-    "WV",
-    "WI",
-    "WY",
-    "DC",
-    "PR",
-    "VI",
-  ];
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
+  const form = useForm({
+    defaultValues: {
       license: {
-        ...prev.license,
-        [name]: value,
+        type: initialData.license?.type || "",
+        number: initialData.license?.number || "",
+        expirationDate: initialData.license?.expirationDate || "",
+        state: initialData.license?.state || "",
       },
-    }));
-
-    // Clear error when field is changed
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      license: {
-        ...prev.license,
-        [name]: value,
-      },
-    }));
-
-    // Clear error when field is changed
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.license.type) {
-      newErrors.type = "License type is required";
-    }
-
-    if (!formData.license.number) {
-      newErrors.number = "License number is required";
-    }
-
-    if (!formData.license.state) {
-      newErrors.state = "State is required";
-    }
-
-    if (!formData.license.expirationDate) {
-      newErrors.expirationDate = "Expiration date is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (validateForm()) {
-      onSubmit(formData);
-    }
-  };
+    },
+    onSubmit: ({ value }) => {
+      onSubmit(value);
+    },
+  });
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form
+      className="space-y-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
+    >
       <div className="space-y-1.5">
         <h3 className="text-lg font-semibold text-gray-900">
           License Information
@@ -182,90 +70,158 @@ export default function LicenseInfoForm({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormItem className="space-y-2">
-          <FormLabel htmlFor="type">License Type</FormLabel>
-          <Select
-            value={formData.license.type}
-            onValueChange={(value) => handleSelectChange("type", value)}
-          >
-            <FormControl>
-              <SelectTrigger className={errors.type ? "border-red-500" : ""}>
-                <SelectValue placeholder="Select license type" />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              {licenseTypes.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.type && <FormMessage>{errors.type}</FormMessage>}
-        </FormItem>
+        <form.Field
+          name="license.type"
+          validators={{
+            onBlur: ({ value }) => {
+              if (!value) return "License type is required";
+              return undefined;
+            },
+          }}
+          children={(field) => (
+            <FormItem className="space-y-2">
+              <FormLabel htmlFor={field.name}>License Type</FormLabel>
+              <Select
+                value={field.state.value}
+                onValueChange={field.handleChange}
+                onOpenChange={() => field.handleBlur()}
+              >
+                <FormControl>
+                  <SelectTrigger
+                    id={field.name}
+                    className={
+                      field.state.meta.errors.length ? "border-red-500" : ""
+                    }
+                  >
+                    <SelectValue placeholder="Select license type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {licenseTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {field.state.meta.errors.length > 0 && (
+                <FormMessage>{field.state.meta.errors[0]}</FormMessage>
+              )}
+            </FormItem>
+          )}
+        />
 
-        <FormItem className="space-y-2">
-          <FormLabel htmlFor="number">License Number</FormLabel>
-          <FormControl>
-            <Input
-              id="number"
-              name="number"
-              value={formData.license.number}
-              onChange={handleInputChange}
-              className={errors.number ? "border-red-500" : ""}
-              placeholder="Enter license number"
-            />
-          </FormControl>
-          {errors.number && <FormMessage>{errors.number}</FormMessage>}
-        </FormItem>
+        <form.Field
+          name="license.number"
+          validators={{
+            onBlur: ({ value }) => {
+              if (!value) return "License number is required";
+              return undefined;
+            },
+          }}
+          children={(field) => (
+            <FormItem className="space-y-2">
+              <FormLabel htmlFor={field.name}>License Number</FormLabel>
+              <FormControl>
+                <Input
+                  className={
+                    field.state.meta.errors.length ? "border-red-500" : ""
+                  }
+                  id={field.name}
+                  name={field.name}
+                  placeholder="Enter license number"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+              </FormControl>
+              {field.state.meta.errors.length > 0 && (
+                <FormMessage>{field.state.meta.errors[0]}</FormMessage>
+              )}
+            </FormItem>
+          )}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormItem className="space-y-2">
-          <FormLabel htmlFor="state">State</FormLabel>
-          <Select
-            value={formData.license.state}
-            onValueChange={(value) => handleSelectChange("state", value)}
-          >
-            <FormControl>
-              <SelectTrigger className={errors.state ? "border-red-500" : ""}>
-                <SelectValue placeholder="Select state" />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              {states.map((state) => (
-                <SelectItem key={state} value={state}>
-                  {state}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.state && <FormMessage>{errors.state}</FormMessage>}
-        </FormItem>
-
-        <FormItem className="space-y-2">
-          <FormLabel htmlFor="expirationDate">Expiration Date</FormLabel>
-          <FormControl>
-            <Input
-              id="expirationDate"
-              name="expirationDate"
-              type="date"
-              value={formData.license.expirationDate}
-              onChange={handleInputChange}
-              className={errors.expirationDate ? "border-red-500" : ""}
-            />
-          </FormControl>
-          {errors.expirationDate && (
-            <FormMessage>{errors.expirationDate}</FormMessage>
+        <form.Field
+          name="license.state"
+          validators={{
+            onBlur: ({ value }) => {
+              if (!value) return "State is required";
+              return undefined;
+            },
+          }}
+          children={(field) => (
+            <FormItem className="space-y-2">
+              <FormLabel htmlFor={field.name}>State</FormLabel>
+              <Select
+                value={field.state.value}
+                onValueChange={field.handleChange}
+                onOpenChange={() => field.handleBlur()}
+              >
+                <FormControl>
+                  <SelectTrigger
+                    id={field.name}
+                    className={
+                      field.state.meta.errors.length ? "border-red-500" : ""
+                    }
+                  >
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {statesUS.map((state) => (
+                    <SelectItem
+                      key={state.abbreviation}
+                      value={state.abbreviation}
+                    >
+                      {state.name} ({state.abbreviation})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {field.state.meta.errors.length > 0 && (
+                <FormMessage>{field.state.meta.errors[0]}</FormMessage>
+              )}
+            </FormItem>
           )}
-        </FormItem>
+        />
+
+        <form.Field
+          name="license.expirationDate"
+          validators={{
+            onBlur: ({ value }) => {
+              if (!value) return "Expiration date is required";
+              return undefined;
+            },
+          }}
+          children={(field) => (
+            <FormItem className="space-y-2">
+              <FormLabel htmlFor={field.name}>Expiration Date</FormLabel>
+              <FormControl>
+                <Input
+                  className={
+                    field.state.meta.errors.length ? "border-red-500" : ""
+                  }
+                  id={field.name}
+                  name={field.name}
+                  type="date"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+              </FormControl>
+              {field.state.meta.errors.length > 0 && (
+                <FormMessage>{field.state.meta.errors[0]}</FormMessage>
+              )}
+            </FormItem>
+          )}
+        />
       </div>
 
       <div className="flex justify-end">
-        <button
-          type="submit"
-          className="hidden" // Hidden button to trigger form submission
-        />
+        <button className="hidden" type="submit" />
       </div>
     </form>
   );

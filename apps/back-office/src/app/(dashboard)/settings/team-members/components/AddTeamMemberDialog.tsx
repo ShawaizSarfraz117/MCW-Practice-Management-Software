@@ -9,6 +9,7 @@ import {
   Button,
 } from "@mcw/ui";
 import { Check } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import PersonalInfoForm from "./AddTeamMember/PersonalInfoForm";
 import ClinicalInfoForm from "./AddTeamMember/ClinicalInfoForm";
 import LicenseInfoForm from "./AddTeamMember/LicenseInfoForm";
@@ -41,6 +42,30 @@ export default function AddTeamMemberDialog({
     },
   });
 
+  const createTeamMember = useMutation({
+    mutationFn: async (data: Partial<TeamMember>) => {
+      const response = await fetch("/api/clinician", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create team member");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      handleNext();
+    },
+    onError: (error) => {
+      console.error("Error creating team member:", error);
+    },
+  });
+
   const steps = [
     { label: "Personal Info", description: "Basic information" },
     { label: "Clinical Info", description: "Specialty details" },
@@ -63,25 +88,8 @@ export default function AddTeamMemberDialog({
     handleNext();
   };
 
-  const handleSave = async () => {
-    try {
-      const response = await fetch("/api/clinician", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(teamMemberData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create team member");
-      }
-
-      // Go to completion step
-      handleNext();
-    } catch (error) {
-      console.error("Error creating team member:", error);
-    }
+  const handleSave = () => {
+    createTeamMember.mutate(teamMemberData);
   };
 
   const renderStepContent = () => {

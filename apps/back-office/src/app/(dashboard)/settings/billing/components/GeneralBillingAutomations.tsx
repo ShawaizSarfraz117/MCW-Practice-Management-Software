@@ -21,7 +21,7 @@ export default function GeneralBillingAutomations({
   onAutomationChange,
 }: GeneralBillingAutomationsProps) {
   return (
-    <div className="space-y-6" style={{ overflow: "visible" }}>
+    <div className="space-y-6 overflow-visible">
       <div>
         <h3 className="font-medium text-base text-[#111827] mb-1.5">
           Email automation
