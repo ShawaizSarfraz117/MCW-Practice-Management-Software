@@ -35,7 +35,6 @@ export default function SettingsBillingPage() {
         </Button>
       </div>
 
-      {/* Invoices Section */}
       <Card className="border border-gray-200 shadow-sm">
         <CardHeader className="pb-1 pt-5">
           <CardTitle className="font-semibold text-gray-900 text-xl">
@@ -50,7 +49,6 @@ export default function SettingsBillingPage() {
         </CardContent>
       </Card>
 
-      {/* Superbills Section */}
       <Card className="border border-gray-200 shadow-sm">
         <CardHeader className="pb-1 pt-5">
           <CardTitle className="font-semibold text-gray-900 text-xl">
