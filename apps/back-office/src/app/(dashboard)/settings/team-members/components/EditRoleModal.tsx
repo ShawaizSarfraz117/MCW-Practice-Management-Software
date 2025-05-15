@@ -16,7 +16,7 @@ export default function EditRoleModal({
 }: EditRoleModalProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[1440px] h-[1110px] p-8 md:p-10 bg-white rounded-xl overflow-hidden flex flex-row md:flex-col absolute">
+      <DialogContent className="max-w-[1440px] h-[700px] p-8 md:p-10 overflow-y-auto bg-white rounded-xl flex flex-row md:flex-col absolute">
         <div className="flex-1 max-w-[1000px]">
           <h2 className="text-[22px] font-semibold text-[#181C1F] mb-2">
             Edit team member
