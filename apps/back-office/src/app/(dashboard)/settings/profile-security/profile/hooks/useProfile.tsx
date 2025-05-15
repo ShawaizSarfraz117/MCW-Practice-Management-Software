@@ -1,5 +1,7 @@
-import { ProfileData } from "@/types/profile";
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
+import { ProfileData } from "../../types";
 
 export function useProfile() {
   return useQuery({
@@ -9,7 +11,10 @@ export function useProfile() {
       if (!response.ok) {
         throw new Error(`Error fetching profile: ${response.status}`);
       }
-      return await response.json();
+      const data = await response.json();
+      // If API doesn't provide a name directly, we could add fallback logic here
+      // For example: data.name = "User Name"; // fallback name
+      return data;
     },
   });
 }
