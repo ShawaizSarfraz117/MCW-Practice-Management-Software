@@ -63,12 +63,7 @@ export function EditTeamMember({ member }: EditTeamMemberProps) {
           onClose={handleClose}
           onEdit={() => setEditingSection("services")}
         />
-        <RoleInfoSection
-          isEditing={editingSection === "role"}
-          member={member}
-          onClose={handleClose}
-          onEdit={() => setEditingSection("role")}
-        />
+        <RoleInfoSection member={member} />
       </div>
     </>
   );
