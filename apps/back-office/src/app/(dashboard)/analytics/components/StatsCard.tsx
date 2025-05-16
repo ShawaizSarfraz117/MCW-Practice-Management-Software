@@ -41,7 +41,7 @@ const NOTES_COLORS = ["#22C55E", "#3B82F6", "#F59E0B", "#D1D5DB"];
 
 export function IncomeChart() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
+    <div className="bg-white border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Income</h3>
@@ -85,7 +85,7 @@ export function IncomeChart() {
 
 export function OutstandingBalancesChart() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
+    <div className="bg-white  border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Outstanding balances</h3>
@@ -131,7 +131,7 @@ export function OutstandingBalancesChart() {
 
 export function AppointmentsChart() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
+    <div className="bg-white border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Appointments</h3>
@@ -181,7 +181,7 @@ export function AppointmentsChart() {
 
 export function NotesChart() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
+    <div className="bg-white border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Notes</h3>
