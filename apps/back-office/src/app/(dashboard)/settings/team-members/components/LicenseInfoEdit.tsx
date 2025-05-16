@@ -13,6 +13,7 @@ import {
 import { useState, useEffect } from "react";
 import { Trash } from "lucide-react";
 import statesUS from "@/(dashboard)/clients/services/statesUS.json";
+import DeleteLicenseModal from "./DeleteLicenseModal";
 
 interface License {
   id?: number;
@@ -41,24 +42,21 @@ export default function LicenseInfoEdit({
   member,
   onSubmit,
 }: LicenseInfoEditProps) {
-  // Initialize licenses state with empty array
   const [licenses, setLicenses] = useState<License[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [licenseToDelete, setLicenseToDelete] = useState<number | null>(null);
 
-  // Update licenses state when member changes
   useEffect(() => {
     if (member.licenses && member.licenses.length > 0) {
-      // Use the licenses array if available
       setLicenses(
         member.licenses.map((license) => ({
           ...license,
-          // Ensure date is formatted correctly for input field
           expiration_date: license.expiration_date
             ? new Date(license.expiration_date).toISOString().split("T")[0]
             : "",
         })),
       );
     } else if (member.license) {
-      // Use the single license if available
       setLicenses([
         {
           license_type: member.license.type,
@@ -72,7 +70,6 @@ export default function LicenseInfoEdit({
         },
       ]);
     } else {
-      // Otherwise use a default empty license
       setLicenses([
         {
           license_type: "LMFT",
@@ -98,6 +95,8 @@ export default function LicenseInfoEdit({
 
   const handleRemoveLicense = (index: number) => {
     setLicenses(licenses.filter((_, i) => i !== index));
+    setShowDeleteModal(false);
+    setLicenseToDelete(null);
   };
 
   const handleLicenseChange = (
@@ -115,15 +114,18 @@ export default function LicenseInfoEdit({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (!member.clinicalInfoId) {
       return;
     }
-
     onSubmit({
       licenses: licenses,
       clinical_info_id: member.clinicalInfoId,
     });
+  };
+
+  const handleDeleteClick = (index: number) => {
+    setLicenseToDelete(index);
+    setShowDeleteModal(true);
   };
 
   return (
@@ -137,18 +139,6 @@ export default function LicenseInfoEdit({
           key={index}
           className="space-y-4 pb-6 border-b border-gray-200 relative"
         >
-          <div className="absolute right-0 top-0">
-            {licenses.length > 1 && (
-              <button
-                className="text-gray-500 hover:text-red-500"
-                type="button"
-                onClick={() => handleRemoveLicense(index)}
-              >
-                <Trash />
-              </button>
-            )}
-          </div>
-
           <div>
             <Label htmlFor={`license-type-${index}`}>License type</Label>
             <Select
@@ -169,7 +159,6 @@ export default function LicenseInfoEdit({
               </SelectContent>
             </Select>
           </div>
-
           <div>
             <Label htmlFor={`license-number-${index}`}>License number</Label>
             <Input
@@ -182,7 +171,6 @@ export default function LicenseInfoEdit({
               }
             />
           </div>
-
           <div>
             <Label htmlFor={`expiration-date-${index}`}>Expiration date</Label>
             <Input
@@ -195,7 +183,6 @@ export default function LicenseInfoEdit({
               }
             />
           </div>
-
           <div>
             <Label htmlFor={`state-${index}`}>State</Label>
             <Select
@@ -219,9 +206,27 @@ export default function LicenseInfoEdit({
               </SelectContent>
             </Select>
           </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="flex items-center text-red-600 hover:text-red-700 text-sm font-medium gap-1"
+              onClick={() => handleDeleteClick(index)}
+            >
+              <Trash className="w-4 h-4 mr-1" /> Delete
+            </button>
+          </div>
         </div>
       ))}
-
+      <DeleteLicenseModal
+        open={showDeleteModal}
+        onOpenChange={setShowDeleteModal}
+        onDelete={() => {
+          if (licenseToDelete !== null) {
+            handleRemoveLicense(licenseToDelete);
+          }
+        }}
+        trigger={<span />}
+      />
       <Button
         className="w-full"
         type="button"
