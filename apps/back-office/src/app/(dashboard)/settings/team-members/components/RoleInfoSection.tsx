@@ -5,27 +5,19 @@ import {
   RoleType,
   useRolePermissions,
 } from "../hooks/useRolePermissions";
-import EditTeamMemberSidebar from "./EditTeamMemberSidebar";
-import RoleInfoEdit from "./RoleInfoEdit";
+import EditRoleModal from "./EditRoleModal";
 
 interface RoleInfoSectionProps {
   member: TeamMember;
-  onEdit: () => void;
-  isEditing: boolean;
-  onClose: () => void;
 }
 
-export function RoleInfoSection({
-  member,
-  onEdit,
-  isEditing,
-  onClose,
-}: RoleInfoSectionProps) {
+export function RoleInfoSection({ member }: RoleInfoSectionProps) {
   const [expandedRoles, setExpandedRoles] = useState<Record<string, boolean>>(
     {},
   );
   const { getRolePermissions, getRoleDescription, ROLE_DESCRIPTIONS } =
     useRolePermissions();
+  const [showEditRoleModal, setShowEditRoleModal] = useState(false);
 
   const toggleRolePermissions = (role: string) => {
     setExpandedRoles((prev) => ({
@@ -174,7 +166,7 @@ export function RoleInfoSection({
           <h2 className="text-lg font-semibold text-[#1F2937]">Role info</h2>
           <button
             className="text-[#2D8467] hover:text-[#256b53]"
-            onClick={onEdit}
+            onClick={() => setShowEditRoleModal(true)}
           >
             Edit
           </button>
@@ -187,17 +179,11 @@ export function RoleInfoSection({
           </div>
         </div>
       </Card>
-
-      <EditTeamMemberSidebar
-        isOpen={isEditing}
-        title="Edit role info"
-        onClose={onClose}
-        onSave={() => {
-          // The save action is handled by the child component
-        }}
-      >
-        <RoleInfoEdit member={member} onClose={onClose} />
-      </EditTeamMemberSidebar>
+      <EditRoleModal
+        open={showEditRoleModal}
+        onClose={() => setShowEditRoleModal(false)}
+        member={member}
+      />
     </>
   );
 }
