@@ -3,6 +3,7 @@ import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { getBackOfficeSession } from "@/utils/helpers";
 
+export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const session = await getBackOfficeSession();

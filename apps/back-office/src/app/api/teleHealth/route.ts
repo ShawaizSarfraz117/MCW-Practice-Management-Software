@@ -14,6 +14,7 @@ const updateLocationSchema = z.object({
   color: z.string().optional(),
 });
 
+export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     // Get clinician info from the session

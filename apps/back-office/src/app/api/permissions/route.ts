@@ -7,6 +7,7 @@ import { getBackOfficeSession } from "@/utils/helpers";
  * GET handler for fetching all permissions
  * Optionally filters by role or permission name if query parameters are provided
  */
+export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     // Authenticate request

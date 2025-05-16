@@ -4,6 +4,7 @@ import { logger } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
 import { getClinicianInfo } from "@/utils/helpers";
 
+export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
