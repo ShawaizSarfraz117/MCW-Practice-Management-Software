@@ -234,6 +234,7 @@ model Clinician {
   Availability      Availability[]
   billingAddresses  BillingAddress[]    @relation("ManyBillingAddresses")
   billingSettings   BillingSettings?
+  clientPortalSettings ClientPortalSettings? @relation("ClinicianToClientPortalSettings")
 }
 
 model ClinicianClient {
@@ -531,11 +532,27 @@ model BillingSettings {
   @@index([clinician_id])
 }
 
-model SchedulingMessage {
-  id        String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  content   String   @db.Text
-  type      String   @db.VarChar(50)
-  is_active Boolean  @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+model ClientPortalSettings {
+  id                    String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  clinician_id          String   @db.UniqueIdentifier
+  website_domain        String   @db.VarChar(255)
+  allow_appointments    Boolean  @default(true)
+  allow_file_uploads    Boolean  @default(true)
+  greeting_message      String?  @db.Text
+  
+  // Online appointment request settings
+  allow_new_clients     Boolean  @default(true)
+  allow_individual_clients Boolean @default(true)
+  allow_couple_clients  Boolean  @default(true)
+  allow_contact_clients Boolean  @default(true)
+  show_prescreener      Boolean  @default(true)
+  ask_payment_method    Boolean  @default(true)
+  require_credit_card   Boolean  @default(false)
+  
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+  Clinician            Clinician @relation("ClinicianToClientPortalSettings", fields: [clinician_id], references: [id], onDelete: Cascade)
+
+  @@unique([clinician_id])
+  @@index([clinician_id])
 }
