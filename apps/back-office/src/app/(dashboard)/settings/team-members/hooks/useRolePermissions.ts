@@ -1,6 +1,7 @@
 export interface TeamMember {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: string;
   specialty?: string;

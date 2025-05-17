@@ -14,10 +14,13 @@ import { useState, FormEvent, useEffect } from "react";
 import { useTeamMembers } from "./services/member.service";
 import Loading from "@/components/Loading";
 import MemberTable, { TeamMember } from "./components/MemberTable";
+import Link from "next/link";
+import ManageListOrderSidebar from "./components/ManageListOrderSidebar";
 
 export default function TeamMembersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [isManageListOrderOpen, setIsManageListOrderOpen] = useState(false);
   const [queryParams, setQueryParams] = useState({
     search: undefined as string | undefined,
     role: undefined as string | undefined,
@@ -70,15 +73,18 @@ export default function TeamMembersPage() {
           <Button
             className="border border-gray-200 text-[#2B2B2B] bg-white rounded-md px-4 py-2 text-base font-normal"
             variant="outline"
+            onClick={() => setIsManageListOrderOpen(true)}
           >
             Manage List Order
           </Button>
-          <Button
-            className="bg-[#2D8467] text-white hover:bg-[#256b53] rounded-md px-4 py-2 text-base font-normal"
-            size="sm"
-          >
-            Add Team Member
-          </Button>
+          <Link href="/settings/team-members/add">
+            <Button
+              className="bg-[#2D8467] text-white hover:bg-[#256b53] rounded-md px-4 py-2 text-base font-normal"
+              size="sm"
+            >
+              Add Team Member
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -124,6 +130,12 @@ export default function TeamMembersPage() {
       <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-sm">
         <MemberTable rows={teamMembers} onRowClick={handleRowClick} />
       </div>
+
+      {/* Sidebar */}
+      <ManageListOrderSidebar
+        isOpen={isManageListOrderOpen}
+        onClose={() => setIsManageListOrderOpen(false)}
+      />
     </section>
   );
 }
