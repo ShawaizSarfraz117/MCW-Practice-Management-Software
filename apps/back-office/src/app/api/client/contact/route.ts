@@ -7,6 +7,7 @@ import { logger } from "@mcw/logger";
  * @param request - The NextRequest object
  * @returns - JSON response with client contacts data or error
  */
+export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

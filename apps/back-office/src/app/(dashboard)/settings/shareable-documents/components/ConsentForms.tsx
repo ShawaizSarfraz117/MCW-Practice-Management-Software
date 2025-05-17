@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import ReactQuill from "react-quill";
+import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
 import {
   Table,
@@ -20,6 +20,14 @@ import {
   Button,
 } from "@mcw/ui";
 import { Eye, Plus, X, ExternalLink } from "lucide-react";
+
+// Dynamically import ReactQuill with SSR disabled
+const ReactQuill = dynamic(() => import("react-quill"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[calc(100vh-380px)] border p-4">Loading editor...</div>
+  ),
+});
 
 interface ConsentForm {
   name: string;
