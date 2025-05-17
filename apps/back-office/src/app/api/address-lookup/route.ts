@@ -16,6 +16,8 @@ interface SmartyResponse {
 const SMARTY_API_KEY = process.env.SMARTY_API_KEY;
 const SMARTY_API_URL = "https://us-autocomplete-pro.api.smarty.com/lookup";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     // Get the search query from URL params
