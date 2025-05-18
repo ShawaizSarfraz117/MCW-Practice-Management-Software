@@ -26,11 +26,13 @@ export async function getClinicianInfo() {
         },
         select: {
           id: true,
+          first_name: true,
+          last_name: true,
         },
       })
     : null;
 
   const clinicianId = clinician?.id ?? null;
 
-  return { isClinician, clinicianId };
+  return { isClinician, clinicianId, clinician };
 }

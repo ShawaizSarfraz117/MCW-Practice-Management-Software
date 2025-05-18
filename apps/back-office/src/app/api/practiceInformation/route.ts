@@ -14,6 +14,7 @@ const practiceInformationPayload = z.object({
   teleHealth: z.boolean().optional().nullable(),
 });
 
+export const dynamic = "force-dynamic";
 export async function PUT(request: NextRequest) {
   try {
     const session = await getBackOfficeSession();

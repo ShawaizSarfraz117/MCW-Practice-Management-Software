@@ -9,6 +9,8 @@ const profileUpdatePayload = z.object({
   profilePhoto: z.string().max(500).optional().nullable(),
 });
 
+export const dynamic = "force-dynamic";
+
 export async function PUT(request: NextRequest) {
   try {
     const session = await getBackOfficeSession();

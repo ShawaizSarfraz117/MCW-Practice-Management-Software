@@ -533,6 +533,70 @@ export const mockInvoice = (overrides = {}) => {
   return InvoiceFactory.buildComplete(overrides);
 };
 
+// Helper to create a valid superbill object with proper format
+export const mockSuperbill = (overrides = {}) => {
+  const issuedDate = new Date();
+
+  return {
+    id: generateUUID(),
+    superbill_number: 5001,
+    client_group_id: generateUUID(),
+    appointment_id: generateUUID(),
+    issued_date: issuedDate,
+    amount: new Decimal(150),
+    service_code: "90837",
+    service_description: "Therapy Session",
+    diagnosis_code: "F41.9",
+    units: 1,
+    pos: "02",
+    provider_name: "Test Provider",
+    provider_email: "provider@example.com",
+    provider_license: "LMFT123456",
+    client_name: "Test Client",
+    status: "CREATED",
+    created_by: generateUUID(),
+    created_at: issuedDate,
+    paid_amount: new Decimal(0),
+    ClientGroup: {
+      id: generateUUID(),
+      name: "Test Group",
+    },
+    ...overrides,
+  };
+};
+
+// Helper to create a valid statement object with proper format
+export const mockStatement = (overrides = {}) => {
+  const createdDate = new Date();
+  const startDate = new Date(createdDate);
+  startDate.setMonth(startDate.getMonth() - 1);
+
+  return {
+    id: generateUUID(),
+    statement_number: 2001,
+    client_group_id: generateUUID(),
+    start_date: startDate,
+    end_date: createdDate,
+    created_at: createdDate,
+    beginning_balance: new Decimal(250),
+    invoices_total: new Decimal(100),
+    payments_total: new Decimal(75),
+    ending_balance: new Decimal(275),
+    provider_name: "Test Provider",
+    provider_email: "provider@example.com",
+    provider_phone: "555-123-4567",
+    client_group_name: "Test Group",
+    client_name: "John Doe",
+    client_email: "client@example.com",
+    created_by: generateUUID(),
+    ClientGroup: {
+      id: generateUUID(),
+      name: "Test Group",
+    },
+    ...overrides,
+  };
+};
+
 export const EmailTemplateFactory = {
   build: <T extends Partial<EmailTemplate>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),

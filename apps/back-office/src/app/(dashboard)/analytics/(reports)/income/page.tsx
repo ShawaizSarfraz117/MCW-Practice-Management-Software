@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -9,15 +9,18 @@ import {
   TableHeader,
   TableRow,
 } from "@mcw/ui";
+import Link from "next/link";
 
-export function IncomeTable() {
+export default function IncomePage() {
   return (
     <div className="min-h-full bg-gray-50/50">
       <div className="p-6 space-y-6">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500">Analytics</span>
-          <span className="text-gray-500">&gt;</span>
+          <Link href="/analytics" className="text-gray-500 hover:text-primary">
+            Analytics
+          </Link>
+          <ChevronRight className="w-4 h-4 text-gray-500" />
           <span className="text-gray-900">Income</span>
         </div>
 

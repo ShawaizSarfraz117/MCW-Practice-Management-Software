@@ -1,8 +1,9 @@
 /* global console */
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import process from "process";
+import { seedPermissions } from "./seed-permissions.mjs";
+import { seedUsers } from "./seed-users.mjs";
 
 const prisma = new PrismaClient();
 
@@ -34,53 +35,10 @@ async function main() {
     });
   }
 
-  console.log("Role created or found:", backOfficeRole);
+  console.log("Roles created or found:", { admin: adminRole.name, clinician: backOfficeRole.name });
 
-  // Create a test backoffice user
-  const adminPassword = await bcrypt.hash("admin123", 10);
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@example.com" },
-    update: {},
-    create: {
-      id: uuidv4(),
-      email: "admin@example.com",
-      password_hash: adminPassword,
-      UserRole: {
-        create: {
-          role_id: adminRole.id,
-        },
-      },
-      date_of_birth: new Date("1985-06-15"),
-      phone: "+1 (555) 987-6543",
-      profile_photo:
-        "https://ui-avatars.com/api/?name=Clinician&background=2d8467&color=fff",
-    },
-  });
-
-  console.log("BackOffice user created:", admin);
-
-  // Create another test backoffice user (previously clinician)
-  const clinicianPassword = await bcrypt.hash("clinician123", 10);
-  const clinician = await prisma.user.upsert({
-    where: { email: "clinician@example.com" },
-    update: {},
-    create: {
-      id: uuidv4(),
-      email: "clinician@example.com",
-      password_hash: clinicianPassword,
-      UserRole: {
-        create: {
-          role_id: backOfficeRole.id,
-        },
-      },
-      date_of_birth: new Date("1985-06-15"),
-      phone: "+1 (555) 987-6543",
-      profile_photo:
-        "https://ui-avatars.com/api/?name=Clinician&background=2d8467&color=fff",
-    },
-  });
-
-  console.log("BackOffice user created:", clinician);
+  // Seed users
+  const { admin, clinician } = await seedUsers(prisma, { adminRole, backOfficeRole });
 
   // Create sample audit entries
   const auditEntries = [
@@ -187,6 +145,35 @@ async function main() {
     console.log("Successfully created all email templates");
   } catch (error) {
     console.error("Error creating email templates:", error);
+    throw error;
+  }
+
+  // Seed permissions
+  await seedPermissions(prisma);
+  
+  // Connect permissions to ADMIN role
+  try {
+    const permissions = await prisma.permission.findMany();
+    
+    // Assign all permissions to the admin role
+    for (const permission of permissions) {
+      await prisma.rolePermission.upsert({
+        where: {
+          role_id_permission_id: {
+            role_id: adminRole.id,
+            permission_id: permission.id
+          }
+        },
+        update: {},
+        create: {
+          role_id: adminRole.id,
+          permission_id: permission.id
+        }
+      });
+    }
+    console.log("Role permissions assigned successfully");
+  } catch (error) {
+    console.error("Error assigning permissions to roles:", error);
     throw error;
   }
 }
