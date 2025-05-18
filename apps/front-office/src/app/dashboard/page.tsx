@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Footer } from "@/Components/footer";
+import { Footer } from "@/components/footer";
 
 export default function ClientDashboard() {
   return (
