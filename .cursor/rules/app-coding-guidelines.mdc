@@ -27,4 +27,6 @@ This document outlines the key conventions and libraries used in the application
 -   Ensure features have adequate test coverage before considering them complete.
 -   **Code Consistency**: Before writing new code (components, hooks, API routes, utilities, etc.), search the existing codebase (`apps/`, `packages/`) for similar implementations. Follow the established patterns and structure found in those examples to maintain consistency.
 -   **Library Documentation**: When working with unfamiliar libraries or needing specific API details, utilize available documentation tools (e.g., Context7 MCP) to retrieve up-to-date documentation.
+-   **Error Handling**: Handle errors with consistent patterns (e.g., try/catch + structured responses). Don’t expose internal stack traces to clients.
+-   **Logging**: Use standardized logging utilities (e.g., `logger.info`, `logger.error`). Avoid `console.log` in production code.
 -   Keep dependencies updated.
