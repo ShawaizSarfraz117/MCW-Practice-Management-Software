@@ -14,3 +14,11 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+.custom-bg-header {
+  background: linear-gradient(
+    180deg,
+    rgba(248, 246, 240, 1) 31%,
+    rgba(255, 255, 255, 1) 24%
+  );
+}
