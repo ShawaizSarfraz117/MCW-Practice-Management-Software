@@ -90,13 +90,32 @@ export function AppointmentSidebar({
   const [_clinicianSearchTerm, setClinicianSearchTerm] = useState("");
 
   // Get stored time slot from session storage
-  // const timeSlot =
-  //   typeof window !== "undefined"
-  //     ? JSON.parse(window.sessionStorage.getItem("selectedTimeSlot") || "{}")
-  //     : {};
+  const timeSlot =
+    typeof window !== "undefined"
+      ? JSON.parse(window.sessionStorage.getItem("selectedTimeSlot") || "{}")
+      : {};
 
   const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
     useFormTabs(selectedResource, selectedDate);
+
+  // Set initial time values from session storage when component mounts or when timeSlot changes
+  useEffect(() => {
+    if (timeSlot.startTime) {
+      setAvailabilityFormValues((prev) => ({
+        ...prev,
+        startTime: timeSlot.startTime,
+        endTime: timeSlot.endTime || timeSlot.startTime,
+      }));
+      forceUpdate();
+    }
+  }, [timeSlot.startTime, timeSlot.endTime, open]); // Add open to dependencies to update when sidebar opens
+
+  // Clear time slot when sidebar closes
+  useEffect(() => {
+    if (!open) {
+      window.sessionStorage.removeItem("selectedTimeSlot");
+    }
+  }, [open]);
 
   // Fetch clinicians with role-based permissions
   const { data: clinicians = [], isLoading: isLoadingClinicians } = useQuery({
