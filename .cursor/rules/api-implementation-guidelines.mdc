@@ -32,6 +32,14 @@ These guidelines are applicable to all applications within the `apps/` directory
       // ... implementation ...
     }
 
+    export async function PUT(request: NextRequest) {
+      // ... implementation ...
+    }
+
+    export async function DELETE(request: NextRequest) {
+      // ... implementation ...
+    }
+
     // etc.
     ```
 *   **Request Handling:**
@@ -41,6 +49,9 @@ These guidelines are applicable to all applications within the `apps/` directory
         const searchParams = request.nextUrl.searchParams;
         const id = searchParams.get("id"); // Get specific parameter
         const page = parseInt(searchParams.get("page") || "1", 10); // Provide default and parse
+        const statusValues = searchParams.getAll("status"); // Handle array parameters (e.g., ?status=active&status=pending)
+        const sortBy = searchParams.get("sortBy") ?? "createdAt"; 
+        const sortOrder = (searchParams.get("sortOrder") ?? "desc").toLowerCase() === "asc" ? "asc" : "desc"; 
         ```
     *   **Request Body:** For `POST` and `PUT` requests, retrieve the JSON body using `await request.json()`.
         ```typescript

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@mcw/database";
 import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 
+export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const session = await getServerSession(backofficeAuthOptions);

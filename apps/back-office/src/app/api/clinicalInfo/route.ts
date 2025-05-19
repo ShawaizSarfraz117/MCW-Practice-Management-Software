@@ -9,6 +9,7 @@ const clinicalInfoPayload = z.object({
   NPInumber: z.number().optional().nullable(),
 });
 
+export const dynamic = "force-dynamic";
 export async function PUT(request: NextRequest) {
   try {
     const session = await getBackOfficeSession();
