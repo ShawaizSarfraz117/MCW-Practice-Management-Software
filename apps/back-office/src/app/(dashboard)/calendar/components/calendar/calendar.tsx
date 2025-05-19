@@ -1021,10 +1021,25 @@ export function CalendarView({
     setSelectedDate(selectInfo.start);
     setSelectedResource(selectInfo.resource?.id || null);
 
+    // Get the local time by adjusting for timezone
+    const adjustForTimezone = (date: Date) => {
+      const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() + userTimezoneOffset);
+    };
+
+    const localStart = adjustForTimezone(selectInfo.start);
+    const localEnd = adjustForTimezone(selectInfo.end);
+
+    // Format the times in local timezone
+    const startTime = format(localStart, "h:mm a");
+    const endTime = format(localEnd, "h:mm a");
+
     // Save the selected time info for the appointment dialog
     const eventData = {
-      startTime: format(selectInfo.start, "h:mm a"),
-      endTime: format(selectInfo.end, "h:mm a"),
+      startTime,
+      endTime,
+      startDate: localStart.toISOString(),
+      endDate: localEnd.toISOString(),
     };
 
     // Store this data to be accessed by the form
