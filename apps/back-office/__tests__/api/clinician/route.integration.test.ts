@@ -29,22 +29,23 @@ async function cleanDatabase() {
   try {
     // Delete records in order of dependency
     await prisma.audit.deleteMany();
-    await prisma.clinicalInfo.deleteMany();
-    await prisma.userRole.deleteMany();
     await prisma.payment.deleteMany();
     await prisma.invoice.deleteMany();
-    await prisma.availability.deleteMany();
-    await prisma.superbill.deleteMany();
     await prisma.appointment.deleteMany();
-    await prisma.statement.deleteMany();
+    await prisma.availability.deleteMany();
     await prisma.clientGroupMembership.deleteMany();
     await prisma.clientGroup.deleteMany();
-    await prisma.clinicianServices.deleteMany();
-    await prisma.clinicianLocation.deleteMany();
+    await prisma.clientContact.deleteMany();
+    await prisma.clientReminderPreference.deleteMany();
+    await prisma.client.deleteMany();
+    await prisma.surveyTemplate.deleteMany();
     await prisma.clinicianClient.deleteMany();
-    // Now delete Clinicians and Users
+    await prisma.clinicianLocation.deleteMany();
+    await prisma.clinicianServices.deleteMany();
+    await prisma.license.deleteMany(); // Delete licenses before clinical info
+    await prisma.clinicalInfo.deleteMany(); // Delete clinical info before users
     await prisma.clinician.deleteMany();
-    await prisma.audit.deleteMany();
+    await prisma.userRole.deleteMany();
     await prisma.user.deleteMany();
     console.log("[Cleanup] Finished database cleanup.");
   } catch (error) {

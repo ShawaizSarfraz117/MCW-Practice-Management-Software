@@ -13,6 +13,7 @@ describe("Appointment Status API Integration", () => {
     await prisma.invoice.deleteMany();
     await prisma.surveyAnswers.deleteMany();
     await prisma.appointment.deleteMany();
+    await prisma.availability.deleteMany();
     await prisma.clientGroupMembership.deleteMany();
     await prisma.clientGroup.deleteMany();
     await prisma.clientContact.deleteMany();
@@ -22,6 +23,8 @@ describe("Appointment Status API Integration", () => {
     await prisma.clinicianClient.deleteMany();
     await prisma.clinicianLocation.deleteMany();
     await prisma.clinicianServices.deleteMany();
+    await prisma.license.deleteMany();
+    await prisma.clinicalInfo.deleteMany();
     await prisma.clinician.deleteMany();
     await prisma.userRole.deleteMany();
     await prisma.user.deleteMany();

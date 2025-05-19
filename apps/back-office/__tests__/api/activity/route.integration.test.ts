@@ -25,29 +25,25 @@ async function cleanDatabase() {
   console.log("[Cleanup] Starting database cleanup before activity test.");
   try {
     // Delete records in order of dependency
-    // Start with tables referencing others
+    await prisma.audit.deleteMany();
     await prisma.payment.deleteMany();
     await prisma.invoice.deleteMany();
+    await prisma.appointment.deleteMany();
     await prisma.availability.deleteMany();
     await prisma.clientGroupMembership.deleteMany();
     await prisma.clientGroup.deleteMany();
-    await prisma.clinicianServices.deleteMany();
-    await prisma.clinicianLocation.deleteMany();
-    await prisma.clinicianClient.deleteMany();
     await prisma.clientContact.deleteMany();
     await prisma.clientReminderPreference.deleteMany();
-    await prisma.clinicalInfo.deleteMany();
-    await prisma.userRole.deleteMany();
-    await prisma.audit.deleteMany(); // First pass for audit
-
-    // Delete main entities that might trigger audits/cascade issues
-    await prisma.clinician.deleteMany();
     await prisma.client.deleteMany();
-
-    // Final cleanup of potential dependents and core entities
-    await prisma.audit.deleteMany(); // Second pass for audit
+    await prisma.surveyTemplate.deleteMany();
+    await prisma.clinicianClient.deleteMany();
+    await prisma.clinicianLocation.deleteMany();
+    await prisma.clinicianServices.deleteMany();
+    await prisma.license.deleteMany(); // Delete licenses before clinical info
+    await prisma.clinicalInfo.deleteMany(); // Delete clinical info before users
+    await prisma.clinician.deleteMany();
+    await prisma.userRole.deleteMany();
     await prisma.user.deleteMany();
-
     console.log("[Cleanup] Finished database cleanup for activity test.");
   } catch (error) {
     console.error("[Cleanup] Error during database cleanup:", error);

@@ -21,6 +21,18 @@ describe("Analytics API Integration", () => {
     await prisma.invoice.deleteMany();
     await prisma.appointment.deleteMany();
     await prisma.surveyAnswers.deleteMany();
+    await prisma.availability.deleteMany();
+    await prisma.clientGroupMembership.deleteMany();
+    await prisma.clientGroup.deleteMany();
+    await prisma.clientContact.deleteMany();
+    await prisma.clientReminderPreference.deleteMany();
+    await prisma.client.deleteMany();
+    await prisma.surveyTemplate.deleteMany();
+    await prisma.clinicianClient.deleteMany();
+    await prisma.clinicianLocation.deleteMany();
+    await prisma.clinicianServices.deleteMany();
+    await prisma.license.deleteMany(); // Delete licenses before clinical info
+    await prisma.clinicalInfo.deleteMany(); // Delete clinical info before users
     await prisma.clinician.deleteMany();
     await prisma.userRole.deleteMany();
     await prisma.user.deleteMany();
