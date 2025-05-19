@@ -46,44 +46,44 @@ export default function LicenseInfoEdit({
   const queryClient = useQueryClient();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // const { mutate: updateLicenseInfo } = useMutation({
-  //   mutationFn: async (data: {
-  //     type: string;
-  //     number: string;
-  //     expirationDate: string;
-  //     state: string;
-  //   }) => {
-  //     const response = await fetch(`/api/clinician/${member.id}/license`, {
-  //       method: "PATCH",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(data),
-  //     });
+  const { mutate: _updateLicenseInfo } = useMutation({
+    mutationFn: async (data: {
+      type: string;
+      number: string;
+      expirationDate: string;
+      state: string;
+    }) => {
+      const response = await fetch(`/api/clinician/${member.id}/license`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
 
-  //     if (!response.ok) {
-  //       throw new Error("Failed to update license info");
-  //     }
+      if (!response.ok) {
+        throw new Error("Failed to update license info");
+      }
 
-  //     return response.json();
-  //   },
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ["teamMember", member.id] });
-  //     toast({
-  //       title: "Success",
-  //       description: "License information updated successfully",
-  //     });
-  //   },
-  //   onError: () => {
-  //     toast({
-  //       title: "Error",
-  //       description: "Failed to update license information",
-  //       variant: "destructive",
-  //     });
-  //   },
-  // });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teamMember", member.id] });
+      toast({
+        title: "Success",
+        description: "License information updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update license information",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const deleteLicenseMutation = useMutation({
+  const { mutate: deleteLicenseMutation } = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/clinician/${member.id}/license`, {
         method: "DELETE",
@@ -110,14 +110,16 @@ export default function LicenseInfoEdit({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!member.clinicalInfoId) {
-      return;
-    }
-
-    onSubmit({
-      clinical_info_id: member.clinicalInfoId,
-    });
+    if (!member.clinicalInfoId) return;
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      type: (formData.get("type") as string) || "",
+      number: (formData.get("number") as string) || "",
+      expirationDate: (formData.get("expirationDate") as string) || "",
+      state: (formData.get("state") as string) || "",
+    };
+    _updateLicenseInfo(data);
+    onSubmit({ clinical_info_id: member.clinicalInfoId });
   };
 
   return (
@@ -208,7 +210,7 @@ export default function LicenseInfoEdit({
               </AlertDialogCancel>
               <AlertDialogAction
                 className="px-4 py-2 rounded-md bg-red-600 text-white font-medium hover:bg-red-700"
-                onClick={() => deleteLicenseMutation.mutate()}
+                onClick={() => deleteLicenseMutation()}
               >
                 Delete License
               </AlertDialogAction>

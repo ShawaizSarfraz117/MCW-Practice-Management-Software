@@ -16,7 +16,7 @@ export default function EditRoleModal({
 }: EditRoleModalProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[1440px] h-[1110px] p-8 md:p-10 bg-white rounded-xl overflow-hidden flex flex-row md:flex-col absolute">
+      <DialogContent className="max-w-[1440px] h-[700px] p-8 md:p-10 overflow-y-auto bg-white rounded-xl flex flex-row md:flex-col absolute">
         <div className="flex-1 max-w-[1000px]">
           <h2 className="text-[22px] font-semibold text-[#181C1F] mb-2">
             Edit team member
@@ -40,11 +40,11 @@ export default function EditRoleModal({
             <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
-                  type="radio"
-                  name="role"
-                  value="clinician"
-                  className="accent-[#2D8467] w-5 h-5 mt-1"
                   defaultChecked
+                  className="accent-[#2D8467] w-5 h-5 mt-1"
+                  name="role"
+                  type="radio"
+                  value="clinician"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -124,7 +124,6 @@ export default function EditRoleModal({
               </div>
             </div>
           </div>
-          {/* Roles */}
           <div className="space-y-2">
             {[
               "Clinician with entire practice access",
@@ -142,9 +141,9 @@ export default function EditRoleModal({
                     <path
                       d="M7 8l3 3 3-3"
                       stroke="#6B7280"
-                      strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
+                      strokeWidth="1.5"
                     />
                   </svg>
                 </button>
