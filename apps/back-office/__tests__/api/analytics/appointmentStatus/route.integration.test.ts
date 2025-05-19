@@ -19,6 +19,11 @@ describe("Appointment Status API Integration", () => {
     await prisma.clientReminderPreference.deleteMany();
     await prisma.client.deleteMany();
     await prisma.surveyTemplate.deleteMany();
+    await prisma.clinicianClient.deleteMany();
+    await prisma.clinicianLocation.deleteMany();
+    await prisma.clinicianServices.deleteMany();
+    await prisma.clinician.deleteMany();
+    await prisma.userRole.deleteMany();
     await prisma.user.deleteMany();
 
     // Create a test user for the appointments

@@ -62,20 +62,20 @@ describe("Activity API Integration Tests", () => {
   });
 
   it("GET /api/activity should return all audit logs", async () => {
-    // Mock session for this test (if not already global)
-    vi.mocked(getServerSession).mockResolvedValueOnce({
-      user: {
-        id: "test-user-id-get-activity", // Use a specific ID for clarity
-      },
-    });
-
-    // Create test users and clients
+    // Create test users first
     const user1 = await UserPrismaFactory.create();
     const user2 = await UserPrismaFactory.create();
     const client1 = await ClientPrismaFactory.create();
     const client2 = await ClientPrismaFactory.create();
 
-    // Create test audit entries
+    // Mock session with a real user ID from our created users
+    vi.mocked(getServerSession).mockResolvedValueOnce({
+      user: {
+        id: user1.id, // Use actual created user ID
+      },
+    });
+
+    // Create test audit entries using the created user IDs
     const audits = await Promise.all([
       prisma.audit.create({
         data: {
