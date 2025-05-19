@@ -23,6 +23,8 @@ import { GET, POST } from "@/api/statement/route";
 interface StatementDetail {
   charges?: string;
   payments?: string;
+  description?: string;
+  serviceDescription?: string;
 }
 
 interface BillingDocument {
@@ -117,6 +119,7 @@ describe("Statement API - Integration Tests", () => {
     clinicianId: "",
     practiceServiceId: "",
     paymentId: "",
+    statementItemIds: [] as string[], // Add array to track statement item IDs
   };
 
   // Setup test data
@@ -279,6 +282,33 @@ describe("Statement API - Integration Tests", () => {
         },
       });
       testIds.statementId = statement.id;
+
+      // Create statement items
+      const invoiceItem = await prisma.statementItem.create({
+        data: {
+          id: generateUUID(),
+          statement_id: statement.id,
+          date: new Date("2023-01-15"),
+          description: "INV #TEST-1\n01/15/2023 Therapy Session",
+          charges: 100,
+          payments: 0,
+          balance: 100,
+        },
+      });
+      testIds.statementItemIds.push(invoiceItem.id);
+
+      const paymentItem = await prisma.statementItem.create({
+        data: {
+          id: generateUUID(),
+          statement_id: statement.id,
+          date: new Date("2023-01-20"),
+          description: "Payment",
+          charges: 0,
+          payments: 50,
+          balance: 50,
+        },
+      });
+      testIds.statementItemIds.push(paymentItem.id);
     } catch (error) {
       console.error("Error setting up test data:", error);
       throw error;
@@ -288,6 +318,13 @@ describe("Statement API - Integration Tests", () => {
   // Clean up test data
   afterAll(async () => {
     try {
+      // Clean up statement items first
+      if (testIds.statementItemIds.length > 0) {
+        await prisma.statementItem.deleteMany({
+          where: { id: { in: testIds.statementItemIds } },
+        });
+      }
+
       // Clean up payment first due to foreign key constraints
       if (testIds.paymentId) {
         await prisma.payment.delete({ where: { id: testIds.paymentId } });
@@ -329,20 +366,28 @@ describe("Statement API - Integration Tests", () => {
       expect(result.summary.paymentsTotal).toBe(50);
       expect(result.summary.endingBalance).toBe(50);
 
-      // Verify details array contains our invoice and payment
+      // Verify details array contains our statement items
       const details = result.details;
       expect(Array.isArray(details)).toBe(true);
+      expect(details.length).toBe(2);
 
-      const hasInvoice = details.some(
-        (item: StatementDetail) => item.charges && Number(item.charges) === 100,
+      // Check for the invoice item
+      const invoiceItem = details.find(
+        (item: StatementDetail) => item.description === "INV #TEST-1",
       );
-      const hasPayment = details.some(
-        (item: StatementDetail) =>
-          item.payments && Number(item.payments) === 50,
-      );
+      expect(invoiceItem).toBeDefined();
+      expect(invoiceItem.serviceDescription).toBe("01/15/2023 Therapy Session");
+      expect(invoiceItem.charges).toBe("100.00");
+      expect(invoiceItem.payments).toBe("--");
 
-      expect(hasInvoice).toBe(true);
-      expect(hasPayment).toBe(true);
+      // Check for the payment item
+      const paymentItem = details.find(
+        (item: StatementDetail) => item.description === "Payment",
+      );
+      expect(paymentItem).toBeDefined();
+      expect(paymentItem.serviceDescription).toBe("");
+      expect(paymentItem.charges).toBe("--");
+      expect(paymentItem.payments).toBe("50.00");
     });
 
     it("should return 404 when statement ID not found", async () => {
@@ -436,6 +481,19 @@ describe("Statement API - Integration Tests", () => {
 
       // Check that details array exists
       expect(Array.isArray(result.details)).toBe(true);
+
+      // Verify statement items were created in the database
+      const statementItems = await prisma.statementItem.findMany({
+        where: { statement_id: result.id },
+      });
+
+      expect(statementItems.length).toBeGreaterThan(0);
+      expect(statementItems.length).toBe(result.details.length);
+
+      // Add these IDs to our cleanup array
+      statementItems.forEach((item) => {
+        testIds.statementItemIds.push(item.id);
+      });
 
       // Clean up created statement
       if (result.id) {
