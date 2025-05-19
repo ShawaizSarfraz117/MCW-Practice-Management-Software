@@ -230,12 +230,24 @@ describe("Availability API Integration Tests", () => {
   });
 
   it("DELETE /api/availability/?id=<id> should delete an availability", async () => {
+    // Create clinician and verify it exists
     const clinician = await ClinicianPrismaFactory.create();
     createdClinicianIds.push(clinician.id);
 
+    // Verify clinician exists and is committed to database
+    const verifiedClinician = await prisma.clinician.findUnique({
+      where: { id: clinician.id },
+    });
+    if (!verifiedClinician) {
+      throw new Error(
+        `Clinician with ID ${clinician.id} not found after creation`,
+      );
+    }
+
+    // Create availability with verified clinician
     const avail = await prisma.availability.create({
       data: {
-        clinician_id: clinician.id,
+        clinician_id: verifiedClinician.id,
         title: "Delete Slot",
         allow_online_requests: false,
         location: "Room 6",
@@ -245,7 +257,6 @@ describe("Availability API Integration Tests", () => {
         recurring_rule: null,
       },
     });
-    // Don't store avail.id in createdAvailabilityIds, as the test verifies deletion
 
     const req = addAuthToRequest(
       createRequest(`/api/availability/?id=${avail.id}`, {
@@ -256,11 +267,12 @@ describe("Availability API Integration Tests", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json).toHaveProperty("success", true);
-    // Confirm deletion
-    const check = await prisma.availability.findUnique({
+
+    // Verify deletion
+    const deletedAvail = await prisma.availability.findUnique({
       where: { id: avail.id },
     });
-    expect(check).toBeNull();
+    expect(deletedAvail).toBeNull();
   });
 
   it("DELETE /api/availability/?id=<id> should return 400 for missing id", async () => {

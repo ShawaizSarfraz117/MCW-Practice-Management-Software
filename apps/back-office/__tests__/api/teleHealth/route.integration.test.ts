@@ -12,8 +12,8 @@ import { GET, PUT } from "@/api/teleHealth/route";
 import {
   ClinicianPrismaFactory,
   RolePrismaFactory,
-  UserRolePrismaFactory,
   LocationPrismaFactory,
+  UserPrismaFactory,
 } from "@mcw/database/mock-data";
 import { createRequestWithBody } from "@mcw/utils";
 import { getClinicianInfo } from "@/utils/helpers";
@@ -53,25 +53,60 @@ describe("TeleHealth API Integration Tests", () => {
     if (!role) {
       role = await RolePrismaFactory.create({ name: "CLINICIAN" });
     }
-    // Create a clinician and its user
-    const clinician = await ClinicianPrismaFactory.create();
+
+    // Create a user first and verify it exists
+    const user = await UserPrismaFactory.create({
+      email: "test@example.com",
+      password_hash: "hashed_password",
+      last_login: new Date(),
+    });
+    userId = user.id;
+
+    // Verify user exists
+    const verifiedUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!verifiedUser) {
+      throw new Error(`User with ID ${userId} not found after creation`);
+    }
+
+    // Create a clinician with the verified user
+    const clinician = await ClinicianPrismaFactory.create({
+      User: { connect: { id: verifiedUser.id } },
+      first_name: "Test",
+      last_name: "Clinician",
+    });
     clinicianId = clinician.id;
-    userId = clinician.user_id;
+
+    // Verify clinician exists
+    const verifiedClinician = await prisma.clinician.findUnique({
+      where: { id: clinicianId },
+    });
+    if (!verifiedClinician) {
+      throw new Error(
+        `Clinician with ID ${clinicianId} not found after creation`,
+      );
+    }
+
     // Create a location
     const location = await LocationPrismaFactory.create();
     locationId = location.id;
+
     // Link clinician to location (primary)
     await prisma.clinicianLocation.create({
       data: {
-        clinician_id: clinicianId,
+        clinician_id: verifiedClinician.id,
         location_id: locationId,
         is_primary: true,
       },
     });
-    // Assign CLINICIAN role to user
-    await UserRolePrismaFactory.create({
-      User: { connect: { id: userId } },
-      Role: { connect: { id: role.id } },
+
+    // Assign CLINICIAN role to user using direct field assignment
+    await prisma.userRole.create({
+      data: {
+        user_id: verifiedUser.id,
+        role_id: role.id,
+      },
     });
   });
 

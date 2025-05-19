@@ -9,25 +9,7 @@ describe("Appointment Status API Integration", () => {
 
   beforeEach(async () => {
     // Clean up the database before each test
-    await prisma.payment.deleteMany();
-    await prisma.invoice.deleteMany();
-    await prisma.surveyAnswers.deleteMany();
-    await prisma.appointment.deleteMany();
-    await prisma.availability.deleteMany();
-    await prisma.clientGroupMembership.deleteMany();
-    await prisma.clientGroup.deleteMany();
-    await prisma.clientContact.deleteMany();
-    await prisma.clientReminderPreference.deleteMany();
-    await prisma.client.deleteMany();
-    await prisma.surveyTemplate.deleteMany();
-    await prisma.clinicianClient.deleteMany();
-    await prisma.clinicianLocation.deleteMany();
-    await prisma.clinicianServices.deleteMany();
-    await prisma.license.deleteMany();
-    await prisma.clinicalInfo.deleteMany();
-    await prisma.clinician.deleteMany();
-    await prisma.userRole.deleteMany();
-    await prisma.user.deleteMany();
+    await cleanDatabase();
 
     // Create a test user for the appointments
     testUser = await prisma.user.create({
@@ -38,6 +20,34 @@ describe("Appointment Status API Integration", () => {
       },
     });
   });
+
+  async function cleanDatabase() {
+    console.log("Starting database cleanup...");
+
+    // Delete in order of dependencies
+    await prisma.audit.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.invoice.deleteMany();
+    await prisma.appointment.deleteMany();
+    await prisma.availability.deleteMany();
+    await prisma.clientGroupMembership.deleteMany();
+    await prisma.clientGroup.deleteMany();
+    await prisma.clientContact.deleteMany();
+    await prisma.clientReminderPreference.deleteMany();
+    await prisma.surveyAnswers.deleteMany();
+    await prisma.client.deleteMany();
+    await prisma.surveyTemplate.deleteMany();
+    await prisma.clinicianServices.deleteMany();
+    await prisma.clinicianLocation.deleteMany();
+    await prisma.clinicianClient.deleteMany();
+    await prisma.license.deleteMany();
+    await prisma.clinicalInfo.deleteMany();
+    await prisma.clinician.deleteMany(); // Delete clinicians before users
+    await prisma.userRole.deleteMany();
+    await prisma.user.deleteMany(); // Delete users last
+
+    console.log("Database cleanup completed");
+  }
 
   describe("GET /api/analytics/appointmentStatus", () => {
     it("should return appointments for the given date range", async () => {
