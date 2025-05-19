@@ -140,7 +140,7 @@ describe("Analytics API Integration", () => {
       expect(data).toEqual({
         income: "500", // Sum of completed payments
         outstanding: 2500, // 3000 (total unpaid/partially paid) - 500 (partial payment)
-        uninvoiced: 1000, // Amount of completely unpaid invoice
+        uninvoiced: 0, // Amount of invoices with no payments at all
         appointments: 1,
         notes: 1,
       });

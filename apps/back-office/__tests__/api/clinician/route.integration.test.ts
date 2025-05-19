@@ -37,6 +37,7 @@ async function cleanDatabase() {
     await prisma.clientGroup.deleteMany();
     await prisma.clientContact.deleteMany();
     await prisma.clientReminderPreference.deleteMany();
+    await prisma.surveyAnswers.deleteMany(); // Delete survey answers before clients
     await prisma.client.deleteMany();
     await prisma.surveyTemplate.deleteMany();
     await prisma.clinicianClient.deleteMany();
@@ -122,12 +123,17 @@ describe("Clinician API", async () => {
 
   it("POST /api/clinician", async () => {
     const user = await UserPrismaFactory.create();
-    // createdUserIds.push(user.id); // Store user ID first
+    // Verify user exists before proceeding
+    const verifiedUser = await prisma.user.findUnique({
+      where: { id: user.id },
+    });
+    expect(verifiedUser).not.toBeNull();
+    expect(verifiedUser?.id).toBe(user.id);
 
     const clinicianData = await ClinicianPrismaFactory.build(); // Build doesn't save, just creates data object
 
     const clinicianBody = {
-      user_id: user.id,
+      user_id: verifiedUser!.id, // Use verified user ID
       address: clinicianData.address,
       percentage_split: clinicianData.percentage_split,
       is_active: clinicianData.is_active,
@@ -142,13 +148,12 @@ describe("Clinician API", async () => {
     expect(response.status).toBe(201);
 
     const json = await response.json();
-    // createdClinicianIds.push(json.id); // Store the ID of the created clinician
 
     expect(json).toHaveProperty("address", clinicianBody.address);
     expect(json).toHaveProperty("is_active", clinicianBody.is_active);
     expect(json).toHaveProperty("first_name", clinicianBody.first_name);
     expect(json).toHaveProperty("last_name", clinicianBody.last_name);
-    expect(json).toHaveProperty("user_id", user.id);
+    expect(json).toHaveProperty("user_id", verifiedUser!.id);
   });
 
   it(`DELETE /api/clinician/?id=<id>`, async () => {

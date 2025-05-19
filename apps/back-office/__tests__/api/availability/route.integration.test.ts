@@ -192,12 +192,20 @@ describe("Availability API Integration Tests", () => {
   });
 
   it("PUT /api/availability should update an existing availability", async () => {
+    // Create clinician and verify it exists
     const clinician = await ClinicianPrismaFactory.create();
     createdClinicianIds.push(clinician.id);
 
+    // Verify clinician exists before proceeding
+    const verifiedClinician = await prisma.clinician.findUnique({
+      where: { id: clinician.id },
+    });
+    expect(verifiedClinician).not.toBeNull();
+    expect(verifiedClinician?.id).toBe(clinician.id);
+
     const avail = await prisma.availability.create({
       data: {
-        clinician_id: clinician.id,
+        clinician_id: verifiedClinician!.id, // Use verified clinician ID
         title: "Old Slot",
         allow_online_requests: false,
         location: "Room 5",

@@ -10,17 +10,34 @@ import { PUT } from "@/api/clinician/services/route";
 
 // Helper function to clean the database before each test
 async function cleanDatabase() {
+  console.log("[Cleanup] Starting database cleanup before test.");
   try {
     // Delete records in order of dependency
+    await prisma.audit.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.invoice.deleteMany();
+    await prisma.appointment.deleteMany();
+    await prisma.availability.deleteMany();
+    await prisma.clientGroupMembership.deleteMany();
+    await prisma.clientGroup.deleteMany();
+    await prisma.clientContact.deleteMany();
+    await prisma.clientReminderPreference.deleteMany();
+    await prisma.surveyAnswers.deleteMany();
+    await prisma.client.deleteMany();
+    await prisma.surveyTemplate.deleteMany();
     await prisma.clinicianServices.deleteMany();
+    await prisma.clinicianLocation.deleteMany();
+    await prisma.clinicianClient.deleteMany();
+    await prisma.license.deleteMany();
+    await prisma.clinicalInfo.deleteMany();
     await prisma.clinician.deleteMany();
     await prisma.practiceService.deleteMany();
-
-    // Skip user deletion as it has foreign key constraints
-    // await prisma.user.deleteMany();
+    await prisma.userRole.deleteMany();
+    await prisma.user.deleteMany();
+    console.log("[Cleanup] Finished database cleanup.");
   } catch (error) {
     console.error("[Cleanup] Error during database cleanup:", error);
-    throw error; // Re-throw the error to fail the test if cleanup fails
+    throw error;
   }
 }
 
