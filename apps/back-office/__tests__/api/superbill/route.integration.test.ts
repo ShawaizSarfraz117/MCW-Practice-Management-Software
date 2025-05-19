@@ -195,17 +195,17 @@ describe("Superbill API - Integration Tests", () => {
           id: generateUUID(),
           superbill_number: 501,
           client_group_id: clientGroup.id,
-          appointment_id: appointment.id,
-          issued_date: new Date("2023-01-15"),
-          service_code: "90837",
-          service_description: "Therapy Session",
-          units: 1,
           provider_name: `${clinician.first_name} ${clinician.last_name}`,
           provider_email: user.email,
           client_name: `${client.legal_first_name} ${client.legal_last_name}`,
-          amount: 150,
           status: "CREATED",
           created_at: new Date("2023-01-15"),
+          issued_date: new Date("2023-01-15"),
+          Appointment: {
+            connect: {
+              id: appointment.id,
+            },
+          },
         },
       });
       testIds.superbillId = superbill.id;
@@ -244,11 +244,10 @@ describe("Superbill API - Integration Tests", () => {
       // Verify our superbill data
       expect(result.id).toBe(testIds.superbillId);
       expect(result.client_group_id).toBe(testIds.clientGroupId);
-      expect(result.appointment_id).toBe(testIds.appointmentId);
       expect(result.service_code).toBe("90837");
       expect(result.service_description).toBe("Therapy Session");
       expect(result.status).toBe("CREATED");
-      expect(Number(result.amount)).toBe(150);
+      expect(result.fee).toBe(150);
     });
 
     it("should return 404 when superbill ID not found", async () => {
@@ -330,10 +329,10 @@ describe("Superbill API - Integration Tests", () => {
       // Verify superbill was created
       expect(result).toHaveProperty("id");
       expect(result).toHaveProperty("client_group_id", testIds.clientGroupId);
-      expect(result).toHaveProperty("appointment_id", testIds.appointmentId);
       expect(result).toHaveProperty("service_code", "90837");
       expect(result).toHaveProperty("service_description", "Therapy Session");
       expect(result).toHaveProperty("status", "CREATED");
+      expect(result).toHaveProperty("fee", 150);
 
       // Clean up created superbill
       if (result.id) {
