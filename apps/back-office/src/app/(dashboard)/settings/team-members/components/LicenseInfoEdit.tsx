@@ -36,7 +36,16 @@ interface LicenseInfoEditProps {
     };
     clinicalInfoId?: number;
   };
-  onSubmit: (data: { clinical_info_id: number }) => void;
+  onSubmit: (data: {
+    licenses: Array<{
+      id?: number;
+      license_type: string;
+      license_number: string;
+      expiration_date: string;
+      state: string;
+    }>;
+    clinical_info_id: number;
+  }) => void;
 }
 
 export default function LicenseInfoEdit({
@@ -48,9 +57,9 @@ export default function LicenseInfoEdit({
 
   const { mutate: _updateLicenseInfo } = useMutation({
     mutationFn: async (data: {
-      type: string;
-      number: string;
-      expirationDate: string;
+      license_type: string;
+      license_number: string;
+      expiration_date: string;
       state: string;
     }) => {
       const response = await fetch(`/api/clinician/${member.id}/license`, {
@@ -113,13 +122,13 @@ export default function LicenseInfoEdit({
     if (!member.clinicalInfoId) return;
     const formData = new FormData(e.currentTarget);
     const data = {
-      type: (formData.get("type") as string) || "",
-      number: (formData.get("number") as string) || "",
-      expirationDate: (formData.get("expirationDate") as string) || "",
+      license_type: (formData.get("type") as string) || "",
+      license_number: (formData.get("number") as string) || "",
+      expiration_date: (formData.get("expirationDate") as string) || "",
       state: (formData.get("state") as string) || "",
     };
     _updateLicenseInfo(data);
-    onSubmit({ clinical_info_id: member.clinicalInfoId });
+    onSubmit({ licenses: [data], clinical_info_id: member.clinicalInfoId });
   };
 
   return (
