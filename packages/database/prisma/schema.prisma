@@ -230,26 +230,31 @@ model BillingAddress {
 }
 
 model Clinician {
-  id                String              @id @default(dbgenerated("newid()"), map: "PK_Clinician_ID") @db.UniqueIdentifier
-  user_id           String              @unique @db.UniqueIdentifier
-  address           String              @db.Text
-  percentage_split  Float
-  is_active         Boolean             @default(true, map: "DF_Clinician_IsActive")
-  first_name        String              @db.VarChar(100)
-  last_name         String              @db.VarChar(100)
-  Appointment       Appointment[]
-  appointmentLimits AppointmentLimit[]
-  Availability      Availability[]
-  billingAddresses  BillingAddress[]    @relation("ManyBillingAddresses")
-  billingSettings   BillingSettings?
-  Client            Client[]
-  ClientGroup       ClientGroup[]
-  User              User                @relation(fields: [user_id], references: [id], map: "FK_Clinician_User")
-  ClinicianClient   ClinicianClient[]
-  ClinicianLocation ClinicianLocation[]
-  ClinicianServices ClinicianServices[]
-  GoodFaithEstimate GoodFaithEstimate[]
-  Invoice           Invoice[]
+  id                  String                @id @default(dbgenerated("newid()"), map: "PK_Clinician_ID") @db.UniqueIdentifier
+  user_id             String                @unique @db.UniqueIdentifier
+  address             String                @db.Text
+  percentage_split    Float
+  is_active           Boolean               @default(true, map: "DF_Clinician_IsActive")
+  first_name          String                @db.VarChar(100)
+  last_name           String                @db.VarChar(100)
+  speciality          String?               @db.VarChar(250)
+  NPI_number          String?               @db.VarChar(250)
+  taxonomy_code       String?               @db.VarChar(250)
+  Appointment         Appointment[]
+  appointmentLimits   AppointmentLimit[]
+  Availability        Availability[]
+  billingAddresses    BillingAddress[]      @relation("ManyBillingAddresses")
+  billingSettings     BillingSettings?
+  Client              Client[]
+  ClientGroup         ClientGroup[]
+  User                User                  @relation(fields: [user_id], references: [id], map: "FK_Clinician_User")
+  ClinicianClient     ClinicianClient[]
+  ClinicianLocation   ClinicianLocation[]
+  ClinicianServices   ClinicianServices[]
+  GoodFaithEstimate   GoodFaithEstimate[]
+  Invoice             Invoice[]
+  License             License[]
+  PracticeInformation PracticeInformation[]
 }
 
 model ClinicianClient {
@@ -311,6 +316,7 @@ model Invoice {
   amount              Decimal      @db.Decimal(10, 2)
   status              String       @db.VarChar(50)
   type                String       @db.VarChar(50)
+  is_exported         Boolean      @default(false, map: "DF_Invoice_isExported")
   client_info         String?      @db.Text
   notes               String?      @db.Text
   provider_info       String?      @db.Text
@@ -435,22 +441,21 @@ model Tag {
 }
 
 model User {
-  id                  String                @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  email               String                @unique @db.VarChar(255)
-  password_hash       String                @db.VarChar(255)
-  last_login          DateTime?
-  date_of_birth       DateTime?             @db.Date
-  phone               String?               @db.VarChar(20)
-  profile_photo       String?               @db.VarChar(500)
-  Appointment         Appointment[]
-  Audit               Audit[]
-  ClientGroupFile     ClientGroupFile[]
-  clinicalInfos       ClinicalInfo[]
-  Clinician           Clinician?
-  practiceInformation PracticeInformation[]
-  Statement           Statement[]
-  Superbill           Superbill[]
-  UserRole            UserRole[]
+  id              String            @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  email           String            @unique @db.VarChar(255)
+  password_hash   String            @db.VarChar(255)
+  last_login      DateTime?
+  date_of_birth   DateTime?         @db.Date
+  phone           String?           @db.VarChar(20)
+  profile_photo   String?           @db.VarChar(500)
+  Appointment     Appointment[]
+  Audit           Audit[]
+  ClientGroupFile ClientGroupFile[]
+  clinicalInfos   ClinicalInfo[]
+  Clinician       Clinician?
+  Statement       Statement[]
+  Superbill       Superbill[]
+  UserRole        UserRole[]
 }
 
 model UserRole {
@@ -463,35 +468,34 @@ model UserRole {
 }
 
 model ClinicalInfo {
-  id            Int       @id @default(autoincrement())
+  id            Int    @id @default(autoincrement())
   speciality    String
   NPI_number    Float
   taxonomy_code String
-  user_id       String    @db.UniqueIdentifier
-  User          User      @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
-  licenses      License[]
+  user_id       String @db.UniqueIdentifier
+  User          User   @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
 }
 
 model License {
-  id               Int          @id @default(autoincrement())
-  license_type     String
-  license_number   String
-  expiration_date  DateTime
-  state            String
-  clinical_info_id Int
-  clinicalInfo     ClinicalInfo @relation(fields: [clinical_info_id], references: [id])
+  id              String    @id(map: "PK_License") @db.UniqueIdentifier
+  clinician_id    String    @db.UniqueIdentifier
+  license_type    String
+  license_number  String
+  expiration_date DateTime
+  state           String
+  Clinician       Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_License_Clinician")
 }
 
 model PracticeInformation {
-  id             String  @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  id             String     @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  clinician_id   String?    @db.UniqueIdentifier
   practice_name  String
   practice_email String
   time_zone      String
   practice_logo  String
   phone_numbers  String
   tele_health    Boolean
-  user_id        String  @db.UniqueIdentifier
-  User           User    @relation(fields: [user_id], references: [id], map: "FK_practiceInformation_User")
+  Clinician      Clinician? @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PracticeInformation_Clinician")
 }
 
 model AppointmentLimit {
@@ -588,6 +592,7 @@ model Statement {
   client_email      String?         @db.VarChar(255)
   created_at        DateTime        @default(now())
   created_by        String?         @db.UniqueIdentifier
+  is_exported       Boolean         @default(false, map: "DF_Statement_isExported")
   ClientGroup       ClientGroup     @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_Statement_ClientGroup")
   User              User?           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Statement_User")
   StatementItem     StatementItem[]
@@ -607,6 +612,7 @@ model Superbill {
   status           String        @db.VarChar(50)
   created_at       DateTime      @default(now())
   created_by       String?       @db.UniqueIdentifier
+  is_exported      Boolean       @default(false, map: "DF_Superbill_isExported")
   Appointment      Appointment[]
   ClientGroup      ClientGroup   @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_Superbill_ClientGroup")
   User             User?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Superbill_User")
