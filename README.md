@@ -313,4 +313,7 @@ The following questions need to be addressed by the team:
    - Should we split backoffice and frontoffice into two separate apps, especially due their API as in the futures they probably will end up on separate servers. The remaining questions is code reuse
 
 2. **Testing strategy**:
+
    - for what should we write integration tests, and for what should we write normal mocked tests. Where are our mocking boundaries (repository, services, interfaces?)
+
+   test
