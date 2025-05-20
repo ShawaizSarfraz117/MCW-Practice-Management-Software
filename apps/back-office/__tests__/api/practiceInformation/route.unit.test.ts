@@ -3,11 +3,15 @@ import { GET, PUT } from "@/api/practiceInformation/route";
 import prismaMock from "@mcw/database/mock";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
+import * as helpers from "@/utils/helpers";
 
 // Mock helpers
 vi.mock("@/utils/helpers", () => ({
   getBackOfficeSession: vi.fn(),
+  getClinicianInfo: vi.fn(),
 }));
+
+const mockClinicianId = "mock-clinician-id";
 
 describe("GET /api/practiceInformation", () => {
   const mockSession = {
@@ -22,12 +26,17 @@ describe("GET /api/practiceInformation", () => {
       ...mockSession,
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
     });
+    vi.mocked(helpers.getClinicianInfo).mockResolvedValue({
+      isClinician: true,
+      clinicianId: mockClinicianId,
+      clinician: { id: mockClinicianId, first_name: "Test", last_name: "User" },
+    });
   });
 
   it("should return practice information", async () => {
     const mockPracticeInfo = {
       id: "1",
-      user_id: mockSession.user.id,
+      clinician_id: mockClinicianId,
       practice_name: "Test Practice",
       practice_email: "test@practice.com",
       time_zone: "UTC",
@@ -96,6 +105,11 @@ describe("PUT /api/practiceInformation", () => {
       ...mockSession,
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
     });
+    vi.mocked(helpers.getClinicianInfo).mockResolvedValue({
+      isClinician: true,
+      clinicianId: mockClinicianId,
+      clinician: { id: mockClinicianId, first_name: "Test", last_name: "User" },
+    });
   });
 
   const validUpdateData = {
@@ -113,7 +127,7 @@ describe("PUT /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFind.mockResolvedValueOnce({
       id: "existing-id",
-      user_id: mockSession.user.id,
+      clinician_id: mockClinicianId,
     });
 
     // Mock updateMany to simulate successful update
@@ -133,7 +147,7 @@ describe("PUT /api/practiceInformation", () => {
 
     // Verify correct data was passed to update
     expect(mockUpdate).toHaveBeenCalledWith({
-      where: { user_id: mockSession.user.id },
+      where: { clinician_id: mockClinicianId },
       data: {
         practice_name: validUpdateData.practiceName,
         practice_email: validUpdateData.practiceEmail,
@@ -155,7 +169,7 @@ describe("PUT /api/practiceInformation", () => {
       .create as unknown as ReturnType<typeof vi.fn>;
     const expectedNewRecord = {
       id: "new-id",
-      user_id: mockSession.user.id,
+      clinician_id: mockClinicianId,
       practice_name: validUpdateData.practiceName,
       practice_email: validUpdateData.practiceEmail,
       time_zone: validUpdateData.timeZone,
@@ -213,7 +227,7 @@ describe("PUT /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFind.mockResolvedValueOnce({
       id: "existing-id",
-      user_id: mockSession.user.id,
+      clinician_id: mockClinicianId,
     });
 
     const mockUpdate = prismaMock.practiceInformation
