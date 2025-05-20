@@ -17,17 +17,35 @@ import {
 import { getServerSession } from "next-auth";
 import type { Clinician } from "@prisma/client";
 
-vi.mock("next-auth", () => ({
-  getServerSession: vi.fn(),
-}));
+vi.mock("next-auth", () => {
+  return {
+    getServerSession: vi.fn(),
+  };
+});
+
+vi.mock("@/api/auth/[...nextauth]/auth-options", () => {
+  return {
+    backofficeAuthOptions: {},
+  };
+});
 
 describe("Billing Settings API Integration Tests", () => {
   let clinician: Clinician;
 
   beforeEach(async () => {
+    // Clear mocks before each test
+    vi.clearAllMocks();
+
     clinician = await ClinicianPrismaFactory.create();
+
+    // Mock getServerSession to always return a valid session
+    // regardless of the arguments passed to it
     vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: clinician.user_id },
+      user: {
+        id: clinician.user_id,
+        roles: ["CLINICIAN"],
+        isClinician: true,
+      },
     });
   });
 
