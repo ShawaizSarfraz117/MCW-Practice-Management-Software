@@ -11,7 +11,6 @@ import { prisma } from "@mcw/database";
 import { createRequestWithBody } from "@mcw/utils";
 import { GET, POST, PUT } from "@/api/billingSettings/route";
 import {
-  BillingSettingsPrismaFactory,
   BillingSettingsFactory,
   ClinicianPrismaFactory,
 } from "@mcw/database/mock-data";
@@ -41,8 +40,24 @@ describe("Billing Settings API Integration Tests", () => {
   });
 
   it("GET /api/billing-settings should return billing settings", async () => {
-    const settings = await BillingSettingsPrismaFactory.create({
-      Clinician: { connect: { id: clinician.id } },
+    const settings = await prisma.billingSettings.create({
+      data: {
+        clinician_id: clinician.id,
+        autoInvoiceCreation: "daily",
+        pastDueDays: 30,
+        emailClientPastDue: true,
+        invoiceIncludePracticeLogo: true,
+        invoiceFooterInfo: "Test footer",
+        superbillDayOfMonth: 15,
+        superbillIncludePracticeLogo: true,
+        superbillIncludeSignatureLine: true,
+        superbillIncludeDiagnosisDescription: true,
+        superbillFooterInfo: "Test superbill footer",
+        billingDocEmailDelayMinutes: 60,
+        createMonthlyStatementsForNewClients: true,
+        createMonthlySuperbillsForNewClients: true,
+        defaultNotificationMethod: "email",
+      },
     });
 
     const response = await GET();
@@ -130,8 +145,25 @@ describe("Billing Settings API Integration Tests", () => {
   });
 
   it("PUT /api/billing-settings should update billing settings", async () => {
-    const settings = await BillingSettingsPrismaFactory.create({
-      Clinician: { connect: { id: clinician.id } },
+    // Create settings directly with prisma client
+    const settings = await prisma.billingSettings.create({
+      data: {
+        clinician_id: clinician.id,
+        autoInvoiceCreation: "daily",
+        pastDueDays: 30,
+        emailClientPastDue: true,
+        invoiceIncludePracticeLogo: true,
+        invoiceFooterInfo: "Test footer",
+        superbillDayOfMonth: 15,
+        superbillIncludePracticeLogo: true,
+        superbillIncludeSignatureLine: true,
+        superbillIncludeDiagnosisDescription: true,
+        superbillFooterInfo: "Test superbill footer",
+        billingDocEmailDelayMinutes: 60,
+        createMonthlyStatementsForNewClients: true,
+        createMonthlySuperbillsForNewClients: true,
+        defaultNotificationMethod: "email",
+      },
     });
 
     const updateData = BillingSettingsFactory.build({
