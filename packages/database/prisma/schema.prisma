@@ -483,7 +483,7 @@ model License {
   license_number  String
   expiration_date DateTime
   state           String
-  Clinician       Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_License_Clinician")
+  Clinician       Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction,onDelete: Cascade, map: "FK_License_Clinician")
 }
 
 model PracticeInformation {
@@ -783,4 +783,19 @@ model StatementItem {
   payments     Int
   balance      Int
   Statement    Statement @relation(fields: [statement_id], references: [id], onUpdate: NoAction, map: "FK_StatementItem_Statement")
+}
+
+model billing_document {
+  document_id     String   @id @map("document_id")
+  document_type   String   @map("document_type")
+  document_number String   @map("document_number")
+  name            String   @map("name")
+  deliver_method  String   @default("Manual") @map("deliver_method")
+  view_all        String   @map("view_all")
+  status          String   @map("status")
+  client_group_id String   @map("client_group_id")
+  issued_date     DateTime @map("issued_date")
+  created_at      DateTime @map("created_at")
+
+  @@map("vw_billing_documents")
 }

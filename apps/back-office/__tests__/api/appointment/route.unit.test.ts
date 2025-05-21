@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
-import { GET, POST, PUT, DELETE } from "@/api/appointment/route";
+import { GET, POST, PUT, DELETE } from "../../../src/app/api/appointment/route";
 import prismaMock from "@mcw/database/mock";
 import { AppointmentFactory } from "@mcw/database/mock-data";
 import { Decimal } from "@prisma/client/runtime/library";
@@ -27,6 +27,8 @@ const mockClientGroup = {
   is_active: true,
   clinician_id: null,
   available_credit: new Decimal(0),
+  auto_monthly_statement_enabled: false,
+  auto_monthly_superbill_enabled: false,
 };
 
 // Helper to build a minimal appointment with all required fields
@@ -52,6 +54,7 @@ const mockAppointment = (overrides = {}) =>
     notify_cancellation: false,
     adjustable_amount: new Decimal(0),
     write_off: new Decimal(0),
+    superbill_id: null,
     ...overrides,
   });
 

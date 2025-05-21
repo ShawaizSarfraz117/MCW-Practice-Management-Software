@@ -1,4 +1,5 @@
 /* eslint-disable max-lines-per-function */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi, Mock } from "vitest";
 import { createRequest } from "@mcw/utils";
 import prismaMock from "@mcw/database/mock";
@@ -25,35 +26,81 @@ interface BillingDocument {
   documentType: string;
   date: string | Date;
   number: string;
-  total: number;
+  is_exported: boolean;
   clientGroupName: string;
+  clientGroupId: string;
 }
 
-// Using mock factories from @mcw/database/mock-data
+// Add is_exported to each mock
 const mockInvoice = (overrides = {}) => {
   const invoice = dataInvoiceMock(overrides);
-  // Add missing properties required by the schema
   return {
     ...invoice,
-    type: "STANDARD",
-    client_info: null,
-    provider_info: null,
-    service_description: null,
-    notes: null,
+    is_exported: false,
   };
 };
 
 const mockSuperbill = (overrides = {}) => {
-  return dataSuperbillMock(overrides);
+  const superbill = dataSuperbillMock(overrides);
+  return {
+    ...superbill,
+    is_exported: false,
+  };
 };
 
 const mockStatement = (overrides = {}) => {
-  return dataStatementMock(overrides);
+  const statement = dataStatementMock(overrides);
+  return {
+    ...statement,
+    is_exported: false,
+    issued_date: new Date(),
+  };
+};
+
+// Helper to prepare mock data for the API response
+const prepareMockDocuments = (
+  invoices: ReturnType<typeof mockInvoice>[] = [],
+  superbills: ReturnType<typeof mockSuperbill>[] = [],
+  statements: ReturnType<typeof mockStatement>[] = [],
+): BillingDocument[] => {
+  const docs = [
+    ...invoices.map((invoice) => ({
+      id: invoice.id,
+      documentType: "invoice",
+      date: invoice.issued_date,
+      number: invoice.invoice_number,
+      is_exported: invoice.is_exported,
+      clientGroupId: invoice.client_group_id,
+      clientGroupName: (invoice as any).ClientGroup?.name || "",
+    })),
+    ...superbills.map((superbill) => ({
+      id: superbill.id,
+      documentType: "superbill",
+      date: superbill.issued_date,
+      number: superbill.superbill_number.toString(),
+      is_exported: superbill.is_exported,
+      clientGroupId: superbill.client_group_id,
+      clientGroupName: (superbill as any).ClientGroup?.name || "",
+    })),
+    ...statements.map((statement) => ({
+      id: statement.id,
+      documentType: "statement",
+      date: statement.created_at,
+      number: statement.statement_number.toString(),
+      is_exported: statement.is_exported,
+      clientGroupId: statement.client_group_id,
+      clientGroupName: statement.client_group_name || "",
+    })),
+  ];
+  return docs;
 };
 
 describe("Billing Documents API", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+
+    // Mock $queryRawUnsafe which is used in the new implementation
+    prismaMock.$queryRawUnsafe = vi.fn() as any;
 
     // Setup mock for getClinicianInfo in each test
     (getClinicianInfo as Mock).mockResolvedValue({
@@ -72,9 +119,18 @@ describe("Billing Documents API", () => {
     const mockSuperbills = [mockSuperbill()];
     const mockStatements = [mockStatement()];
 
-    prismaMock.invoice.findMany.mockResolvedValue(mockInvoices);
-    prismaMock.superbill.findMany.mockResolvedValue(mockSuperbills);
-    prismaMock.statement.findMany.mockResolvedValue(mockStatements);
+    const mockDocuments = prepareMockDocuments(
+      mockInvoices,
+      mockSuperbills,
+      mockStatements,
+    );
+
+    // Mock the count query to return total count
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce([
+      { total: mockDocuments.length },
+    ]);
+    // Mock the main query to return the documents
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce(mockDocuments);
 
     // Act
     const req = createRequest("/api/billing-documents");
@@ -102,7 +158,7 @@ describe("Billing Documents API", () => {
       (doc: BillingDocument) => doc.documentType === "statement",
     );
     expect(statementDoc.number).toBe("2001");
-    expect(statementDoc.total).toBe(275);
+    expect(statementDoc.is_exported).toBe(false);
     expect(statementDoc.clientGroupName).toBe("Test Group");
   });
 
@@ -113,9 +169,18 @@ describe("Billing Documents API", () => {
     const mockSuperbills = [mockSuperbill({ client_group_id: clientGroupId })];
     const mockStatements = [mockStatement({ client_group_id: clientGroupId })];
 
-    prismaMock.invoice.findMany.mockResolvedValue(mockInvoices);
-    prismaMock.superbill.findMany.mockResolvedValue(mockSuperbills);
-    prismaMock.statement.findMany.mockResolvedValue(mockStatements);
+    const mockDocuments = prepareMockDocuments(
+      mockInvoices,
+      mockSuperbills,
+      mockStatements,
+    );
+
+    // Mock the count query to return total count
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce([
+      { total: mockDocuments.length },
+    ]);
+    // Mock the main query to return the documents
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce(mockDocuments);
 
     // Act
     const req = createRequest(
@@ -129,22 +194,15 @@ describe("Billing Documents API", () => {
 
     expect(json.data).toHaveLength(3);
 
+    // Verify clientGroupId is properly used in the query
+    expect(prismaMock.$queryRawUnsafe).toHaveBeenCalledWith(
+      expect.stringContaining(`clientGroupId = '${clientGroupId}'`),
+    );
+
     // Verify all documents have the correct client group
-    expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ client_group_id: clientGroupId }),
-      }),
-    );
-    expect(prismaMock.superbill.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ client_group_id: clientGroupId }),
-      }),
-    );
-    expect(prismaMock.statement.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ client_group_id: clientGroupId }),
-      }),
-    );
+    json.data.forEach((doc: BillingDocument) => {
+      expect(doc.clientGroupId).toBe(clientGroupId);
+    });
   });
 
   it("GET /api/billing-documents?type=[...] should filter by document types", async () => {
@@ -152,9 +210,18 @@ describe("Billing Documents API", () => {
     const mockInvoices = [mockInvoice()];
     const mockSuperbills = [mockSuperbill()];
 
-    prismaMock.invoice.findMany.mockResolvedValue(mockInvoices);
-    prismaMock.superbill.findMany.mockResolvedValue(mockSuperbills);
-    // Statement findMany shouldn't be called
+    const mockDocuments = prepareMockDocuments(
+      mockInvoices,
+      mockSuperbills,
+      [],
+    );
+
+    // Mock the count query to return total count
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce([
+      { total: mockDocuments.length },
+    ]);
+    // Mock the main query to return the documents
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce(mockDocuments);
 
     // Act - Request only invoices and superbills
     const req = createRequest(
@@ -181,17 +248,24 @@ describe("Billing Documents API", () => {
       ),
     ).toBe(false);
 
-    // Verify statement findMany wasn't called
-    expect(prismaMock.invoice.findMany).toHaveBeenCalled();
-    expect(prismaMock.superbill.findMany).toHaveBeenCalled();
-    expect(prismaMock.statement.findMany).not.toHaveBeenCalled();
+    // Verify type filter is applied in the query
+    expect(prismaMock.$queryRawUnsafe).toHaveBeenCalledWith(
+      expect.stringContaining(`documentType IN ('invoice', 'superbill')`),
+    );
   });
 
   it("GET /api/billing-documents?type=invoice should filter by single document type", async () => {
     // Arrange
     const mockInvoices = [mockInvoice()];
 
-    prismaMock.invoice.findMany.mockResolvedValue(mockInvoices);
+    const mockDocuments = prepareMockDocuments(mockInvoices, [], []);
+
+    // Mock the count query to return total count
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce([
+      { total: mockDocuments.length },
+    ]);
+    // Mock the main query to return the documents
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce(mockDocuments);
 
     // Act - Request only invoices
     const req = createRequest(`/api/billing-documents?type=invoice`);
@@ -204,10 +278,10 @@ describe("Billing Documents API", () => {
     expect(json.data).toHaveLength(1); // Only invoices
     expect(json.data[0].documentType).toBe("invoice");
 
-    // Verify only invoice findMany was called
-    expect(prismaMock.invoice.findMany).toHaveBeenCalled();
-    expect(prismaMock.superbill.findMany).not.toHaveBeenCalled();
-    expect(prismaMock.statement.findMany).not.toHaveBeenCalled();
+    // Verify type filter is applied in the query
+    expect(prismaMock.$queryRawUnsafe).toHaveBeenCalledWith(
+      expect.stringContaining(`documentType IN ('invoice')`),
+    );
   });
 
   it("GET /api/billing-documents with date range should filter by date", async () => {
@@ -218,9 +292,18 @@ describe("Billing Documents API", () => {
     const mockSuperbills = [mockSuperbill()];
     const mockStatements = [mockStatement()];
 
-    prismaMock.invoice.findMany.mockResolvedValue(mockInvoices);
-    prismaMock.superbill.findMany.mockResolvedValue(mockSuperbills);
-    prismaMock.statement.findMany.mockResolvedValue(mockStatements);
+    const mockDocuments = prepareMockDocuments(
+      mockInvoices,
+      mockSuperbills,
+      mockStatements,
+    );
+
+    // Mock the count query to return total count
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce([
+      { total: mockDocuments.length },
+    ]);
+    // Mock the main query to return the documents
+    prismaMock.$queryRawUnsafe.mockResolvedValueOnce(mockDocuments);
 
     // Act
     const req = createRequest(
@@ -230,45 +313,21 @@ describe("Billing Documents API", () => {
 
     // Assert
     expect(response.status).toBe(200);
-    // We're not checking json content in this test, just the API calls
-    await response.json(); // Just to consume the response
 
-    // Verify date filters were applied correctly
-    expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          issued_date: expect.objectContaining({
-            gte: expect.any(Date),
-            lte: expect.any(Date),
-          }),
-        }),
-      }),
+    // Verify date filters are applied in the query
+    expect(prismaMock.$queryRawUnsafe).toHaveBeenCalledWith(
+      expect.stringContaining(`date >= '`),
     );
-    expect(prismaMock.superbill.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          issued_date: expect.objectContaining({
-            gte: expect.any(Date),
-            lte: expect.any(Date),
-          }),
-        }),
-      }),
-    );
-    expect(prismaMock.statement.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          created_at: expect.objectContaining({
-            gte: expect.any(Date),
-            lte: expect.any(Date),
-          }),
-        }),
-      }),
+    expect(prismaMock.$queryRawUnsafe).toHaveBeenCalledWith(
+      expect.stringContaining(`date <= '`),
     );
   });
 
   it("GET /api/billing-documents should handle errors gracefully", async () => {
-    // Arrange
-    prismaMock.invoice.findMany.mockRejectedValue(new Error("Database error"));
+    // Arrange - Make the first queryRawUnsafe call throw an error
+    prismaMock.$queryRawUnsafe.mockRejectedValueOnce(
+      new Error("Database error"),
+    );
 
     // Act
     const req = createRequest("/api/billing-documents");
