@@ -11,24 +11,41 @@ import { prisma } from "@mcw/database";
 import { createRequestWithBody } from "@mcw/utils";
 import { GET, POST, PUT } from "@/api/billingSettings/route";
 import {
-  BillingSettingsPrismaFactory,
   BillingSettingsFactory,
   ClinicianPrismaFactory,
 } from "@mcw/database/mock-data";
 import { getServerSession } from "next-auth";
 import type { Clinician } from "@prisma/client";
 
-vi.mock("next-auth", () => ({
-  getServerSession: vi.fn(),
-}));
+vi.mock("next-auth", () => {
+  return {
+    getServerSession: vi.fn(),
+  };
+});
+
+vi.mock("@/api/auth/[...nextauth]/auth-options", () => {
+  return {
+    backofficeAuthOptions: {},
+  };
+});
 
 describe("Billing Settings API Integration Tests", () => {
   let clinician: Clinician;
 
   beforeEach(async () => {
+    // Clear mocks before each test
+    vi.clearAllMocks();
+
     clinician = await ClinicianPrismaFactory.create();
+
+    // Mock getServerSession to always return a valid session
+    // regardless of the arguments passed to it
     vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: clinician.user_id },
+      user: {
+        id: clinician.user_id,
+        roles: ["CLINICIAN"],
+        isClinician: true,
+      },
     });
   });
 
@@ -41,8 +58,24 @@ describe("Billing Settings API Integration Tests", () => {
   });
 
   it("GET /api/billing-settings should return billing settings", async () => {
-    const settings = await BillingSettingsPrismaFactory.create({
-      Clinician: { connect: { id: clinician.id } },
+    const settings = await prisma.billingSettings.create({
+      data: {
+        clinician_id: clinician.id,
+        autoInvoiceCreation: "daily",
+        pastDueDays: 30,
+        emailClientPastDue: true,
+        invoiceIncludePracticeLogo: true,
+        invoiceFooterInfo: "Test footer",
+        superbillDayOfMonth: 15,
+        superbillIncludePracticeLogo: true,
+        superbillIncludeSignatureLine: true,
+        superbillIncludeDiagnosisDescription: true,
+        superbillFooterInfo: "Test superbill footer",
+        billingDocEmailDelayMinutes: 60,
+        createMonthlyStatementsForNewClients: true,
+        createMonthlySuperbillsForNewClients: true,
+        defaultNotificationMethod: "email",
+      },
     });
 
     const response = await GET();
@@ -130,8 +163,25 @@ describe("Billing Settings API Integration Tests", () => {
   });
 
   it("PUT /api/billing-settings should update billing settings", async () => {
-    const settings = await BillingSettingsPrismaFactory.create({
-      Clinician: { connect: { id: clinician.id } },
+    // Create settings directly with prisma client
+    const settings = await prisma.billingSettings.create({
+      data: {
+        clinician_id: clinician.id,
+        autoInvoiceCreation: "daily",
+        pastDueDays: 30,
+        emailClientPastDue: true,
+        invoiceIncludePracticeLogo: true,
+        invoiceFooterInfo: "Test footer",
+        superbillDayOfMonth: 15,
+        superbillIncludePracticeLogo: true,
+        superbillIncludeSignatureLine: true,
+        superbillIncludeDiagnosisDescription: true,
+        superbillFooterInfo: "Test superbill footer",
+        billingDocEmailDelayMinutes: 60,
+        createMonthlyStatementsForNewClients: true,
+        createMonthlySuperbillsForNewClients: true,
+        defaultNotificationMethod: "email",
+      },
     });
 
     const updateData = BillingSettingsFactory.build({
