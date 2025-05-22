@@ -155,6 +155,7 @@ const menuItems = {
           label: "Text",
           id: "text",
           href: "/settings/text",
+          description: "Automate reminder texts",
         },
       ],
     },
