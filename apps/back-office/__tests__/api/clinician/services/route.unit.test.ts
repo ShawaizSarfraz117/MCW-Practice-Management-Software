@@ -17,7 +17,12 @@ describe("ClinicianServices API Unit Tests", () => {
 
   it("PUT /api/clinician/services should update a clinician service", async () => {
     // Create mock clinician and service
-    const clinician = ClinicianFactory.build({ user_id: "user-123" });
+    const clinician = ClinicianFactory.build({
+      user_id: "user-123",
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
+    });
     const service = PracticeServiceFactory.build({ id: "service-1" }); // Use a string ID
 
     // Mock existing relationship
@@ -115,7 +120,12 @@ describe("ClinicianServices API Unit Tests", () => {
 
   it("PUT /api/clinician/services should create a service relationship when it doesn't exist", async () => {
     // Create mock clinician and service
-    const clinician = ClinicianFactory.build({ user_id: "user-456" });
+    const clinician = ClinicianFactory.build({
+      user_id: "user-456",
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
+    });
     const service = PracticeServiceFactory.build({ id: "service-2" }); // Use a string ID
 
     // Mock created relationship - use string for custom_rate to match JSON response
@@ -223,7 +233,12 @@ describe("ClinicianServices API Unit Tests", () => {
 
   it("PUT /api/clinician/services should return 404 if service doesn't exist", async () => {
     // Create mock clinician
-    const clinician = ClinicianFactory.build({ user_id: "user-789" });
+    const clinician = ClinicianFactory.build({
+      user_id: "user-789",
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
+    });
 
     // Setup request data with non-existent service ID
     const requestData = {
