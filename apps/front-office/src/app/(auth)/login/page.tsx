@@ -20,8 +20,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -35,6 +33,8 @@ export default function LoginPage() {
       setIsLoading(false);
       return;
     }
+
+    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
     try {
       const res = await signIn("email", {
