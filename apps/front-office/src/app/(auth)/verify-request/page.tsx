@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Button } from "@mcw/ui";
 import { MoveLeft } from "lucide-react";
 import successImage from "@/assets/images/mailSent.svg";
@@ -9,9 +8,6 @@ import Image from "next/image";
 import { Footer } from "../../components/Footer";
 
 export default function VerifyRequestPage() {
-  const searchParams = useSearchParams();
-  const email = searchParams.get("email") || "";
-
   return (
     <div>
       <div className="flex flex-col items-center justify-center px-4 pb-12 h-[80vh] custom-bg-header">
@@ -28,7 +24,6 @@ export default function VerifyRequestPage() {
               <h2 className="text-xl text-gray-900">Your link is on the way</h2>
               <div className="mt-4 space-y-2 text-gray-400">
                 <p className="text-sm">A link has been sent to on your email</p>
-                <p className="text-sm">{email}</p>
                 <p className="text-sm">
                   It expires in 24 hours and can only be used once
                 </p>
