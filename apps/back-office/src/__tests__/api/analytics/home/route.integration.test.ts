@@ -366,6 +366,106 @@ describe("/api/analytics/home Integration Tests", () => {
       expect(responseBody.totalClientPayments).toBeCloseTo(600.0);
       expect(responseBody.netIncome).toBeCloseTo(700.0); // NetIncome = GrossIncome
     });
+
+    it("getAnalyticsHome_SpansMultipleClientsAndGroups_AggregatesAll", async () => {
+      // 1. Setup: Create multiple client groups and appointments across them
+      const group1 = await prisma.clientGroup.create({
+        data: {
+          id: "group-multi-1",
+          type: "Individual",
+          name: "Multi Group 1",
+          is_active: true,
+        },
+      });
+      createdClientGroupIds.push(group1.id);
+      const group2 = await prisma.clientGroup.create({
+        data: {
+          id: "group-multi-2",
+          type: "Family",
+          name: "Multi Group 2",
+          is_active: true,
+        },
+      });
+      createdClientGroupIds.push(group2.id);
+
+      // Appointments for Group 1
+      const apptG1_1 = await prisma.appointment.create({
+        data: {
+          client_group_id: group1.id,
+          type: "G1S1",
+          created_by: "tu",
+          status: "completed",
+          start_date: new Date("2024-03-05T10:00:00Z"),
+          end_date: new Date("2024-03-05T11:00:00Z"),
+          appointment_fee: new Prisma.Decimal(100),
+          adjustable_amount: new Prisma.Decimal(10), // Gross 100, Paid 90
+        },
+      });
+      const apptG1_2 = await prisma.appointment.create({
+        data: {
+          client_group_id: group1.id,
+          type: "G1S2",
+          created_by: "tu",
+          status: "completed",
+          start_date: new Date("2024-03-06T10:00:00Z"),
+          end_date: new Date("2024-03-06T11:00:00Z"),
+          appointment_fee: new Prisma.Decimal(120),
+          write_off: new Prisma.Decimal(20), // Gross 120, Paid 100
+        },
+      });
+
+      // Appointments for Group 2
+      const apptG2_1 = await prisma.appointment.create({
+        data: {
+          client_group_id: group2.id,
+          type: "G2S1",
+          created_by: "tu",
+          status: "completed",
+          start_date: new Date("2024-03-15T10:00:00Z"),
+          end_date: new Date("2024-03-15T11:00:00Z"),
+          appointment_fee: new Prisma.Decimal(200),
+          adjustable_amount: new Prisma.Decimal(50), // Gross 200, Paid 150
+        },
+      });
+      // Appointment for Group 2 but outside date range
+      const apptG2_Out = await prisma.appointment.create({
+        data: {
+          client_group_id: group2.id,
+          type: "G2S_OUT",
+          created_by: "tu",
+          status: "completed",
+          start_date: new Date("2024-04-01T10:00:00Z"),
+          end_date: new Date("2024-04-01T11:00:00Z"),
+          appointment_fee: new Prisma.Decimal(50),
+        },
+      });
+
+      createdAppointmentIds.push(
+        apptG1_1.id,
+        apptG1_2.id,
+        apptG2_1.id,
+        apptG2_Out.id,
+      );
+
+      // 2. Make API Call
+      const startDate = "2024-03-01";
+      const endDate = "2024-03-31";
+      const req = createRequest(
+        `/api/analytics/home?startDate=${startDate}&endDate=${endDate}`,
+      );
+      const response = await GET(req);
+      const responseBody = await response.json();
+
+      // 3. Assertions
+      expect(response.status).toBe(200);
+
+      // Expected Gross Income = 100 (G1S1) + 120 (G1S2) + 200 (G2S1) = 420
+      // Expected Total Client Payments = 90 (G1S1) + 100 (G1S2) + 150 (G2S1) = 340
+
+      expect(responseBody.grossIncome).toBeCloseTo(420.0);
+      expect(responseBody.totalClientPayments).toBeCloseTo(340.0);
+      expect(responseBody.netIncome).toBeCloseTo(420.0); // NetIncome = GrossIncome
+    });
   });
 
   // TODO: Add integration tests as per the plan

@@ -30,3 +30,8 @@ Implementing API routes for outstanding client balances and financial analytics.
   - [x] `getAnalyticsHome_ValidDateRange_CorrectMetricsCalculation`
   - [x] `getAnalyticsHome_NoAppointmentsInDateRange_ReturnsZeroMetrics`
   - [x] `getAnalyticsHome_AppointmentsWithNullFinancialFields_AggregatedAsZero`
+  - [ ] `getAnalyticsHome_SpansMultipleClientsAndGroups_AggregatesAll`
+- [ ] **Unit Tests:**
+  - [ ] `validateInputParameters_Analytics_InvalidDateFormatsAndRange`
+
+## Future Tasks
