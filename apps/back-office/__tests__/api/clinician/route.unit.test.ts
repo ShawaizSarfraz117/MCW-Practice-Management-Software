@@ -142,6 +142,16 @@ describe("Clinician API Unit Tests", async () => {
       taxonomy_code: null,
     };
 
+    // The data that will actually be used in the create call
+    const expectedCreateData = {
+      user_id: user.id,
+      address: clinician.address,
+      percentage_split: clinician.percentage_split,
+      is_active: clinician.is_active,
+      first_name: clinician.first_name,
+      last_name: clinician.last_name,
+    };
+
     // Mock findUnique to return null (no existing clinician)
     prismaMock.clinician.findUnique.mockResolvedValueOnce(null);
     // Mock create to return the new clinician
@@ -161,11 +171,9 @@ describe("Clinician API Unit Tests", async () => {
     expect(json).toHaveProperty("user_id", user.id);
 
     // Verify create was called with correct data
-    expect(prismaMock.clinician.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: clinicianBody,
-      }),
-    );
+    expect(prismaMock.clinician.create).toHaveBeenCalledWith({
+      data: expectedCreateData,
+    });
   });
 
   it("DELETE /api/clinician/?id=<id> should deactivate a clinician", async () => {

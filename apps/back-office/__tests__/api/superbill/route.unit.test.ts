@@ -180,9 +180,19 @@ describe("Superbill API", () => {
       expect(json.created_at).toBe(mockSuperbillData.created_at.toISOString());
 
       // Verify correct functions were called
-      expect(prisma.superbill.findUnique).toHaveBeenCalledWith({
-        where: { id: superbillId },
-      });
+      expect(prisma.superbill.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: superbillId },
+          include: {
+            Appointment: {
+              include: {
+                Location: true,
+                PracticeService: true,
+              },
+            },
+          },
+        }),
+      );
     });
 
     it("should return 404 when superbill ID not found", async () => {
@@ -234,17 +244,20 @@ describe("Superbill API", () => {
       );
 
       // Verify correct functions were called
-      expect(prisma.superbill.findMany).toHaveBeenCalledWith({
-        where: { client_group_id: clientGroupId },
-        orderBy: { created_at: "desc" },
-        include: {
-          Appointment: {
-            include: {
-              PracticeService: true,
+      expect(prisma.superbill.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { client_group_id: clientGroupId },
+          orderBy: { created_at: "desc" },
+          include: {
+            Appointment: {
+              include: {
+                Location: true,
+                PracticeService: true,
+              },
             },
           },
-        },
-      });
+        }),
+      );
     });
 
     it("should get all superbills with pagination", async () => {
@@ -291,7 +304,12 @@ describe("Superbill API", () => {
           take: 10,
           include: {
             ClientGroup: true,
-            Appointment: true,
+            Appointment: {
+              include: {
+                Location: true,
+                PracticeService: true,
+              },
+            },
           },
         }),
       );
