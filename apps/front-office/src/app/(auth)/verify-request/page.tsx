@@ -7,8 +7,9 @@ import { MoveLeft } from "lucide-react";
 import successImage from "@/assets/images/mailSent.svg";
 import Image from "next/image";
 import { Footer } from "@/components/Footer";
+import { Suspense } from "react";
 
-export default function VerifyRequestPage() {
+function VerifyRequestContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
 
@@ -57,5 +58,13 @@ export default function VerifyRequestPage() {
       </div>
       <Footer />
     </div>
+  );
+}
+
+export default function VerifyRequestPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifyRequestContent />
+    </Suspense>
   );
 }
