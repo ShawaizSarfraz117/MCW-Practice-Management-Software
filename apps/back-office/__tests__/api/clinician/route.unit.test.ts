@@ -32,12 +32,18 @@ describe("Clinician API Unit Tests", async () => {
       User: {
         email: user0.email,
       },
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
     });
     const clinician1 = ClinicianFactory.build({
       user_id: user1.id,
       User: {
         email: user1.email,
       },
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
     });
 
     const clinicians = [clinician0, clinician1];
@@ -86,6 +92,9 @@ describe("Clinician API Unit Tests", async () => {
       ClinicianLocation: [],
       ClinicianServices: [],
       ClinicianClient: [],
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
     });
 
     // Mock the prisma response for findUnique
@@ -114,7 +123,12 @@ describe("Clinician API Unit Tests", async () => {
 
   it("POST /api/clinician should create a new clinician", async () => {
     const user = UserFactory.build();
-    const clinician = ClinicianFactory.build({ user_id: user.id });
+    const clinician = ClinicianFactory.build({
+      user_id: user.id,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
+    });
 
     const clinicianBody = {
       user_id: user.id,
@@ -123,6 +137,9 @@ describe("Clinician API Unit Tests", async () => {
       is_active: clinician.is_active,
       first_name: clinician.first_name,
       last_name: clinician.last_name,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
     };
 
     // Mock findUnique to return null (no existing clinician)
@@ -153,8 +170,19 @@ describe("Clinician API Unit Tests", async () => {
 
   it("DELETE /api/clinician/?id=<id> should deactivate a clinician", async () => {
     const user = UserFactory.build();
-    const clinician = ClinicianFactory.build({ user_id: user.id });
-    const deactivatedClinician = { ...clinician, is_active: false };
+    const clinician = ClinicianFactory.build({
+      user_id: user.id,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
+    });
+    const deactivatedClinician = {
+      ...clinician,
+      is_active: false,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
+    };
 
     // Mock findUnique to return the existing clinician
     prismaMock.clinician.findUnique.mockResolvedValueOnce(clinician);
@@ -189,7 +217,12 @@ describe("Clinician API Unit Tests", async () => {
 
   it("PUT /api/clinician should update an existing clinician", async () => {
     const user = UserFactory.build();
-    const clinician = ClinicianFactory.build({ user_id: user.id });
+    const clinician = ClinicianFactory.build({
+      user_id: user.id,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
+    });
 
     // Create a clean object for the updated clinician to avoid non-serializable properties
     const updatedClinicianData = {
@@ -200,6 +233,9 @@ describe("Clinician API Unit Tests", async () => {
       address: clinician.address,
       percentage_split: clinician.percentage_split,
       is_active: clinician.is_active,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
     };
 
     // Mock upsert instead of update since that's what the route uses
