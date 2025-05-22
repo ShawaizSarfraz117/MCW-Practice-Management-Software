@@ -86,9 +86,11 @@ describe("License API Integration Tests", () => {
         roles: [CLINICIAN_ROLE],
       },
     });
+
+    // Ensure the mocked clinician info has the correct ID
     vi.mocked(helpers.getClinicianInfo).mockResolvedValue({
       isClinician: true,
-      clinicianId,
+      clinicianId: clinicianId,
       clinician: {
         id: clinicianId,
         first_name: "Test",
