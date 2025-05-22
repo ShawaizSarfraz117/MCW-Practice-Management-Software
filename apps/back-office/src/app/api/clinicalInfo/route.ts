@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { z } from "zod";
-import { getBackOfficeSession } from "@/utils/helpers";
+import { getBackOfficeSession, getClinicianInfo } from "@/utils/helpers";
 
 const clinicalInfoPayload = z.object({
-  speciality: z.string().max(100).optional().nullable(),
-  taxonomyCode: z.string().max(50).optional().nullable(),
-  NPInumber: z.number().optional().nullable(),
+  speciality: z.string().max(250).optional().nullable(),
+  taxonomy_code: z.string().max(250).optional().nullable(),
+  NPI_number: z.string().max(250).optional().nullable(),
 });
 
 export const dynamic = "force-dynamic";
@@ -15,6 +15,14 @@ export async function PUT(request: NextRequest) {
     const session = await getBackOfficeSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { isClinician, clinicianId } = await getClinicianInfo();
+    if (!isClinician || !clinicianId) {
+      return NextResponse.json(
+        { error: "Clinician not found for user" },
+        { status: 404 },
+      );
     }
 
     const data = await request.json();
@@ -30,38 +38,17 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check if clinical info exists
-    const existingClinicalInfo = await prisma.clinicalInfo.findFirst({
-      where: {
-        user_id: data.user_id,
+    // Update clinician info
+    const updatedClinician = await prisma.clinician.update({
+      where: { id: clinicianId },
+      data: {
+        speciality: validationResult.data.speciality ?? null,
+        taxonomy_code: validationResult.data.taxonomy_code ?? null,
+        NPI_number: validationResult.data.NPI_number ?? null,
       },
     });
 
-    if (existingClinicalInfo) {
-      // Update existing clinical info
-      const updatedClinicalInfo = await prisma.clinicalInfo.updateMany({
-        where: { user_id: data.user_id },
-        data: {
-          speciality: validationResult.data.speciality ?? "",
-          taxonomy_code: validationResult.data.taxonomyCode ?? "000",
-          NPI_number: validationResult.data.NPInumber ?? 0,
-        },
-      });
-
-      return NextResponse.json(updatedClinicalInfo);
-    } else {
-      // Insert new clinical info
-      const newClinicalInfo = await prisma.clinicalInfo.create({
-        data: {
-          user_id: data.user_id,
-          speciality: validationResult.data.speciality ?? "",
-          taxonomy_code: validationResult.data.taxonomyCode ?? "000",
-          NPI_number: validationResult.data.NPInumber ?? 0,
-        },
-      });
-
-      return NextResponse.json(newClinicalInfo);
-    }
+    return NextResponse.json(updatedClinician);
   } catch (error) {
     console.error("Error updating clinical information:", error);
     return NextResponse.json(
@@ -78,20 +65,32 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const clinicalInfo = await prisma.clinicalInfo.findFirst({
-      where: {
-        user_id: session.user.id,
+    const { isClinician, clinicianId } = await getClinicianInfo();
+    if (!isClinician || !clinicianId) {
+      return NextResponse.json(
+        { error: "Clinician not found for user" },
+        { status: 404 },
+      );
+    }
+
+    const clinician = await prisma.clinician.findUnique({
+      where: { id: clinicianId },
+      select: {
+        id: true,
+        speciality: true,
+        taxonomy_code: true,
+        NPI_number: true,
       },
     });
 
-    if (!clinicalInfo) {
+    if (!clinician) {
       return NextResponse.json(
         { error: "Clinical information not found" },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(clinicalInfo);
+    return NextResponse.json(clinician);
   } catch (error) {
     console.error("Error fetching clinical information:", error);
     return NextResponse.json(

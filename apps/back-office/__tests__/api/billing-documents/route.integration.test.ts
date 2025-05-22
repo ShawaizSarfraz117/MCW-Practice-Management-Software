@@ -22,9 +22,11 @@ import { GET } from "@/api/billing-documents/route";
 interface BillingDocument {
   id: string;
   documentType: string;
-  client_group_id: string;
+  clientGroupId: string;
   date: Date | string;
   number: string;
+  is_exported: boolean;
+  clientGroupName: string;
 }
 
 // Helper function for cleaning up test data
@@ -174,6 +176,7 @@ describe("Billing Documents API - Integration Tests", () => {
           amount: 100,
           status: "PENDING",
           type: "INVOICE",
+          is_exported: false,
         },
       });
       testIds.invoiceId = invoice.id;
@@ -184,16 +187,17 @@ describe("Billing Documents API - Integration Tests", () => {
           id: generateUUID(),
           superbill_number: 1001,
           client_group_id: clientGroup.id,
-          appointment_id: appointment.id, // Use the real appointment ID
+          Appointment: {
+            connect: { id: appointment.id },
+          },
           issued_date: new Date("2023-01-20"),
-          service_code: "90837",
-          service_description: "Therapy Session",
-          units: 1,
-          amount: 150,
+          created_at: new Date("2023-01-20"),
           status: "CREATED",
           client_name: "Test Client",
           provider_name: `${clinician.first_name} ${clinician.last_name}`,
           provider_email: user.email,
+          created_by: user.id,
+          is_exported: false,
         },
       });
       testIds.superbillId = superbill.id;
@@ -211,6 +215,7 @@ describe("Billing Documents API - Integration Tests", () => {
           client_group_name: clientGroup.name,
           client_name: "Test Client",
           created_at: new Date("2023-01-25"),
+          is_exported: false,
         },
       });
       testIds.statementId = statement.id;
@@ -287,12 +292,15 @@ describe("Billing Documents API - Integration Tests", () => {
     // Check document type and transformation
     expect(ourInvoice.documentType).toBe("invoice");
     expect(ourInvoice.number).toBe("INV-TEST-1");
+    expect(ourInvoice.is_exported).toBe(false);
 
     expect(ourSuperbill.documentType).toBe("superbill");
     expect(ourSuperbill.number).toBe("1001");
+    expect(ourSuperbill.is_exported).toBe(false);
 
     expect(ourStatement.documentType).toBe("statement");
     expect(ourStatement.number).toBe("501");
+    expect(ourStatement.is_exported).toBe(false);
   });
 
   it("GET /api/billing-documents?clientGroupId=<id> should filter by client group", async () => {
@@ -308,7 +316,7 @@ describe("Billing Documents API - Integration Tests", () => {
 
     // Check that all returned documents belong to our client group
     result.data.forEach((doc: BillingDocument) => {
-      expect(doc.client_group_id).toBe(testIds.clientGroupId);
+      expect(doc.clientGroupId).toBe(testIds.clientGroupId);
     });
 
     // Verify all our test documents are found

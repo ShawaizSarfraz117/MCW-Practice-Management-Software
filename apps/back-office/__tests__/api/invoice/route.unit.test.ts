@@ -25,6 +25,7 @@ vi.mock("@mcw/database", () => {
   const findUniqueMock = vi.fn();
   const findManyMock = vi.fn();
   const createMock = vi.fn();
+  const findFirstMock = vi.fn();
 
   return {
     prisma: {
@@ -32,6 +33,7 @@ vi.mock("@mcw/database", () => {
         findUnique: findUniqueMock,
         findMany: findManyMock,
         create: createMock,
+        findFirst: findFirstMock,
       },
     },
     __esModule: true,
@@ -48,7 +50,7 @@ const mockInvoice = (overrides = {}) => {
 
   return {
     id: MOCK_UUID,
-    invoice_number: "INV-1234",
+    invoice_number: "INV #1234",
     client_group_id: MOCK_UUID,
     appointment_id: null,
     clinician_id: MOCK_UUID,
@@ -220,28 +222,31 @@ describe("Invoice API", () => {
     // Arrange
     const clinicianId = MOCK_UUID;
     const membershipId = MOCK_UUID;
-    const dueDate = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000);
     const issuedDate = new Date();
+
+    // Mock the findFirst to return the max invoice
+    const maxInvoice = mockInvoice({ invoice_number: "INV #999" });
+    (prisma.invoice.findFirst as unknown as Mock).mockResolvedValue(maxInvoice);
 
     const newInvoiceData = {
       clinician_id: clinicianId,
       client_group_id: membershipId,
-      appointment_id: null, // Set to null to avoid foreign key constraint
+      appointment_id: null,
       amount: 150,
-      due_date: dueDate.toISOString(),
-      status: "PENDING",
+      status: "UNPAID",
+      type: "INVOICE",
     };
 
     const createdInvoice = {
       id: MOCK_UUID,
-      invoice_number: "INV-1234567890",
+      invoice_number: "INV #1000",
       client_group_id: membershipId,
       appointment_id: null,
       clinician_id: clinicianId,
       issued_date: issuedDate,
-      due_date: dueDate,
+      due_date: issuedDate, // In the implementation, issued_date and due_date are set to new Date()
       amount: new Decimal(newInvoiceData.amount),
-      status: "PENDING",
+      status: "UNPAID",
       type: "INVOICE",
       ClientGroup: null,
       Appointment: null,
@@ -269,22 +274,24 @@ describe("Invoice API", () => {
     expect(json.issued_date).toBe(createdInvoice.issued_date.toISOString());
     expect(json.due_date).toBe(createdInvoice.due_date.toISOString());
 
-    // Update expectations to match actual implementation
-    expect(prisma.invoice.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          invoice_number: expect.any(String),
-          amount: newInvoiceData.amount,
-          status: newInvoiceData.status,
-          client_group_id: newInvoiceData.client_group_id,
-          appointment_id: newInvoiceData.appointment_id,
-          clinician_id: newInvoiceData.clinician_id,
-          type: "INVOICE",
-          issued_date: expect.any(Date),
-          due_date: expect.any(Date),
-        }),
+    // Verify that findFirst was called to get the max invoice number
+    expect(prisma.invoice.findFirst).toHaveBeenCalledWith({
+      orderBy: { invoice_number: "desc" },
+    });
+
+    expect(prisma.invoice.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        invoice_number: expect.any(String),
+        amount: Number(newInvoiceData.amount),
+        status: newInvoiceData.status,
+        client_group_id: newInvoiceData.client_group_id,
+        appointment_id: newInvoiceData.appointment_id,
+        clinician_id: newInvoiceData.clinician_id,
+        type: newInvoiceData.type,
+        issued_date: expect.any(Date),
+        due_date: expect.any(Date),
       }),
-    );
+    });
   });
 
   it("POST /api/invoice should return 400 if required fields are missing", async () => {

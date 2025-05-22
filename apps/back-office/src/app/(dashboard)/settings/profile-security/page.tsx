@@ -16,10 +16,7 @@ export const profileSchema = z.object({
   dateOfBirth: z.string().optional().nullable(),
   phone: z
     .string()
-    .regex(
-      /^(\+?\d{1,4}[\s-]?)?(\(?\d{3}\)?[\s-]?)?[\d\s-]{7,14}$/,
-      "Invalid phone number format",
-    )
+    .regex(/^[- +()0-9]*$/, "Only valid phone numbers are allowed.")
     .optional()
     .nullable(),
   profilePhoto: z.string().max(500).optional().nullable(),

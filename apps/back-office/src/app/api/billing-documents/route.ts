@@ -1,53 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, Prisma } from "@mcw/database";
+import { prisma } from "@mcw/database";
 import { getClinicianInfo } from "@/utils/helpers";
 import { logger } from "@mcw/logger";
 
-type InvoiceWithRelations = Prisma.InvoiceGetPayload<{
-  include: {
-    ClientGroup: true;
-  };
-}>;
-
-type SuperbillWithRelations = Prisma.SuperbillGetPayload<{
-  include: {
-    ClientGroup: true;
-  };
-}>;
-
-// Define the interface directly
-interface StatementWithRelations {
+// Document response type
+interface BillingDocument {
   id: string;
-  statement_number: number;
-  client_group_id: string;
-  created_at: Date;
-  start_date?: Date | null;
-  end_date?: Date | null;
-  beginning_balance: Prisma.Decimal;
-  invoices_total: Prisma.Decimal;
-  payments_total: Prisma.Decimal;
-  ending_balance: Prisma.Decimal;
-  provider_name?: string | null;
-  provider_email?: string | null;
-  provider_phone?: string | null;
-  client_group_name: string;
-  client_name: string;
-  client_email?: string | null;
-  created_by?: string | null;
-  ClientGroup?: {
-    id: string;
-    name: string;
-  };
+  documentType: string;
+  name: string;
+  date: Date;
+  number: string;
+  status: string;
+  total: number;
+  clientGroupName: string;
+  clientGroupId: string;
 }
 
 // Valid document types
-type DocumentType = "invoice" | "superbill" | "statement";
+type DocumentType = "invoice" | "superbill" | "statement" | "receipt";
+
+// Export request payload
+interface ExportDocumentsPayload {
+  invoices?: string[];
+  statements?: string[];
+  superbills?: string[];
+  receipts?: string[];
+}
 
 // GET - Retrieve billing documents (invoices, superbills, statements)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const clientGroupId = searchParams.get("clientGroupId"); // Optional now
+    const clientGroupId = searchParams.get("clientGroupId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const typeParam = searchParams.get("type"); // Can be a single type or a JSON array
@@ -64,32 +48,35 @@ export async function GET(request: NextRequest) {
         if (Array.isArray(parsedTypes)) {
           // Make sure all types are valid
           types = parsedTypes.filter((t) =>
-            ["invoice", "superbill", "statement"].includes(t),
+            ["invoice", "superbill", "statement", "receipt"].includes(t),
           ) as DocumentType[];
         } else if (
           typeof parsedTypes === "string" &&
-          ["invoice", "superbill", "statement"].includes(parsedTypes)
+          ["invoice", "superbill", "statement", "receipt"].includes(parsedTypes)
         ) {
           // Single type as a string in JSON format
           types = [parsedTypes as DocumentType];
         }
       } catch (_e) {
         // If parsing fails, treat as a single type string
-        if (["invoice", "superbill", "statement"].includes(typeParam)) {
+        if (
+          ["invoice", "superbill", "statement", "receipt"].includes(typeParam)
+        ) {
           types = [typeParam as DocumentType];
         }
       }
     }
 
-    // If no valid types specified, include all
-    const fetchAll = types.length === 0;
+    // Get clinician info for filtering
+    const { clinicianId } = await getClinicianInfo();
 
-    // Parse dates if provided
-    const dateFilter: { gte?: Date; lte?: Date } = {};
+    // Build date filter conditions
+    let dateCondition = "";
     if (startDate) {
       const parsedStartDate = new Date(startDate);
       if (!isNaN(parsedStartDate.getTime())) {
-        dateFilter.gte = parsedStartDate;
+        if (dateCondition) dateCondition += " AND ";
+        dateCondition += `date >= '${parsedStartDate.toISOString()}'`;
       }
     }
     if (endDate) {
@@ -97,131 +84,114 @@ export async function GET(request: NextRequest) {
       if (!isNaN(parsedEndDate.getTime())) {
         // Set to end of day
         parsedEndDate.setHours(23, 59, 59, 999);
-        dateFilter.lte = parsedEndDate;
+        if (dateCondition) dateCondition += " AND ";
+        dateCondition += `date <= '${parsedEndDate.toISOString()}'`;
       }
     }
 
-    // Get clinician info for filtering
-    const { clinicianId } = await getClinicianInfo();
-
-    // Prepare document fetching based on type
-    let invoices: InvoiceWithRelations[] = [];
-    let superbills: SuperbillWithRelations[] = [];
-    let statements: StatementWithRelations[] = [];
-    let total = 0;
-
-    // Build the where clause
-    const invoiceWhere: Prisma.InvoiceWhereInput = {};
-    const superbillWhere: Prisma.SuperbillWhereInput = {};
-    const statementWhere: Prisma.StatementWhereInput = {};
-
-    // Add date filters if provided
-    if (Object.keys(dateFilter).length > 0) {
-      invoiceWhere.issued_date = dateFilter;
-      superbillWhere.issued_date = dateFilter;
-      statementWhere.created_at = dateFilter;
+    // Build type filter condition
+    let typeCondition = "";
+    if (types.length > 0) {
+      const typeList = types.map((t) => `'${t}'`).join(", ");
+      typeCondition = `documentType IN (${typeList})`;
     }
 
-    // Add clinician filter
-    if (clinicianId) {
-      invoiceWhere.clinician_id = clinicianId;
-      superbillWhere.created_by = clinicianId;
-      statementWhere.created_by = clinicianId;
-    }
-
-    // Add clientGroupId filter only if provided
+    // Build client group filter condition
+    let clientGroupCondition = "";
     if (clientGroupId) {
-      invoiceWhere.client_group_id = clientGroupId;
-      superbillWhere.client_group_id = clientGroupId;
-      statementWhere.client_group_id = clientGroupId;
+      clientGroupCondition = `clientGroupId = '${clientGroupId}'`;
     }
 
-    // Fetch invoices if requested or if fetching all types
-    if (fetchAll || types.includes("invoice")) {
-      invoices = await prisma.invoice.findMany({
-        where: invoiceWhere,
-        include: {
-          ClientGroup: true,
-        },
-        orderBy: { issued_date: "desc" },
-        ...(types.length > 0 ? { skip, take: limit } : {}),
-      });
+    // Build clinician filter condition
+    let clinicianCondition = "";
+    if (clinicianId) {
+      clinicianCondition = `clinicianId = '${clinicianId}'`;
     }
 
-    // Fetch superbills if requested or if fetching all types
-    if (fetchAll || types.includes("superbill")) {
-      superbills = await prisma.superbill.findMany({
-        where: superbillWhere,
-        include: {
-          ClientGroup: true,
-        },
-        orderBy: { issued_date: "desc" },
-        ...(types.length > 0 ? { skip, take: limit } : {}),
-      });
+    // Combine all filter conditions
+    let whereConditions = [
+      dateCondition,
+      typeCondition,
+      clientGroupCondition,
+      clinicianCondition,
+    ]
+      .filter(Boolean)
+      .join(" AND ");
+
+    if (whereConditions) {
+      whereConditions = `WHERE ${whereConditions}`;
     }
 
-    // Fetch statements if requested or if fetching all types
-    if (fetchAll || types.includes("statement")) {
-      statements = await prisma.statement.findMany({
-        where: statementWhere,
-        include: {
-          ClientGroup: true,
-        },
-        orderBy: { created_at: "desc" },
-        ...(types.length > 0 ? { skip, take: limit } : {}),
-      });
-    }
+    // Build the union query
+    const unionQuery = `
+      SELECT 
+        id,
+        'invoice' as documentType,
+        CAST(invoice_number as VARCHAR) as number,
+        issued_date as date,
+        is_exported,
+        client_group_id as clientGroupId,
+        (SELECT name FROM "ClientGroup" WHERE id = client_group_id) as clientGroupName,
+        clinician_id as clinicianId
+      FROM "Invoice"
+      
+      UNION ALL
+      
+      SELECT 
+        id,
+        'superbill' as documentType,
+        CAST(superbill_number as VARCHAR) as number,
+        issued_date as date,
+        is_exported,
+        client_group_id as clientGroupId,
+        (SELECT name FROM "ClientGroup" WHERE id = client_group_id) as clientGroupName,
+        created_by as clinicianId
+      FROM "Superbill"
+      
+      UNION ALL
+      
+      SELECT 
+        id,
+        'statement' as documentType,
+        CAST(statement_number as VARCHAR) as number,
+        created_at as date,
+        is_exported,
+        client_group_id as clientGroupId,
+        client_group_name as clientGroupName,
+        created_by as clinicianId
+      FROM "Statement"
+    `;
 
-    // Combine all documents into one array with type indicator
-    const documents = [
-      ...invoices.map((invoice) => ({
-        ...invoice,
-        documentType: "invoice",
-        date: invoice.issued_date,
-        number: invoice.invoice_number,
-        total: Number(invoice.amount),
-        clientGroupName: invoice.ClientGroup?.name || "",
-      })),
-      ...superbills.map((superbill) => ({
-        ...superbill,
-        documentType: "superbill",
-        date: superbill.issued_date,
-        number: superbill.superbill_number.toString(),
-        total: Number(superbill.amount),
-        clientGroupName: superbill.ClientGroup?.name || "",
-      })),
-      ...statements.map((statement) => ({
-        ...statement,
-        documentType: "statement",
-        date: statement.created_at,
-        number: statement.statement_number.toString(),
-        total: Number(statement.ending_balance),
-        clientGroupName: statement.ClientGroup?.name || "",
-      })),
-    ];
+    // Count query to get total results without pagination
+    const countQuery = `
+      SELECT COUNT(*) as total FROM (
+        ${unionQuery}
+      ) as documents
+      ${whereConditions}
+    `;
 
-    // Sort combined results by date (newest first)
-    const sortedDocuments = documents.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
+    // Main query with filtering, sorting and pagination
+    const mainQuery = `
+      SELECT * FROM (
+        ${unionQuery}
+      ) as documents
+      ${whereConditions}
+      ORDER BY date DESC
+      OFFSET ${skip} ROWS
+      FETCH NEXT ${limit} ROWS ONLY
+    `;
 
-    // If we're fetching all types or multiple types, apply pagination manually to the combined results
-    let paginatedDocuments = sortedDocuments;
-    if (fetchAll || types.length > 1) {
-      total = sortedDocuments.length;
-      paginatedDocuments = sortedDocuments.slice(skip, skip + limit);
-    } else if (types.length === 1) {
-      // When filtering by a single type, we already applied pagination in the individual queries
-      total =
-        types[0] === "invoice"
-          ? invoices.length
-          : types[0] === "superbill"
-            ? superbills.length
-            : statements.length;
-    }
+    // Execute the count query
+    const countResult =
+      await prisma.$queryRawUnsafe<[{ total: number }]>(countQuery);
+    const total = Number(countResult[0]?.total || 0);
+
+    // Execute the main query
+    const documents =
+      await prisma.$queryRawUnsafe<BillingDocument[]>(mainQuery);
 
     return NextResponse.json({
-      data: paginatedDocuments,
+      data: documents,
       pagination: {
         page,
         limit,
@@ -238,6 +208,163 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Failed to fetch billing documents",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// POST - Export selected billing documents
+export async function POST(request: NextRequest) {
+  try {
+    const payload: ExportDocumentsPayload = await request.json();
+
+    // Validate the payload
+    if (
+      !payload ||
+      ((!payload.invoices || payload.invoices.length === 0) &&
+        (!payload.statements || payload.statements.length === 0) &&
+        (!payload.superbills || payload.superbills.length === 0) &&
+        (!payload.receipts || payload.receipts.length === 0))
+    ) {
+      return NextResponse.json(
+        { error: "At least one document must be selected for export" },
+        { status: 400 },
+      );
+    }
+
+    // Track updated documents and errors
+    const results: Record<
+      DocumentType,
+      { success: string[]; failed: string[] }
+    > = {
+      invoice: { success: [], failed: [] },
+      statement: { success: [], failed: [] },
+      superbill: { success: [], failed: [] },
+      receipt: { success: [], failed: [] },
+    };
+
+    // Process invoices if any
+    if (payload.invoices && payload.invoices.length > 0) {
+      for (const id of payload.invoices) {
+        try {
+          await prisma.invoice.update({
+            where: { id },
+            data: { is_exported: true },
+          });
+          results.invoice.success.push(id);
+        } catch (error) {
+          logger.error({
+            message: `Failed to update invoice export status: ${id}`,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          results.invoice.failed.push(id);
+        }
+      }
+    }
+
+    // Process statements if any
+    if (payload.statements && payload.statements.length > 0) {
+      for (const id of payload.statements) {
+        try {
+          await prisma.statement.update({
+            where: { id },
+            data: { is_exported: true },
+          });
+          results.statement.success.push(id);
+        } catch (error) {
+          logger.error({
+            message: `Failed to update statement export status: ${id}`,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          results.statement.failed.push(id);
+        }
+      }
+    }
+
+    // Process superbills if any
+    if (payload.superbills && payload.superbills.length > 0) {
+      for (const id of payload.superbills) {
+        try {
+          await prisma.superbill.update({
+            where: { id },
+            data: { is_exported: true },
+          });
+          results.superbill.success.push(id);
+        } catch (error) {
+          logger.error({
+            message: `Failed to update superbill export status: ${id}`,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          results.superbill.failed.push(id);
+        }
+      }
+    }
+
+    // Process receipts if any
+    if (payload.receipts && payload.receipts.length > 0) {
+      for (const id of payload.receipts) {
+        try {
+          // Since Payment model doesn't have export-specific fields,
+          // we'll just fetch and log it but still report success
+          // In a real implementation, you might want to add this field to the schema
+          const payment = await prisma.payment.findUnique({
+            where: { id },
+          });
+
+          if (payment) {
+            // Just log that we processed it
+            logger.info({
+              message: `Receipt processed for export: ${id}`,
+              paymentId: id,
+            });
+            results.receipt.success.push(id);
+          } else {
+            throw new Error("Payment not found");
+          }
+        } catch (error) {
+          logger.error({
+            message: `Failed to process receipt for export: ${id}`,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          results.receipt.failed.push(id);
+        }
+      }
+    }
+
+    // Summarize results
+    const totalRequested =
+      (payload.invoices?.length || 0) +
+      (payload.statements?.length || 0) +
+      (payload.superbills?.length || 0) +
+      (payload.receipts?.length || 0);
+
+    const totalSucceeded =
+      results.invoice.success.length +
+      results.statement.success.length +
+      results.superbill.success.length +
+      results.receipt.success.length;
+
+    const allSucceeded = totalSucceeded === totalRequested;
+
+    return NextResponse.json(
+      {
+        success: allSucceeded,
+        message: `${totalSucceeded} of ${totalRequested} documents marked as exported`,
+        results,
+      },
+      { status: allSucceeded ? 200 : 207 },
+    );
+  } catch (error) {
+    logger.error({
+      message: "Error exporting billing documents",
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return NextResponse.json(
+      {
+        error: "Failed to export billing documents",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },

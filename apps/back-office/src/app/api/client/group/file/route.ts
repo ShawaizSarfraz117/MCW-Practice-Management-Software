@@ -4,26 +4,6 @@ import { prisma } from "@mcw/database";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { Prisma } from "@prisma/client";
 
-interface ApiResponse {
-  success: boolean;
-  file?: {
-    id: string;
-    title: string;
-    url: string;
-    type: string;
-  };
-  files?: Array<{
-    id: string;
-    title: string;
-    url: string;
-    type: string;
-    status: string;
-    created_at: Date;
-  }>;
-  error?: string;
-  details?: string;
-}
-
 const ALLOWED_FILE_TYPES = [
   "image/jpeg",
   "image/jpg",
@@ -36,9 +16,7 @@ const ALLOWED_FILE_TYPES = [
 ];
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB in bytes
 
-export async function GET(
-  request: NextRequest,
-): Promise<NextResponse<ApiResponse>> {
+export async function GET(request: NextRequest) {
   try {
     // Get user session for authentication
     const session = await getBackOfficeSession();
@@ -95,23 +73,23 @@ export async function GET(
     // Fetch files for the client group
     const files = await prisma.clientGroupFile.findMany({
       where: whereClause,
+      include: {
+        ClientFiles: true,
+      },
       orderBy: {
         created_at: "desc",
       },
-      select: {
-        id: true,
-        title: true,
-        url: true,
-        type: true,
-        status: true,
-        created_at: true,
-      },
     });
 
-    return NextResponse.json({
-      success: true,
-      files: files,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        files: files,
+      },
+      {
+        status: 200,
+      },
+    );
   } catch (error: unknown) {
     const err = error as Error;
     console.error("Client group files fetch error:", {
@@ -130,9 +108,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-): Promise<NextResponse<ApiResponse>> {
+export async function POST(request: NextRequest) {
   try {
     // Get user session for authentication
     const session = await getBackOfficeSession();
@@ -227,16 +203,15 @@ export async function POST(
       data: {
         title: file.name,
         type: type,
-        status: "UPLOADED",
         url: uploadResult.blobUrl,
         client_group_id: client_group_id,
         uploaded_by_id: session.user.id,
+        updated_at: new Date(),
       },
       select: {
         id: true,
         title: true,
         type: true,
-        status: true,
       },
     });
 

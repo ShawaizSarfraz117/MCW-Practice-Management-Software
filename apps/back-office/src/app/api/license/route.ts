@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { z } from "zod";
-import { getBackOfficeSession } from "@/utils/helpers";
+import { getBackOfficeSession, getClinicianInfo } from "@/utils/helpers";
+import crypto from "crypto";
 
 const licensePayload = z.object({
   license_type: z.string().max(100).optional().nullable(),
@@ -10,17 +11,23 @@ const licensePayload = z.object({
   state: z.string().max(50).optional().nullable(),
 });
 
-// PUT route to add or update licenses
+// POST route to add or update licenses
 export async function POST(request: NextRequest) {
   try {
     const session = await getBackOfficeSession();
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await request.json();
+    const { isClinician, clinicianId } = await getClinicianInfo();
+    if (!isClinician || !clinicianId) {
+      return NextResponse.json(
+        { error: "Clinician not found for user" },
+        { status: 404 },
+      );
+    }
 
+    const data = await request.json();
     if (!Array.isArray(data) || data.length === 0) {
       return NextResponse.json(
         { error: "Invalid request payload: expected an array of licenses" },
@@ -28,19 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingClinicalInfo = await prisma.clinicalInfo.findFirst({
-      where: { user_id: session.user.id },
-    });
-
-    if (!existingClinicalInfo) {
-      return NextResponse.json(
-        { error: "Clinical information not found" },
-        { status: 404 },
-      );
-    }
-
     const createdLicenses = [];
-
     for (const license of data) {
       // Preprocess expiration_date to ensure it's a Date object
       const normalizedLicense = {
@@ -64,17 +59,15 @@ export async function POST(request: NextRequest) {
 
       const created = await prisma.license.create({
         data: {
-          clinical_info_id: existingClinicalInfo.id,
+          clinician_id: clinicianId,
           license_type: validationResult.data.license_type ?? "",
           license_number: validationResult.data.license_number ?? "",
           expiration_date: validationResult.data.expiration_date ?? new Date(),
           state: validationResult.data.state ?? "",
         },
       });
-
       createdLicenses.push(created);
     }
-
     return NextResponse.json(createdLicenses);
   } catch (error) {
     console.error(
@@ -92,53 +85,53 @@ export async function POST(request: NextRequest) {
 // PUT route to update a license
 export async function PUT(request: NextRequest) {
   try {
-    const data = await request.json();
-
-    // Validate required fields
-    if (
-      !data.clinical_info_id ||
-      !data.licenses ||
-      !Array.isArray(data.licenses)
-    ) {
+    const session = await getBackOfficeSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { isClinician, clinicianId } = await getClinicianInfo();
+    if (!isClinician || !clinicianId) {
       return NextResponse.json(
-        { error: "clinical_info_id and licenses array are required" },
+        { error: "Clinician not found for user" },
+        { status: 404 },
+      );
+    }
+    const data = await request.json();
+    if (!data.licenses || !Array.isArray(data.licenses)) {
+      return NextResponse.json(
+        { error: "licenses array is required" },
         { status: 400 },
       );
     }
-
-    // First get existing licenses for this clinical_info_id
+    // First get existing licenses for this clinician_id
     const existingLicenses = await prisma.license.findMany({
       where: {
-        clinical_info_id: data.clinical_info_id,
+        clinician_id: clinicianId,
       },
     });
-
     // Track IDs of existing licenses and submitted licenses to determine which to delete
     const existingLicenseIds = existingLicenses.map((license) => license.id);
     const submittedLicenseIds = data.licenses
-      .filter((license: { id?: number }) => license.id)
-      .map((license: { id?: number }) => Number(license.id));
-
+      .filter((license: { id?: string }) => license.id)
+      .map((license: { id?: string }) => license.id);
     // Find IDs of licenses that need to be deleted (exist in DB but not in request)
     const licenseIdsToDelete = existingLicenseIds.filter(
       (id) => !submittedLicenseIds.includes(id),
     );
-
     // Delete licenses that are no longer in the array
     if (licenseIdsToDelete.length > 0) {
       await prisma.license.deleteMany({
         where: {
           id: { in: licenseIdsToDelete },
-          clinical_info_id: data.clinical_info_id, // Extra safety check
+          clinician_id: clinicianId, // Extra safety check
         },
       });
     }
-
     // Process each license in the request (create or update)
     const results = await Promise.all(
       data.licenses.map(
         async (license: {
-          id?: number;
+          id?: string;
           license_type?: string;
           license_number?: string;
           expiration_date?: string | Date;
@@ -147,13 +140,12 @@ export async function PUT(request: NextRequest) {
           // Preprocess expiration_date to ensure it's a Date object
           const normalizedLicense = {
             ...license,
-            clinical_info_id: data.clinical_info_id,
+            clinician_id: clinicianId,
             expiration_date:
               typeof license.expiration_date === "string"
                 ? new Date(license.expiration_date)
                 : license.expiration_date,
           };
-
           // Validate license data
           const validationResult = licensePayload.safeParse(normalizedLicense);
           if (!validationResult.success) {
@@ -163,7 +155,6 @@ export async function PUT(request: NextRequest) {
               license: license,
             };
           }
-
           // If ID is provided, update existing license by ID
           if (license.id) {
             try {
@@ -185,14 +176,12 @@ export async function PUT(request: NextRequest) {
               );
             }
           }
-
           // Try to find matching license by type and number if no ID or ID not found
           const existingLicense = existingLicenses.find(
             (el) =>
               el.license_type === license.license_type &&
               el.license_number === license.license_number,
           );
-
           if (existingLicense) {
             // Update existing license
             return await prisma.license.update({
@@ -210,7 +199,8 @@ export async function PUT(request: NextRequest) {
             // Create new license
             return await prisma.license.create({
               data: {
-                clinical_info_id: data.clinical_info_id,
+                id: crypto.randomUUID(),
+                clinician_id: clinicianId,
                 license_type: license.license_type || "",
                 license_number: license.license_number || "",
                 expiration_date:
@@ -222,7 +212,6 @@ export async function PUT(request: NextRequest) {
         },
       ),
     );
-
     // Return both results and information about deleted licenses
     return NextResponse.json({
       updated: results,
@@ -240,30 +229,23 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// GET route to fetch licenses for a specific clinical info
+// GET route to fetch licenses for a specific clinician
 export async function GET() {
   try {
     const session = await getBackOfficeSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const clinicalInfo = await prisma.clinicalInfo.findFirst({
-      where: {
-        user_id: session.user.id,
-      },
-    });
-
-    if (!clinicalInfo) {
+    const { isClinician, clinicianId } = await getClinicianInfo();
+    if (!isClinician || !clinicianId) {
       return NextResponse.json(
-        { error: "Clinical information not found" },
+        { error: "Clinician not found for user" },
         { status: 404 },
       );
     }
-
     const licenses = await prisma.license.findMany({
       where: {
-        clinical_info_id: clinicalInfo.id, // Fetch licenses linked to the clinical info
+        clinician_id: clinicianId, // Fetch licenses linked to the clinician
       },
     });
     if (licenses.length === 0) {
@@ -272,7 +254,6 @@ export async function GET() {
         { status: 404 },
       );
     }
-
     return NextResponse.json(licenses);
   } catch (error) {
     console.error("Error fetching licenses:", error);
