@@ -13,9 +13,9 @@ Implementing API routes for outstanding client balances and financial analytics.
 - [x] Implement basic GET handler structure in `route.ts`
 - [ ] **Integration Tests:**
   - [x] `getOutstandingBalances_SingleClient_NoGroup_VariousAppointments`
-  - [ ] `getOutstandingBalances_ClientInGroup_SingleResponsibleBillingContact`
-  - [ ] `getOutstandingBalances_ClientInGroup_MultipleResponsibleBillingContacts`
-  - [ ] `getOutstandingBalances_ClientInGroup_NoResponsibleBillingContacts`
+  - [x] `getOutstandingBalances_ClientInGroup_SingleResponsibleBillingContact`
+  - [x] `getOutstandingBalances_ClientInGroup_MultipleResponsibleBillingContacts`
+  - [x] `getOutstandingBalances_ClientInGroup_NoResponsibleBillingContacts`
   - [ ] `getOutstandingBalances_ClientIsResponsibleForOwnAndGroupBilling`
   - [ ] `getOutstandingBalances_Pagination_WorksAsExpected`
   - [ ] `getOutstandingBalances_DateFiltering_StrictlyAdhered`
