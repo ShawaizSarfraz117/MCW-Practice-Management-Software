@@ -52,7 +52,7 @@ export const authConfig: NextAuthConfig = {
   pages: {
     signIn: "/login",
     error: "/auth/error",
-    verifyRequest: "/auth/verify-request",
+    verifyRequest: "/verify-request",
   },
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
