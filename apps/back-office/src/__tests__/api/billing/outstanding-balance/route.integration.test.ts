@@ -643,6 +643,427 @@ describe("/api/billing/outstanding-balance Integration Tests", () => {
 
       expect(responseBody.pagination.total).toBe(1);
     });
+
+    it("getOutstandingBalances_Pagination_WorksAsExpected", async () => {
+      // 1. Setup: Create enough clients and appointments to span multiple pages
+      const numClients = 7; // e.g., 3 pages if rowsPerPage is 3, or 2 pages if rowsPerPage is 5
+      const clientsData = [];
+
+      for (let i = 0; i < numClients; i++) {
+        const client = await prisma.client.create({
+          data: {
+            legal_first_name: `PageClient${i + 1}`,
+            legal_last_name: "Test",
+            is_active: true,
+            created_at: new Date(2023, 0, i + 1), // Ensure distinct created_at for ordering
+          },
+        });
+        createdClientIds.push(client.id);
+
+        const group = await prisma.clientGroup.create({
+          data: {
+            id: `group-page-${i}`,
+            type: "Individual",
+            name: `Group Page ${i}`,
+            is_active: true,
+          },
+        });
+        createdClientGroupIds.push(group.id);
+
+        await prisma.clientGroupMembership.create({
+          data: {
+            client_id: client.id,
+            client_group_id: group.id,
+            is_responsible_for_billing: true,
+            role: "Self",
+          },
+        });
+
+        const appointment = await prisma.appointment.create({
+          data: {
+            client_group_id: group.id,
+            type: "Session",
+            start_date: new Date(
+              `2024-03-1${i % 2 === 0 ? "0" : "1"}T10:00:00.000Z`,
+            ), // Alternate days to ensure some data
+            end_date: new Date(
+              `2024-03-1${i % 2 === 0 ? "0" : "1"}T11:00:00.000Z`,
+            ),
+            created_by: "test-user",
+            status: "completed",
+            appointment_fee: new Prisma.Decimal(100 + i),
+            adjustable_amount: new Prisma.Decimal(10 + i),
+          },
+        });
+        createdAppointmentIds.push(appointment.id);
+        clientsData.push({ client, group, appointment });
+      }
+
+      const startDate = "2024-03-01";
+      const endDate = "2024-03-31";
+      const rowsPerPage = 3;
+
+      // Test Page 1
+      let req = createRequest(
+        `/api/billing/outstanding-balance?startDate=${startDate}&endDate=${endDate}&page=1&rowsPerPage=${rowsPerPage}`,
+      );
+      let response = await GET(req);
+      let responseBody = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(responseBody.data).toHaveLength(rowsPerPage);
+      expect(responseBody.pagination.page).toBe(1);
+      expect(responseBody.pagination.rowsPerPage).toBe(rowsPerPage);
+      expect(responseBody.pagination.total).toBe(numClients);
+      expect(responseBody.pagination.totalPages).toBe(
+        Math.ceil(numClients / rowsPerPage),
+      );
+      // Verify client names to ensure correct order (sorted by last_name, first_name by default in query)
+      // Since all last names are "Test", it orders by first_name: PageClient1, PageClient2, PageClient3
+      expect(responseBody.data[0].clientLegalFirstName).toBe("PageClient1");
+      expect(responseBody.data[1].clientLegalFirstName).toBe("PageClient2");
+      expect(responseBody.data[2].clientLegalFirstName).toBe("PageClient3");
+
+      // Test Page 2
+      req = createRequest(
+        `/api/billing/outstanding-balance?startDate=${startDate}&endDate=${endDate}&page=2&rowsPerPage=${rowsPerPage}`,
+      );
+      response = await GET(req);
+      responseBody = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(responseBody.data).toHaveLength(rowsPerPage);
+      expect(responseBody.pagination.page).toBe(2);
+      expect(responseBody.data[0].clientLegalFirstName).toBe("PageClient4");
+      expect(responseBody.data[1].clientLegalFirstName).toBe("PageClient5");
+      expect(responseBody.data[2].clientLegalFirstName).toBe("PageClient6");
+
+      // Test Page 3 (last page, might have fewer records)
+      req = createRequest(
+        `/api/billing/outstanding-balance?startDate=${startDate}&endDate=${endDate}&page=3&rowsPerPage=${rowsPerPage}`,
+      );
+      response = await GET(req);
+      responseBody = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(responseBody.data).toHaveLength(
+        numClients % rowsPerPage === 0 && numClients > 0
+          ? rowsPerPage
+          : numClients % rowsPerPage,
+      );
+      expect(responseBody.pagination.page).toBe(3);
+      if (responseBody.data.length > 0) {
+        expect(responseBody.data[0].clientLegalFirstName).toBe("PageClient7");
+      }
+    });
+
+    it("getOutstandingBalances_DateFiltering_StrictlyAdhered", async () => {
+      // 1. Setup
+      const client = await prisma.client.create({
+        data: {
+          legal_first_name: "DateFilter",
+          legal_last_name: "Client",
+          is_active: true,
+          created_at: new Date(),
+        },
+      });
+      createdClientIds.push(client.id);
+      const group = await prisma.clientGroup.create({
+        data: {
+          id: `group-datefilter`,
+          type: "Individual",
+          name: "Date Filter Group",
+          is_active: true,
+        },
+      });
+      createdClientGroupIds.push(group.id);
+      await prisma.clientGroupMembership.create({
+        data: {
+          client_id: client.id,
+          client_group_id: group.id,
+          is_responsible_for_billing: true,
+          role: "Self",
+        },
+      });
+
+      // Appointments: one before, one within, one at start, one at end, one after the target range
+      const targetStartDate = new Date("2024-03-15T00:00:00.000Z");
+      // const targetEndDate = new Date("2024-03-20T23:59:59.999Z"); // Route logic sets end date to end of day
+
+      const apptBefore = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "BF",
+          start_date: new Date("2024-03-14T10:00:00Z"),
+          end_date: new Date("2024-03-14T11:00:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: new Prisma.Decimal(10),
+        },
+      });
+      const apptWithin = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "WI",
+          start_date: new Date("2024-03-16T10:00:00Z"),
+          end_date: new Date("2024-03-16T11:00:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: new Prisma.Decimal(20),
+          adjustable_amount: new Prisma.Decimal(5),
+        },
+      });
+      const apptAtStart = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "AS",
+          start_date: targetStartDate,
+          end_date: new Date("2024-03-15T01:00:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: new Prisma.Decimal(30),
+        },
+      });
+      const apptAtEnd = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "AE",
+          start_date: new Date("2024-03-20T23:00:00Z"),
+          end_date: new Date("2024-03-20T23:59:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: new Prisma.Decimal(40),
+        },
+      });
+      const apptAfter = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "AF",
+          start_date: new Date("2024-03-21T10:00:00Z"),
+          end_date: new Date("2024-03-21T11:00:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: new Prisma.Decimal(50),
+        },
+      });
+
+      createdAppointmentIds.push(
+        apptBefore.id,
+        apptWithin.id,
+        apptAtStart.id,
+        apptAtEnd.id,
+        apptAfter.id,
+      );
+
+      // 2. Make API Call (using YYYY-MM-DD strings as the API expects)
+      const apiStartDate = "2024-03-15";
+      const apiEndDate = "2024-03-20";
+      const req = createRequest(
+        `/api/billing/outstanding-balance?startDate=${apiStartDate}&endDate=${apiEndDate}`,
+      );
+      const response = await GET(req);
+      const responseBody = await response.json();
+
+      // 3. Assertions
+      expect(response.status).toBe(200);
+      expect(responseBody.data).toBeInstanceOf(Array);
+      expect(responseBody.data).toHaveLength(1); // Still one client
+
+      const clientData = responseBody.data[0];
+      // Expected total service amount = apptWithin (20) + apptAtStart (30) + apptAtEnd (40) = 90
+      // Adjustable for apptWithin is 5. Others are 0 or null.
+      // Paid for apptWithin = 20-5=15. Paid for apptAtStart=30. Paid for apptAtEnd=40. Total Paid = 15+30+40 = 85
+      // Outstanding = 5
+      expect(clientData.totalServiceAmount).toBeCloseTo(90.0);
+      expect(clientData.totalPaidAmount).toBeCloseTo(85.0);
+      expect(clientData.totalOutstandingBalance).toBeCloseTo(5.0);
+      expect(responseBody.pagination.total).toBe(1);
+    });
+
+    it("getOutstandingBalances_NoAppointmentsInDateRange_ReturnsEmpty", async () => {
+      // 1. Setup: Create a client, but no appointments in the target range
+      const client = await prisma.client.create({
+        data: {
+          legal_first_name: "NoAppointments",
+          legal_last_name: "Client",
+          is_active: true,
+          created_at: new Date(),
+        },
+      });
+      createdClientIds.push(client.id);
+      const group = await prisma.clientGroup.create({
+        data: {
+          id: `group-noappt`,
+          type: "Individual",
+          name: "No Appt Group",
+          is_active: true,
+        },
+      });
+      createdClientGroupIds.push(group.id);
+      await prisma.clientGroupMembership.create({
+        data: {
+          client_id: client.id,
+          client_group_id: group.id,
+          is_responsible_for_billing: true,
+          role: "Self",
+        },
+      });
+
+      // Create an appointment OUTSIDE the query range to ensure it's not picked up
+      const apptOutside = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "OldSession",
+          start_date: new Date("2024-01-10T10:00:00Z"),
+          end_date: new Date("2024-01-10T11:00:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: new Prisma.Decimal(100),
+        },
+      });
+      createdAppointmentIds.push(apptOutside.id);
+
+      // 2. Make API Call for a range with no appointments
+      const startDate = "2024-03-01";
+      const endDate = "2024-03-31";
+      const req = createRequest(
+        `/api/billing/outstanding-balance?startDate=${startDate}&endDate=${endDate}`,
+      );
+      const response = await GET(req);
+      const responseBody = await response.json();
+
+      // 3. Assertions
+      expect(response.status).toBe(200);
+      expect(responseBody.data).toBeInstanceOf(Array);
+      expect(responseBody.data).toHaveLength(0);
+      expect(responseBody.pagination.total).toBe(0);
+      expect(responseBody.pagination.totalPages).toBe(0); // Math.ceil(0 / anyRowsPerPage) = 0
+      expect(responseBody.pagination.page).toBe(1); // Default page is 1
+      expect(responseBody.pagination.rowsPerPage).toBe(20); // Default rowsPerPage
+    });
+
+    it("getOutstandingBalances_AppointmentsWithNullFinancialFields_TreatedAsZero", async () => {
+      // 1. Setup
+      const client = await prisma.client.create({
+        data: {
+          legal_first_name: "NullField",
+          legal_last_name: "Client",
+          is_active: true,
+          created_at: new Date(),
+        },
+      });
+      createdClientIds.push(client.id);
+      const group = await prisma.clientGroup.create({
+        data: {
+          id: "group-nullfield",
+          type: "Individual",
+          name: "Null Field Group",
+          is_active: true,
+        },
+      });
+      createdClientGroupIds.push(group.id);
+      await prisma.clientGroupMembership.create({
+        data: {
+          client_id: client.id,
+          client_group_id: group.id,
+          is_responsible_for_billing: true,
+          role: "Self",
+        },
+      });
+
+      // Appointment 1: All null financial fields
+      const appt1 = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "NF1",
+          start_date: new Date("2024-03-10T10:00:00Z"),
+          end_date: new Date("2024-03-10T11:00:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: null,
+          write_off: null,
+          adjustable_amount: null,
+        },
+      });
+      // Expected: Service=0, Paid=0, Outstanding=0
+
+      // Appointment 2: Fee present, others null
+      const appt2 = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "NF2",
+          start_date: new Date("2024-03-11T10:00:00Z"),
+          end_date: new Date("2024-03-11T11:00:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: new Prisma.Decimal(100),
+          write_off: null,
+          adjustable_amount: null,
+        },
+      });
+      // Expected: Service=100, Paid=100, Outstanding=0
+
+      // Appointment 3: Fee and write_off present, adjustable_amount null
+      const appt3 = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "NF3",
+          start_date: new Date("2024-03-12T10:00:00Z"),
+          end_date: new Date("2024-03-12T11:00:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: new Prisma.Decimal(150),
+          write_off: new Prisma.Decimal(20),
+          adjustable_amount: null,
+        },
+      });
+      // Expected: Service=150, Paid=130 (150-20), Outstanding=0
+
+      // Appointment 4: Fee and adjustable_amount present, write_off null
+      const appt4 = await prisma.appointment.create({
+        data: {
+          client_group_id: group.id,
+          type: "NF4",
+          start_date: new Date("2024-03-13T10:00:00Z"),
+          end_date: new Date("2024-03-13T11:00:00Z"),
+          created_by: "tu",
+          status: "completed",
+          appointment_fee: new Prisma.Decimal(200),
+          write_off: null,
+          adjustable_amount: new Prisma.Decimal(30),
+        },
+      });
+      // Expected: Service=200, Paid=170 (200-30), Outstanding=30
+
+      createdAppointmentIds.push(appt1.id, appt2.id, appt3.id, appt4.id);
+
+      // 2. Make API Call
+      const startDate = "2024-03-01";
+      const endDate = "2024-03-31";
+      const req = createRequest(
+        `/api/billing/outstanding-balance?startDate=${startDate}&endDate=${endDate}`,
+      );
+      const response = await GET(req);
+      const responseBody = await response.json();
+
+      // 3. Assertions
+      expect(response.status).toBe(200);
+      expect(responseBody.data).toBeInstanceOf(Array);
+      expect(responseBody.data).toHaveLength(1);
+
+      const clientData = responseBody.data[0];
+      expect(clientData.clientId).toBe(client.id);
+
+      // Total Service = 0 (appt1) + 100 (appt2) + 150 (appt3) + 200 (appt4) = 450
+      // Total Paid = 0 (appt1) + 100 (appt2) + 130 (appt3) + 170 (appt4) = 400
+      // Total Outstanding = 0 (appt1) + 0 (appt2) + 0 (appt3) + 30 (appt4) = 30
+
+      expect(clientData.totalServiceAmount).toBeCloseTo(450.0);
+      expect(clientData.totalPaidAmount).toBeCloseTo(400.0);
+      expect(clientData.totalOutstandingBalance).toBeCloseTo(30.0);
+
+      expect(responseBody.pagination.total).toBe(1);
+    });
   });
 
   // TODO: Add integration tests as per the plan
