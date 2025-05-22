@@ -40,11 +40,6 @@ const menuItems = {
           id: "practice-info",
           href: "/settings/practice-info",
         },
-        {
-          label: "Locations",
-          id: "locations",
-          href: "/settings/locations",
-        },
       ],
     },
     {
@@ -54,11 +49,6 @@ const menuItems = {
           label: "Team Members",
           id: "team-members",
           href: "/settings/team-members",
-        },
-        {
-          label: "Roles & Permissions",
-          id: "roles",
-          href: "/settings/roles",
         },
       ],
     },
@@ -158,11 +148,6 @@ const menuItems = {
           description: "Automate reminder texts",
         },
       ],
-    },
-    {
-      label: "Messaging",
-      id: "messaging",
-      href: "/settings/messaging",
     },
   ],
 };

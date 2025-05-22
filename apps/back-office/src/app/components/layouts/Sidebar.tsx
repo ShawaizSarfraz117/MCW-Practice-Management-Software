@@ -8,14 +8,10 @@ import {
   Calendar,
   Users,
   CreditCard,
-  Heart,
   BarChart2,
   Clock,
-  Eye,
   Settings,
-  Bell,
   Send,
-  Megaphone,
   ChevronsRightIcon,
   ChevronsLeftIcon,
 } from "lucide-react";
@@ -23,7 +19,6 @@ import { cn } from "@mcw/utils";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { Button, useIsMobile } from "@mcw/ui";
 
-// Update the Sidebar component to accept a 'mobile' prop
 interface SidebarProps {
   isSheet?: boolean;
 }
@@ -88,12 +83,6 @@ export default function Sidebar({ isSheet = false }: SidebarProps) {
           label="Billing"
         />
         <SidebarItem
-          active={pathname === "/insurance"}
-          href="/insurance"
-          icon={<Heart className="w-5 h-5" />}
-          label="Insurance"
-        />
-        <SidebarItem
           active={pathname === "/analytics"}
           href="/analytics"
           icon={<BarChart2 className="w-5 h-5" />}
@@ -106,39 +95,16 @@ export default function Sidebar({ isSheet = false }: SidebarProps) {
           label="Activity"
         />
         <SidebarItem
-          active={pathname === "/supervision"}
-          href="/supervision"
-          icon={<Eye className="w-5 h-5" />}
-          label="Supervision"
-        />
-        <SidebarItem
           active={pathname === "/settings"}
           href="/settings"
           icon={<Settings className="w-5 h-5" />}
           label="Settings"
         />
         <SidebarItem
-          active={pathname === "/reminders"}
-          badge={
-            <span className="flex items-center justify-center w-6 h-6 text-xs font-medium rounded-full bg-[#e5e7eb]">
-              95+
-            </span>
-          }
-          href="/reminders"
-          icon={<Bell className="w-5 h-5" />}
-          label="Reminders"
-        />
-        <SidebarItem
           active={pathname === "/requests"}
           href="/requests"
           icon={<Send className="w-5 h-5" />}
           label="Requests"
-        />
-        <SidebarItem
-          active={pathname === "/marketing"}
-          href="/marketing"
-          icon={<Megaphone className="w-5 h-5" />}
-          label="Marketing"
         />
       </nav>
     </div>
