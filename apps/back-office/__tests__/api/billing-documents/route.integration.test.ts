@@ -16,7 +16,7 @@ vi.mock("@/utils/helpers", () => ({
 }));
 
 // Import the route handler AFTER mocks are defined
-import { GET } from "../../../src/app/api/billing-documents/route";
+import { GET } from "@/api/billing-documents/route";
 
 // Define type for billing document
 interface BillingDocument {

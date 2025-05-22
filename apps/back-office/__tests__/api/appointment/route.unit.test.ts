@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
-import { GET, POST, PUT, DELETE } from "../../../src/app/api/appointment/route";
+import { GET, POST, PUT, DELETE } from "@/api/appointment/route";
 import prismaMock from "@mcw/database/mock";
 import { AppointmentFactory } from "@mcw/database/mock-data";
 import { Decimal } from "@prisma/client/runtime/library";
