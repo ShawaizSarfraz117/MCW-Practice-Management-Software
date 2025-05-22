@@ -477,7 +477,7 @@ model ClinicalInfo {
 }
 
 model License {
-  id              String    @id(map: "PK_License") @db.UniqueIdentifier
+  id              String    @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   clinician_id    String    @db.UniqueIdentifier
   license_type    String
   license_number  String
