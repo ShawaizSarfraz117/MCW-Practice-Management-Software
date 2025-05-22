@@ -21,4 +21,4 @@ Implementing API routes for outstanding client balances and financial analytics.
   - [x] `getOutstandingBalances_DateFiltering_StrictlyAdhered`
   - [x] `getOutstandingBalances_NoAppointmentsInDateRange_ReturnsEmpty`
   - [x] `getOutstandingBalances_AppointmentsWithNullFinancialFields_TreatedAsZero`
-  - [ ] `getOutstandingBalances_Error_InvalidDateFormat`: Tests API response when `startDate` or `endDate` are in an invalid format.
+  - [x] `getOutstandingBalances_Error_InvalidDateFormat`: Tests API response when `startDate` or `endDate` are in an invalid format.

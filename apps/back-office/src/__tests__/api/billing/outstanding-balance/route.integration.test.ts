@@ -1064,6 +1064,78 @@ describe("/api/billing/outstanding-balance Integration Tests", () => {
 
       expect(responseBody.pagination.total).toBe(1);
     });
+
+    it("getOutstandingBalances_Error_InvalidDateFormat", async () => {
+      const testCases = [
+        {
+          startDate: "invalid-date",
+          endDate: "2024-03-31",
+          case: "Invalid startDate",
+        },
+        {
+          startDate: "2024-03-01",
+          endDate: "invalid-date",
+          case: "Invalid endDate",
+        },
+        {
+          startDate: "2024/03/01",
+          endDate: "2024-03-31",
+          case: "Wrong format startDate (YYYY/MM/DD)",
+        },
+        {
+          startDate: "03-01-2024",
+          endDate: "2024-03-31",
+          case: "Wrong format startDate (MM-DD-YYYY)",
+        },
+        {
+          startDate: "2024-03-01",
+          endDate: "2024/03/31",
+          case: "Wrong format endDate (YYYY/MM/DD)",
+        },
+        {
+          startDate: "2024-03-01",
+          endDate: "03-31-2024",
+          case: "Wrong format endDate (MM-DD-YYYY)",
+        },
+        {
+          startDate: "2024-13-01",
+          endDate: "2024-03-31",
+          case: "Invalid month startDate",
+        },
+        {
+          startDate: "2024-03-01",
+          endDate: "2024-02-30",
+          case: "Invalid day endDate",
+        }, // Feb 30 is invalid
+        {
+          startDate: "2024-03-31",
+          endDate: "2024-03-01",
+          case: "endDate before startDate",
+        },
+      ];
+
+      for (const { startDate, endDate, case: testCaseName } of testCases) {
+        const req = createRequest(
+          `/api/billing/outstanding-balance?startDate=${startDate}&endDate=${endDate}`,
+        );
+        const response = await GET(req);
+        const responseBody = await response.json();
+
+        expect(response.status, `Test Case: ${testCaseName}`).toBe(400);
+        expect(responseBody, `Test Case: ${testCaseName}`).toHaveProperty(
+          "error",
+        );
+        if (testCaseName === "endDate before startDate") {
+          expect(responseBody.error, `Test Case: ${testCaseName}`).toContain(
+            "endDate cannot be before startDate",
+          );
+        } else {
+          expect(responseBody.error, `Test Case: ${testCaseName}`).toContain(
+            "Invalid date format",
+          );
+        }
+      }
+    });
   });
 
   // TODO: Add integration tests as per the plan
