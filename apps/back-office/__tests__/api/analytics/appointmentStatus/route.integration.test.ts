@@ -8,17 +8,23 @@ describe("Appointment Status API Integration", () => {
   let testUser: { id: string };
 
   beforeEach(async () => {
-    // Clean up in correct order to respect foreign key constraints
+    // Clean up the database before each test
     await prisma.payment.deleteMany();
     await prisma.invoice.deleteMany();
-    await prisma.creditCard.deleteMany();
-    await prisma.audit.deleteMany();
+    await prisma.surveyAnswers.deleteMany();
     await prisma.appointment.deleteMany();
     await prisma.clientGroupMembership.deleteMany();
     await prisma.clientGroup.deleteMany();
+    await prisma.clientContact.deleteMany();
+    await prisma.clientReminderPreference.deleteMany();
+    await prisma.audit.deleteMany();
+    await prisma.clientProfile.deleteMany();
+    await prisma.clientAdress.deleteMany();
+    await prisma.creditCard.deleteMany();
+    await prisma.clinicianClient.deleteMany();
     await prisma.client.deleteMany();
     await prisma.surveyTemplate.deleteMany();
-    await prisma.clinician.deleteMany(); // Delete clinicians before users
+    await prisma.clinician.deleteMany();
     await prisma.user.deleteMany();
 
     // Create a test user for the appointments
