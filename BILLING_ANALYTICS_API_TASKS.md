@@ -22,3 +22,11 @@ Implementing API routes for outstanding client balances and financial analytics.
   - [x] `getOutstandingBalances_NoAppointmentsInDateRange_ReturnsEmpty`
   - [x] `getOutstandingBalances_AppointmentsWithNullFinancialFields_TreatedAsZero`
   - [x] `getOutstandingBalances_Error_InvalidDateFormat`: Tests API response when `startDate` or `endDate` are in an invalid format.
+
+### `/api/analytics/home` (GET)
+
+- [x] Implement basic GET handler structure in `route.ts`
+- [ ] **Integration Tests:**
+  - [x] `getAnalyticsHome_ValidDateRange_CorrectMetricsCalculation`
+  - [x] `getAnalyticsHome_NoAppointmentsInDateRange_ReturnsZeroMetrics`
+  - [x] `getAnalyticsHome_AppointmentsWithNullFinancialFields_AggregatedAsZero`
