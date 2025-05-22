@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Footer } from "@/components/footer";
+import { Footer } from "@/components/Footer";
 import { Button } from "@mcw/ui";
 import { Bell, LogOut } from "lucide-react";
 import ClientDocuments from "@/dashboard/components/client-documents";

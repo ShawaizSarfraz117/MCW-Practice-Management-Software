@@ -11,7 +11,7 @@ import { useToast } from "@mcw/ui";
 import Image from "next/image";
 import emailIcon from "@/assets/images/mailIcon.svg";
 import googleIcon from "@/assets/images/googleIcon.svg";
-import { Footer } from "@/components/footer";
+import { Footer } from "@/components/Footer";
 
 export default function LoginPage() {
   const router = useRouter();
