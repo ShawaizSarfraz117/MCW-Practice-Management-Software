@@ -1,14 +1,5 @@
-import React from "react";
-import { Button } from "@mcw/ui";
+import { redirect } from "next/navigation";
 
-export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-6">Welcome to Front Office</h1>
-      <p className="text-xl mb-8">Client-facing application</p>
-      <Button size="lg" variant="default">
-        Get Started
-      </Button>
-    </main>
-  );
+export default function Page() {
+  redirect("/login");
 }
