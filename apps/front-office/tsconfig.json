@@ -2,7 +2,7 @@
   "extends": "@mcw/tsconfig-config/next",
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/app/*", "./src/*"]
+      "@/*": ["./src/app/*"]
     }
   },
   "include": [

@@ -12,9 +12,8 @@ import Image from "next/image";
 import emailIcon from "@/assets/images/mailIcon.svg";
 import googleIcon from "@/assets/images/googleIcon.svg";
 import { Footer } from "@/components/Footer";
-import { Suspense } from "react";
 
-function LoginContent() {
+export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState<string>("");
@@ -161,13 +160,5 @@ function LoginContent() {
       </div>
       <Footer />
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <LoginContent />
-    </Suspense>
   );
 }
