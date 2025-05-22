@@ -22,7 +22,11 @@ export default function EditRoleModal({
             Edit team member
           </h2>
           <div className="text-[16px] text-[#181C1F] mb-6">
-            Update <span className="font-medium">{member.name}</span>'s role
+            Update{" "}
+            <span className="font-medium">
+              {member.firstName} {member.lastName}
+            </span>
+            's role
           </div>
           <div className="text-[16px] text-[#181C1F] mb-6">
             <a
@@ -117,7 +121,7 @@ export default function EditRoleModal({
             </div>
             <div>
               <div className="font-semibold text-[17px] text-[#181C1F] leading-tight">
-                {member.name}
+                {member.firstName} {member.lastName}
               </div>
               <div className="text-[15px] text-[#6B7280] leading-tight">
                 {member.email}
