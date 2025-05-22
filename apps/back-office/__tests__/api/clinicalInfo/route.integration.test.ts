@@ -16,14 +16,18 @@ import {
 import { getServerSession } from "next-auth";
 import { createRequestWithBody } from "@mcw/utils";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 // Mock next-auth
 vi.mock("next-auth", () => ({
   getServerSession: vi.fn(),
 }));
 
+// Use a module-level variable instead of global
+let testClinicianId: string | undefined;
+
 // Create manual implementations of the route handlers to avoid import issues
-const GET = async () => {
+const GET = async (): Promise<NextResponse> => {
   try {
     // Mock getBackOfficeSession and getClinicianInfo
     const session = await getServerSession();
@@ -33,7 +37,7 @@ const GET = async () => {
 
     const { isClinician, clinicianId } = {
       isClinician: true,
-      clinicianId: global.testClinicianId,
+      clinicianId: testClinicianId,
     };
 
     if (!isClinician || !clinicianId) {
@@ -70,7 +74,7 @@ const GET = async () => {
   }
 };
 
-const PUT = async (request) => {
+const PUT = async (request: NextRequest): Promise<NextResponse> => {
   try {
     // Mock getBackOfficeSession and getClinicianInfo
     const session = await getServerSession();
@@ -80,7 +84,7 @@ const PUT = async (request) => {
 
     const { isClinician, clinicianId } = {
       isClinician: true,
-      clinicianId: global.testClinicianId,
+      clinicianId: testClinicianId,
     };
 
     if (!isClinician || !clinicianId) {
@@ -121,7 +125,7 @@ const PUT = async (request) => {
 };
 
 // Helper function for cleaning up test data
-async function cleanup(clinicianId, userId) {
+async function cleanup(clinicianId: string, userId: string): Promise<void> {
   try {
     await prisma.clinician.deleteMany({ where: { id: clinicianId } });
     await prisma.userRole.deleteMany({ where: { user_id: userId } });
@@ -135,9 +139,9 @@ async function cleanup(clinicianId, userId) {
 }
 
 describe("Clinical Info API Integration Tests", () => {
-  let userId;
-  let clinicianId;
-  let session;
+  let userId: string;
+  let clinicianId: string;
+  let session: { user: { id: string }; expires: string };
 
   beforeAll(async () => {
     const user = await UserPrismaFactory.create();
@@ -153,13 +157,13 @@ describe("Clinical Info API Integration Tests", () => {
       expires: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
     };
 
-    // Store clinicianId globally so the mocked route handlers can access it
-    global.testClinicianId = clinicianId;
+    // Store clinicianId in module variable so the mocked route handlers can access it
+    testClinicianId = clinicianId;
   });
 
   afterAll(async () => {
     await cleanup(clinicianId, userId);
-    delete global.testClinicianId;
+    testClinicianId = undefined;
   });
 
   beforeEach(() => {
