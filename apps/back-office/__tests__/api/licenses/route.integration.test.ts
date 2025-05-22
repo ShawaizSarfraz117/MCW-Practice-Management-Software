@@ -10,7 +10,10 @@ import {
 } from "vitest";
 import { prisma } from "@mcw/database";
 import { GET, POST } from "@/api/license/route";
-import { UserPrismaFactory } from "@mcw/database/mock-data";
+import {
+  UserPrismaFactory,
+  ClinicianPrismaFactory,
+} from "@mcw/database/mock-data";
 import { getServerSession } from "next-auth";
 import { createRequestWithBody } from "@mcw/utils";
 import { CLINICIAN_ROLE } from "@/utils/constants";
@@ -51,20 +54,10 @@ describe("License API Integration Tests", () => {
   let clinicianId: string;
 
   beforeAll(async () => {
-    // First create a user
     const user = await UserPrismaFactory.create();
     userId = user.id;
-
-    // Then create a clinician with proper connection to the user
-    const clinician = await prisma.clinician.create({
-      data: {
-        user_id: userId,
-        first_name: "Test",
-        last_name: "Clinician",
-        address: "123 Test St",
-        percentage_split: 100,
-        is_active: true,
-      },
+    const clinician = await ClinicianPrismaFactory.create({
+      User: { connect: { id: userId } },
     });
     clinicianId = clinician.id;
   });
