@@ -1,7 +1,16 @@
 /*
   Warnings:
 
+  - You are about to drop the column `location` on the `Availability` table. All the data in the column will be lost.
   - You are about to drop the column `status` on the `ClientGroupFile` table. All the data in the column will be lost.
+  - You are about to drop the column `include_attachments` on the `EmailTemplate` table. All the data in the column will be lost.
+  - You are about to drop the column `is_active` on the `EmailTemplate` table. All the data in the column will be lost.
+  - You are about to drop the column `is_enabled` on the `EmailTemplate` table. All the data in the column will be lost.
+  - You are about to drop the column `reminder_time` on the `EmailTemplate` table. All the data in the column will be lost.
+  - You are about to drop the column `send_to_client` on the `EmailTemplate` table. All the data in the column will be lost.
+  - You are about to drop the column `send_to_clinician` on the `EmailTemplate` table. All the data in the column will be lost.
+  - You are about to drop the column `send_to_practice` on the `EmailTemplate` table. All the data in the column will be lost.
+  - You are about to drop the column `user_id` on the `PracticeInformation` table. All the data in the column will be lost.
   - You are about to drop the column `amount` on the `Superbill` table. All the data in the column will be lost.
   - You are about to drop the column `appointment_id` on the `Superbill` table. All the data in the column will be lost.
   - You are about to drop the column `diagnosis_code` on the `Superbill` table. All the data in the column will be lost.
@@ -10,11 +19,19 @@
   - You are about to drop the column `service_code` on the `Superbill` table. All the data in the column will be lost.
   - You are about to drop the column `service_description` on the `Superbill` table. All the data in the column will be lost.
   - You are about to drop the column `units` on the `Superbill` table. All the data in the column will be lost.
+  - The primary key for the `License` table will be changed. If it partially fails, the table could be left without primary key constraint.
+  - You are about to drop the column `clinical_info_id` on the `License` table. All the data in the column will be lost.
+  - You are about to alter the column `id` on the `License` table. The data in that column will be cast from `Int` to `String`. This cast may fail. Please make sure the data in the column can be cast.
+  - Added the required column `location_id` to the `Availability` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `clinician_id` to the `License` table without a default value. This is not possible if the table is not empty.
 
 */
 BEGIN TRY
 
 BEGIN TRAN;
+
+-- DropForeignKey
+ALTER TABLE [dbo].[PracticeInformation] DROP CONSTRAINT [FK_practiceInformation_User];
 
 -- DropForeignKey
 ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [FK_Superbill_Appointment];
@@ -24,6 +41,25 @@ DROP INDEX [IX_Superbill_appointment_id] ON [dbo].[Superbill];
 
 -- AlterTable
 ALTER TABLE [dbo].[Appointment] ADD [superbill_id] UNIQUEIDENTIFIER;
+
+-- AlterTable
+ALTER TABLE [dbo].[Availability] DROP COLUMN [location];
+ALTER TABLE [dbo].[Availability] ADD [location_id] UNIQUEIDENTIFIER NOT NULL;
+
+-- AlterTable
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [clinician_id] UNIQUEIDENTIFIER NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [autoInvoiceCreation] VARCHAR(50) NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [pastDueDays] INT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [emailClientPastDue] BIT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [invoiceIncludePracticeLogo] BIT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [superbillDayOfMonth] INT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [superbillIncludePracticeLogo] BIT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [superbillIncludeSignatureLine] BIT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [superbillIncludeDiagnosisDescription] BIT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [billingDocEmailDelayMinutes] INT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [createMonthlyStatementsForNewClients] BIT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [createMonthlySuperbillsForNewClients] BIT NULL;
+ALTER TABLE [dbo].[BillingSettings] ALTER COLUMN [defaultNotificationMethod] VARCHAR(50) NULL;
 
 -- AlterTable
 ALTER TABLE [dbo].[Client] ADD [access_billing_documents] BIT NOT NULL CONSTRAINT [DF_Client_access_billing_documents] DEFAULT 0,
@@ -36,36 +72,44 @@ ALTER TABLE [dbo].[ClientGroup] ADD [auto_monthly_statement_enabled] BIT CONSTRA
 
 -- AlterTable
 ALTER TABLE [dbo].[ClientGroupFile] ALTER COLUMN [url] TEXT NULL;
--- First drop the default constraint
-IF EXISTS (SELECT * FROM sys.default_constraints WHERE name = 'ClientGroupFile_status_df')
-    ALTER TABLE [dbo].[ClientGroupFile] DROP CONSTRAINT [ClientGroupFile_status_df];
--- Then drop the column
+ALTER TABLE [dbo].[ClientGroupFile] DROP CONSTRAINT [ClientGroupFile_status_df];
 ALTER TABLE [dbo].[ClientGroupFile] DROP COLUMN [status];
 ALTER TABLE [dbo].[ClientGroupFile] ADD [survey_template_id] UNIQUEIDENTIFIER;
 
 -- AlterTable
-ALTER TABLE [dbo].[Statement] ADD [issued_date] DATETIME2;
+ALTER TABLE [dbo].[Clinician] ADD [NPI_number] VARCHAR(250),
+[speciality] VARCHAR(250),
+[taxonomy_code] VARCHAR(250);
 
 -- AlterTable
--- Drop default constraints first for each column that might have one
-IF EXISTS (SELECT * FROM sys.default_constraints WHERE name = 'Superbill_amount_df')
-    ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_amount_df];
-IF EXISTS (SELECT * FROM sys.default_constraints WHERE name = 'Superbill_appointment_id_df')
-    ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_appointment_id_df];
-IF EXISTS (SELECT * FROM sys.default_constraints WHERE name = 'Superbill_diagnosis_code_df')
-    ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_diagnosis_code_df];
-IF EXISTS (SELECT * FROM sys.default_constraints WHERE name = 'Superbill_paid_amount_df')
-    ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_paid_amount_df];
-IF EXISTS (SELECT * FROM sys.default_constraints WHERE name = 'Superbill_pos_df')
-    ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_pos_df];
-IF EXISTS (SELECT * FROM sys.default_constraints WHERE name = 'Superbill_service_code_df')
-    ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_service_code_df];
-IF EXISTS (SELECT * FROM sys.default_constraints WHERE name = 'Superbill_service_description_df')
-    ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_service_description_df];
-IF EXISTS (SELECT * FROM sys.default_constraints WHERE name = 'Superbill_units_df')
-    ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_units_df];
+ALTER TABLE [dbo].[EmailTemplate] DROP CONSTRAINT [EmailTemplate_include_attachments_df];
+ALTER TABLE [dbo].[EmailTemplate] DROP CONSTRAINT [EmailTemplate_is_active_df];
+ALTER TABLE [dbo].[EmailTemplate] DROP CONSTRAINT [EmailTemplate_is_enabled_df];
+ALTER TABLE [dbo].[EmailTemplate] DROP CONSTRAINT [EmailTemplate_send_to_client_df];
+ALTER TABLE [dbo].[EmailTemplate] DROP CONSTRAINT [EmailTemplate_send_to_clinician_df];
+ALTER TABLE [dbo].[EmailTemplate] DROP CONSTRAINT [EmailTemplate_send_to_practice_df];
+ALTER TABLE [dbo].[EmailTemplate] DROP COLUMN [include_attachments],
+[is_active],
+[is_enabled],
+[reminder_time],
+[send_to_client],
+[send_to_clinician],
+[send_to_practice];
+ALTER TABLE [dbo].[EmailTemplate] ADD [email_type] VARCHAR(250);
 
--- Now drop the columns
+-- AlterTable
+ALTER TABLE [dbo].[Invoice] ADD [is_exported] BIT NOT NULL CONSTRAINT [DF_Invoice_is_exported] DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE [dbo].[PracticeInformation] DROP COLUMN [user_id];
+ALTER TABLE [dbo].[PracticeInformation] ADD [clinician_id] UNIQUEIDENTIFIER;
+
+-- AlterTable
+ALTER TABLE [dbo].[Statement] ADD [is_exported] BIT NOT NULL CONSTRAINT [DF_Statement_is_exported] DEFAULT 0,
+[issued_date] DATETIME2;
+
+-- AlterTable
+ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_units_df];
 ALTER TABLE [dbo].[Superbill] DROP COLUMN [amount],
 [appointment_id],
 [diagnosis_code],
@@ -74,9 +118,14 @@ ALTER TABLE [dbo].[Superbill] DROP COLUMN [amount],
 [service_code],
 [service_description],
 [units];
+ALTER TABLE [dbo].[Superbill] ADD [is_exported] BIT NOT NULL CONSTRAINT [DF_Superbill_is_exported] DEFAULT 0;
 
 -- AlterTable
 ALTER TABLE [dbo].[SurveyAnswers] ADD [is_intake] BIT NOT NULL CONSTRAINT [DF_SurveyAnswers_is_intake] DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE [dbo].[SurveyTemplate] ADD [is_default] BIT NOT NULL CONSTRAINT [DF_SurveyTemplate_is_default] DEFAULT 0,
+[is_shareable] BIT NOT NULL CONSTRAINT [DF_SurveyTemplate_is_shareable] DEFAULT 0;
 
 -- CreateTable
 CREATE TABLE [dbo].[AppointmentNotes] (
@@ -207,6 +256,114 @@ CREATE TABLE [dbo].[StatementItem] (
     CONSTRAINT [PK_StatementItem] PRIMARY KEY CLUSTERED ([id])
 );
 
+-- CreateTable
+CREATE TABLE [dbo].[AppointmentRequests] (
+    [id] UNIQUEIDENTIFIER NOT NULL,
+    [clinician_id] UNIQUEIDENTIFIER NOT NULL,
+    [client_id] UNIQUEIDENTIFIER,
+    [service_id] UNIQUEIDENTIFIER NOT NULL,
+    [appointment_for] VARCHAR(50),
+    [reasons_for_seeking_care] TEXT,
+    [mental_health_history] TEXT,
+    [additional_notes] TEXT,
+    [start_time] DATETIME NOT NULL,
+    [end_time] DATETIME NOT NULL,
+    [status] VARCHAR(250) NOT NULL,
+    [received_date] DATETIME NOT NULL,
+    [updated_at] DATETIME,
+    CONSTRAINT [PK_AppointmentRequests] PRIMARY KEY CLUSTERED ([id])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[AvailabilityServices] (
+    [availability_id] UNIQUEIDENTIFIER NOT NULL,
+    [service_id] UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT [PK_AvailabilityServices] PRIMARY KEY CLUSTERED ([availability_id],[service_id])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[ClientPortalSettings] (
+    [id] UNIQUEIDENTIFIER NOT NULL,
+    [clinician_id] UNIQUEIDENTIFIER NOT NULL,
+    [is_enabled] BIT NOT NULL CONSTRAINT [DF_ClientPortalSettings_is_client_portal_enabled] DEFAULT 0,
+    [domain_url] VARCHAR(250),
+    [is_appointment_requests_enabled] BIT,
+    [appointment_start_times] VARCHAR(250),
+    [request_minimum_notice] VARCHAR(250),
+    [maximum_request_notice] VARCHAR(250),
+    [allow_new_clients_request] BIT NOT NULL CONSTRAINT [DF_ClientPortalSettings_allow_new_clients_request] DEFAULT 0,
+    [requests_from_new_individuals] BIT NOT NULL CONSTRAINT [DF_ClientPortalSettings_requests_from_new_individuals] DEFAULT 0,
+    [requests_from_new_couples] BIT NOT NULL CONSTRAINT [DF_ClientPortalSettings_requests_from_new_couples] DEFAULT 0,
+    [requests_from_new_contacts] BIT NOT NULL CONSTRAINT [DF_ClientPortalSettings_requests_from_new_contacts] DEFAULT 0,
+    [is_prescreen_new_clinets] BIT NOT NULL CONSTRAINT [DF_ClientPortalSettings_is_prescreen_new_clinets] DEFAULT 0,
+    [card_for_appointment_request] BIT NOT NULL CONSTRAINT [DF_ClientPortalSettings_card_for_appointment_request] DEFAULT 0,
+    [is_upload_documents_allowed] BIT NOT NULL CONSTRAINT [DF_ClientPortalSettings_is_upload_documents_allowed] DEFAULT 0,
+    [welcome_message] NVARCHAR(max),
+    CONSTRAINT [PK_ClientPortalSettings] PRIMARY KEY CLUSTERED ([id])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[PracticeSettings] (
+    [id] UNIQUEIDENTIFIER NOT NULL,
+    [key] VARCHAR(250) NOT NULL,
+    [value] NVARCHAR(max) NOT NULL,
+    CONSTRAINT [PK_PracticeSettings] PRIMARY KEY CLUSTERED ([id])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[ReminderTextTemplates] (
+    [id] UNIQUEIDENTIFIER NOT NULL,
+    [type] VARCHAR(250) NOT NULL,
+    [content] TEXT NOT NULL,
+    CONSTRAINT [PK_ReminderTextTemplates] PRIMARY KEY CLUSTERED ([id])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[RequestContactItems] (
+    [id] UNIQUEIDENTIFIER NOT NULL,
+    [appointment_request_id] UNIQUEIDENTIFIER NOT NULL,
+    [type] VARCHAR(250) NOT NULL,
+    [first_name] VARCHAR(250) NOT NULL,
+    [last_name] VARCHAR(250) NOT NULL,
+    [preferred_name] VARCHAR(250),
+    [date_of_birth] DATE,
+    [email] VARCHAR(250) NOT NULL,
+    [phone] VARCHAR(250) NOT NULL,
+    [payment_method] VARCHAR(250),
+    [is_client_minor] BIT,
+    CONSTRAINT [PK_RequestContactItems] PRIMARY KEY CLUSTERED ([id])
+);
+
+-- RedefineTables
+BEGIN TRANSACTION;
+DECLARE @SQL NVARCHAR(MAX) = N''
+SELECT @SQL += N'ALTER TABLE '
+    + QUOTENAME(OBJECT_SCHEMA_NAME(PARENT_OBJECT_ID))
+    + '.'
+    + QUOTENAME(OBJECT_NAME(PARENT_OBJECT_ID))
+    + ' DROP CONSTRAINT '
+    + OBJECT_NAME(OBJECT_ID) + ';'
+FROM SYS.OBJECTS
+WHERE TYPE_DESC LIKE '%CONSTRAINT'
+    AND OBJECT_NAME(PARENT_OBJECT_ID) = 'License'
+    AND SCHEMA_NAME(SCHEMA_ID) = 'dbo'
+EXEC sp_executesql @SQL
+;
+CREATE TABLE [dbo].[_prisma_new_License] (
+    [id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [DF_License_id] DEFAULT newid(),
+    [clinician_id] UNIQUEIDENTIFIER NOT NULL,
+    [license_type] NVARCHAR(1000) NOT NULL,
+    [license_number] NVARCHAR(1000) NOT NULL,
+    [expiration_date] DATETIME2 NOT NULL,
+    [state] NVARCHAR(1000) NOT NULL,
+    CONSTRAINT [PK_License] PRIMARY KEY CLUSTERED ([id])
+);
+IF EXISTS(SELECT * FROM [dbo].[License])
+    EXEC('INSERT INTO [dbo].[_prisma_new_License] ([expiration_date],[id],[license_number],[license_type],[state]) SELECT [expiration_date],[id],[license_number],[license_type],[state] FROM [dbo].[License] WITH (holdlock tablockx)');
+DROP TABLE [dbo].[License];
+EXEC SP_RENAME N'dbo._prisma_new_License', N'License';
+COMMIT;
+
 -- CreateIndex
 CREATE NONCLUSTERED INDEX [IX_Diagnosis_Code] ON [dbo].[Diagnosis]([code]);
 
@@ -224,6 +381,12 @@ CREATE NONCLUSTERED INDEX [IX_DiagnosisTreatmentPlanItem_TreatmentPlanId] ON [db
 
 -- AddForeignKey
 ALTER TABLE [dbo].[Appointment] ADD CONSTRAINT [FK_Appointment_Superbill] FOREIGN KEY ([superbill_id]) REFERENCES [dbo].[Superbill]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[Availability] ADD CONSTRAINT [FK_Availability_Location] FOREIGN KEY ([location_id]) REFERENCES [dbo].[Location]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[PracticeInformation] ADD CONSTRAINT [FK_PracticeInformation_Clinician] FOREIGN KEY ([clinician_id]) REFERENCES [dbo].[Clinician]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE [dbo].[AppointmentNotes] ADD CONSTRAINT [FK_AppointmentNotes_Appointment] FOREIGN KEY ([appointment_id]) REFERENCES [dbo].[Appointment]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
@@ -284,6 +447,15 @@ ALTER TABLE [dbo].[GoodFaithServices] ADD CONSTRAINT [FK_GoodFaithServices_Pract
 
 -- AddForeignKey
 ALTER TABLE [dbo].[StatementItem] ADD CONSTRAINT [FK_StatementItem_Statement] FOREIGN KEY ([statement_id]) REFERENCES [dbo].[Statement]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[AppointmentRequests] ADD CONSTRAINT [FK_AppointmentRequests_PracticeService] FOREIGN KEY ([service_id]) REFERENCES [dbo].[PracticeService]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[AvailabilityServices] ADD CONSTRAINT [FK_AvailabilityServices_Availability] FOREIGN KEY ([availability_id]) REFERENCES [dbo].[Availability]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[RequestContactItems] ADD CONSTRAINT [FK_RequestContactItems_AppointmentRequests] FOREIGN KEY ([appointment_request_id]) REFERENCES [dbo].[AppointmentRequests]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 COMMIT TRAN;
 
