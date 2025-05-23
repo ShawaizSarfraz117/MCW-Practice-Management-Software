@@ -196,35 +196,65 @@ Once a task has been broken down into subtasks using `expand_task` or similar me
     *   Create new or update existing rules following internal guidelines (previously linked to `cursor_rules.mdc` and `self_improve.mdc`).
 
 8.  **Finalize Implementation:**
-    *   After the primary coding and initial test writing for a subtask are complete and the subtask is marked 'done', follow the [Post-Implementation Subtask Sequence](mdc:#post-implementation-subtask-sequence).
+    *   After the primary coding for a feature or subtask is complete (but before tests are written), ensure it's logged appropriately. Then, follow the [Post-Implementation Subtask Sequence](mdc:#post-implementation-subtask-sequence).
 
 9.  **Proceed to Next Task/Subtask:**
     *   Identify the next task or subtask (e.g., using `next_task` / `task-master next`).
 
 ## Post-Implementation Subtask Sequence
 
-After a subtask involving code implementation and initial test creation is marked "done", the following sequence of subtasks **must** be created and completed:
+After the initial code for a feature/subtask (let's call this the "Feature Code") is implemented and considered ready for testing, the following sequence of subtasks **must** be created and completed:
 
-1.  **Subtask: "Run Tests and Fix Code for [Feature/Subtask Name]"**
-    *   **Description**: Continuously run the associated tests for the recently implemented [Feature/Subtask Name]. Iteratively debug and fix the source code and/or test code until all tests pass successfully.
+1.  **Subtask: "Commit Initial [Feature/Subtask Name] Code"**
+    *   **Dependencies**: Completion of the initial Feature Code implementation.
+    *   **Description**: Commit the initial implementation of the Feature Code for [Feature/Subtask Name].
     *   **Details**:
-        *   **Crucially, once tests are generated or modified, they *must* be executed in the terminal (using commands specified in `rules-for-writing-tests.mdc`) to verify their initial status and begin the iterative fixing process.**
+        *   Stage all relevant Feature Code changes (`git add .`).
+        *   Craft a commit message (e.g., `git commit -m 'feat(module): Implement initial Feature X'`).
+    *   **Test Strategy**: Verify the commit has been successfully made.
+    *   **Status Transition**: `pending` -> `in-progress` -> `done`.
+
+2.  **Subtask: "Implement Tests for [Feature/Subtask Name]"**
+    *   **Dependencies**: The previous "Commit Initial [Feature/Subtask Name] Code" subtask.
+    *   **Description**: Write the necessary unit and/or integration tests for the [Feature/Subtask Name].
+    *   **Details**:
+        *   Create or modify test files (e.g., `*.test.ts`).
+        *   Follow guidelines in `rules-for-writing-tests.mdc`.
+        *   Log any significant decisions or challenges using `update_subtask`.
+    *   **Test Strategy**: Review test code for completeness and correctness.
+    *   **Status Transition**: `pending` -> `in-progress` -> `done`.
+
+3.  **Subtask: "Commit Tests for [Feature/Subtask Name]"**
+    *   **Dependencies**: The previous "Implement Tests for [Feature/Subtask Name]" subtask.
+    *   **Description**: Commit the newly created or updated test files for [Feature/Subtask Name].
+    *   **Details**:
+        *   Stage all new/modified test files (`git add .`).
+        *   Craft a commit message (e.g., `git commit -m 'test(module): Add tests for Feature X'`).
+    *   **Test Strategy**: Verify the commit has been successfully made.
+    *   **Status Transition**: `pending` -> `in-progress` -> `done`.
+
+4.  **Subtask: "Run Tests and Fix Code for [Feature/Subtask Name]"**
+    *   **Dependencies**: The previous "Commit Tests for [Feature/Subtask Name]" subtask.
+    *   **Description**: Continuously run the associated tests for the recently implemented and committed [Feature/Subtask Name]. Iteratively debug and fix the source code (Feature Code) and/or test code until all tests pass (with a special exception for integration tests, see below).
+    *   **Details**:
+        *   **Test Execution Mode**: All test commands (e.g., Vitest, Jest) **must** be run with a flag that ensures they execute once and then exit, without entering "watch mode" (e.g., `vitest run`, `jest --watchAll=false`). This prevents the need for manual intervention (like pressing 'q') to stop the test runner.
         *   Log any significant issues encountered and their resolutions using `update_subtask`.
         *   Refer to `rules-for-writing-tests.mdc` for detailed guidance on running and interpreting tests.
     *   **Test Strategy**: All tests related to [Feature/Subtask Name] must pass.
-    *   **Status Transition**: `pending` -> `in-progress` -> `done` (only when all tests pass).
+        *   **Special Exception for Integration Tests**: Due to a temporary known glitch, integration tests **must still be run**. However, if they fail, **do not attempt to fix them at this stage**. The subsequent commit subtask can proceed even with failing integration tests. This exception will be removed once the underlying glitch is resolved.
+    *   **Status Transition**: `pending` -> `in-progress` -> `done` (only when all tests pass, or when integration tests have been run and noted if failing, per the exception).
 
-2.  **Subtask: "Commit Successfully Tested Code for [Feature/Subtask Name]"**
+5.  **Subtask: "Commit Successfully Tested/Fixed Code for [Feature/Subtask Name]"**
     *   **Dependencies**: The previous "Run Tests and Fix Code" subtask for [Feature/Subtask Name].
-    *   **Description**: Commit the now successfully tested code changes for [Feature/Subtask Name] to version control.
+    *   **Description**: Commit any code changes (to either Feature Code or test code) made while ensuring tests pass for [Feature/Subtask Name].
     *   **Details**:
-        *   Stage all relevant code changes and any updated/new rule files (`git add .`).
-        *   Craft a comprehensive Git commit message summarizing the work done, including both code implementation and any rule adjustments. (e.g., `git commit -m 'feat(module): Implement feature X for subtask <original_subtaskId>\n\n- Details about changes...\n- Updated rule Y for pattern Z'`).
-        *   Consider if a Changeset is needed according to internal versioning guidelines (previously linked to `changeset.mdc`). If so, run `npm run changeset`, stage the generated file, and amend the commit or create a new one.
-    *   **Test Strategy**: Verify the commit has been successfully made and pushed (if applicable to the workflow).
+        *   Stage all relevant code changes (`git add .`).
+        *   Craft a comprehensive Git commit message (e.g., `git commit -m 'fix(module): Fix tests for Feature X'`).
+        *   Consider if a Changeset is needed.
+    *   **Test Strategy**: Verify the commit has been successfully made.
     *   **Status Transition**: `pending` -> `in-progress` -> `done`.
 
-This sequence ensures that testing, fixing, and committing are explicit, tracked steps in the workflow.
+This sequence ensures that Feature Code implementation, test implementation, test execution/fixing, and their respective commits are explicit, tracked steps.
 
 ## Code Analysis & Refactoring Techniques
 
