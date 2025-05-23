@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
-import { getBackOfficeSession } from "@/utils/helpers";
+import { getBackOfficeSession, getClinicianInfo } from "@/utils/helpers";
 import { z } from "zod";
 
 const practiceInformationPayload = z.object({
@@ -14,12 +14,21 @@ const practiceInformationPayload = z.object({
   teleHealth: z.boolean().optional().nullable(),
 });
 
+const phoneRegex = /^[- +()0-9]*$/;
+
 export const dynamic = "force-dynamic";
 export async function PUT(request: NextRequest) {
   try {
     const session = await getBackOfficeSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { isClinician, clinicianId } = await getClinicianInfo();
+    if (!isClinician || !clinicianId) {
+      return NextResponse.json(
+        { error: "Clinician not found for user" },
+        { status: 404 },
+      );
     }
 
     const data = await request.json();
@@ -35,11 +44,26 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Backend phone number validation
+    const phoneNumbers = validationResult.data.phoneNumbers || [];
+    const invalidPhones = phoneNumbers?.filter(
+      (p) => p.number && !phoneRegex.test(p.number),
+    );
+    if (invalidPhones.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Invalid phone number(s)",
+          details: invalidPhones.map((p) => p.number),
+        },
+        { status: 422 },
+      );
+    }
+
     // Check if practice information exists
     const existingPracticeInformation =
       await prisma.practiceInformation.findFirst({
         where: {
-          user_id: session.user.id,
+          clinician_id: clinicianId,
         },
       });
 
@@ -47,7 +71,7 @@ export async function PUT(request: NextRequest) {
       // Update existing practice information
       const updatedPracticeInformation =
         await prisma.practiceInformation.updateMany({
-          where: { user_id: session.user.id },
+          where: { clinician_id: clinicianId },
           data: {
             practice_name: validationResult.data.practiceName ?? undefined,
             practice_email: validationResult.data.practiceEmail ?? undefined,
@@ -63,7 +87,7 @@ export async function PUT(request: NextRequest) {
       // Insert new practice information
       const newPracticeInformation = await prisma.practiceInformation.create({
         data: {
-          user_id: session.user.id,
+          clinician_id: clinicianId,
           practice_name: validationResult.data.practiceName ?? "",
           practice_email: validationResult.data.practiceEmail ?? "",
           time_zone: validationResult.data.timeZone ?? "",
@@ -89,10 +113,17 @@ export async function GET() {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const { isClinician, clinicianId } = await getClinicianInfo();
+    if (!isClinician || !clinicianId) {
+      return NextResponse.json(
+        { error: "Clinician not found for user" },
+        { status: 404 },
+      );
+    }
 
     const practiceInformation = await prisma.practiceInformation.findFirst({
       where: {
-        user_id: session.user.id,
+        clinician_id: clinicianId,
       },
     });
 

@@ -56,6 +56,7 @@ describe("Invoice Payment API Unit Tests", () => {
       provider_info: null,
       service_description: null,
       notes: null,
+      is_exported: false,
       Payment: [],
     };
 
@@ -195,6 +196,7 @@ describe("Invoice Payment API Unit Tests", () => {
       provider_info: null,
       service_description: null,
       notes: null,
+      is_exported: false,
     };
 
     const paymentData = {
@@ -250,6 +252,7 @@ describe("Invoice Payment API Unit Tests", () => {
       provider_info: null,
       service_description: null,
       notes: null,
+      is_exported: false,
     };
 
     const paymentData = {
@@ -278,6 +281,7 @@ describe("Invoice Payment API Unit Tests", () => {
     const updatedInvoice = {
       ...invoice,
       status: "PAID",
+      is_exported: false,
     };
 
     // Mock behaviors - simulate the transaction properly and update the invoice

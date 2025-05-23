@@ -31,6 +31,9 @@ interface MockClinician {
   address: string;
   percentage_split: number;
   is_active: boolean;
+  speciality: string | null;
+  NPI_number: string | null;
+  taxonomy_code: string | null;
   [key: string]: any;
 }
 
@@ -108,6 +111,9 @@ const mockClinician = (overrides = {}): MockClinician => ({
   address: "123 Test St",
   percentage_split: 50,
   is_active: true,
+  speciality: null,
+  NPI_number: null,
+  taxonomy_code: null,
   ...overrides,
 });
 

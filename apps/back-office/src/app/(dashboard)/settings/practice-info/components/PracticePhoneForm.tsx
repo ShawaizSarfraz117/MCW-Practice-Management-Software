@@ -10,6 +10,9 @@ import {
 } from "@mcw/ui";
 import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useState as useReactState } from "react";
+
+const phoneRegex = /^[- +()0-9]*$/;
 
 export default function PracticePhoneForm({
   setPracticeInfoState,
@@ -21,6 +24,7 @@ export default function PracticePhoneForm({
   const [phoneNumbers, setPhoneNumbers] = useState<
     { number: string; type: string }[]
   >(practiceInfoState.phone_numbers);
+  const [phoneErrors, setPhoneErrors] = useReactState<string[]>([]);
 
   useEffect(() => {
     setPracticeInfoState({
@@ -42,15 +46,30 @@ export default function PracticePhoneForm({
             placeholder="Phone number"
             value={phone.number}
             onChange={(e) => {
+              const value = e.target.value;
               const newPhoneNumbers = [...phoneNumbers];
-              newPhoneNumbers[index].number = e.target.value;
+              newPhoneNumbers[index].number = value;
               setPhoneNumbers(newPhoneNumbers);
               setPracticeInfoState({
                 ...practiceInfoState,
                 phone_numbers: newPhoneNumbers,
               });
+              // Validate phone number
+              const errors = [...phoneErrors];
+              if (!phoneRegex.test(value)) {
+                errors[index] =
+                  "Only numbers, spaces, dashes, parentheses, and plus are allowed.";
+              } else {
+                errors[index] = "";
+              }
+              setPhoneErrors(errors);
             }}
           />
+          {phoneErrors[index] && (
+            <span className="text-red-500 text-xs ml-2">
+              {phoneErrors[index]}
+            </span>
+          )}
           <Select
             defaultValue={phone.type}
             onValueChange={(value) => {

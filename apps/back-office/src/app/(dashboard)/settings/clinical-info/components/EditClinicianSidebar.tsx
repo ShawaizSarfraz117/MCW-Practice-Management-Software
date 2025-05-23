@@ -46,8 +46,8 @@ export default function EditClinicianSidebar({
       },
       body: JSON.stringify({
         speciality: clinicalInfoState.speciality,
-        taxonomyCode: clinicalInfoState.taxonomy_code,
-        NPInumber: clinicalInfoState.NPI_number,
+        taxonomy_code: clinicalInfoState.taxonomy_code,
+        NPI_number: clinicalInfoState.NPI_number?.toString() ?? null,
       }),
     });
 

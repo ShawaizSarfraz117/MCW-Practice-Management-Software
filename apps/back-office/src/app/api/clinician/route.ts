@@ -22,11 +22,7 @@ export async function GET(request: NextRequest) {
       const clinician = await prisma.user.findUnique({
         where: { id: userId },
         include: {
-          clinicalInfos: {
-            include: {
-              licenses: true,
-            },
-          },
+          clinicalInfos: true,
           Clinician: {
             include: {
               ClinicianServices: {
@@ -34,6 +30,7 @@ export async function GET(request: NextRequest) {
                   PracticeService: true,
                 },
               },
+              License: true,
             },
           },
         },

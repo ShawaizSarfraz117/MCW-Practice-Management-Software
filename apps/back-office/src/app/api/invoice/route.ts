@@ -95,6 +95,12 @@ export async function POST(request: NextRequest) {
           { status: 404 },
         );
       }
+
+      const maxInvoice = await prisma.invoice.findFirst({
+        orderBy: { invoice_number: "desc" },
+      });
+      const nextInvoiceNumber = maxInvoice ? maxInvoice.invoice_number + 1 : 1;
+
       const invoice = await prisma.invoice.create({
         data: {
           appointment_id: data.appointment_id as string,
@@ -104,7 +110,7 @@ export async function POST(request: NextRequest) {
           type: "ADJUSTMENT",
           status:
             Number(appointment.adjustable_amount) < 0 ? "CREDIT" : "UNPAID",
-          invoice_number: `INV-${Date.now()}`,
+          invoice_number: `INV #${nextInvoiceNumber}`,
           issued_date: new Date(),
           due_date: new Date(),
         },
@@ -128,7 +134,11 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json(invoice, { status: 201 });
     } else {
-      const invoiceNumber = `INV-${Date.now()}`;
+      const maxInvoice = await prisma.invoice.findFirst({
+        orderBy: { invoice_number: "desc" },
+      });
+      const nextInvoiceNumber = maxInvoice ? maxInvoice.invoice_number + 1 : 1;
+      const invoiceNumber = `INV #${nextInvoiceNumber}`;
       // Create new invoice
       const newInvoice = await prisma.invoice.create({
         data: {
@@ -136,10 +146,10 @@ export async function POST(request: NextRequest) {
           client_group_id: data.client_group_id,
           appointment_id: data.appointment_id,
           clinician_id: data.clinician_id || null,
-          issued_date: new Date(), // Current date
+          issued_date: new Date(),
           due_date: new Date(),
           amount: Number(data.amount),
-          status: data.status || "UNPAID", // Default status
+          status: data.status || "UNPAID",
           type: data.type || "INVOICE",
         },
       });

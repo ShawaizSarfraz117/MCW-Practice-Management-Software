@@ -27,6 +27,9 @@ describe("Billing Settings API Unit Tests", () => {
   it("GET /api/billing-settings should return billing settings", async () => {
     const mockClinician = ClinicianFactory.build({
       user_id: mockSession.user.id,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
     });
     const mockSettings = BillingSettingsFactory.build({
       clinician_id: mockClinician.id,
@@ -54,6 +57,9 @@ describe("Billing Settings API Unit Tests", () => {
   it("POST /api/billing-settings should create billing settings", async () => {
     const mockClinician = ClinicianFactory.build({
       user_id: mockSession.user.id,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
     });
     const mockSettings = BillingSettingsFactory.build({
       clinician_id: mockClinician.id,
@@ -95,6 +101,9 @@ describe("Billing Settings API Unit Tests", () => {
   it("PUT /api/billing-settings should update billing settings", async () => {
     const mockClinician = ClinicianFactory.build({
       user_id: mockSession.user.id,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
     });
     const mockSettings = BillingSettingsFactory.build({
       clinician_id: mockClinician.id,
@@ -147,6 +156,9 @@ describe("Billing Settings API Unit Tests", () => {
   it("should handle database errors", async () => {
     const mockClinician = ClinicianFactory.build({
       user_id: mockSession.user.id,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
     });
     prismaMock.clinician.findUnique.mockResolvedValueOnce(mockClinician);
     prismaMock.billingSettings.findUnique.mockRejectedValueOnce(

@@ -13,6 +13,8 @@ interface FieldProps {
   handleChange: (value: string | null) => void;
 }
 
+const phoneRegex = /^[- +()0-9]*$/;
+
 const SecurityInfo = ({ form }: { form: ProfileFormType }) => {
   const [isEditing, setIsEditing] = useState(false);
   const { data: session } = useSession();
@@ -22,7 +24,15 @@ const SecurityInfo = ({ form }: { form: ProfileFormType }) => {
   const handleSave = async () => {
     try {
       const phone = form.getFieldValue("phone");
-
+      // Validate phone number before submitting
+      if (phone && !phoneRegex.test(phone)) {
+        toast({
+          title: "Invalid phone number",
+          description: "Only valid phone numbers are allowed.",
+          variant: "destructive",
+        });
+        return;
+      }
       // Get the current date of birth value
       const dateOfBirth = form.getFieldValue("dateOfBirth");
 

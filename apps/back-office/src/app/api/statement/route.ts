@@ -1,7 +1,9 @@
+/* eslint-disable max-lines */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { getClinicianInfo, getBackOfficeSession } from "@/utils/helpers";
 import { logger } from "@mcw/logger";
+import { generateUUID } from "@mcw/utils";
 
 // Type for statement detail item
 interface StatementDetailItem {
@@ -35,12 +37,11 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Get the details for this statement (invoice and payment data)
-      const details = await getStatementDetails(
-        statement.client_group_id,
-        statement.start_date ?? new Date(0),
-        statement.end_date ?? new Date(),
-      );
+      // Get the statement items from the database
+      const statementItems = await prisma.statementItem.findMany({
+        where: { statement_id: id },
+        orderBy: { date: "asc" },
+      });
 
       // Format the response to match the desired structure
       return NextResponse.json({
@@ -52,18 +53,22 @@ export async function GET(request: NextRequest) {
           endingBalance: Number(statement.ending_balance),
           endingDate: statement.end_date,
         },
-        details: details.map((item) => ({
-          date: item.date,
-          description: item.description,
-          serviceDescription: item.serviceDescription,
-          charges: item.isCredit
-            ? `${item.amount.toFixed(2)} CR`
-            : item.isCredit === false
-              ? item.amount.toFixed(2)
-              : "",
-          payments: item.isCredit ? item.amount.toFixed(2) : "--",
-          balance: item.balance?.toFixed(2) || "0.00",
-        })),
+        details: statementItems.map((item) => {
+          // Split description into main description and service description if it contains a newline
+          const descriptionParts = item.description.split("\n");
+          const mainDescription = descriptionParts[0];
+          const serviceDescription =
+            descriptionParts.length > 1 ? descriptionParts[1] : "";
+
+          return {
+            date: item.date,
+            description: mainDescription,
+            serviceDescription: serviceDescription,
+            charges: item.charges > 0 ? `${item.charges.toFixed(2)}` : "--",
+            payments: item.payments > 0 ? `${item.payments.toFixed(2)}` : "--",
+            balance: item.balance.toFixed(2),
+          };
+        }),
         statement: statement,
       });
     } else if (clientGroupId) {
@@ -143,6 +148,12 @@ export async function POST(request: NextRequest) {
       },
       include: {
         Invoice: true,
+        PracticeService: {
+          select: {
+            id: true,
+            description: true,
+          },
+        },
       },
     });
 
@@ -209,7 +220,6 @@ export async function POST(request: NextRequest) {
       : 1;
 
     // Create the statement using Prisma's create method
-
     const createdStatement = await prisma.statement.create({
       data: {
         statement_number: nextStatementNumber,
@@ -236,17 +246,52 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Get the statement details
+    // Get the details for this statement (invoice and payment data)
     const details = await getStatementDetails(
       client_group_id,
       startDate,
       endDate,
     );
 
+    // Store the statement items in the database
+    const statementItems = await Promise.all(
+      details.map(async (item) => {
+        return prisma.statementItem.create({
+          data: {
+            id: generateUUID(), // Generate UUID for the statement item
+            statement_id: createdStatement.id,
+            date: item.date,
+            description:
+              item.type === "invoice"
+                ? `${item.description}\n${item.serviceDescription}` // Format: "INV #XX\nMM/DD/YYYY Service Description"
+                : item.description || "Payment",
+            charges: item.isCredit ? 0 : item.amount,
+            payments: item.isCredit ? item.amount : 0,
+            balance: item.balance || 0,
+          },
+        });
+      }),
+    );
+
     return NextResponse.json(
       {
         ...createdStatement,
-        details,
+        details: statementItems.map((item) => {
+          // Split description into main description and service description if it contains a newline
+          const descriptionParts = item.description.split("\n");
+          const mainDescription = descriptionParts[0];
+          const serviceDescription =
+            descriptionParts.length > 1 ? descriptionParts[1] : "";
+
+          return {
+            date: item.date,
+            description: mainDescription,
+            serviceDescription: serviceDescription,
+            charges: item.charges > 0 ? `${item.charges.toFixed(2)}` : "--",
+            payments: item.payments > 0 ? `${item.payments.toFixed(2)}` : "--",
+            balance: item.balance.toFixed(2),
+          };
+        }),
       },
       { status: 201 },
     );
@@ -369,7 +414,15 @@ async function getStatementDetails(
       issued_date: "asc",
     },
     include: {
-      Appointment: true,
+      Appointment: {
+        include: {
+          PracticeService: {
+            select: {
+              description: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -395,19 +448,30 @@ async function getStatementDetails(
 
   // Combine invoices and payments into one sorted array with type
   const details: StatementDetailItem[] = [
-    ...invoices.map((invoice) => ({
-      id: invoice.id,
-      date: invoice.issued_date,
-      type: "invoice",
-      description: invoice.invoice_number,
-      serviceDescription:
+    ...invoices.map((invoice) => {
+      // Format date as MM/DD/YYYY
+      const dateStr = invoice.issued_date.toLocaleDateString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
+      });
+
+      // Get service description either from invoice or from appointment's practice service
+      const serviceDescription =
         invoice.service_description ||
-        (invoice.Appointment
-          ? `${new Date(invoice.Appointment.start_date).toLocaleDateString()} Professional Services`
-          : ""),
-      amount: Number(invoice.amount),
-      isCredit: false,
-    })),
+        invoice.Appointment?.PracticeService?.description ||
+        "Professional Services";
+
+      return {
+        id: invoice.id,
+        date: invoice.issued_date,
+        type: "invoice",
+        description: invoice.invoice_number,
+        serviceDescription: `${dateStr} ${serviceDescription}`,
+        amount: Number(invoice.amount),
+        isCredit: false,
+      };
+    }),
     ...payments.map((payment) => ({
       id: payment.id,
       date: payment.payment_date,

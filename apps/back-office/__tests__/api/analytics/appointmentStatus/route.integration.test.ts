@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { GET } from "@/api/analytics/appointmentStatus/route";
+import { GET } from "../../../../src/app/api/analytics/appointmentStatus/route";
 import { prisma } from "@mcw/database";
 import { createRequest } from "@mcw/utils";
 import { v4 as uuidv4 } from "uuid";
@@ -14,6 +14,10 @@ describe("Appointment Status API Integration", () => {
     await prisma.surveyAnswers.deleteMany();
     await prisma.appointment.deleteMany();
     await prisma.clientGroupMembership.deleteMany();
+    // Delete related data before deleting client groups (due to foreign key constraints)
+    await prisma.statementItem.deleteMany();
+    await prisma.statement.deleteMany();
+    await prisma.superbill.deleteMany();
     await prisma.clientGroup.deleteMany();
     await prisma.clientContact.deleteMany();
     await prisma.clientReminderPreference.deleteMany();
