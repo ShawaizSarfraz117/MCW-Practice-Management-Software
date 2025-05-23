@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@mcw/logger";
+import { prisma } from "@mcw/database";
+import { Prisma } from "@prisma/client";
 
 export async function GET(_req: NextRequest) {
   try {
@@ -25,17 +27,21 @@ export async function GET(_req: NextRequest) {
       );
     }
 
-    const startDateObj = new Date(startDate);
-    const endDateObj = new Date(endDate);
+    // Use UTC dates for consistency in database queries
+    const startDateUTC = new Date(startDate + "T00:00:00Z");
+    const endDateUTC = new Date(endDate + "T00:00:00Z");
 
     // Check if dates are valid after parsing (e.g., 2023-02-30 would be invalid)
     // Note: new Date('YYYY-MM-DD') uses local timezone. For UTC, use new Date('YYYY-MM-DDT00:00:00Z')
     // For this validation, simply checking getTime() is usually sufficient if format is already YYYY-MM-DD.
-    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+    if (isNaN(startDateUTC.getTime()) || isNaN(endDateUTC.getTime())) {
       // This check is somewhat redundant if regex format is strict and correct,
       // but good as a fallback or if regex is more permissive.
       return NextResponse.json(
-        { error: "Invalid date value. Ensure dates are real dates." },
+        {
+          error:
+            "Invalid date value. Ensure dates are correct (e.g., no 2023-02-30).",
+        },
         { status: 400 },
       );
     }
@@ -43,9 +49,6 @@ export async function GET(_req: NextRequest) {
     // Additionally, ensure that the string date matches the parsed date to catch invalid dates like 2023-02-30
     // which `new Date` might interpret as March 2nd, 2023.
     // We will create UTC dates to avoid timezone issues in comparison and validation.
-    const startDateUTC = new Date(startDate + "T00:00:00Z");
-    const endDateUTC = new Date(endDate + "T00:00:00Z");
-
     if (
       startDateUTC.toISOString().slice(0, 10) !== startDate ||
       endDateUTC.toISOString().slice(0, 10) !== endDate
@@ -70,12 +73,56 @@ export async function GET(_req: NextRequest) {
     // Log request parameters
     logger.info({ startDate, endDate }, "Income analytics request");
 
-    // Implementation will be added in subsequent tasks
-    // For now, return a success message if validation passes
-    return NextResponse.json(
-      { message: "Validation passed", data: { startDate, endDate } },
-      { status: 200 },
-    );
+    // SQL Query Implementation
+    const result = await prisma.$queryRaw<
+      Array<{
+        metric_date: Date; // Prisma will map SQL date to JS Date
+        total_client_payments: string; // Assuming numeric/decimal from SQL, cast to string by COALESCE or SUM
+        total_gross_income: string;
+        total_net_income: string;
+      }>
+    >(Prisma.sql`
+      WITH date_series AS (
+        SELECT date::date as metric_date
+        FROM generate_series(
+          ${startDate}::date, -- Use original string for SQL casting
+          ${endDate}::date,
+          '1 day'::interval
+        ) as date
+      ),
+      appointment_metrics AS (
+        SELECT
+          DATE(start_time) as appt_date, -- Assuming start_time, adjust if your column is start_date
+          SUM(service_fee) as total_gross_income,
+          SUM(service_fee - COALESCE(discount_amount, 0)) as total_net_income
+        FROM "Appointment"
+        WHERE 
+          DATE(start_time) BETWEEN ${startDate}::date AND ${endDate}::date
+          AND status NOT IN ('Cancelled', 'Rescheduled') -- Add other non-billable statuses if any
+        GROUP BY DATE(start_time)
+      ),
+      payment_metrics AS (
+        SELECT
+          DATE(payment_date) as payment_date,
+          SUM(amount) as total_client_payments
+        FROM "Payment"
+        WHERE 
+          DATE(payment_date) BETWEEN ${startDate}::date AND ${endDate}::date
+          AND status = 'Completed' -- Or 'Succeeded', 'Paid', etc.
+        GROUP BY DATE(payment_date)
+      )
+      SELECT
+        ds.metric_date,
+        COALESCE(pm.total_client_payments::text, '0') as total_client_payments, -- Ensure text output for consistency
+        COALESCE(am.total_gross_income::text, '0') as total_gross_income,
+        COALESCE(am.total_net_income::text, '0') as total_net_income
+      FROM date_series ds
+      LEFT JOIN appointment_metrics am ON ds.metric_date = am.appt_date
+      LEFT JOIN payment_metrics pm ON ds.metric_date = pm.payment_date
+      ORDER BY ds.metric_date ASC
+    `);
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     if (error instanceof Error) {
       logger.error(error, "Error in analytics income route");
