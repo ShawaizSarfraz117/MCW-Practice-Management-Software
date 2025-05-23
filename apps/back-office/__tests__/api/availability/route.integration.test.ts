@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { prisma } from "@mcw/database";
-import { ClinicianPrismaFactory } from "@mcw/database/mock-data";
+import {
+  ClinicianPrismaFactory,
+  LocationPrismaFactory,
+} from "@mcw/database/mock-data";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { GET, POST, PUT, DELETE } from "@/api/availability/route";
 
@@ -98,13 +101,14 @@ describe("Availability API Integration Tests", () => {
   it("GET /api/availability should return all availabilities", async () => {
     const clinician = await ClinicianPrismaFactory.create();
     createdClinicianIds.push(clinician.id);
+    const location = await LocationPrismaFactory.create();
 
     const avail1 = await prisma.availability.create({
       data: {
         clinician_id: clinician.id,
         title: "Morning Slot",
         allow_online_requests: false,
-        location: "Room 1",
+        location_id: location.id,
         start_date: new Date(),
         end_date: new Date(Date.now() + 3600000),
         is_recurring: false,
@@ -116,7 +120,7 @@ describe("Availability API Integration Tests", () => {
         clinician_id: clinician.id,
         title: "Afternoon Slot",
         allow_online_requests: true,
-        location: "Room 2",
+        location_id: location.id,
         start_date: new Date(Date.now() + 7200000),
         end_date: new Date(Date.now() + 10800000),
         is_recurring: false,
@@ -137,6 +141,7 @@ describe("Availability API Integration Tests", () => {
 
   it("GET /api/availability/?id=<id> should return a specific availability", async () => {
     const clinician = await ClinicianPrismaFactory.create();
+    const location = await LocationPrismaFactory.create();
     createdClinicianIds.push(clinician.id);
 
     const avail = await prisma.availability.create({
@@ -144,7 +149,7 @@ describe("Availability API Integration Tests", () => {
         clinician_id: clinician.id,
         title: "Evening Slot",
         allow_online_requests: false,
-        location: "Room 3",
+        location_id: location.id,
         start_date: new Date(),
         end_date: new Date(Date.now() + 3600000),
         is_recurring: false,
@@ -161,18 +166,19 @@ describe("Availability API Integration Tests", () => {
     const json = await response.json();
     expect(json).toHaveProperty("id", avail.id);
     expect(json).toHaveProperty("title", avail.title);
-    expect(json).toHaveProperty("location", avail.location);
+    expect(json).toHaveProperty("location_id", location.id);
   });
 
   it("POST /api/availability should create a new availability", async () => {
     const clinician = await ClinicianPrismaFactory.create();
     createdClinicianIds.push(clinician.id);
+    const location = await LocationPrismaFactory.create();
 
     const availData = {
       clinician_id: clinician.id,
       title: "New Slot",
       allow_online_requests: true,
-      location: "Room 4",
+      location_id: location.id,
       start_date: new Date().toISOString(),
       end_date: new Date(Date.now() + 3600000).toISOString(),
       is_recurring: false,
@@ -194,13 +200,14 @@ describe("Availability API Integration Tests", () => {
   it("PUT /api/availability should update an existing availability", async () => {
     const clinician = await ClinicianPrismaFactory.create();
     createdClinicianIds.push(clinician.id);
+    const location = await LocationPrismaFactory.create();
 
     const avail = await prisma.availability.create({
       data: {
         clinician_id: clinician.id,
         title: "Old Slot",
         allow_online_requests: false,
-        location: "Room 5",
+        location_id: location.id,
         start_date: new Date(),
         end_date: new Date(Date.now() + 3600000),
         is_recurring: false,
@@ -224,13 +231,14 @@ describe("Availability API Integration Tests", () => {
   it("DELETE /api/availability/?id=<id> should delete an availability", async () => {
     const clinician = await ClinicianPrismaFactory.create();
     createdClinicianIds.push(clinician.id);
+    const location = await LocationPrismaFactory.create();
 
     const avail = await prisma.availability.create({
       data: {
         clinician_id: clinician.id,
         title: "Delete Slot",
         allow_online_requests: false,
-        location: "Room 6",
+        location_id: location.id,
         start_date: new Date(),
         end_date: new Date(Date.now() + 3600000),
         is_recurring: false,
