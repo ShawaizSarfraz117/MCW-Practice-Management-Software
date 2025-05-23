@@ -208,13 +208,35 @@ model ClientGroup {
 }
 
 model ClientGroupMembership {
+  /// Foreign key to the client group this membership belongs to
+  /// Part of composite primary key with client_id
   client_group_id            String      @default(dbgenerated("newid()"), map: "DF_ClientGroupMembership_ID") @db.UniqueIdentifier
+  
+  /// Foreign key to the client who is a member of this group
+  /// Part of composite primary key with client_group_id
   client_id                  String      @db.UniqueIdentifier
+  
+  /// Describes the client's role within the group (e.g., 'primary', 'dependent', 'guardian')
+  /// Used for determining permissions and relationships
   role                       String?     @db.VarChar(50)
+  
+  /// Timestamp when this client was added to the group
+  /// Used for audit trails and membership duration tracking
   created_at                 DateTime    @default(now(), map: "DF__GroupClie__creat__6EEB59C5")
+  
+  /// When true, this person only receives communications but is not a treatment client
+  /// Affects visibility in clinical contexts and reporting
   is_contact_only            Boolean     @default(false, map: "DF_ClientGroupMembership_IsContactOnly")
+  
+  /// Indicates whether this member handles financial responsibilities for the group
+  /// Multiple members can be responsible for billing (true), or no members at all (all null/false)
+  /// Controls who receives invoices and payment notifications
   is_responsible_for_billing Boolean?
+  
+  /// When true, this person should be contacted in case of emergency
+  /// Used for urgent situations and documentation requirements
   is_emergency_contact       Boolean?    @default(false, map: "DF_ClientGroupMembership_IsEmergencyContactOnly")
+  
   Client                     Client      @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_Client")
   ClientGroup                ClientGroup @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_ClientGroup")
 
