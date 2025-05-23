@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "@/api/analytics/outstanding-balances/route";
 import { logger } from "@mcw/logger";
-// Prisma not used in validation-only part, so not mocked here for now
+import { prisma } from "@mcw/database"; // Import prisma
 
 // Mock the logger
 vi.mock("@mcw/logger", async (importOriginal) => {
@@ -20,6 +20,18 @@ vi.mock("@mcw/logger", async (importOriginal) => {
       error: vi.fn(),
       query: vi.fn(),
     })),
+  };
+});
+
+// Mock prisma
+vi.mock("@mcw/database", async (importOriginal) => {
+  const actualModule = await importOriginal<typeof import("@mcw/database")>();
+  return {
+    ...actualModule,
+    prisma: {
+      ...(actualModule.prisma as typeof actualModule.prisma),
+      $queryRaw: vi.fn(),
+    },
   };
 });
 
@@ -237,11 +249,155 @@ describe("GET /api/analytics/outstanding-balances - Unit Tests", () => {
     it("should return 200 when startDate and endDate are the same valid day", async () => {
       const date = "2023-01-10";
       const req = createMockRequest({ startDate: date, endDate: date });
+      // Mock $queryRaw for this valid case to prevent unintended passthrough
+      vi.mocked(prisma.$queryRaw)
+        .mockResolvedValueOnce([]) // For data query
+        .mockResolvedValueOnce([{ count: BigInt(0) }]); // For count query
       const response = await GET(req);
       expect(response.status).toBe(200);
       expect(logger.info).toHaveBeenCalledWith(
         { startDate: date, endDate: date, page: 1, pageSize: 10 },
         "Outstanding balances analytics request",
+      );
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("SQL Query Logic", () => {
+    it("should call prisma.$queryRaw twice (for data and count) and return correct structure on success", async () => {
+      const startDate = "2023-01-01";
+      const endDate = "2023-01-15";
+      const page = "1";
+      const pageSize = "10";
+
+      const mockDataResult = [
+        {
+          client_group_id: "cg1",
+          client_group_name: "Group Alpha",
+          responsible_client_first_name: "John",
+          responsible_client_last_name: "Doe",
+          total_services_provided: "1000",
+          total_amount_invoiced: "1000",
+          total_amount_paid: "500",
+          total_amount_unpaid: "500",
+        },
+      ];
+      const mockCountResult = [{ count: BigInt(1) }];
+
+      vi.mocked(prisma.$queryRaw)
+        .mockResolvedValueOnce(mockDataResult) // First call for data
+        .mockResolvedValueOnce(mockCountResult); // Second call for count
+
+      const req = createMockRequest({ startDate, endDate, page, pageSize });
+      const response = await GET(req);
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+
+      expect(json.data).toEqual(mockDataResult);
+      expect(json.pagination).toEqual({
+        page: 1,
+        pageSize: 10,
+        totalItems: 1,
+        totalPages: 1,
+      });
+
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+      // Check data query call parameters (simplified check for brevity)
+      const dataQueryCall = vi.mocked(prisma.$queryRaw).mock.calls[0][0];
+      expect(dataQueryCall.values).toContain(startDate);
+      expect(dataQueryCall.values).toContain(endDate);
+      expect(dataQueryCall.values).toContain(10); // pageSizeNum
+      expect(dataQueryCall.values).toContain(0); // offset
+
+      // Check count query call parameters
+      const countQueryCall = vi.mocked(prisma.$queryRaw).mock.calls[1][0];
+      expect(countQueryCall.values).toContain(startDate);
+      expect(countQueryCall.values).toContain(endDate);
+    });
+
+    it("should correctly calculate pagination with multiple pages", async () => {
+      const startDate = "2023-01-01";
+      const endDate = "2023-01-31";
+      const page = "2";
+      const pageSize = "5";
+      const totalItems = 12;
+
+      vi.mocked(prisma.$queryRaw)
+        .mockResolvedValueOnce([]) // Mock data query (empty for this pagination focus)
+        .mockResolvedValueOnce([{ count: BigInt(totalItems) }]); // Mock count query
+
+      const req = createMockRequest({ startDate, endDate, page, pageSize });
+      const response = await GET(req);
+      expect(response.status).toBe(200);
+      const json = await response.json();
+
+      expect(json.pagination).toEqual({
+        page: 2,
+        pageSize: 5,
+        totalItems: totalItems,
+        totalPages: Math.ceil(totalItems / parseInt(pageSize, 10)), // Expected: 3
+      });
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+      const dataQueryCall = vi.mocked(prisma.$queryRaw).mock.calls[0][0];
+      expect(dataQueryCall.values).toContain(5); // pageSizeNum
+      expect(dataQueryCall.values).toContain(5); // offset = (2-1)*5
+    });
+
+    it("should handle zero totalItems correctly in pagination", async () => {
+      const startDate = "2023-01-01";
+      const endDate = "2023-01-15";
+      vi.mocked(prisma.$queryRaw)
+        .mockResolvedValueOnce([]) // No data
+        .mockResolvedValueOnce([{ count: BigInt(0) }]); // Zero count
+
+      const req = createMockRequest({ startDate, endDate });
+      const response = await GET(req);
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.data).toEqual([]);
+      expect(json.pagination).toEqual({
+        page: 1,
+        pageSize: 10,
+        totalItems: 0,
+        totalPages: 0,
+      });
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+    });
+
+    it("should return 500 if data query fails", async () => {
+      const startDate = "2023-01-01";
+      const endDate = "2023-01-15";
+      vi.mocked(prisma.$queryRaw).mockRejectedValueOnce(
+        new Error("Data query failed"),
+      );
+
+      const req = createMockRequest({ startDate, endDate });
+      const response = await GET(req);
+      expect(response.status).toBe(500);
+      const json = await response.json();
+      expect(json.error).toBe("Internal server error");
+      expect(logger.error).toHaveBeenCalledWith(
+        new Error("Data query failed"),
+        "Error in outstanding balances analytics route",
+      );
+    });
+
+    it("should return 500 if count query fails after successful data query", async () => {
+      const startDate = "2023-01-01";
+      const endDate = "2023-01-15";
+      vi.mocked(prisma.$queryRaw)
+        .mockResolvedValueOnce([]) // Data query succeeds
+        .mockRejectedValueOnce(new Error("Count query failed")); // Count query fails
+
+      const req = createMockRequest({ startDate, endDate });
+      const response = await GET(req);
+      expect(response.status).toBe(500);
+      const json = await response.json();
+      expect(json.error).toBe("Internal server error");
+      expect(logger.error).toHaveBeenCalledWith(
+        new Error("Count query failed"),
+        "Error in outstanding balances analytics route",
       );
     });
   });
