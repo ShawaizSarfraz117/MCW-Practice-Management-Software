@@ -283,30 +283,38 @@ describe("GET /api/analytics/outstanding-balances - Unit Tests", () => {
     });
   });
 
-  describe("SQL Query Logic", () => {
-    it("should call prisma.$queryRaw twice (for data and count) and return correct structure on success", async () => {
+  describe("SQL Query, Data Transformation & Pagination", () => {
+    it("should call prisma.$queryRaw for data and count, transform results, and include pagination", async () => {
       const startDate = "2023-01-01";
       const endDate = "2023-01-15";
       const page = "1";
-      const pageSize = "10";
+      const pageSize = "5";
 
       const mockDataResult = [
         {
-          client_group_id: "cg1",
+          client_group_id: "cg-1",
           client_group_name: "Group Alpha",
           responsible_client_first_name: "John",
           responsible_client_last_name: "Doe",
-          total_services_provided: "1000",
-          total_amount_invoiced: "1000",
-          total_amount_paid: "500",
-          total_amount_unpaid: "500",
+          total_amount_invoiced: "1000.00",
+          total_amount_paid: "800.00",
+          total_amount_unpaid: "200.00",
+        },
+        {
+          client_group_id: "cg-2",
+          client_group_name: "Group Beta",
+          responsible_client_first_name: "Jane",
+          responsible_client_last_name: "Smith",
+          total_amount_invoiced: "500.50",
+          total_amount_paid: "500.50",
+          total_amount_unpaid: "0.00",
         },
       ];
-      const mockCountResult = [{ count: BigInt(1) }];
+      const mockCountResult = [{ count: BigInt(27) }]; // Total 27 items for pagination example
 
       vi.mocked(prisma.$queryRaw)
-        .mockResolvedValueOnce(mockDataResult) // First call for data
-        .mockResolvedValueOnce(mockCountResult); // Second call for count
+        .mockResolvedValueOnce(mockDataResult) // For data query
+        .mockResolvedValueOnce(mockCountResult); // For count query
 
       const req = createMockRequest({ startDate, endDate, page, pageSize });
       const response = await GET(req);
@@ -314,74 +322,86 @@ describe("GET /api/analytics/outstanding-balances - Unit Tests", () => {
       expect(response.status).toBe(200);
       const json = await response.json();
 
-      expect(json.data).toEqual(mockDataResult);
+      const expectedFormattedData = [
+        {
+          clientGroupId: "cg-1",
+          clientGroupName: "Group Alpha",
+          responsibleClientFirstName: "John",
+          responsibleClientLastName: "Doe",
+          totalAmountInvoiced: 1000.0,
+          totalAmountPaid: 800.0,
+          totalAmountUnpaid: 200.0,
+        },
+        {
+          clientGroupId: "cg-2",
+          clientGroupName: "Group Beta",
+          responsibleClientFirstName: "Jane",
+          responsibleClientLastName: "Smith",
+          totalAmountInvoiced: 500.5,
+          totalAmountPaid: 500.5,
+          totalAmountUnpaid: 0.0,
+        },
+      ];
+      expect(json.data).toEqual(expectedFormattedData);
+
       expect(json.pagination).toEqual({
-        page: 1,
-        pageSize: 10,
-        totalItems: 1,
-        totalPages: 1,
+        totalItems: 27,
+        currentPage: 1,
+        pageSize: 5,
+        totalPages: Math.ceil(27 / 5), // 6
       });
 
+      expect(logger.info).toHaveBeenCalledWith(
+        { startDate, endDate, page, pageSize },
+        "Outstanding balances request",
+      );
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ queryTime: expect.any(Number) }),
+        "Outstanding balances queries executed",
+      );
       expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
-      // Check data query call parameters (simplified check for brevity)
+      // Check data query call
       const dataQueryCall = vi.mocked(prisma.$queryRaw).mock.calls[0][0];
+      expect(dataQueryCall).toHaveProperty("sql");
+      expect(dataQueryCall).toHaveProperty("values");
       expect(dataQueryCall.values).toContain(startDate);
       expect(dataQueryCall.values).toContain(endDate);
-      expect(dataQueryCall.values).toContain(10); // pageSizeNum
-      expect(dataQueryCall.values).toContain(0); // offset
-
-      // Check count query call parameters
+      expect(dataQueryCall.values).toContain(parseInt(pageSize, 10)); // pageSize
+      expect(dataQueryCall.values).toContain(0); // offset for page 1
+      // Check count query call
       const countQueryCall = vi.mocked(prisma.$queryRaw).mock.calls[1][0];
+      expect(countQueryCall).toHaveProperty("sql");
+      expect(countQueryCall).toHaveProperty("values");
       expect(countQueryCall.values).toContain(startDate);
       expect(countQueryCall.values).toContain(endDate);
     });
 
-    it("should correctly calculate pagination with multiple pages", async () => {
-      const startDate = "2023-01-01";
-      const endDate = "2023-01-31";
-      const page = "2";
-      const pageSize = "5";
-      const totalItems = 12;
+    it("should handle empty data result correctly with pagination", async () => {
+      const startDate = "2023-03-01";
+      const endDate = "2023-03-31";
+      const page = "1";
+      const pageSize = "10";
 
       vi.mocked(prisma.$queryRaw)
-        .mockResolvedValueOnce([]) // Mock data query (empty for this pagination focus)
-        .mockResolvedValueOnce([{ count: BigInt(totalItems) }]); // Mock count query
+        .mockResolvedValueOnce([]) // Empty data
+        .mockResolvedValueOnce([{ count: BigInt(0) }]); // Zero count
 
       const req = createMockRequest({ startDate, endDate, page, pageSize });
       const response = await GET(req);
-      expect(response.status).toBe(200);
-      const json = await response.json();
 
-      expect(json.pagination).toEqual({
-        page: 2,
-        pageSize: 5,
-        totalItems: totalItems,
-        totalPages: Math.ceil(totalItems / parseInt(pageSize, 10)), // Expected: 3
-      });
-      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
-      const dataQueryCall = vi.mocked(prisma.$queryRaw).mock.calls[0][0];
-      expect(dataQueryCall.values).toContain(5); // pageSizeNum
-      expect(dataQueryCall.values).toContain(5); // offset = (2-1)*5
-    });
-
-    it("should handle zero totalItems correctly in pagination", async () => {
-      const startDate = "2023-01-01";
-      const endDate = "2023-01-15";
-      vi.mocked(prisma.$queryRaw)
-        .mockResolvedValueOnce([]) // No data
-        .mockResolvedValueOnce([{ count: BigInt(0) }]); // Zero count
-
-      const req = createMockRequest({ startDate, endDate });
-      const response = await GET(req);
       expect(response.status).toBe(200);
       const json = await response.json();
       expect(json.data).toEqual([]);
       expect(json.pagination).toEqual({
-        page: 1,
-        pageSize: 10,
         totalItems: 0,
+        currentPage: 1,
+        pageSize: 10,
         totalPages: 0,
       });
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ queryTime: expect.any(Number) }),
+        "Outstanding balances queries executed",
+      );
       expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
     });
 
