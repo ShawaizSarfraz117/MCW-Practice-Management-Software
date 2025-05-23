@@ -73,7 +73,12 @@ export async function GET(_req: NextRequest) {
     // Log request parameters
     logger.info({ startDate, endDate }, "Income analytics request");
 
+    // Convert to Date objects (though SQL uses string dates, task details mentioned them)
+    // const startDateObj = new Date(startDate + "T00:00:00Z"); // Removed as unused
+    // const endDateObj = new Date(endDate + "T00:00:00Z"); // Removed as unused
+
     // SQL Query Implementation
+    const queryStartTime = Date.now();
     const result = await prisma.$queryRaw<
       Array<{
         metric_date: Date; // Prisma will map SQL date to JS Date
@@ -121,8 +126,18 @@ export async function GET(_req: NextRequest) {
       LEFT JOIN payment_metrics pm ON ds.metric_date = pm.payment_date
       ORDER BY ds.metric_date ASC
     `);
+    const queryTime = Date.now() - queryStartTime;
+    logger.info({ queryTime }, "Income analytics query executed");
 
-    return NextResponse.json(result);
+    // Transform the data
+    const formattedResult = result.map((item) => ({
+      date: item.metric_date.toISOString().split("T")[0], // Format as YYYY-MM-DD
+      clientPayments: parseFloat(item.total_client_payments),
+      grossIncome: parseFloat(item.total_gross_income),
+      netIncome: parseFloat(item.total_net_income),
+    }));
+
+    return NextResponse.json(formattedResult, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof Error) {
       logger.error(error, "Error in analytics income route");
