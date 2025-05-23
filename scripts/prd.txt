@@ -1,0 +1,141 @@
+# Product Requirements Document: Analytics API Routes
+
+## 1. Introduction
+
+This document outlines the requirements for implementing two core analytics API routes within the back-office application:
+- An API route to fetch daily income analytics.
+- An API route to fetch client outstanding balances with pagination.
+
+Both routes are critical for providing financial insights and will be implemented using raw SQL queries for optimal performance with potentially large datasets.
+
+## 2. Goals
+
+- To provide accurate daily income metrics (gross income, net income, client payments).
+- To provide a clear, paginated view of client outstanding balances.
+- To ensure robust error handling and input validation for both API routes.
+- To deliver performant APIs capable of handling significant data volumes.
+- To ensure all implementations adhere to existing project guidelines for API development and testing.
+
+## 3. User Stories (Implied from API functionality)
+
+- As a back-office user, I want to view a daily breakdown of income (gross, net, client payments) for a selected date range so that I can track financial performance.
+- As a back-office user, I want to see a list of clients (groups) with their outstanding balances (services provided, amount invoiced, amount paid, amount unpaid) for a selected date range, with pagination, so that I can manage accounts receivable.
+
+## 4. API Route Specifications
+
+### 4.1. Route 1: Income Analytics
+
+-   **Route Path**: `/api/analytics/income`
+-   **Description**: Handles analytics for income, providing daily breakdowns of client payments, gross income, and net income within a specified date range.
+-   **HTTP Method**: `GET`
+-   **Endpoint**: `/api/analytics/income?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD`
+-   **Functionality**:
+    -   Retrieve and calculate daily income metrics (client payments, gross income, net income) for a specified date range.
+    -   Calculations are performed on a per-day basis.
+    -   Client payments are defined as monies *received* on a given day. Gross and Net income are based on appointments *scheduled* for that day.
+-   **Input Validation**:
+    -   `startDate` (string, YYYY-MM-DD format): Required.
+    -   `endDate` (string, YYYY-MM-DD format): Required.
+    -   Both dates must be valid. `endDate` must be on or after `startDate`.
+    -   Return HTTP 400 for validation errors.
+-   **Data Source**: Raw SQL query aggregating data from `Appointment`, `Invoice`, and `Payment` tables.
+    -   A date series will be generated for the range.
+    -   Gross/Net income will be summed from `Appointment` table based on `appointment.start_date`.
+    -   Client payments will be summed from `Payment` table based on `payment.payment_date`.
+-   **Output Format**:
+    ```json
+    [
+      { "date": "YYYY-MM-DD", "clientPayments": 0.00, "grossIncome": 0.00, "netIncome": 0.00 },
+      // ... more daily metric objects
+    ]
+    ```
+-   **Error Handling**: HTTP 500 for server/database errors. Log detailed errors.
+-   **Logging**: Log request parameters, errors, and query execution times.
+-   **Testing Requirements**:
+    -   Unit tests for input validation, data transformation, and mocking raw SQL execution.
+    -   Integration tests covering:
+        -   Correct calculation for various date ranges and data scenarios (basic range, no data, single day, edge cases like zero fees/discounts).
+        -   Verification of all days present in the range output.
+        -   Invalid input handling (date order, format, missing params).
+
+### 4.2. Route 2: Outstanding Balances
+
+-   **Route Path**: `/api/analytics/outstanding-balances`
+-   **Description**: Handles analytics for client outstanding balances, providing a paginated list of clients (identified by ClientGroup) with their service totals, amounts invoiced, paid, and unpaid.
+-   **HTTP Method**: `GET`
+-   **Endpoint**: `/api/analytics/outstanding-balances?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&page=1&pageSize=10`
+-   **Functionality**:
+    -   Retrieve a paginated list of ClientGroups and their outstanding balance details (total services provided, total amount invoiced, total amount paid, total amount unpaid).
+    -   Financial data is aggregated per `ClientGroup` for appointments within the date range.
+    -   Includes the first and last name of a primary responsible client for the group, determined by `is_responsible_for_billing` status and creation date as a tie-breaker.
+-   **Input Validation**:
+    -   `startDate` (string, YYYY-MM-DD format): Required.
+    -   `endDate` (string, YYYY-MM-DD format): Required.
+    -   `page` (string, parsable to int): Optional, defaults to 1. Must be >= 1.
+    -   `pageSize` (string, parsable to int): Optional, defaults to 10. Must be >= 1.
+    -   Dates must be valid; `endDate` >= `startDate`. `page`, `pageSize` must be positive integers.
+    -   Return HTTP 400 for validation errors.
+-   **Data Source**: Two raw SQL queries: one for paginated data, one for total record count.
+    -   Aggregates data from `Appointment`, `Invoice`, `Payment`, `ClientGroup`, `ClientGroupMembership`, and `Client` tables.
+    -   Uses `OUTER APPLY` (or equivalent subquery for MS SQL Server) to fetch the responsible client's first and last name.
+    -   Pagination (`OFFSET`/`LIMIT` or `ROW_NUMBER()`) handled in SQL.
+-   **Output Format**:
+    ```json
+    {
+      "data": [
+        {
+          "clientGroupId": "uuid",
+          "clientGroupName": "Group Name",
+          "responsibleClientFirstName": "John",
+          "responsibleClientLastName": "Doe",
+          "totalServicesProvided": 0.00,
+          "totalAmountInvoiced": 0.00,
+          "totalAmountPaid": 0.00,
+          "totalAmountUnpaid": 0.00
+        }
+        // ... more client balance objects
+      ],
+      "pagination": {
+        "totalItems": 0,
+        "currentPage": 1,
+        "pageSize": 10,
+        "totalPages": 0
+      }
+    }
+    ```
+-   **Error Handling**: HTTP 500 for server/database errors. Log detailed errors.
+-   **Logging**: Log request parameters, errors, and query execution times.
+-   **Testing Requirements**:
+    -   Unit tests for input validation, pagination logic, data transformation, and mocking raw SQL.
+    -   Integration tests covering:
+        -   Correct aggregation and pagination for various scenarios (basic, navigation, page size changes, no data).
+        -   Accurate responsible client name retrieval.
+        -   Critical edge cases:
+            -   Client groups with multiple responsible billers (ensure no financial duplication, consistent contact selection).
+            -   Client groups with zero responsible billers (ensure financials are calculated, contact name handling is graceful).
+            -   Client groups with no appointments in range.
+        -   Invalid input handling.
+
+## 5. General Requirements
+
+-   **Database**: MS SQL Server. Raw SQL queries should be compatible.
+-   **Framework**: Next.js App Router for API routes in `apps/back-office`.
+-   **Prisma**: Use `prisma.$queryRaw` for executing SQL.
+-   **Date Handling**: Assume UTC for database storage and comparisons. Convert input dates appropriately.
+-   **Code Quality**: Adhere to existing project coding standards, including `api-implementation-guidelines`.
+-   **Testing Quality**: Adhere to `rules-for-writing-tests`.
+-   **Security**: Prevent SQL injection vulnerabilities, especially when constructing raw queries.
+
+## 6. Implementation Flow (Per User Request)
+
+1.  Implement the first API route as defined (e.g., `/api/analytics/income`).
+2.  Commit the implemented route code.
+3.  Implement the first test case (unit or integration) for that route.
+4.  Execute the test.
+5.  If the test passes, commit the test code with an appropriate message.
+6.  Repeat steps 3-5 for all remaining test cases for the current route.
+7.  Once all tests for the current route are implemented and passing, move to the next API route (e.g., `/api/analytics/outstanding-balances`).
+8.  Repeat steps 1-7 for the second route.
+9.  When all tests for all routes are implemented and passing, the task is considered complete.
+
+This PRD is derived from the detailed `plan.md` document. 

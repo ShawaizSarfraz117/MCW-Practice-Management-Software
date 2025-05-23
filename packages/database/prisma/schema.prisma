@@ -69,7 +69,6 @@ model Appointment {
   SurveyAnswers            SurveyAnswers[]
 
   @@index([start_date], map: "IX_Appointment_start_date")
-  @@index([client_group_id, start_date], map: "IX_Appointment_client_group_id_start_date")
 }
 
 model AppointmentTag {
@@ -210,8 +209,6 @@ model ClientGroup {
   Invoice                        Invoice[]
   Statement                      Statement[]
   Superbill                      Superbill[]
-
-  @@index([name], map: "IX_ClientGroup_name")
 }
 
 model ClientGroupMembership {
@@ -249,7 +246,6 @@ model ClientGroupMembership {
 
   @@id([client_group_id, client_id], map: "PK_ClientGroupMembership_ID")
   @@index([client_id], map: "IX_ClientGroupMembership_client_id")
-  @@index([is_responsible_for_billing], map: "IX_ClientGroupMembership_is_responsible_for_billing")
 }
 
 model ClientReminderPreference {
@@ -375,8 +371,6 @@ model Invoice {
   ClientGroup         ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
   Clinician           Clinician?   @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
   Payment             Payment[]
-
-  @@index([appointment_id], map: "IX_Invoice_appointment_id")
 }
 
 model Location {
@@ -410,7 +404,6 @@ model Payment {
   Invoice        Invoice     @relation(fields: [invoice_id], references: [id], onUpdate: NoAction, map: "FK_Payment_Invoice")
 
   @@index([payment_date], map: "IX_Payment_payment_date")
-  @@index([invoice_id], map: "IX_Payment_invoice_id")
 }
 
 model PracticeService {
