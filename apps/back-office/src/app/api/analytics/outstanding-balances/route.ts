@@ -74,14 +74,15 @@ export async function GET(_req: NextRequest) {
     }
 
     logger.info(
-      { startDate, endDate, page: pageNum, pageSize: pageSizeNum },
-      "Outstanding balances analytics request",
+      { startDate, endDate, page, pageSize },
+      "Outstanding balances request",
     );
 
     const offset = (pageNum - 1) * pageSizeNum;
 
-    // Main data query
-    const data = await prisma.$queryRaw<
+    // SQL Query Implementation
+    const queryStartTime = Date.now(); // Start timer for queries
+    const result = await prisma.$queryRaw<
       Array<{
         client_group_id: string;
         client_group_name: string;
@@ -166,11 +167,25 @@ export async function GET(_req: NextRequest) {
     `);
 
     const totalItems = Number(countResult[0]?.count || 0);
+    const queryTime = Date.now() - queryStartTime; // End timer for queries
+    logger.info({ queryTime }, "Outstanding balances queries executed"); // Log query time
+
+    // Transform the data
+    const formattedData = result.map((item) => ({
+      clientGroupId: item.client_group_id,
+      clientGroupName: item.client_group_name,
+      responsibleClientFirstName: item.responsible_client_first_name,
+      responsibleClientLastName: item.responsible_client_last_name,
+      totalAmountInvoiced: parseFloat(item.total_amount_invoiced),
+      totalAmountPaid: parseFloat(item.total_amount_paid),
+      totalAmountUnpaid: parseFloat(item.total_amount_unpaid),
+    }));
+
     const totalPages = Math.ceil(totalItems / pageSizeNum);
 
     return NextResponse.json(
       {
-        data,
+        data: formattedData,
         pagination: {
           page: pageNum,
           pageSize: pageSizeNum,
