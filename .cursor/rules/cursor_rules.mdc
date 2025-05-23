@@ -4,6 +4,8 @@ globs: .cursor/rules/*.mdc
 alwaysApply: true
 ---
 
+The terminal has trouble with the && operator in PowerShell. Run the commands separately.
+
 - **Required Rule Structure:**
   ```markdown
   ---

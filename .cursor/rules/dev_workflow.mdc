@@ -195,17 +195,36 @@ Once a task has been broken down into subtasks using `expand_task` or similar me
     *   Identify any new or modified code patterns, conventions, or best practices established during the implementation.
     *   Create new or update existing rules following internal guidelines (previously linked to `cursor_rules.mdc` and `self_improve.mdc`).
 
-8.  **Mark Task Complete:**
-    *   After verifying the implementation and updating any necessary rules, mark the subtask as completed: `set_task_status` / `task-master set-status --id=<subtaskId> --status=done`.
+8.  **Finalize Implementation:**
+    *   After the primary coding and initial test writing for a subtask are complete and the subtask is marked 'done', follow the [Post-Implementation Subtask Sequence](mdc:#post-implementation-subtask-sequence).
 
-9.  **Commit Changes (If using Git):**
-    *   Stage the relevant code changes and any updated/new rule files (`git add .`).
-    *   Craft a comprehensive Git commit message summarizing the work done for the subtask, including both code implementation and any rule adjustments.
-    *   Execute the commit command directly in the terminal (e.g., `git commit -m 'feat(module): Implement feature X for subtask <subtaskId>\n\n- Details about changes...\n- Updated rule Y for pattern Z'`).
-    *   Consider if a Changeset is needed according to internal versioning guidelines (previously linked to `changeset.mdc`). If so, run `npm run changeset`, stage the generated file, and amend the commit or create a new one.
+9.  **Proceed to Next Task/Subtask:**
+    *   Identify the next task or subtask (e.g., using `next_task` / `task-master next`).
 
-10. **Proceed to Next Subtask:**
-    *   Identify the next subtask (e.g., using `next_task` / `task-master next`).
+## Post-Implementation Subtask Sequence
+
+After a subtask involving code implementation and initial test creation is marked "done", the following sequence of subtasks **must** be created and completed:
+
+1.  **Subtask: "Run Tests and Fix Code for [Feature/Subtask Name]"**
+    *   **Description**: Continuously run the associated tests for the recently implemented [Feature/Subtask Name]. Iteratively debug and fix the source code and/or test code until all tests pass successfully.
+    *   **Details**:
+        *   **Crucially, once tests are generated or modified, they *must* be executed in the terminal (using commands specified in `rules-for-writing-tests.mdc`) to verify their initial status and begin the iterative fixing process.**
+        *   Log any significant issues encountered and their resolutions using `update_subtask`.
+        *   Refer to `rules-for-writing-tests.mdc` for detailed guidance on running and interpreting tests.
+    *   **Test Strategy**: All tests related to [Feature/Subtask Name] must pass.
+    *   **Status Transition**: `pending` -> `in-progress` -> `done` (only when all tests pass).
+
+2.  **Subtask: "Commit Successfully Tested Code for [Feature/Subtask Name]"**
+    *   **Dependencies**: The previous "Run Tests and Fix Code" subtask for [Feature/Subtask Name].
+    *   **Description**: Commit the now successfully tested code changes for [Feature/Subtask Name] to version control.
+    *   **Details**:
+        *   Stage all relevant code changes and any updated/new rule files (`git add .`).
+        *   Craft a comprehensive Git commit message summarizing the work done, including both code implementation and any rule adjustments. (e.g., `git commit -m 'feat(module): Implement feature X for subtask <original_subtaskId>\n\n- Details about changes...\n- Updated rule Y for pattern Z'`).
+        *   Consider if a Changeset is needed according to internal versioning guidelines (previously linked to `changeset.mdc`). If so, run `npm run changeset`, stage the generated file, and amend the commit or create a new one.
+    *   **Test Strategy**: Verify the commit has been successfully made and pushed (if applicable to the workflow).
+    *   **Status Transition**: `pending` -> `in-progress` -> `done`.
+
+This sequence ensures that testing, fixing, and committing are explicit, tracked steps in the workflow.
 
 ## Code Analysis & Refactoring Techniques
 
