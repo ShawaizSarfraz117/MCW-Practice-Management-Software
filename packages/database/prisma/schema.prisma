@@ -15,26 +15,46 @@ datasource db {
 
 model Appointment {
   id                       String             @id @default(dbgenerated("newid()"), map: "PK_Appointment_ID") @db.UniqueIdentifier
+  /// Type of appointment (e.g., initial consultation, follow-up, therapy session)
   type                     String             @db.VarChar(50)
+  /// Brief description or name of the appointment
   title                    String?            @db.VarChar(255)
+  /// Indicates if the appointment takes the entire day
   is_all_day               Boolean            @default(false, map: "DF_Appointment_IsAllDay")
+  /// Start date and time of the appointment
   start_date               DateTime
+  /// End date and time of the appointment
   end_date                 DateTime
+  /// Reference to the location where the appointment takes place
   location_id              String?            @db.UniqueIdentifier
+  /// User ID of the person who created the appointment
   created_by               String             @db.UniqueIdentifier
+  /// Current status of the appointment (e.g., scheduled, completed, cancelled)
   status                   String             @db.VarChar(100)
+  /// Reference to the healthcare provider conducting the appointment
   clinician_id             String?            @db.UniqueIdentifier
-  appointment_fee          Decimal?
+  /// Base cost of the appointment service
+  service_fee              Decimal?           // Renamed from appointment_fee
+  /// Reference to the service provided during this appointment
   service_id               String?            @db.UniqueIdentifier
+  /// Indicates if this is a recurring appointment
   is_recurring             Boolean            @default(false, map: "DF_Appointment_IsRecurring")
+  /// Rule pattern for recurring appointments (e.g., weekly, monthly)
   recurring_rule           String?            @db.Text
+  /// Flag indicating whether to cancel all future recurring appointments
   cancel_appointments      Boolean?
+  /// Flag indicating whether to notify about cancellation
   notify_cancellation      Boolean?
+  /// Reference to the parent recurring appointment if this is part of a series
   recurring_appointment_id String?            @db.UniqueIdentifier
+  /// Reference to a group of clients associated with this appointment
   client_group_id          String?            @db.UniqueIdentifier
-  adjustable_amount        Decimal?
+  /// Remaining unpaid balance for this appointment
+  unpaid_balance           Decimal?           // Renamed from adjustable_amount
+  /// Reference to associated superbill for billing purposes
   superbill_id             String?            @db.UniqueIdentifier
-  write_off                Decimal?
+  /// Amount deducted from the original fee for business reasons (discounts, insurance adjustments)
+  discount_amount          Decimal?           // Renamed from write_off
   ClientGroup              ClientGroup?       @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_ClientGroup")
   Clinician                Clinician?         @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Clinician")
   Location                 Location?          @relation(fields: [location_id], references: [id], map: "FK_Appointment_Location")
