@@ -13,11 +13,14 @@ vi.mock("@/utils/helpers", () => ({
 }));
 
 describe("License API Routes Integration Tests", () => {
-  // Test data and state
-  const mockUserId = "test-user-id";
-  const mockClinicianId = "test-clinician-id";
-  let createdClinicianId: string | null = null;
+  // Test data and state - use proper UUID format
+  const mockUserId = "11111111-1111-1111-1111-111111111111";
+  const mockClinicianId = "22222222-2222-2222-2222-222222222222";
   let createdLicenseIds: string[] = [];
+  const createdEntities = {
+    user: false,
+    clinician: false,
+  };
 
   const mockSession = {
     user: {
@@ -41,13 +44,8 @@ describe("License API Routes Integration Tests", () => {
       },
     });
 
-    // Create a real clinician for testing if it doesn't already exist
-    const existingUser = await prisma.user.findUnique({
-      where: { id: mockUserId },
-    });
-
-    if (!existingUser) {
-      // Create test user
+    // Create test user and clinician for foreign key constraints
+    try {
       await prisma.user.create({
         data: {
           id: mockUserId,
@@ -55,9 +53,9 @@ describe("License API Routes Integration Tests", () => {
           password_hash: "hashed_password",
         },
       });
+      createdEntities.user = true;
 
-      // Create test clinician
-      const clinician = await prisma.clinician.create({
+      await prisma.clinician.create({
         data: {
           id: mockClinicianId,
           user_id: mockUserId,
@@ -67,8 +65,10 @@ describe("License API Routes Integration Tests", () => {
           percentage_split: 100,
         },
       });
-
-      createdClinicianId = clinician.id;
+      createdEntities.clinician = true;
+    } catch (error) {
+      // If the user/clinician already exists, we can continue
+      console.log("Setup error (can be ignored if entities exist):", error);
     }
   });
 
@@ -76,32 +76,48 @@ describe("License API Routes Integration Tests", () => {
   afterEach(async () => {
     // Delete created licenses
     if (createdLicenseIds.length > 0) {
-      await prisma.license.deleteMany({
-        where: {
-          id: {
-            in: createdLicenseIds,
+      try {
+        await prisma.license.deleteMany({
+          where: {
+            id: {
+              in: createdLicenseIds,
+            },
           },
-        },
-      });
+        });
+      } catch (error) {
+        console.log("Error cleaning up licenses:", error);
+      }
       createdLicenseIds = [];
     }
   });
 
-  // Final cleanup after all tests in this suite
+  // Final cleanup after all tests
   afterEach(async () => {
-    if (createdClinicianId) {
-      // The license records will be cascade deleted when clinician is deleted
-      await prisma.clinician.delete({
-        where: {
-          id: createdClinicianId,
-        },
-      });
-      await prisma.user.delete({
-        where: {
-          id: mockUserId,
-        },
-      });
-      createdClinicianId = null;
+    // Clean up in reverse order of creation (respect foreign key constraints)
+    if (createdEntities.clinician) {
+      try {
+        await prisma.clinician.delete({
+          where: {
+            id: mockClinicianId,
+          },
+        });
+      } catch (error) {
+        console.log("Error cleaning up clinician:", error);
+      }
+      createdEntities.clinician = false;
+    }
+
+    if (createdEntities.user) {
+      try {
+        await prisma.user.delete({
+          where: {
+            id: mockUserId,
+          },
+        });
+      } catch (error) {
+        console.log("Error cleaning up user:", error);
+      }
+      createdEntities.user = false;
     }
   });
 
