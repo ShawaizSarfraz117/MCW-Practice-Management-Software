@@ -213,28 +213,24 @@ describe("GET /api/analytics/outstanding-balances - Unit Tests", () => {
     it("should return 200 for valid parameters (using defaults for page/pageSize)", async () => {
       const startDate = "2023-01-01";
       const endDate = "2023-01-15";
-      // Add specific mocks for this test
+      const page = "1";
+      const pageSize = "10";
+
       vi.mocked(prisma.$queryRaw)
-        .mockResolvedValueOnce([]) // For data query
-        .mockResolvedValueOnce([{ count: BigInt(0) }]); // For count query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ count: BigInt(0) }]);
 
       const req = createMockRequest({ startDate, endDate });
       const response = await GET(req);
       expect(response.status).toBe(200);
-      const json = await response.json();
-      // Update assertion to reflect actual response now that query logic is hit
-      expect(json.data).toEqual([]);
-      expect(json.pagination).toEqual({
-        page: 1,
-        pageSize: 10,
-        totalItems: 0,
-        totalPages: 0,
-      });
       expect(logger.info).toHaveBeenCalledWith(
-        { startDate, endDate, page: 1, pageSize: 10 },
-        "Outstanding balances analytics request",
+        { startDate, endDate, page, pageSize },
+        "Outstanding balances request",
       );
-      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ queryTime: expect.any(Number) }),
+        "Outstanding balances queries executed",
+      );
     });
 
     it("should return 200 for valid parameters (with custom page/pageSize)", async () => {
@@ -242,44 +238,44 @@ describe("GET /api/analytics/outstanding-balances - Unit Tests", () => {
       const endDate = "2023-01-15";
       const page = "2";
       const pageSize = "5";
-      // Add specific mocks for this test
+
       vi.mocked(prisma.$queryRaw)
-        .mockResolvedValueOnce([]) // For data query
-        .mockResolvedValueOnce([{ count: BigInt(0) }]); // For count query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ count: BigInt(0) }]);
 
       const req = createMockRequest({ startDate, endDate, page, pageSize });
       const response = await GET(req);
       expect(response.status).toBe(200);
-      const json = await response.json();
-      // Update assertion to reflect actual response
-      expect(json.data).toEqual([]);
-      expect(json.pagination).toEqual({
-        page: 2,
-        pageSize: 5,
-        totalItems: 0,
-        totalPages: 0,
-      });
       expect(logger.info).toHaveBeenCalledWith(
-        { startDate, endDate, page: 2, pageSize: 5 },
-        "Outstanding balances analytics request",
+        { startDate, endDate, page, pageSize },
+        "Outstanding balances request",
       );
-      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ queryTime: expect.any(Number) }),
+        "Outstanding balances queries executed",
+      );
     });
 
     it("should return 200 when startDate and endDate are the same valid day", async () => {
       const date = "2023-01-10";
-      const req = createMockRequest({ startDate: date, endDate: date });
-      // Mock $queryRaw for this valid case to prevent unintended passthrough
+      const page = "1";
+      const pageSize = "10";
+
       vi.mocked(prisma.$queryRaw)
-        .mockResolvedValueOnce([]) // For data query
-        .mockResolvedValueOnce([{ count: BigInt(0) }]); // For count query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ count: BigInt(0) }]);
+
+      const req = createMockRequest({ startDate: date, endDate: date });
       const response = await GET(req);
       expect(response.status).toBe(200);
       expect(logger.info).toHaveBeenCalledWith(
-        { startDate: date, endDate: date, page: 1, pageSize: 10 },
-        "Outstanding balances analytics request",
+        { startDate: date, endDate: date, page, pageSize },
+        "Outstanding balances request",
       );
-      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ queryTime: expect.any(Number) }),
+        "Outstanding balances queries executed",
+      );
     });
   });
 

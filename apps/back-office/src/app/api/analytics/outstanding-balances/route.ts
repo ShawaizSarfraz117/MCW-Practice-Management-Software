@@ -187,9 +187,9 @@ export async function GET(_req: NextRequest) {
       {
         data: formattedData,
         pagination: {
-          page: pageNum,
-          pageSize: pageSizeNum,
           totalItems,
+          currentPage: pageNum,
+          pageSize: pageSizeNum,
           totalPages,
         },
       },
