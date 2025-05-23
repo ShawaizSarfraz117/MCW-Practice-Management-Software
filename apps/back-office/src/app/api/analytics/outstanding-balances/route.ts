@@ -116,13 +116,26 @@ export async function GET(request: NextRequest) {
     });
     const result = await prisma.$queryRaw<OutstandingBalanceItem[]>(mainQuery);
     const mainQueryEndTime = Date.now();
+    const mainQueryExecutionTime = mainQueryEndTime - mainQueryStartTime;
     logger.info({
       message:
         "Outstanding balances main query executed in " +
-        (mainQueryEndTime - mainQueryStartTime) +
+        mainQueryExecutionTime +
         "ms",
       recordCount: result.length,
     });
+
+    if (mainQueryExecutionTime > 1000) {
+      logger.warn({
+        message: "Outstanding balances main query took longer than 1 second.",
+        executionTimeMs: mainQueryExecutionTime,
+        startDate: startDateString,
+        endDate: endDateString,
+        page,
+        pageSize,
+        recordCount: result.length,
+      });
+    }
 
     const countQueryStartTime = Date.now();
     logger.info({
@@ -133,12 +146,22 @@ export async function GET(request: NextRequest) {
     const countResult =
       await prisma.$queryRaw<[{ totalCount: number }]>(countQuery);
     const countQueryEndTime = Date.now();
+    const countQueryExecutionTime = countQueryEndTime - countQueryStartTime;
     logger.info({
       message:
         "Outstanding balances count query executed in " +
-        (countQueryEndTime - countQueryStartTime) +
+        countQueryExecutionTime +
         "ms",
     });
+
+    if (countQueryExecutionTime > 1000) {
+      logger.warn({
+        message: "Outstanding balances count query took longer than 1 second.",
+        executionTimeMs: countQueryExecutionTime,
+        startDate: startDateString,
+        endDate: endDateString,
+      });
+    }
 
     const totalCount = countResult[0]?.totalCount || 0;
     const totalPages = Math.ceil(totalCount / pageSize);

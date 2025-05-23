@@ -15,21 +15,24 @@ export interface DailyIncomeMetric {
 }
 
 export async function GET(request: NextRequest) {
-  logger.info("Processing GET request for /api/analytics/income");
+  logger.info({ message: "Processing GET request for /api/analytics/income" });
 
   const searchParams = request.nextUrl.searchParams;
-  const startDate = searchParams.get("startDate");
-  const endDate = searchParams.get("endDate");
+  const startDateParam = searchParams.get("startDate");
+  const endDateParam = searchParams.get("endDate");
 
-  const dateValidation = validateDateRange(startDate, endDate);
+  const dateValidation = validateDateRange(startDateParam, endDateParam);
   if (!dateValidation.isValid) {
-    logger.warn({ message: "Invalid date range provided", startDate, endDate });
+    logger.warn({
+      message: "Invalid date range provided",
+      startDate: startDateParam,
+      endDate: endDateParam,
+    });
     return dateValidation.response;
   }
 
   const { startDateObj, endDateObj } = dateValidation;
 
-  // Format dates to YYYY-MM-DD string for SQL query
   const startDateString = startDateObj.toISOString().split("T")[0];
   const endDateString = endDateObj.toISOString().split("T")[0];
 
@@ -65,21 +68,28 @@ export async function GET(request: NextRequest) {
     const result = await prisma.$queryRaw<DailyIncomeMetric[]>(query);
 
     const endTime = Date.now();
+    const executionTime = endTime - startTime;
     logger.info({
-      message:
-        "Income analytics query executed in " + (endTime - startTime) + "ms",
+      message: "Income analytics query executed in " + executionTime + "ms",
       recordCount: result.length,
     });
 
-    // Ensure all dates in the range are present, even if no financial data
-    // This is handled by the DateSeries CTE and LEFT JOINs
+    if (executionTime > 1000) {
+      logger.warn({
+        message: "Income analytics query took longer than 1 second.",
+        executionTimeMs: executionTime,
+        startDate: startDateString,
+        endDate: endDateString,
+        recordCount: result.length,
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error({
       message: "Failed to fetch income analytics data: " + errorMessage,
-      query: query.strings.join("?"), // Log query structure (template)
+      query: query.strings.join("?"),
       params: { startDateString, endDateString },
     });
     return createErrorResponse(
