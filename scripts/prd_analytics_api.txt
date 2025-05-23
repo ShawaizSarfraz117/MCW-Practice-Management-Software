@@ -1,0 +1,198 @@
+# Product Requirements Document: Analytics API Routes
+
+## 1. Introduction
+
+This document outlines the requirements for two new API routes within the `apps/back-office` application:
+    1.  `/api/analytics/income`: Provides daily income metrics.
+    2.  `/api/analytics/outstanding-balances`: Provides a paginated list of client outstanding balances.
+
+Both routes are critical for financial analytics and reporting within the practice management software. They will leverage raw SQL queries for optimal performance against potentially large datasets.
+
+## 2. General Technical Requirements
+
+-   **Application**: `apps/back-office`
+-   **API Base Path**: `src/app/api/`
+-   **Database Interaction**: Use Prisma with raw SQL (`prisma.$queryRaw` or `prisma.$queryRawUnsafe`). Prioritize `.$queryRaw` with `${Prisma.sql\`...\`}` for parameterization to prevent SQL injection.
+-   **Date Handling**:
+    -   Input dates from query parameters will be in 'YYYY-MM-DD' format.
+    -   Convert input dates to JavaScript `Date` objects for SQL queries.
+    -   Assume UTC for database storage and date comparisons.
+    -   Utilize SQL date functions for accurate date-based comparisons.
+-   **Error Handling**:
+    -   Return appropriate HTTP status codes for errors (e.g., 400 for validation, 500 for server errors).
+    -   Use `@mcw/logger` for detailed error logging.
+-   **Logging**:
+    -   Log all request parameters.
+    -   Log any errors encountered during request processing.
+    -   Consider logging query execution times for performance monitoring.
+-   **Adherence to Guidelines**: All implementations must follow `api-implementation-guidelines.mdc` and `rules-for-writing-tests.mdc`.
+
+## 3. Feature: Income Analytics API Route
+
+-   **Endpoint**: `GET /api/analytics/income`
+-   **File Path**: `apps/back-office/src/app/api/analytics/income/route.ts`
+-   **Description**: This route will provide a daily breakdown of key income metrics: client payments received, gross income from services, and net income (gross income minus discounts).
+
+### 3.1. Functional Requirements
+
+-   Retrieve and calculate daily income metrics for a specified date range.
+-   Calculations must be performed on a per-day basis.
+-   The SQL query should generate a continuous series of dates within the specified range, showing zero values for days with no financial activity.
+
+### 3.2. Input Parameters & Validation
+
+-   `startDate` (string, query parameter): Required. Format 'YYYY-MM-DD'.
+-   `endDate` (string, query parameter): Required. Format 'YYYY-MM-DD'.
+-   Validation:
+    -   Both `startDate` and `endDate` must be provided and be valid dates.
+    -   `endDate` must be on or after `startDate`.
+    -   Return HTTP 400 for any validation failures.
+
+### 3.3. Core SQL Query Logic (Conceptual - "Client payments are money *received*")
+
+-   Generate a complete series of dates from `startDate` to `endDate`.
+-   For each date in the series:
+    -   Calculate `total_gross_income`: Sum of `service_fee` from `Appointment` records where `Appointment.start_date` matches the series date and appointment status is billable (e.g., not 'Cancelled', 'Rescheduled').
+    -   Calculate `total_net_income`: Sum of (`service_fee` - `discount_amount`) from `Appointment` records under the same conditions as gross income.
+    -   Calculate `total_client_payments`: Sum of `amount` from `Payment` records where `Payment.payment_date` matches the series date and payment status is 'Completed'.
+-   Data sources: `Appointment`, `Payment`. (Invoice table might be joined from Payment if filtering by invoice status is needed for payments).
+
+### 3.4. Data Processing (API Route Handler)
+
+-   Execute the raw SQL query.
+-   Map raw SQL results:
+    -   Convert decimal string representations from SQL (e.g., SUM results) to numbers.
+    -   Ensure `metric_date` from SQL is a `Date` object.
+-   Format the final output.
+
+### 3.5. Output Format
+
+-   A JSON array of objects, each representing a day's metrics.
+-   `Content-Type: application/json`
+-   Structure:
+    ```json
+    [
+      { "date": "YYYY-MM-DD", "clientPayments": number, "grossIncome": number, "netIncome": number },
+      // ... more days
+    ]
+    ```
+
+### 3.6. Testing Requirements
+
+-   **Unit Tests**:
+    -   Mock `prisma.$queryRaw` to simulate various database responses (success, empty set, error).
+    -   Thoroughly test input validation logic.
+    -   Verify data transformation logic (e.g., decimal string to number).
+-   **Integration Tests**:
+    -   Seed database with `Appointment` and `Payment` records covering various scenarios (data within range, outside range, edge cases like zero fees/payments, discounts).
+    -   Test cases:
+        1.  Valid date range: Verify correct calculations, all days present.
+        2.  Date range with no financial activity: Expect zero metrics for all days.
+        3.  Single day range.
+        4.  Data edge cases (zero fees, discounts matching fees).
+        5.  Invalid inputs (date order, format, missing dates): Expect HTTP 400.
+
+## 4. Feature: Outstanding Balances API Route
+
+-   **Endpoint**: `GET /api/analytics/outstanding-balances`
+-   **File Path**: `apps/back-office/src/app/api/analytics/outstanding-balances/route.ts`
+-   **Description**: This route will provide a paginated list of client groups, detailing their total services provided, amount invoiced, amount paid, and outstanding unpaid amount within a specified date range.
+
+### 4.1. Functional Requirements
+
+-   Retrieve a paginated list of `ClientGroup` records with their aggregated financial details.
+-   Calculations are based on appointments occurring within the specified `startDate` and `endDate`.
+-   For each `ClientGroup`, display the first and last name of a responsible client. The primary responsible biller (`is_responsible_for_billing = true`) should be prioritized. If multiple or none, use a consistent tie-breaker (e.g., oldest member).
+-   Optionally, filter to show only client groups with an outstanding balance greater than zero.
+
+### 4.2. Input Parameters & Validation
+
+-   `startDate` (string, query parameter): Required. Format 'YYYY-MM-DD'.
+-   `endDate` (string, query parameter): Required. Format 'YYYY-MM-DD'.
+-   `page` (string, query parameter): Optional. Defaults to 1. Must be a positive integer.
+-   `pageSize` (string, query parameter): Optional. Defaults to 10. Must be a positive integer.
+-   Validation:
+    -   `startDate` and `endDate` must be provided and valid; `endDate` >= `startDate`.
+    -   `page` and `pageSize`, if provided, must be positive integers.
+    -   Return HTTP 400 for any validation failures.
+
+### 4.3. Core SQL Query Logic (Conceptual)
+
+-   Two main queries: one for paginated data, one for the total count of matching records.
+-   **Data Aggregation per ClientGroup (within date range for appointments)**:
+    -   `total_services_provided`: Sum of `Appointment.service_fee` for billable appointments.
+    -   `total_amount_invoiced`: Sum of `Invoice.amount` linked to these appointments (where invoice status is not 'VOID').
+    -   `total_amount_paid`: Sum of `Payment.amount` linked to these invoices (where payment status is 'Completed').
+    -   `total_amount_unpaid`: Calculated as `total_amount_invoiced - total_amount_paid`.
+-   **Responsible Client Retrieval**: Use a subquery or `OUTER APPLY` to fetch the `first_name` and `last_name` of the responsible client for each `ClientGroup`.
+-   **Pagination**: Implement SQL `OFFSET` and `LIMIT` (or equivalent) using `page` and `pageSize`.
+-   **Filtering**: The main data query and the count query should optionally filter for `total_amount_unpaid > 0`.
+-   Data sources: `ClientGroup`, `Client`, `ClientGroupMembership`, `Appointment`, `Invoice`, `Payment`.
+
+### 4.4. Data Processing (API Route Handler)
+
+-   Execute the two raw SQL queries (data and total count).
+-   Map raw SQL data results:
+    -   Convert decimal string representations to numbers.
+-   Calculate `totalPages` for pagination metadata.
+-   Format the final output.
+
+### 4.5. Output Format
+
+-   A JSON object containing the `data` array and a `pagination` object.
+-   `Content-Type: application/json`
+-   Structure:
+    ```json
+    {
+      "data": [
+        {
+          "clientGroupId": "string",
+          "clientGroupName": "string",
+          "responsibleClientFirstName": "string | null",
+          "responsibleClientLastName": "string | null",
+          "totalServicesProvided": number,
+          "totalAmountInvoiced": number,
+          "totalAmountPaid": number,
+          "totalAmountUnpaid": number
+        },
+        // ... more client groups
+      ],
+      "pagination": {
+        "totalItems": number,
+        "currentPage": number,
+        "pageSize": number,
+        "totalPages": number
+      }
+    }
+    ```
+
+### 4.6. Testing Requirements
+
+-   **Unit Tests**:
+    -   Mock `prisma.$queryRaw` (or `prisma.$transaction` if used).
+    -   Test input validation (`startDate`, `endDate`, `page`, `pageSize`).
+    -   Test pagination calculation logic.
+    -   Verify data transformation.
+-   **Integration Tests**:
+    -   Seed database with `Client`, `ClientGroup`, `ClientGroupMembership`, `Appointment`, `Invoice`, `Payment` records.
+    -   Scenarios to cover:
+        -   Basic pagination: first page, default size. Verify data and pagination object. Correct responsible client chosen.
+        -   Page navigation (page 2, last page).
+        -   Page size changes.
+        -   No outstanding balances in range: empty data array, zero totalItems.
+        -   Client group with multiple responsible billers (ensure no financial duplication, consistent contact chosen).
+        -   Client group with zero responsible billers (ensure financials calculated, contact handled gracefully).
+        -   Client group with no appointments in range.
+        -   Invalid inputs (dates, pagination params): Expect HTTP 400.
+
+## 5. Non-Functional Requirements
+
+-   **Performance**: Queries should be optimized for performance, especially considering potentially large datasets. Use appropriate indexing.
+-   **Security**: Prevent SQL injection vulnerabilities by using parameterized queries (`Prisma.sql`) with `prisma.$queryRaw` wherever possible. If `prisma.$queryRawUnsafe` is used, ensure inputs are rigorously sanitized or validated. Consider rate limiting if abuse is a concern.
+-   **Maintainability**: Code should be well-structured, commented where necessary, and follow project coding standards.
+
+## 6. Future Considerations (Out of Scope for this Iteration)
+
+-   More advanced filtering options (e.g., by specific client, by service type).
+-   Sorting options for results.
+-   Export functionality (e.g., to CSV). 
