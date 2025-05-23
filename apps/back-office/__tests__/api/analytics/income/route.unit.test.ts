@@ -199,50 +199,79 @@ describe("GET /api/analytics/income - Unit Tests", () => {
     });
   });
 
-  describe("SQL Query Logic", () => {
-    it("should call prisma.$queryRaw with correct parameters and return its result on successful validation", async () => {
+  describe("SQL Query Logic & Data Transformation", () => {
+    it("should call prisma.$queryRaw, transform data, and log query time on success", async () => {
       const startDate = "2023-01-01";
       const endDate = "2023-01-15";
-      const mockQueryResult = [
+      const mockRawResult = [
         {
-          metric_date: new Date(startDate),
-          total_client_payments: "100",
-          total_gross_income: "200",
-          total_net_income: "150",
+          metric_date: new Date("2023-01-01T00:00:00.000Z"), // UTC date
+          total_client_payments: "100.50",
+          total_gross_income: "200.75",
+          total_net_income: "150.25",
+        },
+        {
+          metric_date: new Date("2023-01-02T00:00:00.000Z"),
+          total_client_payments: "0",
+          total_gross_income: "50",
+          total_net_income: "40",
         },
       ];
-      vi.mocked(prisma.$queryRaw).mockResolvedValue(mockQueryResult);
+      vi.mocked(prisma.$queryRaw).mockResolvedValue(mockRawResult);
 
       const req = createMockRequest({ startDate, endDate });
       const response = await GET(req);
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      // Dates in JSON will be ISO strings
-      expect(json).toEqual(
-        mockQueryResult.map((r) => ({
-          ...r,
-          metric_date: r.metric_date.toISOString(),
-        })),
-      );
+
+      const expectedFormattedResult = [
+        {
+          date: "2023-01-01",
+          clientPayments: 100.5,
+          grossIncome: 200.75,
+          netIncome: 150.25,
+        },
+        {
+          date: "2023-01-02",
+          clientPayments: 0,
+          grossIncome: 50,
+          netIncome: 40,
+        },
+      ];
+      expect(json).toEqual(expectedFormattedResult);
+
       expect(logger.info).toHaveBeenCalledWith(
         { startDate, endDate },
         "Income analytics request",
       );
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ queryTime: expect.any(Number) }),
+        "Income analytics query executed",
+      );
       expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
-      // Basic check for Prisma.sql usage and parameters - more detailed query string matching is complex and brittle
-      expect(vi.mocked(prisma.$queryRaw).mock.calls[0][0]).toHaveProperty(
-        "sql",
+      const queryCall = vi.mocked(prisma.$queryRaw).mock.calls[0][0];
+      expect(queryCall).toHaveProperty("sql");
+      expect(queryCall).toHaveProperty("values");
+      expect(queryCall.values).toContain(startDate);
+      expect(queryCall.values).toContain(endDate);
+    });
+
+    it("should return an empty array if prisma.$queryRaw returns an empty array", async () => {
+      const startDate = "2023-02-01";
+      const endDate = "2023-02-10";
+      vi.mocked(prisma.$queryRaw).mockResolvedValue([]); // Empty result
+
+      const req = createMockRequest({ startDate, endDate });
+      const response = await GET(req);
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json).toEqual([]);
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ queryTime: expect.any(Number) }),
+        "Income analytics query executed",
       );
-      expect(vi.mocked(prisma.$queryRaw).mock.calls[0][0]).toHaveProperty(
-        "values",
-      );
-      expect(vi.mocked(prisma.$queryRaw).mock.calls[0][0].values).toContain(
-        startDate,
-      );
-      expect(vi.mocked(prisma.$queryRaw).mock.calls[0][0].values).toContain(
-        endDate,
-      );
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
     });
 
     it("should return 500 and log error if prisma.$queryRaw throws an error", async () => {
