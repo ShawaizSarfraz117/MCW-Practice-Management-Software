@@ -61,12 +61,13 @@ Task Master offers two primary ways to interact:
 ## Task Breakdown Process
 
 -   Use `expand_task` / `task-master expand --id=<id>`. It automatically uses the complexity report if found, otherwise generates default number of subtasks.
+    -   **Crucially, when expanding a task that involves code implementation, subtasks for *writing the tests* for that feature/component MUST be explicitly planned and created at this stage.** Do not defer test planning to later. For example, if expanding "Implement Feature X", generate subtasks for "Implement Feature X logic" AND "Write unit tests for Feature X logic" AND/OR "Write integration tests for Feature X".
 -   Use `--num=<number>` to specify an explicit number of subtasks, overriding defaults or complexity report recommendations.
 -   Add `--research` flag to leverage Perplexity AI for research-backed expansion.
 -   Add `--force` flag to clear existing subtasks before generating new ones (default is to append).
 -   Use `--prompt="<context>"` to provide additional context when needed.
--   Review and adjust generated subtasks as necessary.
--   Use `expand_all` tool or `task-master expand --all` to expand multiple pending tasks at once, respecting flags like `--force` and `--research`.
+-   Review and adjust generated subtasks as necessary, ensuring test creation subtasks are present and correctly scoped.
+-   Use `expand_all` tool or `task-master expand --all` to expand multiple pending tasks at once, respecting flags like `--force` and `--research`. This also requires ensuring that corresponding test creation subtasks are planned for each expanded task.
 -   If subtasks need complete replacement (regardless of the `--force` flag on `expand`), clear them first with `clear_subtasks` / `task-master clear-subtasks --id=<id>`.
 
 ## Implementation Drift Handling
@@ -263,6 +264,8 @@ This sequence ensures that Feature Code implementation, test implementation, tes
     - Use grep/ripgrep to find exported functions/constants:
       `rg "export (async function|function|const) \w+"` or similar patterns.
     - Can help compare functions between files during migrations or identify potential naming conflicts.
+
+
 
 
 ---
