@@ -33,7 +33,6 @@ export async function PUT(
         subject: body.subject,
         content: body.content,
         type: body.type,
-        is_active: body.isActive ?? true,
       },
     });
 

@@ -74,20 +74,22 @@ model Audit {
 }
 
 model Availability {
-  id                    String    @id @default(dbgenerated("newid()"), map: "PK_Availability_ID") @db.UniqueIdentifier
-  clinician_id          String    @db.UniqueIdentifier
-  created_at            DateTime  @default(now(), map: "DF_Availability_CreatedAt")
-  updated_at            DateTime  @updatedAt
-  is_recurring          Boolean   @default(false, map: "DF_Availability_IsRecurring")
-  recurring_rule        String?   @db.Text
-  end_time              DateTime  @default(now(), map: "DF_Availability_EndTime")
-  start_time            DateTime  @default(now(), map: "DF_Availability_StartTime")
-  end_date              DateTime  @default(now(), map: "DF_Availability_EndDate")
-  start_date            DateTime  @default(now(), map: "DF_Availability_StartDate")
-  title                 String    @db.Text
-  allow_online_requests Boolean   @default(false, map: "DF_Availability_AllowOnlineRequests")
-  location              String?   @db.VarChar(255)
-  Clinician             Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Clinician")
+  id                    String                 @id @default(dbgenerated("newid()"), map: "PK_Availability_ID") @db.UniqueIdentifier
+  clinician_id          String                 @db.UniqueIdentifier
+  created_at            DateTime               @default(now(), map: "DF_Availability_CreatedAt")
+  updated_at            DateTime               @updatedAt
+  is_recurring          Boolean                @default(false, map: "DF_Availability_IsRecurring")
+  recurring_rule        String?                @db.Text
+  end_time              DateTime               @default(now(), map: "DF_Availability_EndTime")
+  start_time            DateTime               @default(now(), map: "DF_Availability_StartTime")
+  end_date              DateTime               @default(now(), map: "DF_Availability_EndDate")
+  start_date            DateTime               @default(now(), map: "DF_Availability_StartDate")
+  title                 String                 @db.Text
+  allow_online_requests Boolean                @default(false, map: "DF_Availability_AllowOnlineRequests")
+  location_id           String                 @db.UniqueIdentifier
+  Clinician             Clinician              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Clinician")
+  Location              Location               @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Location")
+  AvailabilityServices  AvailabilityServices[]
 
   @@index([clinician_id], map: "IX_Availability_clinician_id")
   @@index([start_time, end_time], map: "IX_Availability_time_range")
@@ -316,11 +318,11 @@ model Invoice {
   amount              Decimal      @db.Decimal(10, 2)
   status              String       @db.VarChar(50)
   type                String       @db.VarChar(50)
-  is_exported         Boolean      @default(false, map: "DF_Invoice_isExported")
   client_info         String?      @db.Text
   notes               String?      @db.Text
   provider_info       String?      @db.Text
   service_description String?      @db.Text
+  is_exported         Boolean      @default(false, map: "DF_Invoice_is_exported")
   Appointment         Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
   ClientGroup         ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
   Clinician           Clinician?   @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Invoice_Clinician")
@@ -338,6 +340,7 @@ model Location {
   street            String?             @db.VarChar(255)
   zip               String?             @db.VarChar(20)
   Appointment       Appointment[]
+  Availability      Availability[]
   Client            Client[]
   ClinicianLocation ClinicianLocation[]
   GoodFaithEstimate GoodFaithEstimate[]
@@ -374,6 +377,7 @@ model PracticeService {
   is_default          Boolean               @default(false)
   require_call        Boolean               @default(false)
   Appointment         Appointment[]
+  AppointmentRequests AppointmentRequests[]
   ClientGroupServices ClientGroupServices[]
   ClinicianServices   ClinicianServices[]
   GoodFaithServices   GoodFaithServices[]
@@ -419,7 +423,9 @@ model SurveyTemplate {
   description        String?         @db.Text
   updated_at         DateTime
   type               String          @db.VarChar(100)
+  is_default         Boolean         @default(false, map: "DF_SurveyTemplate_is_default")
   requires_signature Boolean         @default(false, map: "DF_SurveyTemplate_RequiresSignature")
+  is_shareable       Boolean         @default(false, map: "DF_SurveyTemplate_is_shareable")
   SurveyAnswers      SurveyAnswers[]
 }
 
@@ -477,13 +483,13 @@ model ClinicalInfo {
 }
 
 model License {
-  id              String    @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  id              String    @id(map: "PK_License") @default(dbgenerated("newid()"), map: "DF_License_id") @db.UniqueIdentifier
   clinician_id    String    @db.UniqueIdentifier
   license_type    String
   license_number  String
   expiration_date DateTime
   state           String
-  Clinician       Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction,onDelete: Cascade, map: "FK_License_Clinician")
+  Clinician       Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_License_Clinician")
 }
 
 model PracticeInformation {
@@ -511,21 +517,15 @@ model AppointmentLimit {
 }
 
 model EmailTemplate {
-  id                  String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  name                String   @db.VarChar(255)
-  subject             String   @db.VarChar(255)
-  content             String   @db.Text
-  type                String   @db.VarChar(50)
-  is_active           Boolean  @default(true)
-  is_enabled          Boolean  @default(true)
-  reminder_time       Int?
-  include_attachments Boolean? @default(false)
-  send_to_client      Boolean  @default(true)
-  send_to_clinician   Boolean  @default(false)
-  send_to_practice    Boolean  @default(false)
-  created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
-  created_by          String   @db.UniqueIdentifier
+  id         String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  name       String   @db.VarChar(255)
+  subject    String   @db.VarChar(255)
+  content    String   @db.Text
+  type       String   @db.VarChar(50)
+  email_type String?  @db.VarChar(250)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  created_by String   @db.UniqueIdentifier
 
   @@index([type])
   @@index([created_by])
@@ -592,7 +592,7 @@ model Statement {
   client_email      String?         @db.VarChar(255)
   created_at        DateTime        @default(now())
   created_by        String?         @db.UniqueIdentifier
-  is_exported       Boolean         @default(false, map: "DF_Statement_isExported")
+  is_exported       Boolean         @default(false, map: "DF_Statement_is_exported")
   ClientGroup       ClientGroup     @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_Statement_ClientGroup")
   User              User?           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Statement_User")
   StatementItem     StatementItem[]
@@ -612,7 +612,7 @@ model Superbill {
   status           String        @db.VarChar(50)
   created_at       DateTime      @default(now())
   created_by       String?       @db.UniqueIdentifier
-  is_exported      Boolean       @default(false, map: "DF_Superbill_isExported")
+  is_exported      Boolean       @default(false, map: "DF_Superbill_is_exported")
   Appointment      Appointment[]
   ClientGroup      ClientGroup   @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_Superbill_ClientGroup")
   User             User?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Superbill_User")
@@ -621,25 +621,25 @@ model Superbill {
 }
 
 model BillingSettings {
-  id                                   String    @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  clinician_id                         String    @unique @db.UniqueIdentifier
-  autoInvoiceCreation                  String    @db.VarChar(50)
-  pastDueDays                          Int
-  emailClientPastDue                   Boolean
-  invoiceIncludePracticeLogo           Boolean
-  invoiceFooterInfo                    String?   @db.VarChar(120)
-  superbillDayOfMonth                  Int
-  superbillIncludePracticeLogo         Boolean
-  superbillIncludeSignatureLine        Boolean
-  superbillIncludeDiagnosisDescription Boolean
-  superbillFooterInfo                  String?   @db.VarChar(120)
-  billingDocEmailDelayMinutes          Int
-  createMonthlyStatementsForNewClients Boolean
-  createMonthlySuperbillsForNewClients Boolean
-  defaultNotificationMethod            String    @db.VarChar(50)
-  created_at                           DateTime  @default(now())
-  updated_at                           DateTime  @updatedAt
-  Clinician                            Clinician @relation(fields: [clinician_id], references: [id], onDelete: Cascade)
+  id                                   String     @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  clinician_id                         String?    @unique @db.UniqueIdentifier
+  autoInvoiceCreation                  String?    @db.VarChar(50)
+  pastDueDays                          Int?
+  emailClientPastDue                   Boolean?
+  invoiceIncludePracticeLogo           Boolean?
+  invoiceFooterInfo                    String?    @db.VarChar(120)
+  superbillDayOfMonth                  Int?
+  superbillIncludePracticeLogo         Boolean?
+  superbillIncludeSignatureLine        Boolean?
+  superbillIncludeDiagnosisDescription Boolean?
+  superbillFooterInfo                  String?    @db.VarChar(120)
+  billingDocEmailDelayMinutes          Int?
+  createMonthlyStatementsForNewClients Boolean?
+  createMonthlySuperbillsForNewClients Boolean?
+  defaultNotificationMethod            String?    @db.VarChar(50)
+  created_at                           DateTime   @default(now())
+  updated_at                           DateTime   @updatedAt
+  Clinician                            Clinician? @relation(fields: [clinician_id], references: [id], onDelete: Cascade)
 
   @@index([clinician_id])
 }
@@ -785,17 +785,74 @@ model StatementItem {
   Statement    Statement @relation(fields: [statement_id], references: [id], onUpdate: NoAction, map: "FK_StatementItem_Statement")
 }
 
-model billing_document {
-  document_id     String   @id @map("document_id")
-  document_type   String   @map("document_type")
-  document_number String   @map("document_number")
-  name            String   @map("name")
-  deliver_method  String   @default("Manual") @map("deliver_method")
-  view_all        String   @map("view_all")
-  status          String   @map("status")
-  client_group_id String   @map("client_group_id")
-  issued_date     DateTime @map("issued_date")
-  created_at      DateTime @map("created_at")
+model AppointmentRequests {
+  id                       String                @id(map: "PK_AppointmentRequests") @db.UniqueIdentifier
+  clinician_id             String                @db.UniqueIdentifier
+  client_id                String?               @db.UniqueIdentifier
+  service_id               String                @db.UniqueIdentifier
+  appointment_for          String?               @db.VarChar(50)
+  reasons_for_seeking_care String?               @db.Text
+  mental_health_history    String?               @db.Text
+  additional_notes         String?               @db.Text
+  start_time               DateTime              @db.DateTime
+  end_time                 DateTime              @db.DateTime
+  status                   String                @db.VarChar(250)
+  received_date            DateTime              @db.DateTime
+  updated_at               DateTime?             @db.DateTime
+  PracticeService          PracticeService       @relation(fields: [service_id], references: [id], onUpdate: NoAction, map: "FK_AppointmentRequests_PracticeService")
+  RequestContactItems      RequestContactItems[]
+}
 
-  @@map("vw_billing_documents")
+model AvailabilityServices {
+  availability_id String       @db.UniqueIdentifier
+  service_id      String       @db.UniqueIdentifier
+  Availability    Availability @relation(fields: [availability_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_Availability")
+
+  @@id([availability_id, service_id], map: "PK_AvailabilityServices")
+}
+
+model ClientPortalSettings {
+  id                              String   @id(map: "PK_ClientPortalSettings") @db.UniqueIdentifier
+  clinician_id                    String   @db.UniqueIdentifier
+  is_enabled                      Boolean  @default(false, map: "DF_ClientPortalSettings_is_client_portal_enabled")
+  domain_url                      String?  @db.VarChar(250)
+  is_appointment_requests_enabled Boolean?
+  appointment_start_times         String?  @db.VarChar(250)
+  request_minimum_notice          String?  @db.VarChar(250)
+  maximum_request_notice          String?  @db.VarChar(250)
+  allow_new_clients_request       Boolean  @default(false, map: "DF_ClientPortalSettings_allow_new_clients_request")
+  requests_from_new_individuals   Boolean  @default(false, map: "DF_ClientPortalSettings_requests_from_new_individuals")
+  requests_from_new_couples       Boolean  @default(false, map: "DF_ClientPortalSettings_requests_from_new_couples")
+  requests_from_new_contacts      Boolean  @default(false, map: "DF_ClientPortalSettings_requests_from_new_contacts")
+  is_prescreen_new_clinets        Boolean  @default(false, map: "DF_ClientPortalSettings_is_prescreen_new_clinets")
+  card_for_appointment_request    Boolean  @default(false, map: "DF_ClientPortalSettings_card_for_appointment_request")
+  is_upload_documents_allowed     Boolean  @default(false, map: "DF_ClientPortalSettings_is_upload_documents_allowed")
+  welcome_message                 String?  @db.NVarChar(Max)
+}
+
+model PracticeSettings {
+  id    String @id(map: "PK_PracticeSettings") @db.UniqueIdentifier
+  key   String @db.VarChar(250)
+  value String @db.NVarChar(Max)
+}
+
+model ReminderTextTemplates {
+  id      String @id(map: "PK_ReminderTextTemplates") @db.UniqueIdentifier
+  type    String @db.VarChar(250)
+  content String @db.Text
+}
+
+model RequestContactItems {
+  id                     String              @id(map: "PK_RequestContactItems") @db.UniqueIdentifier
+  appointment_request_id String              @db.UniqueIdentifier
+  type                   String              @db.VarChar(250)
+  first_name             String              @db.VarChar(250)
+  last_name              String              @db.VarChar(250)
+  preferred_name         String?             @db.VarChar(250)
+  date_of_birth          DateTime?           @db.Date
+  email                  String              @db.VarChar(250)
+  phone                  String              @db.VarChar(250)
+  payment_method         String?             @db.VarChar(250)
+  is_client_minor        Boolean?
+  AppointmentRequests    AppointmentRequests @relation(fields: [appointment_request_id], references: [id], onUpdate: NoAction, map: "FK_RequestContactItems_AppointmentRequests")
 }
