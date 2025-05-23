@@ -53,6 +53,8 @@ describe("GET /api/analytics/outstanding-balances - Unit Tests", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset the mock before each test, specific mocks will be set in individual tests
+    vi.mocked(prisma.$queryRaw).mockReset();
     originalURL = global.URL;
   });
 
@@ -211,39 +213,57 @@ describe("GET /api/analytics/outstanding-balances - Unit Tests", () => {
     it("should return 200 for valid parameters (using defaults for page/pageSize)", async () => {
       const startDate = "2023-01-01";
       const endDate = "2023-01-15";
+      // Add specific mocks for this test
+      vi.mocked(prisma.$queryRaw)
+        .mockResolvedValueOnce([]) // For data query
+        .mockResolvedValueOnce([{ count: BigInt(0) }]); // For count query
+
       const req = createMockRequest({ startDate, endDate });
       const response = await GET(req);
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.message).toBe(
-        "Validation passed. Data fetching not yet implemented.",
-      );
-      expect(json.pagination.page).toBe(1);
-      expect(json.pagination.pageSize).toBe(10);
+      // Update assertion to reflect actual response now that query logic is hit
+      expect(json.data).toEqual([]);
+      expect(json.pagination).toEqual({
+        page: 1,
+        pageSize: 10,
+        totalItems: 0,
+        totalPages: 0,
+      });
       expect(logger.info).toHaveBeenCalledWith(
         { startDate, endDate, page: 1, pageSize: 10 },
         "Outstanding balances analytics request",
       );
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
     });
 
     it("should return 200 for valid parameters (with custom page/pageSize)", async () => {
-      const startDate = "2023-02-01";
-      const endDate = "2023-02-28";
+      const startDate = "2023-01-01";
+      const endDate = "2023-01-15";
       const page = "2";
       const pageSize = "5";
+      // Add specific mocks for this test
+      vi.mocked(prisma.$queryRaw)
+        .mockResolvedValueOnce([]) // For data query
+        .mockResolvedValueOnce([{ count: BigInt(0) }]); // For count query
+
       const req = createMockRequest({ startDate, endDate, page, pageSize });
       const response = await GET(req);
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.message).toBe(
-        "Validation passed. Data fetching not yet implemented.",
-      );
-      expect(json.pagination.page).toBe(2);
-      expect(json.pagination.pageSize).toBe(5);
+      // Update assertion to reflect actual response
+      expect(json.data).toEqual([]);
+      expect(json.pagination).toEqual({
+        page: 2,
+        pageSize: 5,
+        totalItems: 0,
+        totalPages: 0,
+      });
       expect(logger.info).toHaveBeenCalledWith(
         { startDate, endDate, page: 2, pageSize: 5 },
         "Outstanding balances analytics request",
       );
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
     });
 
     it("should return 200 when startDate and endDate are the same valid day", async () => {
