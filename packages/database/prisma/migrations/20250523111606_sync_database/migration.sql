@@ -30,14 +30,8 @@ BEGIN TRY
 
 BEGIN TRAN;
 
--- DropForeignKey
-ALTER TABLE [dbo].[PracticeInformation] DROP CONSTRAINT [FK_practiceInformation_User];
 
--- DropForeignKey
-ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [FK_Superbill_Appointment];
 
--- DropIndex
-DROP INDEX [IX_Superbill_appointment_id] ON [dbo].[Superbill];
 
 -- AlterTable
 ALTER TABLE [dbo].[Appointment] ADD [superbill_id] UNIQUEIDENTIFIER;
@@ -101,6 +95,7 @@ ALTER TABLE [dbo].[EmailTemplate] ADD [email_type] VARCHAR(250);
 ALTER TABLE [dbo].[Invoice] ADD [is_exported] BIT NOT NULL CONSTRAINT [DF_Invoice_is_exported] DEFAULT 0;
 
 -- AlterTable
+ALTER TABLE [dbo].[PracticeInformation] DROP CONSTRAINT [FK_practiceInformation_User];
 ALTER TABLE [dbo].[PracticeInformation] DROP COLUMN [user_id];
 ALTER TABLE [dbo].[PracticeInformation] ADD [clinician_id] UNIQUEIDENTIFIER;
 
@@ -110,6 +105,8 @@ ALTER TABLE [dbo].[Statement] ADD [is_exported] BIT NOT NULL CONSTRAINT [DF_Stat
 
 -- AlterTable
 ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [Superbill_units_df];
+ALTER TABLE [dbo].[Superbill] DROP CONSTRAINT [FK_Superbill_Appointment];
+DROP INDEX [IX_Superbill_appointment_id] ON [dbo].[Superbill];
 ALTER TABLE [dbo].[Superbill] DROP COLUMN [amount],
 [appointment_id],
 [diagnosis_code],
