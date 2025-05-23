@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
 # Project Memory
@@ -33,3 +33,10 @@ This file stores project-specific knowledge, conventions, and user preferences l
 
 - [Convention 1]
 - [Convention 2]
+-   **Granular Testing Subtask Structure:**
+    -   When planning tests, break down main testing tasks into individual subtasks for *each distinct logical test scenario*.
+    -   Each scenario-specific testing subtask must detail the 4-step cycle:
+        1.  Implement the specific test.
+        2.  Execute (single-run, e.g., `vitest run`), remediate (fix code/test until pass, respecting integration test exceptions).
+        3.  Learn & Record: Reflect on the implementation, identify key learnings, and propose updates to `learned-memories.mdc`.
+        4.  Commit changes for that scenario.

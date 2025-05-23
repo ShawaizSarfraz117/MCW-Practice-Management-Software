@@ -61,7 +61,17 @@ Task Master offers two primary ways to interact:
 ## Task Breakdown Process
 
 -   Use `expand_task` / `task-master expand --id=<id>`. It automatically uses the complexity report if found, otherwise generates default number of subtasks.
-    -   **Crucially, when expanding a task that involves code implementation, subtasks for *writing the tests* for that feature/component MUST be explicitly planned and created at this stage.** Do not defer test planning to later. For example, if expanding "Implement Feature X", generate subtasks for "Implement Feature X logic" AND "Write unit tests for Feature X logic" AND/OR "Write integration tests for Feature X".
+    -   **Crucially, when expanding a task that involves code implementation, subtasks for *writing the tests* for that feature/component MUST be explicitly planned and created at this stage.** Do not defer test planning to later. For example, if expanding "Implement Feature X", generate subtasks for "Implement Feature X logic" AND a general parent subtask like "Write Comprehensive Tests for Feature X".
+    -   **Granular Test Scenario Subtasks:** The general parent testing subtask (e.g., "Write Comprehensive Tests for Feature X") MUST then be further broken down. Create **individual subtasks for each distinct logical test scenario** required for that feature. Examples of distinct scenarios include:
+        -   Testing with valid inputs (the "happy path").
+        -   Testing specific error conditions (e.g., invalid input, resource not found).
+        -   Testing edge cases (e.g., zero values, empty strings, boundary conditions).
+        -   Testing specific business logic branches.
+    -   **Structure of Scenario-Specific Testing Subtasks:** Each of these individual, scenario-based testing subtasks MUST clearly outline the following four-step process in its description or details:
+        1.  **Implement Test:** Design and write the specific unit and/or integration test(s) corresponding to this *single scenario*.
+        2.  **Execute & Remediate:** Run the implemented test(s) for this scenario (using single-run commands like `vitest run`, not watch mode). Iteratively debug and fix the relevant source code or test code until these specific tests pass. (Adhere to project-specific guidelines, such as the current exception for not fixing failing *integration* tests if a known glitch exists, though they must still be run).
+        3.  **Learn & Record:** Think about your implementation and what you learned, and consider what should be stored in the long-term memory (`learned-memories.mdc`). This is an important step to improve contextual awareness. Propose updates to `learned-memories.mdc` with key findings, decisions, or patterns from this scenario's implementation.
+        4.  **Commit Changes:** Commit all code changes (source and test files) related to the implementation and successful execution of this specific test scenario. Use a clear and descriptive commit message that references the scenario.
 -   Use `--num=<number>` to specify an explicit number of subtasks, overriding defaults or complexity report recommendations.
 -   Add `--research` flag to leverage Perplexity AI for research-backed expansion.
 -   Add `--force` flag to clear existing subtasks before generating new ones (default is to append).
@@ -264,6 +274,9 @@ This sequence ensures that Feature Code implementation, test implementation, tes
     - Use grep/ripgrep to find exported functions/constants:
       `rg "export (async function|function|const) \w+"` or similar patterns.
     - Can help compare functions between files during migrations or identify potential naming conflicts.
+
+
+
 
 
 

@@ -20,10 +20,10 @@ All learned project-specific knowledge and preferences should be stored and refe
 When new information relevant to the project's conventions, user preferences, or specific technical details is learned (either explicitly told by the user or inferred through conversation), the AI should:
 
 1.  **Identify Key Information:** Determine the core piece of knowledge to be stored.
-2.  **Check Existing Memory:** Review `learned-memories.mdc` to see if this information contradicts or updates existing entries.
-3.  **Propose Update:** Suggest an edit to `learned-memories.mdc` to add or modify the relevant information. Keep entries concise and clear.
+2.  **Check Existing Memory:** Review `@learned-memories.mdc` to see if this information contradicts or updates existing entries.
+3.  **Propose Update:** Suggest an edit to `@learned-memories.mdc` to add or modify the relevant information. Keep entries concise and clear.
 
-**At the end of each subtask, especially after significant implementation, problem-solving, or when a key decision has been made, the AI MUST propose an update to `learned-memories.mdc`.** This update should be a concise, bullet-point summary of:
+**At the end of each subtask, especially after significant implementation, problem-solving, or when a key decision has been made, the AI MUST propose an update to `@learned-memories.mdc`.** This update should be a concise, bullet-point summary of:
     - Key technical solutions implemented.
     - Important decisions made (and why, if not obvious).
     - Patterns established or reinforced.
