@@ -249,4 +249,30 @@ describe("GET /api/analytics/income Integration Tests", () => {
     expect(jsonResponse).toHaveProperty("details");
     expect(Array.isArray(jsonResponse.details)).toBe(true);
   });
+
+  it("should return 400 for invalid date format in startDate", async () => {
+    const req = createRequest(
+      "/api/analytics/income?startDate=invalid-date&endDate=2023-12-31",
+    ) as NextRequest;
+    const response = await GET(req);
+
+    expect(response.status).toBe(400);
+    const jsonResponse = await response.json();
+    expect(jsonResponse).toHaveProperty("error", "Invalid input");
+    expect(jsonResponse).toHaveProperty("details");
+    expect(Array.isArray(jsonResponse.details)).toBe(true);
+  });
+
+  it("should return 400 for missing startDate parameter", async () => {
+    const req = createRequest(
+      "/api/analytics/income?endDate=2023-12-31",
+    ) as NextRequest;
+    const response = await GET(req);
+
+    expect(response.status).toBe(400);
+    const jsonResponse = await response.json();
+    expect(jsonResponse).toHaveProperty("error", "Invalid input");
+    expect(jsonResponse).toHaveProperty("details");
+    expect(Array.isArray(jsonResponse.details)).toBe(true);
+  });
 });
