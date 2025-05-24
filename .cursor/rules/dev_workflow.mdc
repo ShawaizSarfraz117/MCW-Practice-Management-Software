@@ -107,8 +107,8 @@ Only after user approval:
 
 -   **IMPORTANT**: Before executing any task expansion, follow the [Task Generation Interaction Flow](mdc:#task-generation-interaction-flow) to gather clarifications and get user approval.
 -   Use `expand_task` / `task-master expand --id=<id>`. It automatically uses the complexity report if found, otherwise generates default number of subtasks.
-    -   **Crucially, when expanding a task that involves code implementation, subtasks for *writing the tests* for that feature/component MUST be explicitly planned and created at this stage.** Do not defer test planning to later. For example, if expanding "Implement Feature X", generate subtasks for "Implement Feature X logic" AND a general parent subtask like "Write Comprehensive Tests for Feature X".
-    -   **Granular Test Scenario Subtasks:** The general parent testing subtask (e.g., "Write Comprehensive Tests for Feature X") MUST then be further broken down. Create **individual subtasks for each distinct logical test scenario** required for that feature. Examples of distinct scenarios include:
+    -   **Crucially, when expanding a task that involves code implementation, subtasks for *writing the tests* for that feature/component MUST be explicitly planned and created at this stage.** Do not defer test planning to later. For example, if expanding "Implement Feature X", generate subtasks for "Implement Feature X logic" AND then proceed to generate granular subtasks for testing.
+    -   **Granular Test Scenario Subtasks:** Instead of a single "Write Comprehensive Tests for Feature X" subtask, the you MUST create **individual subtasks for each distinct logical test scenario** required for that feature. Examples of distinct scenarios include:
         -   Testing with valid inputs (the "happy path").
         -   Testing specific error conditions (e.g., invalid input, resource not found).
         -   Testing edge cases (e.g., zero values, empty strings, boundary conditions).
@@ -117,7 +117,7 @@ Only after user approval:
         -   `[Unit Test] Feature X - Happy Path Validation`
         -   `[Integration Test] API Endpoint - Error Response Handling`
         -   `[Unit Test] Calculator - Division by Zero Edge Case`
-    -   **Required 4-Step Structure for ALL Testing Subtasks:** Each individual testing subtask MUST include the following four steps in its description or details. This is mandatory and must be followed exactly:
+    -   **Required 4-Step Structure for ALL Testing Subtasks:** Each individual testing subtask (for each scenario) MUST include the following four steps in its description or details. This is mandatory and must be followed exactly:
         
         **Step 1 - Implement Tests:**
         - Design and write the specific test(s) for this single scenario
@@ -275,7 +275,7 @@ Once a task has been broken down into subtasks using `expand_task` or similar me
         *   Specific code snippets or configurations that were successful.
         *   Decisions made, especially if confirmed with user input.
         *   Any deviations from the initial plan and the reasoning.
-    *   The objective is to continuously enrich the subtask's details, creating a log of the implementation journey that helps the AI (and human developers) learn, adapt, and avoid repeating errors.
+    *   The objective is to continuously enrich the subtask's details, creating a log of the implementation journey that helps the you (and human developers) learn, adapt, and avoid repeating errors.
     *   **For learned-memories.mdc updates**: Only propose updates for high-impact learnings following the [Memory Guidelines](mdc:rules/memory.mdc#what-qualifies-as-important-to-remember). Skip trivial implementation details.
 
 7.  **Review & Update Rules (Post-Implementation):**
