@@ -45,6 +45,13 @@ interface AppointmentSidebarProps {
   onClose: () => void;
 }
 
+interface Location {
+  id: string;
+  name: string;
+  address: string;
+  is_active: boolean;
+}
+
 // function adaptFormToInterface(originalForm: unknown): FormInterface {
 //   return originalForm as FormInterface;
 // }
@@ -73,7 +80,7 @@ export function AppointmentSidebar({
   const [period, setPeriod] = useState("week");
   const [endType, setEndType] = useState("never");
   const [endValue, setEndValue] = useState<string>("");
-  const [selectedLocation, setSelectedLocation] = useState("video");
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [services, setServices] = useState<Service[]>([]);
   const [_clinician, setClinician] = useState<Clinician[]>([]);
   const [duration, setDuration] = useState<string>("0 mins");
@@ -164,6 +171,19 @@ export function AppointmentSidebar({
     }
   }, [session?.user?.id, selectedResource]);
 
+  // Add location query
+  const { data: locations = [], isLoading: isLoadingLocations } = useQuery({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const response = await fetch("/api/location");
+      if (!response.ok) {
+        throw new Error("Failed to fetch locations");
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [data];
+    },
+  });
+
   // Helper function to create recurring rule in RFC5545 format
   const createRecurringRule = () => {
     if (!isRecurring) return null;
@@ -235,6 +255,12 @@ export function AppointmentSidebar({
         return;
       }
 
+      if (!selectedLocation) {
+        setValidationState((prev) => ({ ...prev, location: true }));
+        setGeneralError("Please select a location");
+        return;
+      }
+
       // Construct the payload
       const payload = {
         title: title || "New Availability",
@@ -246,7 +272,7 @@ export function AppointmentSidebar({
           availabilityFormValues.endDate,
           availabilityFormValues.endTime,
         ),
-        location: selectedLocation,
+        location_id: selectedLocation,
         clinician_id: availabilityFormValues.clinician,
         allow_online_requests: allowOnlineRequests,
         is_recurring: isRecurring,
@@ -579,17 +605,35 @@ export function AppointmentSidebar({
                 value={selectedLocation}
                 onValueChange={setSelectedLocation}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger
+                  className={cn(
+                    "w-full",
+                    validationState.location && "border-red-500",
+                  )}
+                >
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-[#16A34A]" />
-                    <SelectValue />
+                    <SelectValue
+                      placeholder={
+                        isLoadingLocations
+                          ? "Loading locations..."
+                          : "Select a location *"
+                      }
+                    />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="video">Video Office</SelectItem>
-                  <SelectItem value="physical">Physical Office</SelectItem>
+                  {locations.map((location: Location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <ValidationError
+                message="Location is required"
+                show={!!validationState.location}
+              />
             </div>
 
             {/* Services Section */}

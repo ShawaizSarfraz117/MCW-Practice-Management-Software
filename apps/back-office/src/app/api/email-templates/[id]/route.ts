@@ -25,6 +25,18 @@ export async function PUT(
       );
     }
 
+    // Check if template exists
+    const existingTemplate = await prisma.emailTemplate.findUnique({
+      where: { id },
+    });
+
+    if (!existingTemplate) {
+      return NextResponse.json(
+        { error: "Template not found" },
+        { status: 404 },
+      );
+    }
+
     // Update the template
     const updatedTemplate = await prisma.emailTemplate.update({
       where: { id },
@@ -33,6 +45,7 @@ export async function PUT(
         subject: body.subject,
         content: body.content,
         type: body.type,
+        email_type: body.email_type,
       },
     });
 
@@ -50,9 +63,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  console.log("🚀 ~ request:", request);
   try {
     const { id } = params;
-    console.log(request);
+
     if (!id || id === "undefined") {
       return NextResponse.json(
         { error: "Invalid template ID" },
