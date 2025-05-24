@@ -236,4 +236,17 @@ describe("GET /api/analytics/income Integration Tests", () => {
       expect(response.status).toBe(500);
     }
   });
+
+  it("should return 400 for invalid input when startDate is after endDate", async () => {
+    const req = createRequest(
+      "/api/analytics/income?startDate=2023-12-31&endDate=2023-01-01",
+    ) as NextRequest;
+    const response = await GET(req);
+
+    expect(response.status).toBe(400);
+    const jsonResponse = await response.json();
+    expect(jsonResponse).toHaveProperty("error", "Invalid input");
+    expect(jsonResponse).toHaveProperty("details");
+    expect(Array.isArray(jsonResponse.details)).toBe(true);
+  });
 });
