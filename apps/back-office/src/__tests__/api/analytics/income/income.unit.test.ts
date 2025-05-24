@@ -226,4 +226,37 @@ describe("GET /api/analytics/income", () => {
     expect(typeof result.total_client_payments).toBe("number");
     expect(result.total_client_payments).toBe(99.99);
   });
+
+  it("should format date objects to 'YYYY-MM-DD' strings in the response", async () => {
+    const mockRawData = [
+      {
+        metric_date: new Date("2023-01-15T10:30:45.123Z"),
+        total_gross_income: "100.00",
+        total_net_income: "80.00",
+        total_client_payments: "70.00",
+      },
+      {
+        metric_date: new Date("2023-12-31T23:59:59.999Z"),
+        total_gross_income: "200.00",
+        total_net_income: "180.00",
+        total_client_payments: "170.00",
+      },
+    ];
+    (prismaMock.$queryRaw as unknown as Mock).mockResolvedValue(mockRawData);
+
+    const req = createRequest(
+      "/api/analytics/income?startDate=2023-01-15&endDate=2023-12-31",
+    ) as NextRequest;
+    const response = await GET(req);
+
+    expect(response.status).toBe(200);
+    const jsonResponse = await response.json();
+    expect(jsonResponse.data).toHaveLength(2);
+
+    // Check that dates are formatted as YYYY-MM-DD strings
+    expect(typeof jsonResponse.data[0].metric_date).toBe("string");
+    expect(jsonResponse.data[0].metric_date).toBe("2023-01-15");
+    expect(typeof jsonResponse.data[1].metric_date).toBe("string");
+    expect(jsonResponse.data[1].metric_date).toBe("2023-12-31");
+  });
 });
