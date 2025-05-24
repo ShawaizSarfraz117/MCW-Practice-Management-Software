@@ -3,6 +3,29 @@ description: Guidelines for continuously improving Cursor rules based on emergin
 globs: **/*
 alwaysApply: true
 ---
+# Self-Improvement Rules
+
+## Connection with Memory System
+
+The self-improvement process works in tandem with the memory system (`learned-memories.mdc`):
+
+1. **Memory → Rules Pipeline:**
+   - Monitor `learned-memories.mdc` for recurring patterns
+   - When a memory entry is referenced/used 3+ times, consider creating a formal rule
+   - High-impact technical decisions in memory should become architectural rules
+   - Failed approaches in memory should become "anti-pattern" rules
+
+2. **Promotion Criteria (Memory to Rule):**
+   - The learning has been validated across multiple implementations
+   - It represents a consistent pattern or principle
+   - It would benefit the team to have it as a formal guideline
+   - It's mature enough to be standardized (not still evolving)
+
+3. **Memory Review During Rule Updates:**
+   - Before creating new rules, check if related learnings exist in memory
+   - Use memory entries as source material for rule examples
+   - Reference specific memory entries that led to rule creation
+   - Archive promoted memory entries with a note about the new rule
 
 - **Rule Improvement Triggers:**
   - New code patterns not covered by existing rules
@@ -10,6 +33,7 @@ alwaysApply: true
   - Common error patterns that could be prevented
   - New libraries or tools being used consistently
   - Emerging best practices in the codebase
+  - **Patterns identified in `learned-memories.mdc` that have proven valuable multiple times**
 
 - **Analysis Process:**
   - Compare new code with existing rules

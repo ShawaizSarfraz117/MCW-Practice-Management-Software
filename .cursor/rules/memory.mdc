@@ -11,6 +11,55 @@ This rule defines how the AI should manage and utilize its "memory" regarding th
 
 The AI's memory helps maintain consistency and adapt to specific project needs or user preferences discovered during interactions. It prevents the AI from repeatedly asking for the same information or making suggestions contrary to established patterns.
 
+## What Qualifies as Important to Remember
+
+### HIGH-IMPACT Information (SHOULD Remember):
+
+1. **Architectural Decisions & Patterns**
+   - Database design choices and their rationale
+   - API design patterns and conventions
+   - State management approaches
+   - Authentication/authorization strategies that deviate from defaults
+
+2. **User Preferences That Affect Implementation**
+   - Preferred testing approaches for specific scenarios
+   - Code style preferences beyond linter rules
+   - Workflow preferences that impact development process
+   - Technology choices (e.g., "always use PostgreSQL, never MySQL")
+
+3. **Technical Gotchas & Solutions**
+   - Non-obvious solutions to complex problems
+   - Workarounds for framework/library limitations
+   - Performance optimizations that worked
+   - Security considerations that were discovered
+
+4. **Business Logic Rules**
+   - Complex calculations or algorithms
+   - Edge cases that affect multiple features
+   - Domain-specific rules that aren't obvious from code
+
+5. **Failed Approaches (Negative Knowledge)**
+   - Approaches that were tried and didn't work
+   - The specific reason why they failed
+   - This prevents repeating the same mistakes
+
+### LOW-IMPACT Information (Should NOT Remember):
+
+- Trivial implementation details that follow standard patterns
+- One-off bug fixes that don't reveal broader patterns
+- Standard framework usage that matches documentation
+- Temporary workarounds (unless marked as temporary with removal plan)
+- Personal conversation details unrelated to code
+- Information already well-documented in project files
+- Simple syntax preferences that linters handle
+- Details that change frequently without affecting architecture
+
+### Memory Entry Quality Criteria:
+- **Future Impact**: Will this knowledge affect future implementations?
+- **Pattern Value**: Does this reveal a pattern or principle?
+- **Uniqueness**: Is this project-specific or standard practice?
+- **Durability**: Will this remain relevant for more than current task?
+
 ## Storage
 
 All learned project-specific knowledge and preferences should be stored and referenced in the `learned-memories.mdc` file located in `.cursor/rules`.
@@ -24,13 +73,36 @@ When new information relevant to the project's conventions, user preferences, or
 3.  **Propose Update:** Suggest an edit to `@learned-memories.mdc` to add or modify the relevant information. Keep entries concise and clear.
 
 **At the end of each subtask, especially after significant implementation, problem-solving, or when a key decision has been made, the AI MUST propose an update to `@learned-memories.mdc`.** This update should be a concise, bullet-point summary of:
-    - Key technical solutions implemented.
-    - Important decisions made (and why, if not obvious).
-    - Patterns established or reinforced.
-    - Unexpected challenges and how they were overcome.
-    - Any new user preferences or project conventions identified.
+    - Key technical solutions implemented that meet the HIGH-IMPACT criteria above
+    - Important decisions made (and why, if not obvious) that will affect future work
+    - Patterns established or reinforced that could be reused
+    - Unexpected challenges and how they were overcome (especially if the solution is non-obvious)
+    - Any new user preferences or project conventions identified
+    - Failed approaches that should be avoided in the future
+
+**Before proposing a memory update, apply the Memory Entry Quality Criteria:**
+- Does this have future impact?
+- Does it reveal a reusable pattern?
+- Is it project-specific rather than standard practice?
+- Will it remain relevant beyond the current task?
+
+If the answer to most of these is "no", then skip the memory update for that subtask.
 
 This practice ensures continuous knowledge capture and helps maintain consistency throughout the project.
+
+## Memory Lifecycle & Rule Promotion
+
+Memories are not permanent - they can evolve:
+
+1. **Active Memory**: Currently relevant learnings being applied
+2. **Validated Pattern**: Memory entry used successfully 3+ times
+3. **Rule Candidate**: Pattern mature enough for standardization
+4. **Promoted to Rule**: Becomes formal guideline in appropriate rules file
+
+When memories are promoted to rules:
+- Add a note in the memory entry: `[Promoted to rule: <rule-file.mdc>]`
+- The memory remains for historical context but the rule becomes authoritative
+- See [Self-Improvement Rules](mdc:rules/self_improve.mdc#connection-with-memory-system) for promotion criteria
 
 ## Using Memory
 

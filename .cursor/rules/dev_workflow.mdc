@@ -26,9 +26,53 @@ Task Master offers two primary ways to interact:
     - The CLI commands often mirror the MCP tools (e.g., `task-master list` corresponds to `get_tasks`).
     - Refer to [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc) for a detailed command reference.
 
+## Task Generation Interaction Flow
+
+When generating new tasks or subtasks (via `parse_prd`, `add_task`, `expand_task`, or `expand_all`), the AI MUST follow this interactive process:
+
+### Step 1: Ask Clarifying Questions
+Before generating any tasks or subtasks, the AI MUST:
+- Analyze the request/PRD/task description to identify ambiguities or missing information
+- Ask specific, relevant questions that would impact implementation decisions
+- Focus on questions that would change the structure, approach, or scope of tasks
+- Examples of important clarifying questions:
+  - "Which database system should be used for this feature?"
+  - "Should this API support pagination, and if so, what type?"
+  - "Are there specific security requirements for user authentication?"
+  - "Should this feature support multiple languages/localization?"
+  - "What error handling approach is preferred for this component?"
+  - "Are there performance requirements or constraints to consider?"
+- Wait for user responses before proceeding to task generation
+
+### Step 2: Present Task Overview for Approval
+After gathering all necessary information, but BEFORE writing to the tasks.json file:
+- Generate a complete overview of the proposed tasks and subtasks
+- Present this overview in a clear, hierarchical format showing:
+  - Main tasks with descriptions
+  - Subtasks under each main task
+  - Dependencies between tasks
+  - Estimated complexity or priority
+  - For testing tasks: Clear indication of test type and scenarios
+- Ask for user confirmation: "Does this task structure look good? Would you like me to modify anything before creating these tasks?"
+- Only proceed to write tasks after receiving explicit approval
+- If the user requests changes, revise the overview and present again for approval
+
+### Step 3: Execute Task Generation
+Only after user approval:
+- Execute the appropriate command to write tasks to tasks.json
+- Confirm successful task creation
+- Provide next steps or suggestions for getting started
+
+**Important:** This interaction flow applies to ALL task generation operations, including:
+- Initial project setup with `parse_prd`
+- Adding new tasks with `add_task`
+- Expanding tasks into subtasks with `expand_task`
+- Bulk expansion with `expand_all`
+
 ## Standard Development Workflow Process
 
 -   Start new projects by running `initialize_project` tool / `task-master init` or `parse_prd` / `task-master parse-prd --input='<prd-file.txt>'` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc)) to generate initial tasks.json
+    -   **When using `parse_prd`**: Follow the [Task Generation Interaction Flow](mdc:#task-generation-interaction-flow) to clarify requirements and get approval before generating tasks
 -   Begin coding sessions with `get_tasks` / `task-master list` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc)) to see current tasks, status, and IDs
 -   Determine the next task to work on using `next_task` / `task-master next` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc)).
 -   Analyze task complexity with `analyze_project_complexity` / `task-master analyze-complexity --research` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc)) before breaking down tasks
@@ -43,6 +87,7 @@ Task Master offers two primary ways to interact:
 -   Mark completed tasks with `set_task_status` / `task-master set-status --id=<id> --status=done` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc))
 -   Update dependent tasks when implementation differs from original plan using `update` / `task-master update --from=<id> --prompt="..."` or `update_task` / `task-master update-task --id=<id> --prompt="..."` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc))
 -   Add new tasks discovered during implementation using `add_task` / `task-master add-task --prompt="..." --research` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc)).
+    -   **When adding tasks**: Follow the [Task Generation Interaction Flow](mdc:#task-generation-interaction-flow) to ensure proper task definition
 -   Add new subtasks as needed using `add_subtask` / `task-master add-subtask --parent=<id> --title="..."` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc)).
 -   Append notes or details to subtasks using `update_subtask` / `task-master update-subtask --id=<subtaskId> --prompt='Add implementation notes here...\nMore details...'` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc)).
 -   Generate task files with `generate` / `task-master generate` (see [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc)) after updating tasks.json
@@ -60,6 +105,7 @@ Task Master offers two primary ways to interact:
 
 ## Task Breakdown Process
 
+-   **IMPORTANT**: Before executing any task expansion, follow the [Task Generation Interaction Flow](mdc:#task-generation-interaction-flow) to gather clarifications and get user approval.
 -   Use `expand_task` / `task-master expand --id=<id>`. It automatically uses the complexity report if found, otherwise generates default number of subtasks.
     -   **Crucially, when expanding a task that involves code implementation, subtasks for *writing the tests* for that feature/component MUST be explicitly planned and created at this stage.** Do not defer test planning to later. For example, if expanding "Implement Feature X", generate subtasks for "Implement Feature X logic" AND a general parent subtask like "Write Comprehensive Tests for Feature X".
     -   **Granular Test Scenario Subtasks:** The general parent testing subtask (e.g., "Write Comprehensive Tests for Feature X") MUST then be further broken down. Create **individual subtasks for each distinct logical test scenario** required for that feature. Examples of distinct scenarios include:
@@ -67,11 +113,41 @@ Task Master offers two primary ways to interact:
         -   Testing specific error conditions (e.g., invalid input, resource not found).
         -   Testing edge cases (e.g., zero values, empty strings, boundary conditions).
         -   Testing specific business logic branches.
-    -   **Structure of Scenario-Specific Testing Subtasks:** Each of these individual, scenario-based testing subtasks MUST clearly outline the following four-step process in its description or details:
-        1.  **Implement Test:** Design and write the specific unit and/or integration test(s) corresponding to this *single scenario*.
-        2.  **Execute & Remediate:** Run the implemented test(s) for this scenario (using single-run commands like `vitest run`, not watch mode). Iteratively debug and fix the relevant source code or test code until these specific tests pass. (Adhere to project-specific guidelines, such as the current exception for not fixing failing *integration* tests if a known glitch exists, though they must still be run).
-        3.  **Learn & Record:** Think about your implementation and what you learned, and consider what should be stored in the long-term memory (`learned-memories.mdc`). This is an important step to improve contextual awareness. Propose updates to `learned-memories.mdc` with key findings, decisions, or patterns from this scenario's implementation.
-        4.  **Commit Changes:** Commit all code changes (source and test files) related to the implementation and successful execution of this specific test scenario. Use a clear and descriptive commit message that references the scenario.
+    -   **Test Type Indication in Titles:** Each testing subtask MUST indicate in its title whether it is a unit test or integration test. Use the following format:
+        -   `[Unit Test] Feature X - Happy Path Validation`
+        -   `[Integration Test] API Endpoint - Error Response Handling`
+        -   `[Unit Test] Calculator - Division by Zero Edge Case`
+    -   **Required 4-Step Structure for ALL Testing Subtasks:** Each individual testing subtask MUST include the following four steps in its description or details. This is mandatory and must be followed exactly:
+        
+        **Step 1 - Implement Tests:**
+        - Design and write the specific test(s) for this single scenario
+        - Follow project testing conventions and patterns
+        - Ensure proper test isolation and setup
+        
+        **Step 2 - Execute Test & Make Sure It Passes:**
+        - Run the test using single-run commands (e.g., `vitest run`, `jest --watchAll=false`)
+        - Never use watch mode - tests must execute once and exit
+        - For Unit Tests: Debug and fix code/tests iteratively until the test passes
+        - **EXCEPTION for Integration Tests**: Currently, integration tests only need to pass linter checks. Do not spend time fixing failing integration tests. This is a temporary exception that will be removed soon.
+        
+        **Step 3 - Learn New Relevant Things:**
+        - Reflect on what was discovered during implementation
+        - Document any patterns, gotchas, or insights gained
+        - Identify what should be added to `learned-memories.mdc` following the [Memory Guidelines](mdc:rules/memory.mdc#what-qualifies-as-important-to-remember)
+        - Focus on high-impact learnings that will affect future development:
+          - Architectural patterns that worked well
+          - Technical gotchas and their solutions
+          - Failed approaches to avoid
+          - Business logic rules discovered
+        - Consider: What worked? What didn't? What would help future development?
+        - Do NOT document trivial details or one-off fixes
+        
+        **Step 4 - Commit the Code:**
+        - Stage all changes related to this test scenario
+        - Create a descriptive commit message that references the specific scenario
+        - Example: `test(auth): Add unit test for login happy path validation`
+        - Example: `test(api): Add integration test for 404 error handling`
+
 -   Use `--num=<number>` to specify an explicit number of subtasks, overriding defaults or complexity report recommendations.
 -   Add `--research` flag to leverage Perplexity AI for research-backed expansion.
 -   Add `--force` flag to clear existing subtasks before generating new ones (default is to append).
@@ -200,11 +276,22 @@ Once a task has been broken down into subtasks using `expand_task` or similar me
         *   Decisions made, especially if confirmed with user input.
         *   Any deviations from the initial plan and the reasoning.
     *   The objective is to continuously enrich the subtask's details, creating a log of the implementation journey that helps the AI (and human developers) learn, adapt, and avoid repeating errors.
+    *   **For learned-memories.mdc updates**: Only propose updates for high-impact learnings following the [Memory Guidelines](mdc:rules/memory.mdc#what-qualifies-as-important-to-remember). Skip trivial implementation details.
 
 7.  **Review & Update Rules (Post-Implementation):**
     *   Once the implementation for the subtask is functionally complete, review all code changes and the relevant chat history.
+    *   Check `learned-memories.mdc` for patterns that emerged during this implementation
     *   Identify any new or modified code patterns, conventions, or best practices established during the implementation.
-    *   Create new or update existing rules following internal guidelines (previously linked to `cursor_rules.mdc` and `self_improve.mdc`).
+    *   Apply the [Self-Improvement Rules](mdc:rules/self_improve.mdc#connection-with-memory-system) to determine if:
+        *   Memory entries should be promoted to formal rules
+        *   New patterns warrant rule creation (used 3+ times)
+        *   Existing rules need updates based on new learnings
+    *   Create new or update existing rules following [Cursor Rules Guidelines](mdc:rules/cursor_rules.mdc)
+    *   Consider creating rules for:
+        *   Architectural patterns that proved successful
+        *   Anti-patterns to avoid (from failed approaches)
+        *   Domain-specific conventions discovered
+        *   Testing strategies that work well
 
 8.  **Finalize Implementation:**
     *   After the primary coding for a feature or subtask is complete (but before tests are written), ensure it's logged appropriately. Then, follow the [Post-Implementation Subtask Sequence](mdc:#post-implementation-subtask-sequence).
@@ -274,12 +361,6 @@ This sequence ensures that Feature Code implementation, test implementation, tes
     - Use grep/ripgrep to find exported functions/constants:
       `rg "export (async function|function|const) \w+"` or similar patterns.
     - Can help compare functions between files during migrations or identify potential naming conflicts.
-
-
-
-
-
-
 
 ---
 *This workflow provides a general guideline. Adapt it based on your specific project needs and team practices.*
