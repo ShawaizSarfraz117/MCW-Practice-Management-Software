@@ -49,4 +49,17 @@ describe("PUT /api/appointment-requests/[requestId]/status", () => {
       data: { status: "accepted" },
     });
   });
+
+  it("returns 404 if appointment request does not exist", async () => {
+    prismaMock.appointmentRequests.findUnique.mockResolvedValueOnce(null);
+    const req = createRequestWithBody(
+      "/api/appointment-requests/nonexistent-id/status",
+      { status: "accepted" },
+      { method: "PUT" },
+    );
+    const res = await PUT(req, { params: { requestId: "nonexistent-id" } });
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Appointment request not found");
+  });
 });
