@@ -50,6 +50,11 @@ const menuItems = {
           id: "team-members",
           href: "/settings/team-members",
         },
+        {
+          label: "Payroll",
+          id: "payroll",
+          href: "/settings/payroll",
+        },
       ],
     },
   ],
