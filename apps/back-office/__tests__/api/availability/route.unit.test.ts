@@ -5,7 +5,17 @@ import { NextRequest } from "next/server";
 
 // Set up mock values
 const MOCK_CLINICIAN_ID = "123e4567-e89b-12d3-a456-426614174000";
-const MOCK_AVAILABILITY_ID = "availability-id";
+const MOCK_AVAILABILITY_ID = "123e4567-e89b-12d3-a456-426614174001";
+const MOCK_LOCATION_ID = "123e4567-e89b-12d3-a456-426614174002";
+
+// Mock next-auth
+vi.mock("next-auth", () => ({
+  getServerSession: vi.fn(),
+}));
+// Mock auth options
+vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
+  backofficeAuthOptions: {},
+}));
 
 // Mock the database operations
 vi.mock("@mcw/database", () => {
@@ -32,12 +42,6 @@ vi.mock("@mcw/database", () => {
 // Import mocked modules
 import { prisma } from "@mcw/database";
 
-// Mock authentication helper
-vi.mock("next-auth/jwt", () => ({
-  getToken: vi.fn().mockResolvedValue({ sub: "test-user-id" }),
-  __esModule: true,
-}));
-
 // Define the authenticated request interface to match what's in the routes
 interface AuthenticatedRequest extends NextRequest {
   nextauth?: {
@@ -58,11 +62,9 @@ const mockAvailability = (overrides = {}) => ({
   clinician_id: mockClinician.id,
   title: "Available Slot",
   allow_online_requests: false,
-  location: "Main Office",
+  location_id: MOCK_LOCATION_ID,
   start_date: new Date(),
   end_date: new Date(Date.now() + 3600000),
-  start_time: new Date(),
-  end_time: new Date(Date.now() + 3600000),
   is_recurring: false,
   recurring_rule: null,
   created_at: new Date(),
@@ -78,18 +80,17 @@ const createAuthRequest = (
 ): AuthenticatedRequest => {
   // Create a base request
   const baseUrl = new URL(url, "http://localhost");
-  const req = new Request(baseUrl, { method });
+  const req = new Request(baseUrl, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
 
   // Add nextauth token
   const authReq = req as AuthenticatedRequest;
   authReq.nextauth = {
     token: { sub: "test-user-id" },
   };
-
-  // Mock json() method if needed
-  if (body && (method === "POST" || method === "PUT")) {
-    vi.spyOn(authReq, "json").mockResolvedValue(body);
-  }
 
   // Add necessary properties for NextRequest
   Object.defineProperty(authReq, "nextUrl", {
@@ -142,18 +143,21 @@ describe("Availability API Unit Tests", () => {
       clinician_id: mockClinician.id,
       title: "Available Slot",
       allow_online_requests: false,
-      location: "Main Office",
+      location_id: MOCK_LOCATION_ID,
       start_date: new Date().toISOString(),
       end_date: new Date(Date.now() + 3600000).toISOString(),
       is_recurring: false,
       recurring_rule: null,
     };
+
     const req = createAuthRequest("/api/availability", "POST", availData);
     const response = await POST(req);
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json).toHaveProperty("id", newAvail.id);
     expect(json).toHaveProperty("title", availData.title);
+    expect(json).toHaveProperty("clinician_id", availData.clinician_id);
+    expect(json).toHaveProperty("location_id", availData.location_id);
   });
 
   it("PUT /api/availability should update an existing availability", async () => {

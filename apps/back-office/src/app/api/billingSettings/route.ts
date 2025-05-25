@@ -4,6 +4,26 @@ import { getServerSession } from "next-auth";
 import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 import { Session } from "next-auth";
 
+type AutoInvoiceCreation = "daily" | "weekly" | "monthly";
+type NotificationMethod = "email" | "sms";
+
+interface BillingSettingsRequest {
+  autoInvoiceCreation?: AutoInvoiceCreation;
+  pastDueDays?: number;
+  emailClientPastDue?: boolean;
+  invoiceIncludePracticeLogo?: boolean;
+  invoiceFooterInfo?: string;
+  superbillDayOfMonth?: number;
+  superbillIncludePracticeLogo?: boolean;
+  superbillIncludeSignatureLine?: boolean;
+  superbillIncludeDiagnosisDescription?: boolean;
+  superbillFooterInfo?: string;
+  billingDocEmailDelayMinutes?: number;
+  createMonthlyStatementsForNewClients?: boolean;
+  createMonthlySuperbillsForNewClients?: boolean;
+  defaultNotificationMethod?: NotificationMethod;
+}
+
 async function getClinicianId(session: Session | null) {
   if (!session?.user) return null;
   const clinician = await prisma.clinician.findUnique({
@@ -11,6 +31,55 @@ async function getClinicianId(session: Session | null) {
     select: { id: true },
   });
   return clinician?.id || null;
+}
+
+function validateBillingSettings(body: BillingSettingsRequest): string[] {
+  const errors: string[] = [];
+
+  // Validate autoInvoiceCreation - TypeScript will catch invalid values at compile time
+  if (
+    body.autoInvoiceCreation !== undefined &&
+    !["daily", "weekly", "monthly"].includes(body.autoInvoiceCreation)
+  ) {
+    errors.push("autoInvoiceCreation must be one of: daily, weekly, monthly");
+  }
+
+  // Validate pastDueDays - check for number type and non-negative value
+  if (
+    body.pastDueDays !== undefined &&
+    (typeof body.pastDueDays !== "number" || body.pastDueDays < 0)
+  ) {
+    errors.push("pastDueDays must be a non-negative number");
+  }
+
+  // Validate superbillDayOfMonth - check for valid day of month
+  if (
+    body.superbillDayOfMonth !== undefined &&
+    (typeof body.superbillDayOfMonth !== "number" ||
+      body.superbillDayOfMonth < 1 ||
+      body.superbillDayOfMonth > 31)
+  ) {
+    errors.push("superbillDayOfMonth must be a number between 1 and 31");
+  }
+
+  // Validate billingDocEmailDelayMinutes - check for non-negative number
+  if (
+    body.billingDocEmailDelayMinutes !== undefined &&
+    (typeof body.billingDocEmailDelayMinutes !== "number" ||
+      body.billingDocEmailDelayMinutes < 0)
+  ) {
+    errors.push("billingDocEmailDelayMinutes must be a non-negative number");
+  }
+
+  // Validate defaultNotificationMethod - TypeScript will catch invalid values at compile time
+  if (
+    body.defaultNotificationMethod !== undefined &&
+    !["email", "sms"].includes(body.defaultNotificationMethod)
+  ) {
+    errors.push("defaultNotificationMethod must be one of: email, sms");
+  }
+
+  return errors;
 }
 
 export async function GET() {
@@ -52,7 +121,18 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
-    const body = await request.json();
+
+    const body: BillingSettingsRequest = await request.json();
+
+    // Validate the request body
+    const validationErrors = validateBillingSettings(body);
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        { error: "Invalid billing settings", details: validationErrors },
+        { status: 500 },
+      );
+    }
+
     const billingSettings = await prisma.billingSettings.create({
       data: {
         clinician_id: clinicianId,
@@ -98,7 +178,18 @@ export async function PUT(request: Request) {
         { status: 401 },
       );
     }
-    const body = await request.json();
+
+    const body: BillingSettingsRequest = await request.json();
+
+    // Validate the request body
+    const validationErrors = validateBillingSettings(body);
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        { error: "Invalid billing settings", details: validationErrors },
+        { status: 500 },
+      );
+    }
+
     const billingSettings = await prisma.billingSettings.update({
       where: { clinician_id: clinicianId },
       data: {

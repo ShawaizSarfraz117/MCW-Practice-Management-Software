@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validate required fields
-    if (!data.subject || !data.content || !data.type) {
+    if (!data.name || !data.subject || !data.content || !data.type) {
       return NextResponse.json(
-        { error: "Subject, content, and type are required fields" },
+        { error: "Name, subject, content, and type are required fields" },
         { status: 400 },
       );
     }
@@ -45,7 +45,11 @@ export async function POST(request: NextRequest) {
 
     const template = await prisma.emailTemplate.create({
       data: {
-        ...data,
+        name: data.name,
+        subject: data.subject,
+        content: data.content,
+        type: data.type,
+        email_type: data.email_type,
         created_by: userId,
       },
     });
@@ -71,9 +75,23 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Validate required fields
+    if (!data.name || !data.subject || !data.content || !data.type) {
+      return NextResponse.json(
+        { error: "Name, subject, content, and type are required fields" },
+        { status: 400 },
+      );
+    }
+
     const template = await prisma.emailTemplate.update({
       where: { id },
-      data,
+      data: {
+        name: data.name,
+        subject: data.subject,
+        content: data.content,
+        type: data.type,
+        email_type: data.email_type,
+      },
     });
 
     return NextResponse.json({ data: template });

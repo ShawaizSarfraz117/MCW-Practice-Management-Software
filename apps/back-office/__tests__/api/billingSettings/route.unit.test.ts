@@ -63,29 +63,31 @@ describe("Billing Settings API Unit Tests", () => {
     });
     const mockSettings = BillingSettingsFactory.build({
       clinician_id: mockClinician.id,
+      autoInvoiceCreation: "daily",
+      pastDueDays: 30,
+      superbillDayOfMonth: 15,
+      billingDocEmailDelayMinutes: 60,
+      defaultNotificationMethod: "email",
     });
 
     prismaMock.clinician.findUnique.mockResolvedValueOnce(mockClinician);
     prismaMock.billingSettings.create.mockResolvedValueOnce(mockSettings);
 
     const request = createRequestWithBody("/api/billing-settings", {
-      autoInvoiceCreation: mockSettings.autoInvoiceCreation,
-      pastDueDays: mockSettings.pastDueDays,
-      emailClientPastDue: mockSettings.emailClientPastDue,
-      invoiceIncludePracticeLogo: mockSettings.invoiceIncludePracticeLogo,
-      invoiceFooterInfo: mockSettings.invoiceFooterInfo,
-      superbillDayOfMonth: mockSettings.superbillDayOfMonth,
-      superbillIncludePracticeLogo: mockSettings.superbillIncludePracticeLogo,
-      superbillIncludeSignatureLine: mockSettings.superbillIncludeSignatureLine,
-      superbillIncludeDiagnosisDescription:
-        mockSettings.superbillIncludeDiagnosisDescription,
-      superbillFooterInfo: mockSettings.superbillFooterInfo,
-      billingDocEmailDelayMinutes: mockSettings.billingDocEmailDelayMinutes,
-      createMonthlyStatementsForNewClients:
-        mockSettings.createMonthlyStatementsForNewClients,
-      createMonthlySuperbillsForNewClients:
-        mockSettings.createMonthlySuperbillsForNewClients,
-      defaultNotificationMethod: mockSettings.defaultNotificationMethod,
+      autoInvoiceCreation: "daily",
+      pastDueDays: 30,
+      emailClientPastDue: true,
+      invoiceIncludePracticeLogo: true,
+      invoiceFooterInfo: "Test footer",
+      superbillDayOfMonth: 15,
+      superbillIncludePracticeLogo: true,
+      superbillIncludeSignatureLine: true,
+      superbillIncludeDiagnosisDescription: true,
+      superbillFooterInfo: "Test superbill footer",
+      billingDocEmailDelayMinutes: 60,
+      createMonthlyStatementsForNewClients: true,
+      createMonthlySuperbillsForNewClients: true,
+      defaultNotificationMethod: "email",
     });
 
     const response = await POST(request);
@@ -107,29 +109,31 @@ describe("Billing Settings API Unit Tests", () => {
     });
     const mockSettings = BillingSettingsFactory.build({
       clinician_id: mockClinician.id,
+      autoInvoiceCreation: "daily",
+      pastDueDays: 30,
+      superbillDayOfMonth: 15,
+      billingDocEmailDelayMinutes: 60,
+      defaultNotificationMethod: "email",
     });
 
     prismaMock.clinician.findUnique.mockResolvedValueOnce(mockClinician);
     prismaMock.billingSettings.update.mockResolvedValueOnce(mockSettings);
 
     const request = createRequestWithBody("/api/billing-settings", {
-      autoInvoiceCreation: mockSettings.autoInvoiceCreation,
-      pastDueDays: mockSettings.pastDueDays,
-      emailClientPastDue: mockSettings.emailClientPastDue,
-      invoiceIncludePracticeLogo: mockSettings.invoiceIncludePracticeLogo,
-      invoiceFooterInfo: mockSettings.invoiceFooterInfo,
-      superbillDayOfMonth: mockSettings.superbillDayOfMonth,
-      superbillIncludePracticeLogo: mockSettings.superbillIncludePracticeLogo,
-      superbillIncludeSignatureLine: mockSettings.superbillIncludeSignatureLine,
-      superbillIncludeDiagnosisDescription:
-        mockSettings.superbillIncludeDiagnosisDescription,
-      superbillFooterInfo: mockSettings.superbillFooterInfo,
-      billingDocEmailDelayMinutes: mockSettings.billingDocEmailDelayMinutes,
-      createMonthlyStatementsForNewClients:
-        mockSettings.createMonthlyStatementsForNewClients,
-      createMonthlySuperbillsForNewClients:
-        mockSettings.createMonthlySuperbillsForNewClients,
-      defaultNotificationMethod: mockSettings.defaultNotificationMethod,
+      autoInvoiceCreation: "daily",
+      pastDueDays: 30,
+      emailClientPastDue: true,
+      invoiceIncludePracticeLogo: true,
+      invoiceFooterInfo: "Test footer",
+      superbillDayOfMonth: 15,
+      superbillIncludePracticeLogo: true,
+      superbillIncludeSignatureLine: true,
+      superbillIncludeDiagnosisDescription: true,
+      superbillFooterInfo: "Test superbill footer",
+      billingDocEmailDelayMinutes: 60,
+      createMonthlyStatementsForNewClients: true,
+      createMonthlySuperbillsForNewClients: true,
+      defaultNotificationMethod: "email",
     });
 
     const response = await PUT(request);

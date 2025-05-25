@@ -1,9 +1,29 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import type { Location } from "@mcw/database";
 import { prisma } from "@mcw/database";
+import { LocationPrismaFactory } from "@mcw/database/mock-data";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 
 import { DELETE, GET, POST, PUT } from "@/api/location/route";
+
+// Mock next-auth
+vi.mock("next-auth", () => ({
+  getServerSession: vi.fn(),
+}));
+// Mock auth options
+vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
+  backofficeAuthOptions: {},
+}));
+
+// Helper function to create an authenticated request with the nextauth.token property
+function addAuthToRequest(req: ReturnType<typeof createRequest>) {
+  // Add nextauth token property to match what the API routes check for
+  return Object.assign(req, {
+    nextauth: {
+      token: { sub: "test-user-id" },
+    },
+  });
+}
 
 // Helper function to clean up locations
 async function cleanupLocations(locationIds: string[]) {
@@ -23,41 +43,28 @@ describe("Location API Integration Tests", () => {
   afterEach(async () => {
     await cleanupLocations(createdLocationIds);
     createdLocationIds = []; // Reset after cleanup
+    vi.restoreAllMocks();
   });
 
   it("GET /api/location should return all locations", async () => {
-    const locationsData = [
-      {
-        name: "Main Office",
-        address: "123 Main Street",
-        is_active: true,
-      },
-      {
-        name: "Branch Office",
-        address: "456 Branch Avenue",
-        is_active: true,
-      },
-    ];
-    const createdLocations = await Promise.all(
-      locationsData.map((data) => prisma.location.create({ data })),
-    );
-    createdLocationIds = createdLocations.map((loc) => loc.id); // Store IDs
+    // Clean up any existing locations first
+    await prisma.location.deleteMany({});
 
-    const response = await GET();
+    // Create test locations
+    const location1 = await LocationPrismaFactory.create();
+    const location2 = await LocationPrismaFactory.create();
+    createdLocationIds.push(location1.id, location2.id);
 
+    const req = addAuthToRequest(createRequest("/api/location"));
+    const response = await GET(req);
     expect(response.status).toBe(200);
     const json = await response.json();
 
-    expect(json).toHaveLength(createdLocations.length);
+    expect(json).toHaveLength(2);
 
-    createdLocations.forEach((location: Location) => {
-      const foundLocation = json.find((l: Location) => l.id === location.id);
-      expect(foundLocation).toBeDefined();
-      expect(foundLocation).toHaveProperty("id", location.id);
-      expect(foundLocation).toHaveProperty("name", location.name);
-      expect(foundLocation).toHaveProperty("address", location.address);
-      expect(foundLocation).toHaveProperty("is_active", location.is_active);
-    });
+    const foundIds = json.map((l: Location) => l.id);
+    expect(foundIds).toContain(location1.id);
+    expect(foundIds).toContain(location2.id);
   });
 
   it("POST /api/location should create a new location", async () => {

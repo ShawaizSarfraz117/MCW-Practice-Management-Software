@@ -10,10 +10,7 @@ import {
 import { prisma } from "@mcw/database";
 import { createRequestWithBody } from "@mcw/utils";
 import { GET, POST, PUT } from "@/api/billingSettings/route";
-import {
-  BillingSettingsFactory,
-  ClinicianPrismaFactory,
-} from "@mcw/database/mock-data";
+import { ClinicianPrismaFactory } from "@mcw/database/mock-data";
 import { getServerSession } from "next-auth";
 import type { Clinician } from "@prisma/client";
 
@@ -112,9 +109,22 @@ describe("Billing Settings API Integration Tests", () => {
   });
 
   it("POST /api/billing-settings should create billing settings", async () => {
-    const payload = BillingSettingsFactory.build({
-      clinician_id: clinician.id,
-    });
+    const payload = {
+      autoInvoiceCreation: "daily",
+      pastDueDays: 30,
+      emailClientPastDue: true,
+      invoiceIncludePracticeLogo: true,
+      invoiceFooterInfo: "Test footer",
+      superbillDayOfMonth: 15,
+      superbillIncludePracticeLogo: true,
+      superbillIncludeSignatureLine: true,
+      superbillIncludeDiagnosisDescription: true,
+      superbillFooterInfo: "Test superbill footer",
+      billingDocEmailDelayMinutes: 60,
+      createMonthlyStatementsForNewClients: true,
+      createMonthlySuperbillsForNewClients: true,
+      defaultNotificationMethod: "email",
+    };
 
     const req = createRequestWithBody("/api/billing-settings", payload);
     const response = await POST(req);
@@ -184,8 +194,7 @@ describe("Billing Settings API Integration Tests", () => {
       },
     });
 
-    const updateData = BillingSettingsFactory.build({
-      clinician_id: clinician.id,
+    const updateData = {
       autoInvoiceCreation: "monthly",
       pastDueDays: 45,
       emailClientPastDue: false,
@@ -200,7 +209,7 @@ describe("Billing Settings API Integration Tests", () => {
       createMonthlyStatementsForNewClients: false,
       createMonthlySuperbillsForNewClients: false,
       defaultNotificationMethod: "sms",
-    });
+    };
 
     const req = createRequestWithBody("/api/billing-settings", updateData, {
       method: "PUT",
@@ -241,9 +250,22 @@ describe("Billing Settings API Integration Tests", () => {
   });
 
   it("PUT /api/billing-settings should return 500 when settings don't exist", async () => {
-    const updateData = BillingSettingsFactory.build({
-      clinician_id: clinician.id,
-    });
+    const updateData = {
+      autoInvoiceCreation: "daily",
+      pastDueDays: 30,
+      emailClientPastDue: true,
+      invoiceIncludePracticeLogo: true,
+      invoiceFooterInfo: "Test footer",
+      superbillDayOfMonth: 15,
+      superbillIncludePracticeLogo: true,
+      superbillIncludeSignatureLine: true,
+      superbillIncludeDiagnosisDescription: true,
+      superbillFooterInfo: "Test superbill footer",
+      billingDocEmailDelayMinutes: 60,
+      createMonthlyStatementsForNewClients: true,
+      createMonthlySuperbillsForNewClients: true,
+      defaultNotificationMethod: "email",
+    };
 
     const req = createRequestWithBody("/api/billing-settings", updateData, {
       method: "PUT",
