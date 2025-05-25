@@ -85,14 +85,14 @@ _(This section outlines high-level rules and workflows. More detailed explanatio
       c. The `AppointmentRequest.client_id` is updated to link to the new `Client`.
       d. (If applicable) A `ClientProfile` may be partially populated.
       e. **Automated Intake Assignment:** Based on practice configuration (e.g., rules linking `PracticeService.id` from the `AppointmentRequest` to specific 'INTAKE_QUESTIONNAIRE' `SurveyTemplate`(s)), relevant surveys are assigned. This creates `SurveyAnswers` records (initially empty) linked to the `Client`.
-      f. **Portal Invitation & Activation:** After initial review and Client creation, staff initiate a client portal invitation [01:59] to the client's primary verified email. This involves generating a unique link/token (tracked potentially in a `ClientPortalInvitation` model). The client uses this to activate their portal account (creating credentials in a `ClientPortalAccount` model), verify contacts, and set initial communication/feature preferences (e.g., for online payments [01:04], secure messaging, document access). Client portal permissions on the `Client` model (or `ClientPortalAccount`) are updated upon successful activation.
+      f. **Portal Invitation & Activation:** After initial review and Client creation, staff initiate a client portal invitation (as per video [01:59]) to the client's primary verified email from `ClientContact`. This invitation uses the mechanism (e.g. unique link or PIN) tracked by the `ClientPortalInvitation` model concept (see 10.1.8). The client uses this to activate their portal account (creating credentials in a `ClientPortalAccount` model), verify contacts, and set initial communication/feature preferences (e.g., for online payments [01:04], secure messaging, document access). Client portal permissions on the `Client` model (or `ClientPortalAccount`) are updated upon successful activation.
   5.  If the request is for an existing client, it's linked to their `Client.id` and primary `ClientGroup.id`.
   6.  Client activates portal, verifies contact methods, and completes assigned intake surveys.
   7.  Staff reviews completed intake forms (`SurveyAnswers` via `ClientFiles`) before the first `Appointment`.
   8.  The request status moves: 'PENDING_REVIEW' → ('DUPLICATE_NEEDS_REVIEW') → 'ACCEPTED'/'DECLINED' → 'CONVERTED_TO_APPOINTMENT'.
 - **Client Roles**: Within a group, common roles are 'Primary Patient', 'Spouse/Partner', 'Child', 'Guardian', 'Emergency Contact'. The 'Primary Patient' is the main subject of care within that group context for clinical documentation.
 - **Contact-Only Members**: These members (e.g., a non-attending parent who needs billing access for a minor, or an emergency contact) have specific, limited portal access if any, and primarily receive communications relevant to their role (e.g., billing, emergency). They do not have their own clinical record within that group's context.
-- **Billing Responsibility**: One `ClientGroupMembership` record within a `ClientGroup` can be flagged as `is_responsible_for_billing`. Application logic must enforce that only one member can have this flag set to true at any given time within the same group.
+- **Billing Responsibility**: One `ClientGroupMembership` record within a `ClientGroup` can be flagged as `is_responsible_for_billing`. Application logic must enforce that only one member can have this flag set to true at any given time within the same group. The "primary client for billing" (mentioned in video context [00:21]) is likely the `Client` record linked through this `is_responsible_for_billing` flag.
 
 ### 4.2 Appointment Lifecycle
 
@@ -111,7 +111,7 @@ _(This section outlines high-level rules and workflows. More detailed explanatio
 
 - **Internal Events**: `Appointment.type = 'EVENT'` is used for internal activities like staff meetings, training, or clinician unavailability (which is an Appointment of type = 'EVENT'). These also utilize `Appointment.recurring_rule` for series.
 - **Unavailability Blocks**:
-  - A specific type of recurring 'EVENT' (e.g., `Appointment.title = 'Clinician Unavailability'`) used by clinicians to block out time.
+  - A specific type of recurring 'EVENT' (e.g., `Appointment.title = 'Clinician Unavailability'`, "Video 3"/"Video 2" context) used by clinicians to block out time.
   - The system must enforce that clinician Unavailability blocks prevent the scheduling of conflicting client `Appointment`s.
   - Modifications to a clinician's recurring unavailability event (e.g., changing time, cancelling an instance) must trigger checks against existing scheduled client `Appointment`(s) to flag and manage potential conflicts. Staff are then responsible for manually contacting affected clients to reschedule.
 - **Attendees for Events**: For simple internal events, attendees might be listed in `Appointment.title` or a description field. For events requiring formal tracking of `User` attendance, a separate linking mechanism or model might be considered in future iterations.
@@ -131,7 +131,7 @@ _(This section outlines high-level rules and workflows. More detailed explanatio
 
 ### 4.3.A Financial Reconciliation Procedures (New Sub-section)
 
-- **Daily Reconciliation Process**: Financial reconciliation is a daily operational task. Staff utilize reports from the payment processor (e.g., Stripe) and compare them against `Payment` records within the system.
+- **Daily Reconciliation Process**: Financial reconciliation is a daily operational task. Staff utilize reports from the payment processor (e.g., Stripe) and compare them against `Payment` records within the system (insights from "Video 2"/"Video 3", schema_notes.md 7.3.8).
 - **Matching**: The `Payment.transaction_id` serves as the primary key for matching these records.
 - **Investigation**: The `Payment.response` field, containing raw data from the processor, is critical for investigating any identified discrepancies or transaction failures.
 - **Status Updates**: Verified payments confirm updates to `Invoice.status` (e.g., to 'PAID' or 'PARTIAL').
@@ -141,8 +141,8 @@ _(This section outlines high-level rules and workflows. More detailed explanatio
 ### 4.3.B Billing Document Delivery Workflow (New Sub-section based on Video [02:50])
 
 - **Document Statuses**: Invoices and Statements can have their delivery to the client tracked.
-  - `Invoice.is_exported` can indicate if the document was sent to an external accounting system.
-  - A separate `Invoice.delivery_method` (or a more granular `delivery_status`) field tracks how (or if) the document was made available to the client (e.g., 'NOT_SENT', 'EMAILED_TO_CLIENT', 'VIEWED_ON_PORTAL', 'PRINTED_AND_MAILED').
+  - `Invoice.is_exported` can indicate if the document was sent to an external accounting system (video [02:50]).
+  - A separate `Invoice.delivery_method` (or a more granular `delivery_status`) field tracks how (or if) the document was made available to the client (e.g., 'NOT_SENT', 'EMAILED_TO_CLIENT' (video [02:50]), 'VIEWED_ON_PORTAL', 'PRINTED_AND_MAILED'). This differentiates system/accounting export from client-facing delivery.
 - **Workflow Example (Invoice):**
   1. Invoice is generated, initial `delivery_method` might be 'NOT_SENT' or 'PENDING_DELIVERY'.
   2. Staff can manually trigger an email delivery, updating `delivery_method` to 'EMAILED_TO_CLIENT' and recording the send time.
@@ -158,18 +158,17 @@ _(This section outlines high-level rules and workflows. More detailed explanatio
   1.  Global `PracticeSettings` (e.g., `reminders.appointment.sms.enabled:false`) can disable a channel practice-wide.
   2.  If globally enabled, `ClientReminderPreference.is_enabled` (for a client who has completed portal activation and verified contact methods) determines if they receive that type/channel of notification.
   3.  **Portal Activation Prerequisite & Preference Management:** `ClientReminderPreference` settings for a client are typically configured and managed by the client themselves via the client portal. This occurs after the client has successfully completed a staff-initiated portal invitation and account activation process. During activation, clients verify their primary contact methods (e.g., email, SMS-capable phone number) and can set initial communication preferences, including granular SMS opt-ins.
-  4.  **SMS Opt-In:** For certain notification channels like SMS, an explicit opt-in within `ClientReminderPreference` (or during portal setup) is required for specific `reminder_type`s (e.g., billing notifications, non-urgent updates) due to compliance. For SMS, explicit opt-in for different categories of messages (e.g., appointment reminders vs. billing alerts) is managed by the client in the portal. This could mean multiple `ClientReminderPreference` entries for the SMS channel with different `reminder_type`s, or a more complex preference object.
+  4.  **SMS Opt-In:** For certain notification channels like SMS, an explicit opt-in within `ClientReminderPreference` (or during portal setup) is required for specific `reminder_type`s (e.g., billing notifications, non-urgent updates) due to compliance. For SMS, explicit opt-in for different categories of messages (e.g., appointment reminders vs. billing alerts) is managed by the client in the portal [01:04]. This could mean multiple `ClientReminderPreference` entries for the SMS channel with different `reminder_type`s, or a more complex preference object.
   5.  **Default Behavior:** If no `ClientReminderPreference` exists for a client _who has activated their portal access_, the default should generally be "opt-out" for non-essential communications. Practice-defined defaults for essential communications (e.g., appointment reminders for scheduled appointments if `ClientReminderPreference` is not set) should be configurable in `PracticeSettings` (e.g., `notifications.defaultBehavior.appointmentReminder.sms = 'opt_in_if_primary_verified_and_portal_active'`). This logic needs to be fully specified.
 
 ### 4.5 Client Portal Lifecycle Management (New Sub-section)
 
 1.  **Invitation**:
     - Portal access is initiated by staff sending an invitation to the client's primary verified email address (`ClientContact.value` where `is_primary=true`).
-    - This invitation could contain a unique, time-sensitive link or involve a PIN system for initial access, sent to the client's primary verified email address.
-    - A `ClientPortalInvitation` model is recommended to track invitation status (e.g., 'SENT', 'CLICKED', 'ACTIVATED', 'EXPIRED'), token, sent date, and expiry.
+    - This invitation could contain a unique, time-sensitive link or involve a PIN system for initial access, sent to the client's primary verified email address. The invitation mechanism (e.g., unique link or PIN as per video context from Q14.26) is tracked via the `ClientPortalInvitation` model (see 10.1.8).
 2.  **Activation**:
     - Client uses the invitation link to access the portal.
-    - They set up their account, which typically involves creating/confirming a password (managed via a `ClientPortalAccount` entity linked one-to-one with `Client`), verify contact methods, and set initial communication preferences, including granular SMS opt-ins.
+    - They set up their account, which typically involves creating/confirming a password (managed via a `ClientPortalAccount` entity linked one-to-one with `Client`), verify contact methods, and set initial communication/feature preferences, including granular SMS opt-ins (e.g., for online payments [01:04], secure messaging, document access, as per video context).
 3.  **Access Granted**:
     - Upon successful activation, a flag like `Client.allow_portal_access` (or equivalent status like `ClientPortalAccount.status = 'ACTIVE'`) is set.
     - `ClientPortalAccount.last_login_at` (on the new `ClientPortalAccount` model) can be updated.
@@ -198,6 +197,12 @@ _(This section outlines high-level rules and workflows. More detailed explanatio
     - If accepted, a new `Appointment` is scheduled, and `Client.is_waitlist` may be set to `false` or updated.
 5.  **Managing Waitlist Entries**:
     - Regular review of the waitlist to remove clients no longer seeking services or update their preferences.
+
+### 4.X Insurance Management Workflow (New Section)
+
+- Defining client billing type ('self-pay', 'insurance' - implied by video context [00:21] on insurance details).
+- Input/storage of detailed `ClientInsurancePolicy` data (including CMS fields - confirmed by video Q14.21).
+- Workflow for creating/managing `InsuranceAuthorization` records (link to appointments, tracking usage, statuses - confirmed by video Q14.18).
 
 ## 5. Key Areas for Design Review & Consideration (Schema-Wide)
 
@@ -232,12 +237,12 @@ _(Refinements based on "new context" are integrated below.)_
 - **Entities**: `ClientProfile`, `ClientAdress` (one-to-many), `ClientContact` (one-to-many), `ClientReminderPreference` (one-to-many). (Potentially `ClientPortalAccount` if added, and `ClientInsurancePolicy` if added - see below).
 - **Value Objects**: Potentially an `Address` value object could be used within `ClientAdress` if addresses are treated as immutable snapshots.
 - **Invariants**:
-  - A `Client` must have at least one `ClientContact` marked as `is_primary` for essential communication, and this contact must be verified if used for portal activation/reminders.
+  - A `Client` must have at least one `ClientContact` marked as `is_primary` for essential communication, and this contact must be verified if used for portal activation/reminders (video context [01:59]).
   - `Client.date_of_birth` if present, must be a valid date in the past.
   - `ClientReminderPreference` settings are only effective if the associated `ClientContact` is verified and (for some channels/types) explicit opt-in is recorded, especially after portal activation.
   - A `Client`'s portal permissions (e.g., `allow_online_appointment`, `access_billing_documents`, `use_secure_messaging`) are critical for their interaction with the system and are typically set post-portal activation.
 - **Domain Events**: `ClientCreated`, `ClientProfileUpdated`, `ClientContactAdded`, `ClientArchived` (`is_active` set to false), `ClientPortalInvitationSent`, `ClientPortalAccountActivated`, `ClientReminderPreferenceUpdated`, `ClientPortalPermissionsUpdated`.
-- **Consideration for `ClientInsurancePolicy`**: Video context [00:21] on managing detailed client insurance information (insurance company, member ID, authorizations) suggests that client-specific insurance details might warrant its own `ClientInsurancePolicy` entity. This could be part of the `Client` aggregate or a closely related aggregate, linking to `Client.id` or `ClientGroup.id`. It would store details like insurance company name, member ID, group number, subscriber information, effective dates, copay/deductible details, and be the place where `InsuranceAuthorization` records link.
+- **Consideration for `ClientInsurancePolicy`**: Video context [00:21] on managing detailed client insurance information (insurance company, member ID, authorizations) suggests that client-specific insurance details might warrant its own `ClientInsurancePolicy` entity. This could be part of the `Client` aggregate or a closely related aggregate, linking to `Client.id` or `ClientGroup.id`. It would store insurance company name, member ID, group number, subscriber information, effective dates, copay/deductible details, CMS-required fields (see Q14.21 based on video context), and be the place where `InsuranceAuthorization` records link (see Q14.18 based on video context).
 
 ### 6.2 ClientGroup Aggregate
 
@@ -246,8 +251,8 @@ _(Refinements based on "new context" are integrated below.)_
 - **Associated Roots (Strongly Consistent Dependencies but Separate Aggregates)**: `Invoice`, `Statement`, `Superbill` are typically associated with a `ClientGroup` but are often Aggregates themselves due to their own complex lifecycle and rules. The `ClientGroup` would hold references (IDs) to these.
 - **Value Objects**: `ClientGroupFile` could be considered as managed by `ClientGroup`, though its `ClientFiles` junction introduces per-client state.
 - **Invariants**:
-  - `available_credit` cannot be negative. Manual adjustments to `available_credit` must be audited.
-  - Only one `ClientGroupMembership` can have `is_responsible_for_billing = true`.
+  - `available_credit` cannot be negative. Manual adjustments to `available_credit` must be audited (video context "Video 2", schema_notes.md 4.3.A).
+  - Only one `ClientGroupMembership` can have `is_responsible_for_billing = true`. This likely identifies the "primary client for billing" (video context [00:21]).
   - A `ClientGroup` of type 'individual' should typically have only one active, non-contact-only `ClientGroupMembership`.
 - **Domain Events**: `ClientGroupCreated`, `MemberAddedToGroup`, `BillingResponsibleMemberChanged`, `CreditAppliedToGroup`, `AvailableCreditManuallyAdjusted`.
 
@@ -271,7 +276,7 @@ _(Refinements based on "new context" are integrated below.)_
 - **Invariants**:
   - `user_id` must link to an existing `User`.
   - An active `Clinician` must have at least one valid, non-expired `License` for the states they practice in (application-level check).
-- **Domain Events**: `ClinicianRegistered`, `ClinicianLicenseAdded`, `ClinicianAvailabilityUpdated`, `ClinicianUnavailabilityBlockSet`.
+- **Domain Events**: `ClinicianRegistered`, `ClinicianLicenseAdded`, `ClinicianAvailabilityUpdated`, `ClinicianUnavailabilityBlockSet` (based on sections 4.2.A and 7.2.2 from "Video 3"/"Video 2" context).
 
 ## 7. Model-Specific Explanations & Clarifying Questions (Domain Deep Dive)
 
@@ -395,51 +400,42 @@ _(Refinements based on "new context" are integrated below.)_
       5.  **SMS Opt-In:** Due to compliance (e.g., TCPA), sending SMS messages for certain `reminder_type`s (especially non-transactional or billing-related) requires an explicit client opt-in. For SMS, explicit opt-in for different categories of messages (e.g., appointment reminders vs. billing alerts) is managed by the client in the portal [01:04]. This could mean multiple `ClientReminderPreference` entries for the SMS channel with different `reminder_type`s, or a more complex preference object.
       6.  If no `ClientReminderPreference` exists for that specific client/type/channel (even with an active portal account), a practice-defined default behavior applies. This default (e.g., "opt-in by default for appointment reminders via email" or "opt-out by default for SMS billing alerts") should itself be a `PracticeSetting`.
 
-### 7.5 User Management & Permissions
+### 7.5 Client Portal Lifecycle Management (New Sub-section)
 
-1.  **Client Portal Authentication (Refined by "Video 3" Insight & Video [01:59]):**
-    - **Answer/Refinement ("Video 2" & "Video 3" [01:59]):** Portal access is indeed invitation-driven. Clients are **not** standard `User` records for portal login. They have a separate authentication/invitation mechanism.
-      1.  **Invitation:** Staff initiate a portal invitation (e.g., via email to `ClientContact.value` of a verified primary email). This generates a unique, time-sensitive token/link (managed by a `ClientPortalInvitation` model).
-      2.  **Activation:** Client uses the link to activate their account, set a password (managed via a `ClientPortalAccount` entity linked one-to-one with `Client`), verify contact methods, and set initial communication preferences, including granular SMS opt-ins.
-      3.  **Access Flag:** Upon successful activation, a flag like `Client.allow_portal_access` (or equivalent status like `ClientPortalAccount.status = 'ACTIVE'`) is set.
-    - This refined flow strongly supports the need for `ClientPortalAccount` (see 10.1.3) and `ClientPortalInvitation` models (see 10.1.8).
-2.  **`ClinicalInfo` Purpose (Reiteration):** Marked for deprecation. All relevant fields (`speciality`, `NPI_number`, `taxonomy_code`) are preferred on the `Clinician` model.
-3.  **Default Roles & Permissions:**
-    - **Core Roles:** 'SystemAdmin', 'PracticeManager', 'Clinician', 'BillingStaff', 'FrontDeskStaff'.
-    - **Core Permissions (Slugs - examples):**
-      - `clients.view`, `clients.create`, `clients.edit`, `clients.delete.soft`, `clients.access.phi`, `clients.send.portal_invite`
-      - `appointments.view.own`, `appointments.view.all`, `appointments.schedule`, `appointments.edit`, `appointments.cancel`
-      - `billing.view.all`, `billing.generate.invoice`, `billing.record.payment`, `billing.manage.settings`, `billing.reconcile.payments`
-      - `users.manage`, `roles.manage`, `practice.settings.edit`
-      - `reports.view.financial`, `reports.view.clinical`, `reports.view.referral_sources`
-      - `clinicalnotes.view.own`, `clinicalnotes.edit.own`, `clinicalnotes.sign.own`, `clinicalnotes.view.all` (for supervisors/auditors)
-      - `waitlist.view`, `waitlist.manage`
+1.  **Invitation**:
+    - Portal access is initiated by staff sending an invitation to the client's primary verified email address (`ClientContact.value` where `is_primary=true`).
+    - This invitation could contain a unique, time-sensitive link or involve a PIN system for initial access, sent to the client's primary verified email address. The invitation mechanism (e.g., unique link or PIN as per video context from Q14.26) is tracked via the `ClientPortalInvitation` model (see 10.1.8).
+2.  **Activation**:
+    - Client uses the invitation link to access the portal.
+    - They set up their account, which typically involves creating/confirming a password (managed via a `ClientPortalAccount` entity linked one-to-one with `Client`), verify contact methods, and set initial communication/feature preferences, including granular SMS opt-ins (e.g., for online payments [01:04], secure messaging, document access, as per video context).
+3.  **Access Granted**:
+    - Upon successful activation, a flag like `Client.allow_portal_access` (or equivalent status like `ClientPortalAccount.status = 'ACTIVE'`) is set.
+    - `ClientPortalAccount.last_login_at` (on the new `ClientPortalAccount` model) can be updated.
+    - Upon successful activation, client portal feature permissions (e.g., allowing online appointment requests, secure messaging, accessing billing documents, paying outstanding balances) are enabled based on practice settings and client-specific configurations.
+4.  **Ongoing Access & Preferences**:
+    - Clients can manage their `ClientContact` details and `ClientReminderPreference`s through the portal, subject to verification workflows for changes to critical contact info.
+5.  **Deactivation/Archival**:
+    - If a `Client` becomes inactive (`Client.is_active = false`), their portal access (`ClientPortalAccount.status`) should be automatically suspended or revoked.
+    - Re-activation processes for returning clients need to be defined.
 
-### 7.6 Documents, Surveys & Files
+### 7.6 Waitlist Management Workflow (New Sub-section)
 
-1.  **Workflow for `ClientGroupFile` -> `ClientFiles`:**
-    - **Use Case Confirmed & Refined by "Video 3" Intake Workflow:** This structure is for tracking individual client interactions (view, completion, signature) with a document shared at the group level.
-    - **Intake Example:**
-      1.  For a new client, after `AppointmentRequest` acceptance, the system might auto-assign an 'INTAKE_QUESTIONNAIRE' `SurveyTemplate`.
-      2.  A `ClientGroupFile` could represent this "Intake Packet Template."
-      3.  A `ClientFiles` record links the specific `Client` to this `ClientGroupFile`, initially with `status = 'ACTION_PENDING'`.
-      4.  When the client completes the survey, their `SurveyAnswers` record is created and `ClientFiles.survey_answers_id` is populated. The `ClientFiles.status` changes to 'COMPLETED' or 'PENDING_REVIEW_STAFF'.
-          This `ClientFiles` record then acts as evidence of the "completed intake packet" for that client.
-2.  **`ClientFiles` and `SurveyAnswers` Link:**
-    - **Clarification:** This link is used when the "file" being tracked for a client is effectively their response to a survey/form. For instance, a `ClientGroupFile` could be a "Consent for Treatment" template. When Client A fills it out, their `SurveyAnswers` record is created, and the `ClientFiles` record for Client A and this "Consent for Treatment" `ClientGroupFile` will link to that specific `SurveyAnswers.id`.
-3.  **`SurveyTemplate.type`:**
-    - **Refined Examples:** 'INTAKE_QUESTIONNAIRE', 'CONSENT_FOR_TREATMENT', 'CONSENT_FOR_TELEHEALTH', 'ROI_FORM' (Release of Information), 'CLINICAL_ASSESSMENT_MEASURE' (e.g., PHQ-9, GAD-7), 'FEEDBACK_SURVEY', 'CUSTOM_FORM'.
-4.  **Document Signing:**
-    - **Process Clarification (Example):**
-      1.  A document (e.g., `SurveyAnswers`, `AppointmentNote`) is marked as requiring a signature.
-      2.  Clinician (or client via portal for some forms) reviews the document.
-      3.  Upon "signing" action:
-          - `is_signed` is set to `true`.
-          - `signed_time` is set to current UTC timestamp.
-          - `signed_ipaddress` is captured from the user's request.
-          - `signed_name` (and `signed_credentials` for clinicians) are recorded.
-          - The document content should ideally become immutable or versioned upon signing. `is_locked` flag can facilitate this.
-      4.  An `Audit` log entry is created for the signing event.
+1.  **Adding to Waitlist**:
+    - A `Client` is marked with `Client.is_waitlist = true`.
+    - Additional details about their waitlist preferences (e.g., desired clinician(s), service(s), availability, urgency) should be captured. (Consider if this requires new fields on `Client` or a dedicated `WaitlistEntry` model).
+2.  **Identifying Open Slots**:
+    - When an `Appointment` is cancelled or a clinician adds new `Availability`, this creates potential openings.
+3.  **Staff Review & Outreach**:
+    - Staff can view a filtered list of clients on the waitlist based on criteria like:
+      - Requested `clinician_id`.
+      - Requested `service_id`.
+      - Client-stated preferred days/times (if captured).
+    - The system does _not_ automatically fill slots.
+4.  **Scheduling from Waitlist**:
+    - Staff contact the client from the waitlist to offer the slot.
+    - If accepted, a new `Appointment` is scheduled, and `Client.is_waitlist` may be set to `false` or updated.
+5.  **Managing Waitlist Entries**:
+    - Regular review of the waitlist to remove clients no longer seeking services or update their preferences.
 
 ## 8. Data Type Clarifications & Standards
 
@@ -475,13 +471,15 @@ _(Adding new items or refining existing ones based on "new context")_
 
 1.  **`InvoiceItem` Model (Reiteration - High Priority):** Essential for flexible billing of multiple services, products, or appointments on a single invoice.
     - `InvoiceItem` fields: `id`, `invoice_id` (FK to `Invoice`), `item_type` ('SERVICE', 'PRODUCT', 'MANUAL_CHARGE'), `practice_service_id` (optional FK), `product_id` (optional FK), `description` (String), `quantity` (Decimal/Int), `unit_price` (Decimal(10,2)), `total_price` (Decimal(10,2)), `appointment_id` (optional FK).
-2.  **`ReferralSource` Entity:** As discussed in 7.1.6, create a `ReferralSource` entity to structure referral tracking. Further justified by reporting needs highlighted in "Video 3".
-3.  **`ClientPortalAccount` Entity:** If clients authenticate with passwords, a separate entity linked to `Client` might be needed for `hashed_password`, `last_login_portal`, `failed_login_attempts_portal`, `portal_activation_token`, `portal_activation_expires_at`, etc. This supports the invitation-based activation flow.
+2.  **`ReferralSource` Entity:** As discussed in 7.1.6, create a `ReferralSource` entity to structure referral tracking. Further justified by reporting needs highlighted in "Video 3" and "Video 2". Essential due to confirmed business need (schema_notes.md 7.1.5).
+3.  **`ClientPortalAccount` Entity:** If clients authenticate with passwords, a separate entity linked to `Client` might be needed for `hashed_password`, `last_login_portal`, `failed_login_attempts_portal`, `portal_activation_token`, `portal_activation_expires_at`, etc. This supports the invitation-based activation flow (confirmed by video context in 7.5.1 and Q14.1).
 4.  **Structured Address Object:** Consider a reusable embedded/JSON type or a separate linked `Address` table for all address fields (`ClientAdress`, `Location`, `BillingAddress`) to ensure consistency and potentially integrate with address validation services.
 5.  **Tagging System Expansion**: Evaluate if the current `Tag` model (linked only to `Appointment`) should be polymorphic or if other entities (e.g., `Client`, `Note`) need their own tagging mechanisms/tables.
 6.  **Supervision Module**: For practices with supervisees, consider entities like `SupervisionLog`, linking clinician (supervisor), clinician (supervisee), appointment (supervised session), and supervision notes. (This is a larger new feature area).
 7.  **`WaitlistEntry` Model (New Consideration):** If detailed preferences for waitlisted clients (specific days/times, urgency, notes) need to be tracked beyond `Client.is_waitlist`, a dedicated `WaitlistEntry` model might be beneficial. It would link to `Client.id`, `Clinician.id` (preferred, optional), `PracticeService.id` (preferred, optional), and store preference details.
-8.  **`ClientPortalInvitation` Model (New Consideration):** To manage the client portal invitation lifecycle (token, sent date, expiry date, status: 'SENT', 'CLICKED', 'ACTIVATED', 'EXPIRED').
+8.  **`ClientPortalInvitation` Model (New Consideration):** To manage the client portal invitation lifecycle (token/PIN, sent date, expiry date, status: 'SENT', 'CLICKED', 'ACTIVATED', 'EXPIRED'). Essential for the portal activation flow (confirmed by video context in 7.5.1, 4.5.1, Q14.26).
+9.  **`ClientInsurancePolicy` and `InsuranceAuthorization` Models (New Consideration):** Strongly indicated by video context [00:21] regarding tracking insurance details, CMS fields, and authorizations (see Q14.18, Q14.21, Q14.25).
+10. **`StripeCustomer` / `PaymentGatewayCustomer` Entity (New Consideration):** To store payment processor specific customer IDs (e.g., `stripe_customer_id`) for managing subscriptions or recurring payments, linked to `Client` or `ClientGroup` (based on Stripe integration mentioned in video [00:21], Q14.20).
 
 ## 11. Integration Points
 
@@ -498,19 +496,19 @@ _(New/Refined terms based on "new context" from "Video 3")_
 - **Primary Patient (within a ClientGroup)**: The individual client member whose clinical care and documentation are the primary focus for services delivered to that client group.
 - **Event (Appointment Type)**: A calendar entry for non-client, non-billable activities such as staff meetings, clinician unavailability, or training.
 - **Merge Tag**: A placeholder (e.g., `{{Client.preferred_name}}`) in an `EmailTemplate` or `ReminderTextTemplate` that is dynamically replaced with actual data by the application before sending.
-- **Portal Activation (Refined)**: The process by which a client, upon receiving a staff-initiated invitation, completes account setup for the client portal, typically involving password creation, verification of primary contact methods, and setting initial communication preferences including SMS opt-ins.
-- **Unavailability Block (Refined)**: An `Appointment` of `type = 'EVENT'` created by a clinician, often recurring, to mark periods they are not available for client sessions. The system scheduling logic must prevent booking client appointments that conflict with these blocks. Conflicts with pre-existing client appointments require manual staff resolution.
-- **Financial Reconciliation (Refined)**: A regular (typically daily) operational process where practice staff compare payment records from the payment processor with `Payment` entries in the system, using `Payment.transaction_id` for matching and `Payment.response` for investigating discrepancies, to ensure financial accuracy.
-- **CMS Fields**: Specific data fields required for insurance claims processing, potentially related to Centers for Medicare & Medicaid Services (CMS) standards, which are captured as part of a client's insurance information.
-- **Client Default Services**: Predefined service codes and associated rates that are automatically applied when creating new appointments or billable items for a specific client, potentially overriding practice-level or clinician-level defaults.
+- **Portal Activation (Refined)**: The process by which a client, upon receiving a staff-initiated invitation (video context [01:59]), completes account setup for the client portal, typically involving password creation, verification of primary contact methods, and setting initial communication preferences including SMS opt-ins.
+- **Unavailability Block (Refined)**: An `Appointment` of `type = 'EVENT'` created by a clinician, often recurring, to mark periods they are not available for client sessions (video context "Video 3"/"Video 2"). The system scheduling logic must prevent booking client appointments that conflict with these blocks. Conflicts with pre-existing client appointments require manual staff resolution.
+- **Financial Reconciliation (Refined)**: A regular (typically daily) operational process where practice staff compare payment records from the payment processor with `Payment` entries in the system, using `Payment.transaction_id` for matching and `Payment.response` for investigating discrepancies, to ensure financial accuracy (video context "Video 2"/"Video 3", schema_notes.md 7.3.8).
+- **CMS Fields (from video)**: Specific data fields required for insurance claims processing, potentially related to Centers for Medicare & Medicaid Services (CMS) standards, captured as part of client insurance information (video context Q14.21).
+- **Client Default Services (from video)**: Predefined service codes and associated rates that are automatically applied when creating new appointments or billable items for a specific client, potentially overriding other established rates (video context Q14.19).
 
 ## 14. Open Questions & Future Considerations
 
 _(Adding new questions based on "new context from Video 3" and refinements)_
 
-1.  **Client Portal Authentication Deep Dive**: Answered in 7.5.1 based on "Video 2" & Video 3 [01:59] - Passwords used (implied by "setup"), via invitation. The need for `ClientPortalAccount` model is high. What are the specific security requirements (password complexity, MFA, lockout policies)?
-2.  **Duplicate Client Management Workflow**: Partially answered in 7.1.2 - All new requests are reviewed by staff. What are the detailed steps and UI considerations for staff to review and resolve potential duplicate client records flagged by the system during intake? What specific fields are used for matching, and what is the threshold for flagging a potential duplicate?
-3.  **Default Behavior for Client Preferences**: Partially answered in 7.4.3 - Defaults apply if no preference set after activation. SMS requires explicit opt-in. If a `ClientReminderPreference` is not explicitly set for a client/type/channel (after portal activation), what is the practice default (opt-in or opt-out) for _each_ notification type/channel combination? How is this granular default configured in `PracticeSettings`?
+1.  **Client Portal Authentication Deep Dive**: Answered in 7.5.1 based on "Video 2" & Video 3 [01:59] - Passwords used (implied by "setup"), via invitation. The need for `ClientPortalAccount` model is high. The follow-up questions about specific security requirements (password complexity, MFA, lockout policies for `ClientPortalAccount`) are excellent and should remain highlighted as key decisions needed.
+2.  **Duplicate Client Management Workflow**: Partially answered in 7.1.2 - All new requests are reviewed by staff. The questions 'What specific fields are used for matching, and what is the threshold for flagging a potential duplicate? What are the detailed steps and UI considerations for staff to review and resolve potential duplicate client records?' remain critical and should be emphasized for UI/UX design and further business rule definition.
+3.  **Default Behavior for Client Preferences**: Partially answered in 7.4.3 - Defaults apply if no preference set after activation. SMS requires explicit opt-in. The question 'If a `ClientReminderPreference` is not explicitly set for a client/type/channel (after portal activation), what is the practice default (opt-in or opt-out) for _each_ notification type/channel combination? How is this granular default configured in `PracticeSettings`?' is key and should drive configuration options.
 4.  **Immutable Signed Documents**: How is the immutability of signed documents (notes, surveys) technologically enforced? Versioning? Or simply locked fields with strict permission controls for unlocking?
 5.  **Referral Source Linking**: Answered in 7.1.6 - Practice wants `ReferralSource` entity. If a `ReferralSource` entity is added, how will existing `Client.referred_by` free-text data be migrated or handled?
 6.  **`Availability` Overlap/Conflict Resolution**: How should the system handle clinician attempts to create overlapping `Availability` blocks? Should it prevent, warn, or allow?
@@ -522,19 +520,20 @@ _(Adding new questions based on "new context from Video 3" and refinements)_
 12. **Client Portal Invitation Management (Answered in 7.5.1 & Video [01:59] - staff initiated, email link-based, supports `ClientPortalInvitation` model):** How are portal invitations tracked (e.g., unique token, sent date, expiry date, status like 'SENT', 'CLICKED', 'ACTIVATED', 'EXPIRED')? Is a new model such as `ClientPortalInvitation` required? (Yes, highly likely).
 13. **Complex Recurring Event Attendees (Answered - not formally tracked for now):** For internal `Appointment.type = 'EVENT'` like recurring trainings, if tracking specific `User` attendance is needed beyond just the hosting `clinician_id`, what is the preferred method? A simple text field for participant names, or a more structured many-to-many link to `User`?
 14. **Auditing Manual Credit Adjustments (Answered in 7.3.1 - via 'ADJUSTMENT_INVOICE', audited):** What is the formal process and audit trail for manual adjustments to `ClientGroup.available_credit` that do not originate from a payment or a credit memo application? Does an `Invoice` of `type = 'ADJUSTMENT'` suffice, or is a more specific `CreditLog` entry needed?
-15. **SMS Opt-In Granularity (Answered in 7.4.3 - granular, client-managed in portal):** If explicit SMS opt-in is required for compliance, is this a single global opt-in per client for all SMS, or should it be granular per `reminder_type` (e.g., opt-in for appointment SMS, separate opt-in for billing SMS)? How is this managed in the UI and data model?
-16. **Impact of Clinician Unavailability on Existing Client Appointments (Answered in 7.2.2 - flagged for manual staff resolution):** If a clinician adds a new recurring 'UNAVAILABILITY*BLOCK' that conflicts with previously scheduled \_client* `Appointment`(s), what is the precise system-driven or staff-driven workflow? Are clients automatically notified? Does the system flag these conflicts for staff to manually reschedule?
-17. **Automated Survey Assignment Logic Details (Answered in 7.2.5 - based on `PracticeService.id` of the request):** For automated assignment of intake `SurveyTemplate`(s), what are the specific rules? Is it based purely on `AppointmentRequest.service_id`, client age derived from `RequestContactItems.date_of_birth`, client-stated issues, or a more complex, configurable rules engine in `PracticeSettings`?
-18. **Insurance Authorization Details (Video [00:21]):** The video confirms 'tracking authorization' is a feature. What specific fields are essential for an `InsuranceAuthorization` model (e.g., auth number, service codes covered, date ranges, number of sessions approved/used, status, link to specific `ClientInsurancePolicy`)? How are these authorizations linked to `Appointment`s to verify coverage before a session?
-19. **Client-Specific Default Services/Rates (Video [00:42]):** The video explicitly shows functionality to 'set default service codes and rates for a client'. This confirms the business need. The question remains how these client-specific defaults interact with/override other rate tiers (`PracticeService`, `ClinicianService`, `ClientGroupService`) and what the UI for managing these looks like.
-20. **Stripe Payment Setup Details (Video [00:21]):** The video shows the capability to 'add credit/debit card information', which is a prerequisite for payment processing (e.g., via Stripe). This reinforces the need for the `CreditCard` model to store tokenized information. The question about storing other Stripe-related IDs (like Customer ID) per `Client` or `ClientGroup` remains relevant for a full integration.
-21. **CMS Fields for Claims (Video [00:21]):** The video confirms that adding 'insurance claim/CMS fields' is part of managing client insurance information. The crucial next step is to identify what these specific CMS fields are and determine if they belong on an `InsurancePolicy` model, an `Appointment` (if claim-specific fields vary per session), or a dedicated `Claim` model that would aggregate data for submission.
+15. **SMS Opt-In Granularity (Answered in 7.4.3 - granular, client-managed in portal):** If explicit SMS opt-in is required for compliance, is this a single global opt-in per client for all SMS, or should it be granular per `reminder_type` (e.g., opt-in for appointment SMS, separate opt-in for billing SMS)? How is this managed in the UI and data model (as seen in video [01:04])?
+16. **Impact of Clinician Unavailability on Existing Client Appointments (Answered in 7.2.2 - flagged for manual staff resolution):** If a clinician adds a new recurring 'UNAVAILABILITY*BLOCK' (video context "Video 3"/"Video 2") that conflicts with previously scheduled \_client* `Appointment`(s), what is the precise system-driven or staff-driven workflow? Are clients automatically notified? Does the system flag these conflicts for staff to manually reschedule?
+17. **Automated Survey Assignment Logic Details (Answered in 7.2.5 - based on `PracticeService.id` of the request, "Video 3" insight):** For automated assignment of intake `SurveyTemplate`(s), what are the specific rules? Is it based purely on `AppointmentRequest.service_id`, client age derived from `RequestContactItems.date_of_birth`, client-stated issues, or a more complex, configurable rules engine in `PracticeSettings`?
+18. **Insurance Authorization Details (Video [00:21]):** The video confirms 'tracking authorization' is a feature. Based on the confirmation from video, expand on the potential fields for `InsuranceAuthorization` in section 10.1 (Potential Schema Improvements) or the new proposed 'Insurance Management Workflow' section. Your list 'auth number, service codes covered, date ranges, number of sessions approved/used, status, link to specific `ClientInsurancePolicy`' is a great start. Add 'How are statuses like 'Pending', 'Approved', 'Denied', 'Expired', 'Exhausted' managed?'
+19. **Client-Specific Default Services/Rates (Video [00:42]):** The video explicitly shows functionality to 'set default service codes and rates for a client'. This confirms the business need. This is a significant point from video. In section 7.1.8, where this is first noted, and section 10.1 where `ClientServicePreference` is considered, emphasize the need to define the hierarchy: e.g., does `ClientServicePreference` override `ClientGroupServices`, which overrides `ClinicianServices`, which overrides `PracticeService.rate`? This interaction logic needs to be fully specified.
+20. **Stripe Payment Setup Details (Video [00:21]):** The video shows the capability to 'add credit/debit card information', which is a prerequisite for payment processing (e.g., via Stripe). This reinforces the need for the `CreditCard` model to store tokenized information. For a full integration with Stripe (confirmed by video), consider if a `StripeCustomer` (or generic `PaymentGatewayCustomer`) entity linked to `Client` or `ClientGroup` is needed to store `stripe_customer_id`, etc., for managing subscriptions or recurring payments, beyond just `CreditCard.token`. Add this to Section 10.1.
+21. **CMS Fields for Claims (Video [00:21]):** The video confirms that adding 'insurance claim/CMS fields' is part of managing client insurance information. Emphasize this as an action item. A new sub-section under 'Insurance Management' could list common CMS-1500 form fields if they are generally applicable, or note that this requires consultation with billing experts. Examples: Place of Service, Diagnosis Pointers, etc.
 22. **Tracking "Exported" vs. "Sent to Client" for Billing Docs (Video [02:50]):** The video demonstrates actions like 'export billing documents as PDFs' (supporting `Invoice.is_exported`) and mentions 'email billing notifications' (supporting `Invoice.delivery_method` or client-facing statuses like 'Emailed'). The schema should formally differentiate these. `is_exported` can refer to system-level exports (e.g., to accounting software), while `delivery_method` (or a more granular `delivery_status`) tracks the client-facing provision of the document (e.g., 'NOT_SENT', 'EMAILED_TO_CLIENT', 'VIEWED_ON_PORTAL'). The video's UI showing 'Not Sent' or 'Emailed' for billing documents supports this distinction.
-23. "The video mentions 'primary client details' in the context of billing. How does this 'primary client' concept within billing (if distinct from 'Primary Patient' in `ClientGroupMembership`) relate to the `ClientGroup.is_responsible_for_billing` flag? Is it redundant or complementary?"
-24. "For 'CMS fields', are these standardized fields, and if so, where can a definitive list be found? How do these map to specific requirements for different insurance payers?"
-25. "Regarding 'tracking authorization': What are the common statuses for an insurance authorization (e.g., 'Pending', 'Approved', 'Denied', 'Expired', 'Exhausted')? What information needs to be captured for each authorization (e.g., auth number, approved services/CPT codes, number of sessions, start/end dates, units used)?"
-26. "The video mentions 'client portal access with email and generating a PIN'. What is the workflow for PIN generation, delivery, and usage? Is the PIN single-use for activation, or used for ongoing login? How are PIN resets/recoveries handled?"
-27. "The client portal allows customizing various permissions. Are these permissions globally set by the practice, or can they be customized per client by staff after the initial setup?"
+23. **"Primary client details" for billing (Video context [00:21]):** The video mentions 'primary client details' in the context of billing. It's likely that the `ClientGroupMembership.is_responsible_for_billing = true` flag on a specific `Client` record (who is a member of the group) identifies this "primary client for billing." The UI would then pull details from that `Client` record. Clarify this relationship in section 4.1 (Billing Responsibility) and 6.2 (`ClientGroup` Aggregate Invariants).
+24. **"CMS fields" (Video context [00:21]):** For 'CMS fields', are these standardized fields, and if so, where can a definitive list be found? How do these map to specific requirements for different insurance payers?
+25. **"Tracking authorization" (Video context [00:21]):** What are the common statuses for an insurance authorization (e.g., 'Pending', 'Approved', 'Denied', 'Expired', 'Exhausted')? What information needs to be captured for each authorization (e.g., auth number, approved services/CPT codes, number of sessions, start/end dates, units used)?
+26. **Client portal access - PIN generation (Video context [01:59]):** The client portal allows 'email and generating a PIN'. Reconcile this with the 'PIN' mention. If PINs are an alternative or supplementary method to the unique link for activation (video), the workflow needs to be detailed. Is it a one-time activation PIN? How is it securely delivered? Your `ClientPortalInvitation` model (10.1.8) should accommodate tracking either token or PIN.
+27. **Client portal permissions customization:** The client portal allows customizing various permissions. Are these permissions globally set by the practice, or can they be customized per client by staff after the initial setup?
+28. **Referring Professional Interaction with `ReferralSource`**: If a `ClientGroupMembership.role` is 'Referring Professional' or similar, or if `Client.referred_by_client_id` (if such a field is added to `Client` to link to another client) links to another client who is a professional, how does this interact with the proposed `ReferralSource` entity? Should there be a specific type in `ReferralSource` for 'Existing Client (Professional)' vs 'Existing Client (Non-Professional)' (related to video context on referral tracking from "Video 2")?
 
 ## 15. Next Steps
 
