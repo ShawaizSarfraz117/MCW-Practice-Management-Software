@@ -433,6 +433,7 @@ model Clinician {
   Invoice             Invoice[]
   License             License[]
   PracticeInformation PracticeInformation[]
+  ClientPortalSettings ClientPortalSettings?
 }
 
 /// Many-to-many relationship between clinicians and clients.
@@ -638,6 +639,7 @@ model PracticeService {
   ClientGroupServices ClientGroupServices[]
   ClinicianServices   ClinicianServices[]
   GoodFaithServices   GoodFaithServices[]
+  AvailabilityServices AvailabilityServices[]
 }
 
 /// User roles for role-based access control (RBAC) within the system.
@@ -931,7 +933,7 @@ model ClientGroupFile {
   updated_at         DateTime      @updatedAt
   /// Tracks individual client access and status for this group file (schema_notes.md 7.6.1).
   ClientFiles        ClientFiles[]
-  ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupFile_ClientGroup") // onDelete: Cascade if group is deleted.
+  ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientGroupFile_ClientGroup") // onDelete: NoAction to prohibit deletion if group has files.
   User               User?         @relation(fields: [uploaded_by_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "FK_ClientGroupFile_User") // onDelete: SetNull to keep file record if uploader user is deleted.
 
   @@index([client_group_id], map: "IX_ClientGroupFile_client_group_id")
@@ -1183,7 +1185,7 @@ model DiagnosisTreatmentPlanItem {
   diagnosis_id           String                 @db.UniqueIdentifier
   /// Additional notes or specifications for this diagnosis within the context of this treatment plan (e.g., severity, focus of treatment).
   custom_description     String?                @db.VarChar(255)
-  Diagnosis              Diagnosis              @relation(fields: [diagnosis_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlanItem_Diagnosis") // onDelete: Restrict - don't delete a diagnosis if it's in a plan.
+  Diagnosis              Diagnosis              @relation(fields: [diagnosis_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlanItem_Diagnosis") // onDelete: NoAction to prohibit deletion if diagnosis is in a plan.
   DiagnosisTreatmentPlan DiagnosisTreatmentPlan @relation(fields: [treatment_plan_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlanItem_DiagnosisTreatmentPlan") // onDelete: Cascade if plan is deleted.
 
   @@index([diagnosis_id], map: "IX_DiagnosisTreatmentPlanItem_DiagnosisId")
@@ -1353,7 +1355,7 @@ model ClientPortalSettings {
   /// Custom welcome message displayed on the client portal's main page. Can support rich text formatting (e.g., markdown or HTML).
   welcome_message                 String?  @db.NVarChar(Max)
   // Add relation to Clinician if clinician_id is not null
-  Clinician                       Clinician? @relation(fields: [clinician_id], references: [id], onDelete: Cascade)
+  Clinician                       Clinician? @relation(fields: [clinician_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 /// Key-value store for practice-wide settings and feature flags.
