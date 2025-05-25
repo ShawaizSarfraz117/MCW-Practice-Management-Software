@@ -17,12 +17,16 @@ datasource db {
 /// Appointments are always associated with a ClientGroup (not individual clients) to support family/couple therapy.
 model Appointment {
   id                       String             @id @default(dbgenerated("newid()"), map: "PK_Appointment_ID") @db.UniqueIdentifier
-  /// Type of appointment: 'APPOINTMENT' (client sessions), 'EVENT' (non-client activities like staff meetings, trainings, or unavailability blocks).
+  /// Type of appointment:
+  /// - 'APPOINTMENT': Client sessions (billable, clinical).
+  /// - 'EVENT': Non-client activities like staff meetings, trainings, or clinician unavailability blocks. [cite: 1]
   /// Refer to schema_notes.md section 8.3 for defined values.
   type                     String             @db.VarChar(50)
-  /// Display title for the appointment (e.g., "Family Therapy Session", "Staff Meeting").
-  /// Used for 'EVENT' types or when distinct from PracticeService.name/description for specific client sessions. See schema_notes.md 7.2.3.
-  title                    String?            @db.VarChar(255)
+  /// Display title for the appointment.
+  /// For 'EVENT' type: e.g., "Staff Meeting", "Clinician Unavailability". [cite: 1]
+  /// For 'APPOINTMENT' type: Used if distinct from PracticeService.name, e.g., "Initial Consultation - John D."
+  /// See schema_notes.md 7.2.3.
+  title                    String?            @db.VarChar(255) // Increased length for more descriptive event titles.
   /// Whether this spans the entire day (affects calendar display).
   is_all_day               Boolean            @default(false, map: "DF_Appointment_IsAllDay")
   /// Start date/time in UTC. All timestamps are stored in UTC.
@@ -36,7 +40,8 @@ model Appointment {
   /// Current status: e.g., 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'.
   /// Refer to schema_notes.md section 8.3 for defined values and section 4.2.3 for lifecycle.
   status                   String             @db.VarChar(100)
-  /// Clinician providing the service or primary host of an 'EVENT'.
+  /// Clinician providing the service or primary host/subject of an 'EVENT'.
+  /// For 'EVENT' type 'Clinician Unavailability', this is the clinician who is unavailable. [cite: 1]
   clinician_id             String?            @db.UniqueIdentifier
   /// Base fee for the appointment in dollars (before adjustments). Stored as Decimal(10,2). Derived from service rates, potentially overridden.
   appointment_fee          Decimal?           @db.Decimal(10,2)
@@ -44,10 +49,15 @@ model Appointment {
   service_id               String?            @db.UniqueIdentifier
   /// Whether this is part of a recurring series.
   is_recurring             Boolean            @default(false, map: "DF_Appointment_IsRecurring")
-  /// iCalendar RRULE format string defining recurrence pattern (e.g., "FREQ=WEEKLY;COUNT=10;BYDAY=MO,WE").
-  /// Application logic parses this to generate/manage instances. See schema_notes.md section 4.2.2, 7.2.2 and Glossary (13).
+  /// iCalendar RRULE format string defining recurrence pattern.
+  /// Application logic parses this to generate/manage instances.
+  /// For 'EVENT' type 'Clinician Unavailability', this defines recurring blocks of unavailable time. [cite: 1]
+  /// Modification to recurring unavailability may require manual resolution of conflicts with existing client appointments. [cite: 1]
+  /// See schema_notes.md section 4.2.2, 7.2.2 and Glossary (13).
   recurring_rule           String?            @db.Text
-  /// For updates to recurring series: whether to cancel future appointments or attempt to reschedule them based on the new rule.
+  /// For updates to recurring series:
+  /// - true: cancel future appointments/events.
+  /// - false: attempt to reschedule them based on the new rule (may require conflict resolution). [cite: 1]
   cancel_appointments      Boolean?
   /// Whether to send cancellation notifications when an appointment (especially a recurring one) is cancelled.
   notify_cancellation      Boolean?
@@ -55,7 +65,7 @@ model Appointment {
   /// Manages parent-child relationship for recurring series.
   recurring_appointment_id String?            @db.UniqueIdentifier
   /// Client group (family/couple/individual) receiving services.
-  /// Every 'APPOINTMENT' type is associated with a ClientGroup. Individuals are in single-member groups. Null for 'EVENT' type.
+  /// Every 'APPOINTMENT' type is associated with a ClientGroup. Null for 'EVENT' type. [cite: 1]
   client_group_id          String?            @db.UniqueIdentifier
   /// Session-specific fee adjustment in dollars (can be negative for discounts/credits). Stored as Decimal(10,2).
   /// See Glossary (13) for 'Adjustment'.
@@ -159,7 +169,9 @@ model Client {
   id                       String                     @id @default(dbgenerated("newid()"), map: "PK_Client_ID") @db.UniqueIdentifier
   legal_first_name         String                     @db.VarChar(100)
   legal_last_name          String                     @db.VarChar(100)
-  /// Whether client is on the practice's waitlist for services.
+  /// Whether client is on the practice's waitlist.
+  /// If true, staff can view this client when looking for candidates for open slots. [cite: 1]
+  /// Waitlist preferences (e.g., specific clinician, service, days) are typically managed via internal notes or a separate detailed model if needed. [cite: 1]
   is_waitlist              Boolean                    @default(false, map: "DF_Client_IsWaitlist")
   /// Primary clinician assigned to this client.
   primary_clinician_id     String?                    @db.UniqueIdentifier
@@ -178,8 +190,9 @@ model Client {
   access_billing_documents Boolean                    @default(false, map: "DF_Client_access_billing_documents")
   /// Portal permission: can send secure messages to clinician. Part of client portal access flags.
   use_secure_messaging     Boolean                    @default(false, map: "DF_Client_use_secure_messaging")
-  /// Free text field for referral source.
-  /// Nature of this field - free text vs. link - is under review for potential change to structured ReferralSource link. See schema_notes.md 7.1.6.
+  /// Free text field for initial referral source.
+  /// Practice is moving towards structured referral tracking via a dedicated ReferralSource entity. [cite: 1]
+  /// See schema_notes.md 7.1.6 and 10.1.2.
   referred_by              String?                    @db.VarChar(200)
   Audit                    Audit[]
   Clinician                Clinician?                 @relation(fields: [primary_clinician_id], references: [id], onUpdate: NoAction, map: "FK_Client_Clinician")
@@ -249,12 +262,14 @@ model ClientAdress {
 model ClientContact {
   id                       String                     @id @default(dbgenerated("newid()"), map: "PK_ClientContact_ID") @db.UniqueIdentifier
   client_id                String                     @db.UniqueIdentifier
-  /// Whether this is the primary contact method of its specific type (e.g. primary email, primary mobile).
+  /// Whether this is the primary contact method of its specific category (e.g. primary email, primary mobile).
+  /// Primary verified email is typically used for portal invitations and critical communications. [cite: 1]
   is_primary               Boolean                    @default(false, map: "DF_ClientContact_IsPrimary")
   /// Permission level: who can use this contact (e.g., 'CLIENT_ONLY', 'EMERGENCY_CONTACT_ONLY', 'SHARED_WITH_GROUP').
   /// (Consider enum; schema_notes.md 5.2).
   permission               String                     @db.VarChar(50)
   /// Category of contact method: 'EMAIL', 'PHONE', 'SMS'.
+  /// Verification status of this contact method (e.g., client confirmed via portal) is managed by application logic. [cite: 1]
   /// (Consider enum; schema_notes.md 5.2, 7.1.5).
   contact_type             String                     @db.VarChar(50)
   /// Subcategory or usage label for the contact method: 'HOME', 'WORK', 'MOBILE', 'OTHER', 'FAX'.
@@ -279,8 +294,10 @@ model ClientGroup {
   clinician_id                   String?                    @db.UniqueIdentifier
   /// Soft delete flag.
   is_active                      Boolean                    @default(true, map: "DF_ClientGroup_IsActive")
-  /// Available credit balance in dollars that can be applied to future services.
-  /// Stored as Decimal(10,2). Cannot be negative. See Glossary (13) and schema_notes.md 4.3.2.
+  /// Available credit balance in dollars. Cannot be negative.
+  /// Debited when used for payments. Credited via 'CREDIT_MEMO' type Invoices or specific manual adjustments. [cite: 1]
+  /// Manual adjustments to available_credit require an 'ADJUSTMENT' type Invoice and are audited. [cite: 1]
+  /// See Glossary (13) and schema_notes.md 4.3.2, 7.3.1.
   available_credit               Decimal                    @db.Decimal(10,2) @default(0)
   created_at                     DateTime?                  @default(now(), map: "ClientGroup_created_at")
   /// Whether to automatically generate monthly statements for this group.
@@ -329,13 +346,15 @@ model ClientGroupMembership {
 model ClientReminderPreference {
   id            String        @id @default(dbgenerated("newid()"), map: "PK_ClientReminderPreference_ID") @db.UniqueIdentifier
   client_id     String        @db.UniqueIdentifier
-  /// Type of reminder: e.g., 'APPOINTMENT_CONFIRMATION', 'APPOINTMENT_REMINDER', 'INVOICE_NOTIFICATION'.
+  /// Type of reminder: e.g., 'APPOINTMENT_CONFIRMATION', 'APPOINTMENT_REMINDER_24HR', 'INVOICE_AVAILABLE'.
   /// (Consider enum; schema_notes.md 5.2, 7.4.2 for examples).
   reminder_type String        @db.VarChar(100)
-  /// Whether this reminder type and channel combination is enabled for the client.
-  /// Governed by global PracticeSettings and this specific preference.
-  is_enabled    Boolean       @default(true, map: "DF_ClientReminderPreference_IsEnabled")
+  /// Whether this reminder type and channel is enabled.
+  /// Client manages these preferences via the portal after initial activation & contact verification. [cite: 1]
+  /// For SMS, explicit opt-in per category (e.g., appointment reminders vs. billing alerts) might be stored here or implicitly through multiple entries. [cite: 1]
+  is_enabled    Boolean       @default(true, map: "DF_ClientReminderPreference_IsEnabled") // Default might be true for some, false for opt-in like SMS billing.
   /// Delivery channel: 'EMAIL', 'SMS', 'VOICE'.
+  /// SMS channel requires specific opt-in for certain reminder_types. [cite: 1]
   /// (Consider enum; schema_notes.md 5.2).
   channel       String        @db.VarChar(50) // Added VarChar limit
   /// Which ClientContact record (verified email/phone) to use for this reminder.
@@ -495,7 +514,10 @@ model Invoice {
   /// Current status: 'UNPAID', 'PAID', 'PARTIAL', 'CREDIT', 'VOID'.
   /// Refer to schema_notes.md section 8.3 for defined values.
   status              String       @db.VarChar(50)
-  /// Invoice type: 'INVOICE' (standard charge), 'ADJUSTMENT_INVOICE' (modification), 'CREDIT_MEMO' (credit note).
+  /// Invoice type:
+  /// - 'INVOICE': Standard charge for services/products.
+  /// - 'ADJUSTMENT_INVOICE': Modification to charges, can be positive or negative. Used for manual credit adjustments to ClientGroup.available_credit. [cite: 1]
+  /// - 'CREDIT_MEMO': Represents a credit issued to the client group, increases ClientGroup.available_credit or applied to other invoices. [cite: 1]
   /// Refer to schema_notes.md section 4.3.1 for refined terms.
   type                String       @db.VarChar(50)
   /// Formatted client information for invoice display (consider generating at runtime or storing structured refs).
@@ -549,10 +571,12 @@ model Payment {
   /// Credit card used for this payment, if applicable.
   credit_card_id String?     @db.UniqueIdentifier
   /// External transaction ID from payment processor (e.g., Stripe tx_********).
-  transaction_id String?     @db.VarChar(100)
+  /// Used for daily financial reconciliation against processor reports. [cite: 1]
+  transaction_id String?     @db.VarChar(100) // Ensure this is unique if it's a processor's unique ID
   /// Payment status: 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'. Refer to schema_notes.md section 8.3 for defined values.
   status         String      @db.VarChar(50)
   /// Raw response or relevant details from payment processor for logging/debugging.
+  /// Crucial for investigating discrepancies during financial reconciliation. [cite: 1]
   response       String?     @db.Text
   /// Amount of client's available credit (from ClientGroup.available_credit) applied to this payment, in dollars. Stored as Decimal(10,2).
   /// This transaction should debit ClientGroup.available_credit (schema_notes.md 4.3.2).
@@ -627,6 +651,7 @@ model SurveyAnswers {
   /// When the client completed this survey, in UTC.
   completed_at           DateTime?
   /// When this survey was assigned to the client, in UTC.
+  /// Can be set automatically during new client intake based on requested service type or other rules. [cite: 1]
   assigned_at            DateTime                 @default(now(), map: "DF__ClientDoc__assig__4D8A65FA")
   /// When this survey response expires or is no longer considered valid/current, in UTC.
   expiry_date            DateTime?
@@ -1235,7 +1260,7 @@ model AppointmentRequests {
   id                       String                @id(map: "PK_AppointmentRequests") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   clinician_id             String                @db.UniqueIdentifier // Requested clinician.
   /// Null for new clients (details in RequestContactItems), populated for existing clients making a request.
-  /// For new clients, this is updated after Client and ClientGroup are created from RequestContactItems (schema_notes.md 7.1.2).
+  /// For new clients, this is updated by staff/system after a Client record is created from RequestContactItems and the request is accepted. [cite: 1]
   client_id                String?               @db.UniqueIdentifier
   service_id               String                @db.UniqueIdentifier // Requested service.
   /// Who the appointment is for: 'SELF', 'CHILD', 'OTHER_DEPENDENT'. (Consider enum; schema_notes.md 5.2).
@@ -1250,7 +1275,8 @@ model AppointmentRequests {
   start_time               DateTime              @db.DateTime
   /// Requested appointment end time, in UTC.
   end_time                 DateTime              @db.DateTime
-  /// Request status: 'PENDING_REVIEW' -> ('DUPLICATE_NEEDS_REVIEW') -> 'ACCEPTED'/'DECLINED' -> 'CONVERTED_TO_APPOINTMENT'.
+  /// Request status: e.g., 'PENDING_STAFF_REVIEW' -> 'PENDING_CLIENT_ACTION' (e.g. complete intake) -> 'CONFIRMED_PENDING_SCHEDULE' -> 'SCHEDULED' (converted to Appointment) / 'DECLINED'.
+  /// All new requests (portal or staff-entered for new prospect) go into 'PENDING_STAFF_REVIEW'. [cite: 1]
   /// Refer to schema_notes.md 4.1, 4.2.1, 7.2.1 for flow and values. (Consider enum; schema_notes.md 5.2).
   status                   String                @db.VarChar(250)
   /// When request was submitted/received, in UTC.
