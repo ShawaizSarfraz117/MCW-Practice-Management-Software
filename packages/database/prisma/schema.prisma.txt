@@ -184,18 +184,25 @@ model Client {
   preferred_name           String?                    @db.VarChar(100)
   /// Date of birth, stored as Date only.
   date_of_birth            DateTime?                  @db.Date
-  /// Portal permission: can request appointments online. Part of client portal access flags.
+  /// Portal permission: can request appointments online. Managed via client portal settings after invitation and activation.
   allow_online_appointment Boolean                    @default(false, map: "DF_Client_allow_online_appointment")
-  /// Portal permission: can view invoices, statements, superbills. Part of client portal access flags.
+  /// Portal permission: can view invoices, statements, superbills, and potentially make payments. Managed via client portal settings.
   access_billing_documents Boolean                    @default(false, map: "DF_Client_access_billing_documents")
-  /// Portal permission: can send secure messages to clinician. Part of client portal access flags.
+  /// Portal permission: can send secure messages to clinician. Managed via client portal settings.
   use_secure_messaging     Boolean                    @default(false, map: "DF_Client_use_secure_messaging")
   /// Free text field for initial referral source.
-  /// Practice is moving towards structured referral tracking via a dedicated ReferralSource entity. [cite: 1]
+  /// Practice is moving towards structured referral tracking via a dedicated ReferralSource entity.
   /// See schema_notes.md 7.1.6 and 10.1.2.
   referred_by              String?                    @db.VarChar(200)
+
+  // --- Potential fields to consider adding based on schema_notes.md and video context if not using ClientPortalAccount model ---
+  // /// Tracks status of client portal access (e.g., 'INVITED', 'ACTIVE', 'DISABLED'). Strongly consider ClientPortalAccount model.
+  // client_portal_status String? @db.VarChar(50)
+  // /// Timestamp of last successful client portal login. Strongly consider ClientPortalAccount model.
+  // client_portal_last_login DateTime?
+
   Audit                    Audit[]
-  Clinician                Clinician?                 @relation(fields: [primary_clinician_id], references: [id], onUpdate: NoAction, map: "FK_Client_Clinician")
+  Clinician                Clinician?                 @relation(fields: [primary_clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Client_Clinician")
   Location                 Location?                  @relation(fields: [primary_location_id], references: [id], onUpdate: NoAction, map: "FK_Client_Location")
   ClientAdress             ClientAdress[]
   ClientContact            ClientContact[]
@@ -205,7 +212,7 @@ model Client {
   ClientProfile            ClientProfile?
   ClientReminderPreference ClientReminderPreference[]
   ClinicianClient          ClinicianClient[]
-  CreditCard               CreditCard[]
+  CreditCard               CreditCard[] // Consider relation to a PaymentMethod entity that includes Stripe tokens.
   DiagnosisTreatmentPlan   DiagnosisTreatmentPlan[]
   GoodFaithEstimate        GoodFaithEstimate[]
   SurveyAnswers            SurveyAnswers[]
@@ -269,13 +276,13 @@ model ClientContact {
   /// (Consider enum; schema_notes.md 5.2).
   permission               String                     @db.VarChar(50)
   /// Category of contact method: 'EMAIL', 'PHONE', 'SMS'.
-  /// Verification status of this contact method (e.g., client confirmed via portal) is managed by application logic. [cite: 1]
+  /// Verification status (e.g., client confirmed via portal) is managed by application logic, crucial for portal activation and secure messaging.
   /// (Consider enum; schema_notes.md 5.2, 7.1.5).
   contact_type             String                     @db.VarChar(50)
   /// Subcategory or usage label for the contact method: 'HOME', 'WORK', 'MOBILE', 'OTHER', 'FAX'.
   /// (Consider enum; schema_notes.md 5.2, 7.1.5).
   type                     String                     @db.VarChar(50)
-  /// The actual contact value (e.g., email address or phone number).
+  /// The actual contact value (e.g., email address or phone number). Used for sending portal invitations.
   value                    String                     @db.VarChar(255)
   Client                   Client                     @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientContact_Client")
   ClientReminderPreference ClientReminderPreference[]
@@ -324,16 +331,18 @@ model ClientGroupMembership {
   client_group_id            String      @db.UniqueIdentifier // Removed default here, should be part of composite PK
   client_id                  String      @db.UniqueIdentifier
   /// Role within the group (e.g., 'Primary Patient', 'Spouse', 'Child', 'Guardian', 'Emergency Contact').
+  /// This also helps identify individuals who are contacts (e.g. family member, emergency contact) but not the primary client receiving services.
   /// See schema_notes.md 4.1, 7.1.3 for role examples and importance of 'Primary Patient'.
   role                       String?     @db.VarChar(50)
   created_at                 DateTime    @default(now(), map: "DF__GroupClie__creat__6EEB59C5")
-  /// Whether this person is only a contact (not receiving services directly as a patient, e.g., a non-attending parent for a minor who is the 'Primary Patient').
+  /// Whether this person is only a contact (not receiving services directly as a patient, e.g., a non-attending parent for a minor who is the 'Primary Patient', or an emergency contact).
+  /// Such contacts might have limited portal access if granted (e.g., for billing if also responsible_for_billing).
   /// See schema_notes.md 4.1, 7.1.4 and Glossary (13) for 'Contact-Only'.
   is_contact_only            Boolean     @default(false, map: "DF_ClientGroupMembership_IsContactOnly")
-  /// Whether this member is responsible for paying bills for the group.
+  /// Whether this member is responsible for paying bills for the group. This is key for identifying the primary billing contact.
   /// Only one member can be responsible per group (enforced by application logic).
   is_responsible_for_billing Boolean?
-  /// Whether this person should be contacted in emergencies.
+  /// Whether this person should be contacted in emergencies. Can be identified via the 'role' field or this explicit flag.
   is_emergency_contact       Boolean?    @default(false, map: "DF_ClientGroupMembership_IsEmergencyContactOnly")
   Client                     Client      @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_Client")
   ClientGroup                ClientGroup @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_ClientGroup")
@@ -346,15 +355,15 @@ model ClientGroupMembership {
 model ClientReminderPreference {
   id            String        @id @default(dbgenerated("newid()"), map: "PK_ClientReminderPreference_ID") @db.UniqueIdentifier
   client_id     String        @db.UniqueIdentifier
-  /// Type of reminder: e.g., 'APPOINTMENT_CONFIRMATION', 'APPOINTMENT_REMINDER_24HR', 'INVOICE_AVAILABLE'.
+  /// Type of reminder: e.g., 'APPOINTMENT_CONFIRMATION', 'APPOINTMENT_REMINDER_24HR', 'INVOICE_AVAILABLE', 'STATEMENT_AVAILABLE'.
   /// (Consider enum; schema_notes.md 5.2, 7.4.2 for examples).
   reminder_type String        @db.VarChar(100)
   /// Whether this reminder type and channel is enabled.
-  /// Client manages these preferences via the portal after initial activation & contact verification. [cite: 1]
-  /// For SMS, explicit opt-in per category (e.g., appointment reminders vs. billing alerts) might be stored here or implicitly through multiple entries. [cite: 1]
+  /// Client manages these preferences via the portal after initial activation & contact verification.
+  /// For SMS, explicit opt-in per category (e.g., appointment reminders vs. billing alerts) is typically required.
   is_enabled    Boolean       @default(true, map: "DF_ClientReminderPreference_IsEnabled") // Default might be true for some, false for opt-in like SMS billing.
   /// Delivery channel: 'EMAIL', 'SMS', 'VOICE'.
-  /// SMS channel requires specific opt-in for certain reminder_types. [cite: 1]
+  /// SMS channel requires specific opt-in for certain reminder_types (e.g. billing notifications).
   /// (Consider enum; schema_notes.md 5.2).
   channel       String        @db.VarChar(50) // Added VarChar limit
   /// Which ClientContact record (verified email/phone) to use for this reminder.
@@ -483,7 +492,8 @@ model CreditCard {
   /// Billing address associated with this card (e.g., street, city, zip).
   /// Stored as text, consider structured fields or link to an Address entity (see schema_notes.md 10.1.4).
   billing_address String?   @db.Text
-  /// Payment processor token for secure transactions. This should be unique.
+  /// Payment processor token (e.g., from Stripe) for secure transactions. This should be unique if it's the processor's main token for this card.
+  /// This token is used to charge the card without storing full card details.
   token           String?   @db.VarChar(255) @unique
   created_at      DateTime  @default(now(), map: "DF__CreditCar__creat__01FE2E39")
   Client          Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_CreditCard_Client") // Consider if onDelete should be SetNull or Restrict
@@ -528,8 +538,11 @@ model Invoice {
   provider_info       String?      @db.Text
   /// Description of services/products provided (can be a summary if line items are not used).
   service_description String?      @db.Text
-  /// Whether this invoice has been exported to an external accounting system.
+  /// Whether this invoice has been exported to an external accounting system or marked as sent to the client.
   is_exported         Boolean      @default(false, map: "DF_Invoice_is_exported")
+  /// Method by which the invoice was delivered or made available (e.g., 'EMAIL', 'PORTAL', 'PRINTED', 'NOT_SENT').
+  delivery_method     String?      @db.VarChar(50) // New field based on video showing "Not Sent", "Emailed"
+
   Appointment         Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
   ClientGroup         ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_ClientGroup")
   Clinician           Clinician?   @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Clinician")
@@ -1304,20 +1317,20 @@ model AvailabilityServices {
 model ClientPortalSettings {
   id                              String   @id(map: "PK_ClientPortalSettings") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   /// Clinician these settings apply to. If null, could be practice-wide defaults. @unique for clinician-specific overrides (schema_notes.md 7.3.4 pattern).
-  clinician_id                    String   @unique @db.UniqueIdentifier // Made unique to match BillingSettings pattern for clinician-specific overrides
-  /// Whether client portal is globally enabled for the practice/clinician.
+  clinician_id                    String?  @unique @db.UniqueIdentifier // Made unique to match BillingSettings pattern for clinician-specific overrides
+  /// Whether client portal is globally enabled for the practice/clinician. Portal invitation process also required.
   is_enabled                      Boolean  @default(false, map: "DF_ClientPortalSettings_is_client_portal_enabled")
   /// Custom domain URL for the client portal (e.g., portal.mypractice.com).
   domain_url                      String?  @db.VarChar(250)
   /// Allow clients to submit appointment requests through the portal.
   is_appointment_requests_enabled Boolean? @default(true)
-  /// Available start times for appointments shown in portal, JSON array of strings (e.g., ["09:00", "09:30", "14:00"]). Store as JSON string or Text.
+  /// Available start times for appointments shown in portal, JSON array of strings (e.g., ["09:00", "09:30", "14:00"]).
   appointment_start_times         String?  @db.VarChar(250) // Store as JSON string or Text
-  /// Minimum hours of advance notice required for online appointment requests (e.g., "24" for 24 hours). Consider Int for hours.
+  /// Minimum hours of advance notice required for online appointment requests (e.g., "24" for 24 hours).
   request_minimum_notice          String?  @db.VarChar(250) // Consider Int for hours
-  /// Maximum days in advance clients can request appointments (e.g., "90" for 90 days). Consider Int for days.
+  /// Maximum days in advance clients can request appointments (e.g., "90" for 90 days).
   maximum_request_notice          String?  @db.VarChar(250) // Consider Int for days
-  /// Allow new clients (not yet in the system) to request appointments.
+  /// Allow new clients (not yet in the system) to request appointments. Portal invitation/activation for new clients would follow.
   allow_new_clients_request       Boolean  @default(false, map: "DF_ClientPortalSettings_allow_new_clients_request")
   /// Accept requests from new individuals via the portal.
   requests_from_new_individuals   Boolean  @default(false, map: "DF_ClientPortalSettings_requests_from_new_individuals")
@@ -1331,9 +1344,12 @@ model ClientPortalSettings {
   card_for_appointment_request    Boolean  @default(false, map: "DF_ClientPortalSettings_card_for_appointment_request")
   /// Allow clients to upload documents through the portal.
   is_upload_documents_allowed     Boolean  @default(false, map: "DF_ClientPortalSettings_is_upload_documents_allowed")
+  /// Allow clients to make payments through the portal (e.g., for outstanding balances).
+  is_online_payment_enabled       Boolean? @default(false) // New field based on video
   /// Welcome message displayed on the client portal homepage. Supports markdown or HTML.
   welcome_message                 String?  @db.NVarChar(Max)
   // Add relation to Clinician if clinician_id is not null
+  Clinician                       Clinician? @relation(fields: [clinician_id], references: [id], onDelete: Cascade)
 }
 
 /// Key-value store for practice-wide settings and feature flags.
