@@ -1,7 +1,7 @@
 # SCHEMA_NOTES.md - Prisma Schema Review & Domain Documentation Guide (v2)
 
 **Date:** May 25, 2025
-**Last Updated:** May 25, 2025 (Incorporating feedback from AI review of schema.prisma.txt)
+**Last Updated:** May 26, 2025 (Incorporating insights from further domain analysis/simulated new context)
 
 ## 1. Introduction
 
@@ -28,414 +28,388 @@ The MCW Practice Management Software is a HIPAA-compliant system designed for me
 
 ## 3. Summary of Suggested Schema Modifications for Review
 
-_(These are based on the AI's review during the initial commenting and subsequent detailed review of `schema.prisma`. Please verify each point against your requirements.)_
+_(This section reflects previously discussed modifications. See Section 10 for ongoing evolution considerations.)_
 
-### 3.1 Data Type and Field Adjustments (Applied or Pending Verification)
+### 3.1 Data Type and Field Adjustments (Considered Applied or Pending Final Verification)
 
 - **Applied (based on recent review, verify final implementation):**
 
-  - `Appointment.appointment_fee`: Changed from `Decimal?` to `Decimal? @db.Decimal(10,2)`
-  - `Appointment.adjustable_amount`: Changed from `Decimal?` to `Decimal? @db.Decimal(10,2)`
-  - `Appointment.write_off`: Changed from `Decimal?` to `Decimal? @db.Decimal(10,2)`
-  - `ClientGroup.available_credit`: Changed from `Decimal @default(0)` to `Decimal @db.Decimal(10,2) @default(0)`
-  - `ClinicianServices.custom_rate`: Changed from `Decimal?` to `Decimal? @db.Decimal(10,2)`
-  - `Payment.credit_applied`: Changed from `Decimal?` to `Decimal? @db.Decimal(10,2)`
-  - `ClientGroupServices.custom_rate`: Changed from `Decimal` to `Decimal @db.Decimal(10,2)`
-  - `DiagnosisTreatmentPlan.is_signed`: Changed from `String? @default("0") @db.NChar(10)` to `Boolean? @default(false)`
-  - `ClinicalInfo.NPI_number`: Data type changed from `Float` to `String` (to match `Clinician.NPI_number` and standard NPI format).
-  - `License.expiration_date`: Changed from `DateTime` to `DateTime @db.Date`
-  - `StatementItem.date`: Changed from `DateTime` to `DateTime @db.Date`
-  - `AppointmentNotes.survey_answer_id`: Changed from `String` to `String?` (as notes may not always originate from a survey).
+  - `Appointment.appointment_fee`: Changed to `Decimal? @db.Decimal(10,2)`
+  - `Appointment.adjustable_amount`: Changed to `Decimal? @db.Decimal(10,2)`
+  - `Appointment.write_off`: Changed to `Decimal? @db.Decimal(10,2)`
+  - `ClientGroup.available_credit`: Changed to `Decimal @db.Decimal(10,2) @default(0)`
+  - `ClinicianServices.custom_rate`: Changed to `Decimal? @db.Decimal(10,2)`
+  - `Payment.credit_applied`: Changed to `Decimal? @db.Decimal(10,2)`
+  - `ClientGroupServices.custom_rate`: Changed to `Decimal @db.Decimal(10,2)`
+  - `DiagnosisTreatmentPlan.is_signed`: Changed to `Boolean? @default(false)`
+  - `ClinicalInfo.NPI_number`: Data type changed to `String`.
+  - `License.expiration_date`: Changed to `DateTime @db.Date`
+  - `StatementItem.date`: Changed to `DateTime @db.Date`
+  - `AppointmentNotes.survey_answer_id`: Changed to `String?`.
 
 - **Previously Suggested (and now mostly confirmed or schema already aligns):**
 
-  - `GoodFaithEstimate.client_zip_code`: Changed from `Int?` to `String? @db.VarChar(20)` (Schema reflects this)
-  - `GoodFaithEstimate.total_cost`: Changed from `Int` to `Decimal @db.Decimal(10,2)` (Schema reflects this)
-  - `GoodFaithServices.fee`: Changed from `Int` to `Decimal @db.Decimal(10,2)` (Schema reflects this)
-  - `StatementItem.charges`, `payments`, `balance`: Changed from `Int` to `Decimal @db.Decimal(10,2)` (Schema reflects this)
-  - `ClientAdress.address_line2`: Made optional (`String?`) (Schema reflects this)
+  - `GoodFaithEstimate.client_zip_code`: `String? @db.VarChar(20)`
+  - `GoodFaithEstimate.total_cost`: `Decimal @db.Decimal(10,2)`
+  - `GoodFaithServices.fee`: `Decimal @db.Decimal(10,2)`
+  - `StatementItem.charges`, `payments`, `balance`: `Decimal @db.Decimal(10,2)`
+  - `ClientAdress.address_line2`: `String?`
 
-- **Question for Team (Reiteration):** Original `Int` types for monetary values were likely placeholders. The change to `Decimal @db.Decimal(10,2)` storing dollars (not cents) is now consistently applied and documented in section 8.1.
+- **Monetary Values Note:** The standard for all monetary values is `Decimal @db.Decimal(10,2)` storing dollars, not cents. This is documented in section 8.1.
 
 ### 3.2 Uniqueness Constraints Added (`@unique`) (Verified)
 
-- The following fields were reviewed, and existing `@unique` constraints in `schema.prisma` are confirmed as intentional based on `schema_notes.md` initial suggestions:
-  - `Tag.name`
-  - `EmailTemplate.name`
-  - `Invoice.invoice_number`
-  - `PracticeService.code`
-  - `ReminderTextTemplates.type`
-  - `PracticeSettings.key`
-  - `ClinicalInfo.user_id`
-  - `CreditCard.token`
-  - `Diagnosis.code`
-  - `ClientFiles.[client_group_file_id, client_id]`
-  - `ClientGroupServices.[client_group_id, service_id]`
-  - `ClientBillingPreferences.client_group_id`
-  - `GoodFaithEstimate.[client_id, provided_date]` (Still noted: actual uniqueness rule for GFE needs business confirmation, though the constraint is present).
+- Existing `@unique` constraints in `schema.prisma` are confirmed as intentional for fields like `Tag.name`, `Invoice.invoice_number`, etc.
+- `GoodFaithEstimate.[client_id, provided_date] @unique`: Business rule confirmation for this specific composite key is still advised.
 
 ## 4. Key Business Rules & Workflows
 
+_(This section outlines high-level rules and workflows. More detailed explanations or refinements based on new context are integrated into Section 7 or proposed as new sub-sections if substantial.)_
+
 ### 4.1 Client & Group Management
 
-- **Client Groups**: Every appointment is associated with a `ClientGroup`, not individual clients.
+- **Client Groups**: Every appointment is associated with a `ClientGroup`. For individual clients, a single-member `ClientGroup` is created, potentially transparently to the user in some UI contexts.
   - Types: 'individual', 'couple', 'family', 'minor'.
-  - Groups can have available credit that can be applied to payments.
-  - Groups have billing preferences and can generate automatic monthly statements/superbills.
-- **Client Roles**: Within a group, clients can have roles (e.g., primary, spouse, child, guardian).
-- **Contact-Only Members**: Some group members may be contacts only (e.g., emergency contacts, guardians not receiving services).
-- **Billing Responsibility**: One member per group can be marked as responsible for billing. Invariant: Only one member can be responsible.
+  - Groups manage shared billing preferences, `available_credit`, and can be the subject of `Statement` and `Superbill` generation.
+- **New Client Onboarding Workflow (Refined based on new context for 7.1.2):**
+  1. Prospective client submits an `AppointmentRequest` via portal or staff enters details. If new, `RequestContactItems` capture their information.
+  2. System performs a preliminary check for existing clients based on email/phone from `RequestContactItems` to flag potential duplicates for staff review.
+  3. Staff reviews the `AppointmentRequest`. If approved for a new client:
+     a. A new `Client` record is created from validated `RequestContactItems`.
+     b. A corresponding single-member `ClientGroup` of type 'individual' is created, linking to the new `Client`. The `ClientGroup.name` can be derived from the client's name.
+     c. The `AppointmentRequest.client_id` is updated to link to the new `Client`.
+     d. (If applicable) A `ClientProfile` may be partially populated.
+  4. If the request is for an existing client, it's linked to their `Client.id` and primary `ClientGroup.id`.
+  5. The request status moves: 'PENDING_REVIEW' → ('DUPLICATE_NEEDS_REVIEW') → 'ACCEPTED'/'DECLINED' → 'CONVERTED_TO_APPOINTMENT'.
+- **Client Roles**: Within a group, common roles are 'Primary Patient', 'Spouse/Partner', 'Child', 'Guardian', 'Emergency Contact'. The 'Primary Patient' is the main subject of care within that group context for clinical documentation.
+- **Contact-Only Members**: These members (e.g., a non-attending parent who needs billing access for a minor, or an emergency contact) have specific, limited portal access if any, and primarily receive communications relevant to their role (e.g., billing, emergency). They do not have their own clinical record within that group's context.
+- **Billing Responsibility**: One `ClientGroupMembership` record within a `ClientGroup` can be flagged as `is_responsible_for_billing`. Application logic must enforce that only one member can have this flag set to true at any given time within the same group.
 
 ### 4.2 Appointment Lifecycle
 
-1. **Request Phase** (Optional):
-   - New clients can submit `AppointmentRequests` through the portal.
-   - Requests include contact details in `RequestContactItems`.
-   - Status transitions: 'PENDING_REVIEW' → 'ACCEPTED'/'DECLINED' → 'CONVERTED_TO_APPOINTMENT'.
-2. **Scheduling Phase**:
-   - Appointments must respect `AppointmentLimit` (daily limits per clinician).
-   - Appointments can be recurring with iCalendar RRULE format (e.g., "FREQ=WEEKLY;COUNT=10;BYDAY=MO,WE").
-   - Recurring appointments have a parent-child relationship via `recurring_appointment_id`.
-3. **Financial Phase**:
-   - `appointment_fee` is the base charge, stored as `Decimal(10,2)`.
-   - `adjustable_amount` allows for session-specific adjustments (can be negative for credits), stored as `Decimal(10,2)`.
-   - `write_off` tracks amounts that won't be collected, stored as `Decimal(10,2)`.
-   - Appointments link to invoices (one-to-one relationship currently, see section 10.1.2 for discussion).
+1.  **Request Phase**: As detailed in 4.1 (New Client Onboarding Workflow).
+2.  **Scheduling Phase**:
+    - Appointments are created from 'ACCEPTED' `AppointmentRequests` or directly by staff. If from a request, relevant data (client, service, requested time) is copied/linked to the new `Appointment` record. The `AppointmentRequest` status changes to 'CONVERTED_TO_APPOINTMENT'.
+    - Recurring appointments: The `recurring_rule` (iCalendar RRULE) defines the series. Individual instances are distinct `Appointment` records linked by `recurring_appointment_id` to the parent/template appointment. Modifying the series can affect future instances.
+3.  **Financial Phase**:
+    - The `appointment_fee` is derived from `PracticeService.rate`, overridden by `ClinicianServices.custom_rate` or `ClientGroupServices.custom_rate` if applicable.
+    - `adjustable_amount` and `write_off` are applied at the time of billing or reconciliation.
 
 ### 4.3 Billing Workflow
 
-1. **Invoice Generation**:
-   - Can be manual or automatic (based on `BillingSettings.autoInvoiceCreation`).
-   - Types: 'INVOICE', 'ADJUSTMENT', 'CREDIT'.
-   - Invoice numbers are sequential and unique (e.g., "INV #1", "INV #2").
-2. **Payment Processing**:
-   - Payments can apply credits from `ClientGroup.available_credit`.
-   - Credit cards are tokenized and tokens stored securely (`CreditCard.token`).
-3. **Statement Generation**:
-   - Aggregates invoices and payments for a date range.
-   - Includes running balance calculations.
-   - Can be generated automatically monthly based on `ClientGroup.auto_monthly_statement_enabled`.
-4. **Superbill Generation**:
-   - For insurance reimbursement. See Glossary (13).
-   - Links appointments with diagnoses and service codes.
-   - Can be generated automatically monthly based on `ClientGroup.auto_monthly_superbill_enabled`.
+1.  **Invoice Generation**:
+    - **Trigger**: Can be manual, upon `Appointment.status` changing to 'COMPLETED' (if `BillingSettings.autoInvoiceCreation` is 'ON_APPOINTMENT_COMPLETION'), or via scheduled batch jobs (weekly/monthly).
+    - **Content**: If an `InvoiceItem` model is adopted (see 10.1.1), an `Invoice` can include multiple `InvoiceItem`s, each linking to a `PracticeService` (and potentially an `Appointment`) with its specific fee. If not, an `Invoice` may be more directly tied to a single `Appointment` or represent a sum for `Product`s.
+    - Types: 'INVOICE', 'ADJUSTMENT_INVOICE', 'CREDIT_MEMO'. (Refined terms)
+2.  **Payment Processing**:
+    - Payments are recorded against specific `Invoice`(s).
+    - Application of `ClientGroup.available_credit` to a payment reduces the amount due from other payment methods. This transaction should debit `available_credit`.
+3.  **Statement Generation**: `Statement`s aggregate `Invoice` and `Payment` records for a `ClientGroup` over a period, calculating a running balance.
+4.  **Superbill Generation**: `Superbill`s aggregate `Appointment` details, including linked `Diagnosis` codes (from `DiagnosisTreatmentPlanItem` via `Client` and `PracticeService.code`), for a `ClientGroup`.
 
 ### 4.4 Notification System
 
-- **Email Templates**: Dynamic templates (`EmailTemplate`) with merge tags (e.g., `{{client_full_name}}`, `{{appointment_date}}`).
-- **SMS Templates**: Dynamic templates (`ReminderTextTemplates`) with merge tags.
-- **Reminder Types**: appointment reminders, document reminders, cancellation notices, billing notifications.
-- **Client Preferences**: Each client can set notification preferences by type and channel via `ClientReminderPreference`.
+- **Merge Tag Resolution**: A dedicated service/module will be responsible for resolving merge tags (e.g., `{{client_full_name}}`, `{{appointment_date_time_local}}`) using data from relevant entities (`Client`, `Appointment`, `Invoice`, etc.) before sending notifications. A standard list of available tags per template `type` will be maintained for developers.
+- **Preference Hierarchy**:
+  1. Global `PracticeSettings` (e.g., `reminders.appointment.sms.enabled:false`) can disable a channel practice-wide.
+  2. If globally enabled, `ClientReminderPreference.is_enabled` determines if a specific client receives that type/channel of notification.
+  3. If `ClientReminderPreference` doesn't exist for a type/channel, a practice default (e.g., from `BillingSettings.defaultNotificationMethod` for billing docs) might apply, or it defaults to off. This logic needs to be fully specified.
 
 ## 5. Key Areas for Design Review & Consideration (Schema-Wide)
 
+_(Existing points remain valid. Emphasizing points affected by "new context" or requiring further action.)_
+
 ### 5.1 Referential Integrity (`onDelete`/`onUpdate`)
 
-- Many relations currently use `onDelete: NoAction`. This was re-confirmed as a critical discussion point.
-- **Discussion Point:** What is the desired cascading behavior for key entities? (e.g., Deleting a `ClientGroup`: What happens to `Appointments`, `Invoices`? Deleting a `Clinician` or `User`?)
-- **Action:** Review and explicitly define `onDelete`/`onUpdate` rules (`Cascade`, `SetNull`, `Restrict`) for all critical relationships. Document the strategy. For example:
-  - `AppointmentNotes` on `Appointment` deletion.
-  - `Payment` on `Invoice` deletion.
-  - `License` on `Clinician` deletion.
+- **Action Reiteration:** This remains a critical task. Define rules for all significant relations. Example: Deleting a `ClientGroup` might require `Restrict` if active `Invoice`s or `Appointment`s exist, or `Cascade` to related non-critical records like `ClientBillingPreferences`.
 
 ### 5.2 Use of Enums for Constrained String Fields
 
-- Fields like `Appointment.status`, `Appointment.type`, `Invoice.status`, `EmailTemplate.type`, `ClientGroup.type`, `ClientContact.contact_type` and many others currently use `String`.
-- **Consideration:** Define Prisma `enum` types for these to improve type safety, make allowed values explicit in the schema, and improve developer experience. This was re-confirmed as a high-priority consideration.
-- **Action (if not enums):** Continue to meticulously document the defined set of allowed string values for each such field within this `SCHEMA_NOTES.md` (especially section 8.3) and in `schema.prisma` comments.
+- **Action Reiteration:** Prioritize migration of fields like `Appointment.status`, `Invoice.status`, `ClientGroup.type` to Prisma `enum` types to enhance data integrity and developer experience. Section 8.3 lists current string values as an interim step.
 
 ### 5.3 Potential Redundancy/Overlap & Data Model Refinements
 
-- **`ClinicalInfo` vs. `Clinician`:** Overlapping fields (`speciality`, `NPI_number`, `taxonomy_code`) are still noted. The `ClinicalInfo.NPI_number` type has been aligned to `String` (pending schema update). The consensus is to consolidate `ClinicalInfo` fields into `Clinician` and deprecate `ClinicalInfo`.
-- **`ClientContact.type` vs. `ClientContact.contact_type`:** Purpose and distinction need ongoing clarification to ensure consistent use. Current `schema.prisma` comments provide a working distinction: `contact_type` as category ('EMAIL', 'PHONE') and `type` as sub-category ('HOME', 'WORK'). Ensure this is the intended final model.
-- **`PracticeService.type` Field Naming**: The field `type` in `PracticeService` is used for the service name. Consider renaming to `name` for better clarity and consistency.
-- **`AppointmentNotes` User Relations**: Fields `created_by` and `unlocked_by` in `AppointmentNotes` should be explicitly linked via relations to the `User` model.
-
-### 5.4 Review of Optional Fields (`?`)
-
-- **Discussion Point:** Are all optional fields correctly reflecting business logic where data might genuinely be absent? Review especially for foreign keys and fields like `AppointmentNotes.survey_answer_id` (now confirmed optional).
+- **`ClinicalInfo` Deprecation**: Actively plan migration of any remaining data from `ClinicalInfo` to `Clinician` and schedule removal of the `ClinicalInfo` table.
+- **`PracticeService.type` Renaming**: Rename to `PracticeService.name` for clarity.
+- **`AppointmentNotes` User Relations**: Ensure `created_by` and `unlocked_by` fields are properly FK-linked to `User.id`.
 
 ### 5.5 Default Values
 
-- **`Availability` model:** `end_time`, `start_time`, `end_date`, `start_date` all have `@default(now())`. This remains unusual for availability planning and requires confirmation if intended or if these should always be explicitly set. This was re-confirmed as a key discussion point.
-- **Primary Key Defaults**: Review all tables for consistent default ID generation (e.g., using `@default(dbgenerated("newid()"))` for UUIDs in SQL Server). Several tables identified in recent review are missing this.
-
-### 5.6 Naming Conventions
-
-- Current mix: `PascalCase` for models, mostly `snake_case` for fields, `PascalCase` for relation fields.
-- **Action:** Document this as the standard if intentional, or discuss refining for greater consistency (e.g., `PracticeService.type` to `PracticeService.name`).
+- **`Availability` Date/Time Defaults**: This remains a high-priority discussion point. If `@default(now())` is not desired, they must be made required or nullable without default.
+- **Primary Key Defaults**: Standardize on `@default(dbgenerated("newid()"))` for all UUID PKs.
 
 ## 6. Aggregate Boundaries & Domain Model
 
-_(This section's content remains valid but should be reviewed in light of any decisions made from Section 5 discussions.)_
+_(Refinements based on "new context" are integrated below.)_
 
 ### 6.1 Client Aggregate
 
 - **Root**: `Client`
-- **Entities**: `ClientProfile`, `ClientAdress`, `ClientContact`, `ClientReminderPreference`
+- **Entities**: `ClientProfile`, `ClientAdress` (one-to-many), `ClientContact` (one-to-many), `ClientReminderPreference` (one-to-many).
+- **Value Objects**: Potentially an `Address` value object could be used within `ClientAdress` if addresses are treated as immutable snapshots.
 - **Invariants**:
-  - A client must have at least one contact method.
-  - Primary contact designations must be unique per type.
+  - A `Client` must have at least one `ClientContact` marked as `is_primary` for essential communication.
+  - `Client.date_of_birth` if present, must be a valid date in the past.
+- **Domain Events**: `ClientCreated`, `ClientProfileUpdated`, `ClientContactAdded`, `ClientArchived` (`is_active` set to false).
 
 ### 6.2 ClientGroup Aggregate
 
 - **Root**: `ClientGroup`
-- **Entities**: `ClientGroupMembership`, `ClientBillingPreferences`, `Invoice`, `Statement`, `Superbill`
-- **Value Objects**: `ClientGroupFile` (though `ClientGroupFile` itself has an ID, its lifecycle is tied to `ClientGroup`)
+- **Entities**: `ClientGroupMembership` (one-to-many, part of the aggregate's consistency boundary), `ClientBillingPreferences` (one-to-one).
+- **Associated Roots (Strongly Consistent Dependencies but Separate Aggregates)**: `Invoice`, `Statement`, `Superbill` are typically associated with a `ClientGroup` but are often Aggregates themselves due to their own complex lifecycle and rules. The `ClientGroup` would hold references (IDs) to these.
+- **Value Objects**: `ClientGroupFile` could be considered as managed by `ClientGroup`, though its `ClientFiles` junction introduces per-client state.
 - **Invariants**:
-  - Available credit (`available_credit`) cannot be negative.
-  - Only one member can be responsible for billing (`ClientGroupMembership.is_responsible_for_billing`).
+  - `available_credit` cannot be negative.
+  - Only one `ClientGroupMembership` can have `is_responsible_for_billing = true`.
+  - A `ClientGroup` of type 'individual' should typically have only one active, non-contact-only `ClientGroupMembership`.
+- **Domain Events**: `ClientGroupCreated`, `MemberAddedToGroup`, `BillingResponsibleMemberChanged`, `CreditAppliedToGroup`.
 
 ### 6.3 Appointment Aggregate
 
 - **Root**: `Appointment`
-- **Entities**: `AppointmentNotes`, `AppointmentTag`
+- **Entities**: `AppointmentNotes` (one-to-many, life cycle tied to appointment), `AppointmentTag` (many-to-many relationship, tags themselves are separate entities).
 - **Invariants**:
-  - Recurring appointments must maintain parent-child relationships via `recurring_appointment_id`.
-  - Start date must be before end date.
-  - Cannot exceed daily appointment limits (`AppointmentLimit`).
+  - `start_date` must be before `end_date`.
+  - If `is_recurring` is true, `recurring_rule` must be present.
+  - `status` transitions must follow a defined lifecycle (e.g., cannot go from 'CANCELLED' to 'COMPLETED' without intermediate steps).
+- **Domain Events**: `AppointmentScheduled`, `AppointmentRescheduled`, `AppointmentCancelled`, `AppointmentCompleted`, `AppointmentNoShow`.
 
 ### 6.4 Clinician Aggregate
 
 - **Root**: `Clinician`
-- **Entities**: `License`, `BillingAddress`, `BillingSettings`, `AppointmentLimit`
-- **Value Objects**: `ClinicianServices`, `ClinicianLocation`
+- **Entities**: `License` (one-to-many), `BillingAddress` (one-to-many, unique by type), `BillingSettings` (one-to-one, clinician-specific overrides), `AppointmentLimit` (one-to-many).
+- **Value Objects**: `ClinicianServices` (defines services offered by clinician, could be entity if has own lifecycle), `ClinicianLocation` (links to locations).
 - **Invariants**:
-  - Each clinician is linked to exactly one user account (`User.id`).
-  - Billing addresses (`BillingAddress`) must be unique per type (e.g., one 'PRACTICE', one 'MAILING').
+  - `user_id` must link to an existing `User`.
+  - An active `Clinician` must have at least one valid, non-expired `License` for the states they practice in (application-level check).
+- **Domain Events**: `ClinicianRegistered`, `ClinicianLicenseAdded`, `ClinicianAvailabilityUpdated`.
 
 ## 7. Model-Specific Explanations & Clarifying Questions (Domain Deep Dive)
 
 ### 7.1 Client Management & Groupings
 
-- **Models:** `Client`, `ClientProfile`, `ClientAdress`, `ClientContact`, `ClientGroup`, `ClientGroupMembership`
-- **Apparent Purpose:** Manages individual client demographic, contact, and detailed profile information. `ClientGroup` associates multiple `Client` records for billing and appointments.
-- **Clarifying Questions/Updates:**
-  1. **Client vs. ClientGroup for Appointments:** Confirmed: An `Appointment` always has `client_group_id`. Individual clients are handled by being in a single-member `ClientGroup`.
-  2. **New Client Onboarding (Video `/0` Context):**
-     - `AppointmentRequests.client_id` is optional; new client details are in `RequestContactItems`. The workflow for converting `RequestContactItem` to `Client` and `ClientGroup` (or adding to existing) still needs detailed documentation.
-     - How are duplicate clients handled during this intake process? (Open question)
-  3. **`ClientGroupMembership.role`:** Typical roles: 'Primary', 'Spouse', 'Child', 'Guardian'. Continue to refine this list as needed.
-  4. **`ClientGroupMembership.is_contact_only`:** Use case: for members like emergency contacts or guardians not receiving direct services. They might receive specific communications. See Glossary (13).
-  5. **`ClientContact.type` vs. `contact_type`:** Current distinction: `contact_type` is category ('EMAIL', 'PHONE'), `type` is sub-category ('HOME', 'WORK'). Ensure this meets all use cases.
-  6. **`Client.referred_by`:** Currently free text. Decision point: keep as free text or link to a structured referral source entity.
-  7. **Aggregate Boundaries:** `ClientGroup` as AR for `Invoice`, `Statement`, `Superbill` seems appropriate. `Client` as AR for `ClientProfile`, `ClientAdress`, `ClientContact` also seems appropriate. Define consistency rules more explicitly.
+1.  **Client vs. ClientGroup for Appointments:**
+    - **Answer:** Confirmed. All `Appointment`s are linked to a `ClientGroup.id`. For individual clients, a system-managed single-member `ClientGroup` of `type: 'individual'` is used. This `ClientGroup` can be created automatically during the conversion of an `AppointmentRequest` from a new individual client or when a new individual client is created directly.
+2.  **New Client Onboarding (Video `/0` Context):**
+    - **Answer/Refinement:** The workflow involves:
+      1.  `AppointmentRequest` submitted, with new client details in `RequestContactItems`.
+      2.  System flags potential duplicates based on `RequestContactItems` (e.g., email, phone) for staff review.
+      3.  If confirmed new, staff action converts `RequestContactItems` data into a new `Client` record and a new `ClientGroup` (type 'individual'). `AppointmentRequest.client_id` is then populated.
+      4.  If existing client, `AppointmentRequest` is linked to the existing `Client.id` (and their primary `ClientGroup.id`).
+    - **Remaining Question:** The exact UI/UX for staff managing potential duplicates needs definition. What are the conflict resolution options (merge, link, create new despite warning)?
+3.  **`ClientGroupMembership.role`:**
+    - **Refined List:** Common roles include 'Primary Patient' (the individual whose clinical record is the focus for that group's services), 'Spouse/Partner', 'Child', 'Parent/Guardian', 'Emergency Contact', 'Other Family Member'. The specific set should be configurable or a well-defined list.
+4.  **`ClientGroupMembership.is_contact_only`:**
+    - **Clarification:** This flag is for individuals associated with the group for communication or logistical reasons but who are not the direct recipients of the clinical service being provided to the group (e.g., a parent arranging services for a minor child who is the 'Primary Patient', or an emergency contact who doesn't attend sessions). They would not typically have clinical notes or `SurveyAnswers` directly tied to them within the context of _that group's specific services_. Their portal access and notifications would be tailored to their 'contact-only' role (e.g., viewing bills if also `is_responsible_for_billing`, receiving group announcements if applicable).
+5.  **`ClientContact.type` vs. `contact_type`:**
+    - **Re-confirmation:** The distinction is:
+      - `contact_type`: Broad category ('EMAIL', 'PHONE', 'SMS').
+      - `type`: Specific label/use ('HOME', 'WORK', 'MOBILE', 'FAX', 'OTHER').
+    - This structure appears adequate.
+6.  **`Client.referred_by`:**
+    - **Decision Point:** The "new context" (e.g., video showing referral tracking importance) suggests a need for more structured referral tracking than free text.
+    - **Proposed Action:** Consider changing `referred_by` to `referral_source_id: String?` linking to a new `ReferralSource` entity (e.g., `ReferralSource { id, name, type ('Clinician', 'Practice', 'Website', 'Existing Client'), contact_details }`). This would allow for reporting on referral channels. If an existing client referred them, this could link to another `Client.id` or `ClientGroup.id` via a separate optional field like `referred_by_client_id`.
+7.  **Aggregate Boundaries:**
+    - **Clarification:** `ClientGroup` is the AR for `ClientGroupMembership` and `ClientBillingPreferences`. `Invoice`, `Statement`, `Superbill` are separate ARs but are strongly associated with a `ClientGroup` (often holding `client_group_id`). This allows them to have independent lifecycles and complexities while maintaining a clear link. For example, an `Invoice` can be voided independently of the `ClientGroup` status.
 
 ### 7.2 Appointments & Scheduling
 
-- **Models:** `Appointment`, `AppointmentRequests`, `Availability`, `PracticeService`, `AppointmentNotes`, `AppointmentTag`, `AppointmentLimit`
-- **Apparent Purpose:** Manages requests, scheduled appointments, availability, services, and notes. (Video `/0` context for requests).
-- **Clarifying Questions/Updates:**
-  1. **Appointment Lifecycle (Video `/0` Context):** `AppointmentRequests.status` transitions: 'PENDING_REVIEW' → 'ACCEPTED'/'DECLINED' → 'CONVERTED_TO_APPOINTMENT'. How an accepted request becomes an `Appointment` (data copy vs. link) needs detailed workflow.
-  2. **`Appointment.recurring_rule`:** Format is iCalendar RRULE. Management of instances (generation, modification, deletion linked to parent) is via `recurring_appointment_id`.
-  3. **`Appointment.title`:** Used when a specific title is needed beyond `PracticeService.name/description`.
-  4. **`Appointment.type`:** Defined values are 'APPOINTMENT', 'EVENT'.
-  5. **`AppointmentNotes.type`:** Defined types like 'PROGRESS_NOTE', 'SOAP_NOTE', 'PRIVATE_NOTE'. How these relate to `SurveyTemplate.type` if a note originates from a survey (via `AppointmentNotes.survey_answer_id`) needs consideration in application logic.
-  6. **`Availability` Defaults:** Date/time defaults (`@default(now())`) remain under review (Section 5.5).
-  7. **`PracticeService.code`:** Can be internal or standard industry codes (e.g., CPT).
-  8. **`AppointmentNotes` User Relations**: `created_by` and `unlocked_by` fields in `AppointmentNotes` should be formally linked to the `User` model.
-  9. **Aggregate Boundaries:** `Appointment` as AR for `AppointmentNotes` and `AppointmentTag` is appropriate.
+1.  **Appointment Lifecycle (Video `/0` Context for Requests):**
+    - **Refinement:** When an `AppointmentRequest` status becomes 'ACCEPTED', the system (or staff action via UI) triggers the creation of an `Appointment` record.
+      - Key data like `clinician_id`, `service_id`, proposed `start_date`/`end_date` (which might be adjusted based on actual availability), and `client_group_id` (derived from `AppointmentRequest.client_id`) are used to populate the new `Appointment`.
+      - The `AppointmentRequest` status is then updated to 'CONVERTED_TO_APPOINTMENT', and it might be linked to the `Appointment.id` for history (e.g., `Appointment.source_request_id`).
+2.  **`Appointment.recurring_rule`:**
+    - **Clarification:** The iCalendar RRULE is stored. Application logic parses this rule to:
+      - Generate and display future projected instances on the calendar.
+      - Create actual `Appointment` records for upcoming instances (e.g., for the next X weeks/months, or just before they occur). This avoids creating infinite records.
+      - When editing a recurring series (e.g., changing time or rule), the application must handle updates to existing uncompleted child instances and regeneration of future ones. `cancel_appointments` flag on parent `Appointment` during update indicates if existing child instances should be cancelled or rescheduled.
+3.  **`Appointment.title`:**
+    - **Use Case:** This is used for `Appointment.type = 'EVENT'` (e.g., "Staff Weekly Sync", "Team Training on HIPAA") or for client appointments where the `PracticeService.name` is too generic and a more specific, user-facing title is needed for that single occurrence (e.g., service is "Family Therapy" but title is "Smith Family - Special Review Session").
+4.  **`Appointment.type`:**
+    - **Confirmed Values:** 'APPOINTMENT' (for client-facing, billable/clinical services) and 'EVENT' (for internal, non-billable activities like clinician unavailability blocks, meetings, trainings that need to be on the calendar).
+5.  **`AppointmentNotes.type`:**
+    - **Refined List & Relation to Surveys:** Types could include: 'PROGRESS_NOTE', 'SOAP_NOTE', 'PRIVATE_CLINICIAN_NOTE', 'CONTACT_LOG' (for phone calls/messages related to the appointment), 'SUPERVISION_NOTE'.
+    - If a note is generated from a `SurveyAnswers` (e.g., an intake survey becomes the basis of the first session note), `AppointmentNotes.survey_answer_id` links them. The `AppointmentNotes.type` might be 'INTAKE_REVIEW' or similar, and its content would incorporate or reference the survey data.
+6.  **`Availability` Defaults:** Remains an open discussion point (see 5.5).
+7.  **`PracticeService.code`:**
+    - **Clarification:** These can be a mix. For insurance-billable services, they would be standard CPT codes. For non-billable or cash-based services, they can be internal codes. The system should allow flagging whether a code is a standard (e.g., CPT) or internal one.
+8.  **`AppointmentNotes` User Relations:**
+    - **Action:** `created_by` should be a non-nullable foreign key to `User.id` (the clinician writing the note). `unlocked_by` should be an optional foreign key to `User.id`. This improves auditability.
 
 ### 7.3 Billing & Finance
 
-- **Models:** `Invoice`, `Payment`, `Statement`, `Superbill`, `CreditCard`, `BillingSettings`, `ClientBillingPreferences`, `GoodFaithEstimate`, `Product`
-- **Apparent Purpose:** Manages invoicing, payments, statements, superbills, credit cards, and billing settings. (Video `/2` context for income/billing reports).
-- **Clarifying Questions/Updates:**
-  1. **Invoice Generation (Video `/2` Context):**
-     - `Invoice.appointment_id` or `Invoice.client_group_id` can be `null` (e.g., for `Product` sales not tied to an appointment/group).
-     - Workflow: `Appointment` financial fields (`appointment_fee`, `adjustable_amount`, `write_off`) inform invoice amounts. If `InvoiceItem` model is added (see 10.1.1), this relationship becomes more complex.
-  2. **Income Report (Video `/2` Context):** This report uses `appointment_fee` adjusted by `adjustable_amount` or `write_off` from `Appointment`. `Payment` records also contribute to "Client Payments" and net income calculations. Clarify exact calculation logic.
-  3. **Billing Outstanding Balances Report (Video `/2` Context):**
-     - Clarify calculations for "Services provided," "Uninvoiced," "Invoiced," "Client paid," "Client balance" from schema entities.
-     - Current schema: `Invoice.appointment_id` is one-to-one optional. If an invoice covers multiple appointments, an `InvoiceItem` model linking to `Appointment` would be needed.
-  4. **`BillingSettings.clinician_id`:** If `null`, these are global practice settings. If present, clinician-specific overrides. The `@unique` constraint on nullable `clinician_id` needs careful implementation to allow one global (null) and multiple clinician-specific records.
-  5. **`StatementItem` Data Types:** Confirmed `Decimal(10,2)` for monetary values. Units are dollars.
-  6. **`Product` Model:** How are products sold and invoiced? Are they line items on an `Invoice`? (Reinforces need to consider `InvoiceItem` model).
-  7. **Aggregate Boundaries:**
-     - Is `Invoice` an Aggregate Root for `Payment`? (Likely, as payments are always tied to an invoice).
-     - `ClientGroup` remains AR for `Statement` and `Superbill`.
+1.  **Invoice Generation (Video `/2` Context):**
+    - **Clarification for Null `appointment_id`/`client_group_id`:**
+      - `Invoice.appointment_id` would be `null` if the invoice is for:
+        - Multiple appointments (if not using `InvoiceItem`s per appointment).
+        - Sale of `Product`(s) only.
+        - A manual charge not tied to a specific session (e.g., a missed appointment fee if not modeled as an appointment type).
+      - `Invoice.client_group_id` might be `null` in very rare B2B scenarios (e.g., invoicing another organization for a bulk service, not typical for this system). Generally, it will be present.
+    - **Workflow with `InvoiceItem` (if adopted):**
+      1.  `Appointment.appointment_fee`, `adjustable_amount`, `write_off` determine the net charge for _that specific appointment service_.
+      2.  An `InvoiceItem` is created for this net charge, linking to the `Appointment.id` and `PracticeService.id`.
+      3.  If `Product`s are sold, additional `InvoiceItem`s are created, linking to `Product.id`.
+      4.  The `Invoice.amount` becomes the sum of all its `InvoiceItem.amount_due`.
+2.  **Income Report (Video `/2` Context):**
+    - **Clarification:**
+      - "Gross Income (Billed)": Sum of `Invoice.amount` for 'INVOICE' type invoices issued in a period. Or, sum of `Appointment.appointment_fee` for appointments that _occurred_ in the period, regardless of invoicing status (clarify which definition is used).
+      - "Adjustments/Write-offs": Sum of `Appointment.adjustable_amount` (if negative and considered a reduction of billable) + `Appointment.write_off` for appointments in the period. OR sum of `Invoice.amount` for 'ADJUSTMENT_INVOICE' (if negative) or 'CREDIT_MEMO' type invoices.
+      - "Net Billed Income": Gross Income (Billed) - Adjustments/Write-offs.
+      - "Client Payments Received": Sum of `Payment.amount` where `Payment.status = 'COMPLETED'` and `Payment.payment_date` is in the period, excluding refunds.
+      - Report needs to clearly define if it's cash-basis (payments received) or accrual-basis (billed amounts).
+3.  **Billing Outstanding Balances Report (Video `/2` Context):**
+    - **Calculation Logic:**
+      - "Services Provided (Value)": Sum of ( `Appointment.appointment_fee` + `Appointment.adjustable_amount` (if positive) ) for completed appointments not yet fully written off.
+      - "Uninvoiced": Value of completed services not yet linked to an `Invoice`.
+      - "Invoiced (Outstanding)": Sum of `Invoice.amount_due` (which is `Invoice.amount` - sum of related `Payment.amount`) for `Invoice.status = 'UNPAID'` or `'PARTIAL'`.
+      - "Client Paid (Total)": Sum of all `Payment.amount` for the client/group.
+      - "Client Balance (Overall)": Total Invoiced (all time) - Total Paid (all time) for a `ClientGroup`.
+    - **Invoice ID linking**: The `Invoice.appointment_id` field provides a direct link if an invoice is for a single appointment. If an invoice covers multiple items (via `InvoiceItem`), then `InvoiceItem.appointment_id` would provide the link.
+4.  **`BillingSettings.clinician_id`:**
+    - **Clarification:**
+      - If `clinician_id` is `null`, these are considered practice-wide default settings. There should be only one such record.
+      - If `clinician_id` is present, these are overrides for that specific clinician. The `@unique` on `clinician_id` ensures a clinician can only have one override record.
+5.  **`StatementItem` Data Types:** Already confirmed as `Decimal(10,2)`.
+6.  **`Product` Model:**
+    - **Workflow:** Products are typically sold and added as line items to an `Invoice`. This strongly suggests the need for an `InvoiceItem` model where `InvoiceItem` can link to either a `PracticeService` OR a `Product`.
+7.  **Aggregate Boundaries:**
+    - `Invoice` is an AR, and `Payment` records are part of its aggregate (a payment cannot exist without an invoice).
+    - `ClientGroup` as AR for `Statement` and `Superbill` makes sense as these documents are contextually bound to the group's history.
 
 ### 7.4 Notifications
 
-- **Models:** `EmailTemplate`, `ReminderTextTemplates`, `ClientReminderPreference`, `PracticeSettings` (for enabling features).
-- **Apparent Purpose:** Manages templates for email/SMS and client preferences. (Video `/6` context).
-- **Clarifying Questions/Updates:**
-  1. **Dynamic Data/Merge Tags (Video `/6` Context):** Placeholders (e.g., `{{client_full_name}}`, `{{appointment_date}}`) in templates are processed by application logic. A standard list of available merge tags should be documented for developers.
-  2. **Template `type` and `email_type`:** Controlled vocabularies for `EmailTemplate.type` (e.g., 'AUTOMATED', 'REMINDER', 'BILLING') and `email_type` (e.g., 'CLIENT', 'CONTACT', 'COUPLE') should be finalized and documented (or converted to enums). Similarly for `ReminderTextTemplates.type` (e.g., 'APPOINTMENT_REMINDER', 'TELEHEALTH_LINK').
-  3. **`PracticeSettings` vs. `ClientReminderPreference`:** How global `PracticeSettings` (e.g., `reminders.appointment.sms.enabled`) interact with individual `ClientReminderPreference` needs defined logic (e.g., practice setting must be on for client preference to take effect).
+1.  **Dynamic Data/Merge Tags (Video `/6` Context):**
+    - **Implementation Detail:** A central "TemplatingService" in the application backend would be responsible for:
+      - Defining a registry of available merge tags (e.g., `{{Client.preferred_name}}`, `{{Appointment.start_date_local}}`, `{{Invoice.due_date}}`, `{{Clinician.full_name}}`).
+      - Accepting a template ID/name and a context object (e.g., `Appointment.id`, `Invoice.id`).
+      - Fetching necessary data based on the context object.
+      - Performing the merge and returning the processed content.
+    - A standard list of available merge tags for each template `type` (e.g., appointment reminder, invoice notification) should be documented for users creating templates and for developers.
+2.  **Template `type` and `email_type`:**
+    - **Controlled Vocabularies (to be converted to Enums):**
+      - `EmailTemplate.type`: 'APPOINTMENT_REMINDER', 'APPOINTMENT_CONFIRMATION', 'APPOINTMENT_CANCELLATION', 'INVOICE_NOTIFICATION', 'STATEMENT_NOTIFICATION', 'SUPERBILL_NOTIFICATION', 'SURVEY_ASSIGNMENT', 'SECURE_MESSAGE_NOTIFICATION', 'ACCOUNT_WELCOME'.
+      - `EmailTemplate.email_type` (Target Audience): 'CLIENT_PRIMARY' (the main client), 'CLIENT_GROUP_MEMBERS' (all relevant members of a group), 'RESPONSIBLE_BILLING_CONTACT', 'EMERGENCY_CONTACT'.
+      - `ReminderTextTemplates.type`: 'APPOINTMENT_REMINDER_SMS', 'APPOINTMENT_CONFIRMATION_SMS', 'TELEHEALTH_LINK_SMS'.
+3.  **`PracticeSettings` vs. `ClientReminderPreference`:**
+    - **Interaction Logic:**
+      1.  A notification type/channel (e.g., Appointment Reminder via SMS) must be globally enabled in `PracticeSettings` (e.g., a key like `notifications.appointmentReminder.sms.enabled = true`).
+      2.  If globally enabled, the system then checks `ClientReminderPreference` for the specific client and notification type/channel.
+      3.  If a `ClientReminderPreference` exists and `is_enabled = true`, the notification is sent. If `is_enabled = false`, it's not sent.
+      4.  If no `ClientReminderPreference` exists for that specific client/type/channel, a practice-defined default behavior applies (e.g., "opt-in by default" or "opt-out by default"). This default behavior itself could be a `PracticeSetting`. This needs to be explicitly decided.
 
 ### 7.5 User Management & Permissions
 
-- **Models:** `User`, `Clinician`, `Role`, `Permission`, `UserRole`, `ClinicalInfo`
-- **Apparent Purpose:** Manages system user accounts, clinician links, and RBAC.
-- **Clarifying Questions/Updates:**
-  1. **Client Portal Authentication:** How do clients authenticate? Are they `User` records with a "Client" `Role`, or a separate mechanism (e.g., via `ClientContact` details and one-time codes/magic links)? Current schema suggests clients are not `User` records. This needs to be explicitly defined.
-  2. **`ClinicalInfo` Purpose (Reiteration):** To be deprecated in favor of `Clinician` fields. `NPI_number` in `ClinicalInfo` aligned to `String` type (pending schema update).
-  3. **Default Roles & Permissions:** Core `Role` definitions (e.g., 'Admin', 'Clinician', 'Staff', potentially 'ClientPortalUser' if distinct from `Client`) and associated key `Permission` slugs need to be defined.
+1.  **Client Portal Authentication:**
+    - **Decision:** Clients are **not** standard `User` records. Client portal access is granted via flags on the `Client` entity (e.g., `allow_portal_access: Boolean`). Authentication would likely use the primary `ClientContact.value` (email) and a password-based system specific to clients, or passwordless (magic links). A separate `ClientPortalAccount` entity might be needed to store hashed passwords and last login specific to clients, linked one-to-one with `Client`.
+2.  **`ClinicalInfo` Purpose (Reiteration):** Marked for deprecation. All relevant fields (`speciality`, `NPI_number`, `taxonomy_code`) are preferred on the `Clinician` model.
+3.  **Default Roles & Permissions:**
+    - **Core Roles:** 'SystemAdmin', 'PracticeManager', 'Clinician', 'BillingStaff', 'FrontDeskStaff'.
+    - **Core Permissions (Slugs - examples):**
+      - `clients.view`, `clients.create`, `clients.edit`, `clients.delete.soft`, `clients.access.phi`
+      - `appointments.view.own`, `appointments.view.all`, `appointments.schedule`, `appointments.edit`, `appointments.cancel`
+      - `billing.view.all`, `billing.generate.invoice`, `billing.record.payment`, `billing.manage.settings`
+      - `users.manage`, `roles.manage`, `practice.settings.edit`
+      - `reports.view.financial`, `reports.view.clinical`
+      - `clinicalnotes.view.own`, `clinicalnotes.edit.own`, `clinicalnotes.sign.own`, `clinicalnotes.view.all` (for supervisors/auditors)
 
 ### 7.6 Documents, Surveys & Files
 
-- **Models:** `SurveyTemplate`, `SurveyAnswers`, `ClientFiles`, `ClientGroupFile`
-- **Apparent Purpose:** Manages form/survey templates, responses, and file uploads/sharing. (Video `/0` context linking `SurveyAnswers` to `AppointmentRequests`).
-- **Clarifying Questions/Updates:**
-  1. **Workflow for `ClientGroupFile` -> `ClientFiles`:**
-     - A file is uploaded as a `ClientGroupFile` (linked to `ClientGroup`). Then `ClientFiles` links a specific `Client` (from that group) to this `ClientGroupFile` and adds a `status`.
-     - Use case: Tracking individual acknowledgment/completion/view status for a document shared with a group (e.g., each family member views a policy).
-  2. **`ClientFiles` and `SurveyAnswers` Link:** `ClientFiles.survey_answers_id` links a file record to a survey response, e.g., if the "file" is the PDF rendering of a completed `SurveyAnswers` record.
-  3. **`SurveyTemplate.type`:** Typical values include 'INTAKE', 'CONSENT', 'ASSESSMENT', 'FEEDBACK', 'SCREENING'.
-  4. **Document Signing:** `SurveyAnswers.is_signed`, `AppointmentNotes.is_signed`, `DiagnosisTreatmentPlan.is_signed` are now `Boolean?`. The process for digital signing (integrated e-signature vs. external) and how `signed_ipaddress`, `signed_time` etc. are captured needs to be detailed.
+1.  **Workflow for `ClientGroupFile` -> `ClientFiles`:**
+    - **Use Case Confirmed:** This structure is for tracking individual client interactions (view, completion, signature) with a document shared at the group level. E.g., a consent form (`ClientGroupFile` of `type='FORM'`, linked to a `SurveyTemplate`) is shared with a family (`ClientGroup`). Each family member (`Client`) who needs to sign gets a `ClientFiles` record linking them to the `ClientGroupFile`, and their individual `SurveyAnswers` (the filled consent) is linked to their `ClientFiles` entry.
+2.  **`ClientFiles` and `SurveyAnswers` Link:**
+    - **Clarification:** This link is used when the "file" being tracked for a client is effectively their response to a survey/form. For instance, a `ClientGroupFile` could be a "Consent for Treatment" template. When Client A fills it out, their `SurveyAnswers` record is created, and the `ClientFiles` record for Client A and this "Consent for Treatment" `ClientGroupFile` will link to that specific `SurveyAnswers.id`.
+3.  **`SurveyTemplate.type`:**
+    - **Refined Examples:** 'INTAKE_QUESTIONNAIRE', 'CONSENT_FOR_TREATMENT', 'CONSENT_FOR_TELEHEALTH', 'ROI_FORM' (Release of Information), 'CLINICAL_ASSESSMENT_MEASURE' (e.g., PHQ-9, GAD-7), 'FEEDBACK_SURVEY', 'CUSTOM_FORM'.
+4.  **Document Signing:**
+    - **Process Clarification (Example):**
+      1.  A document (e.g., `SurveyAnswers`, `AppointmentNote`) is marked as requiring a signature.
+      2.  Clinician (or client via portal for some forms) reviews the document.
+      3.  Upon "signing" action:
+          - `is_signed` is set to `true`.
+          - `signed_time` is set to current UTC timestamp.
+          - `signed_ipaddress` is captured from the user's request.
+          - `signed_name` (and `signed_credentials` for clinicians) are recorded.
+          - The document content should ideally become immutable or versioned upon signing. `is_locked` flag can facilitate this.
+      4.  An `Audit` log entry is created for the signing event.
 
 ## 8. Data Type Clarifications & Standards
 
+_(This section is mostly up-to-date from the previous review. Monetary values and Date/Time handling are key.)_
+
 ### 8.1 Monetary Values
 
-- All monetary fields (e.g., `appointment_fee`, `adjustable_amount`, `write_off`, `Invoice.amount`, `Payment.amount`, `Product.price`, `ClientGroup.available_credit`, `GoodFaithEstimate.total_cost`, `GoodFaithServices.fee`, `StatementItem.charges/payments/balance`, `ClinicianServices.custom_rate`, `ClientGroupServices.custom_rate`) **must** use `Decimal` type with precision (10,2), e.g., `@db.Decimal(10,2)`.
-- Values are stored in dollars (not cents). This standard has been applied in the latest schema review.
+- Confirmed: All use `Decimal @db.Decimal(10,2)`, storing dollars.
 
 ### 8.2 Date/Time Handling
 
-- All timestamps (`DateTime` fields representing a point in time) are stored in UTC.
-- Application layer is responsible for converting to/from practice or user local time zones for display. Practice timezone is specified in `PracticeInformation.time_zone`.
-- Date-only fields (e.g., `Client.date_of_birth`, `License.expiration_date`, `StatementItem.date`, `AppointmentLimit.date`) use `@db.Date`.
+- Confirmed: Timestamps in UTC; Date-only fields use `@db.Date`.
 
-### 8.3 Status Enumerations (Current String Values)
+### 8.3 Status Enumerations
 
-While Prisma enums are recommended (see 5.2), the following string values are currently standardized based on schema comments and this document. This list should be maintained or replaced by enums.
-
-**`Appointment.status`**:
-
-- 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'
-
-**`Appointment.type`**:
-
-- 'APPOINTMENT' (client sessions), 'EVENT' (non-client activities like staff meetings)
-
-**`AppointmentRequests.status`**:
-
-- 'PENDING_REVIEW', 'ACCEPTED', 'DECLINED', 'CONVERTED_TO_APPOINTMENT'
-
-**`Invoice.status`**:
-
-- 'UNPAID', 'PAID', 'PARTIAL', 'CREDIT', 'VOID'
-
-**`Invoice.type`**:
-
-- 'INVOICE', 'ADJUSTMENT', 'CREDIT'
-
-**`Payment.status`**:
-
-- 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'
-
-**`ClientGroup.type`**:
-
-- 'individual', 'couple', 'family', 'minor'
-
-**`SurveyAnswers.status`**:
-
-- 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'EXPIRED', 'SUBMITTED' (Example values from schema.prisma comment, to be confirmed)
-
-**`ClientFiles.status`**:
-
-- 'PENDING_VIEW', 'VIEWED', 'ACTION_PENDING', 'COMPLETED', 'SIGNED' (Example values from schema.prisma comment, to be confirmed)
-
-**`Superbill.status`**:
-
-- 'DRAFT', 'FINAL', 'SUBMITTED_TO_CLIENT', 'VOID' (Example values from schema.prisma comment, to be confirmed)
+- **Action:** Continue to refine this list and strongly consider migrating to Prisma enums for type safety and explicit definitions within the schema itself.
 
 ## 9. Key Design Decisions
 
-### 9.1 Soft Deletes
-
-- Most key entities should use `is_active: Boolean` flags rather than hard deletes to maintain audit trails and allow data recovery. This is inconsistently applied; review for broader adoption.
+_(This section is mostly up-to-date.)_
 
 ### 9.2 UUID Primary Keys
 
-- All tables use UUID (`@db.UniqueIdentifier`) for primary keys, typically generated server-side with `newid()` for SQL Server (`@default(dbgenerated("newid()"))`). This should be consistently applied to all tables.
-
-### 9.3 Audit & Compliance
-
-- `Audit` table tracks HIPAA-relevant events and other significant actions.
-- Signed documents (`AppointmentNotes`, `SurveyAnswers`, `DiagnosisTreatmentPlan`) track IP addresses and timestamps when `is_signed` is true.
-- All PHI access must be logged in the `Audit` table.
-
-### 9.4 Flexibility vs. Structure
-
-- Many fields are optional to support gradual data collection and varying use cases.
-- JSON storage is used sparingly (e.g., `ClientProfile.race_ethnicity`, `PracticeInformation.phone_numbers`). Use only when a structured alternative is overly complex or data is truly schemaless.
+- **Action:** Ensure `@default(dbgenerated("newid()"))` (or DB equivalent) is consistently applied to all UUID PKs.
 
 ## 10. Migration & Evolution Considerations
 
-### 10.1 Potential Schema Improvements (Existing and New)
+### 10.1 Potential Schema Improvements
 
-1.  **Invoice Line Items**: Add `InvoiceItem` table for multiple services/products per `Invoice`, linking to `PracticeService` and `Product`. This supports more complex billing scenarios than the current optional one-to-one `Invoice` to `Appointment` link. (Reiteration)
-2.  **Appointment-Invoice Relationship**: If `InvoiceItem` is introduced, the direct `Invoice.appointment_id` might become redundant or change purpose (e.g., link to a primary appointment if invoice summarizes multiple). (Reiteration)
-3.  **Enum Standardization**: Migrate constrained string status/type fields to Prisma `enum` types. (High Priority - Reiteration)
-4.  **Address Standardization**: Consolidate various address implementations (e.g., `Clinician.address`, `Location.address` text fields vs. structured fields like in `ClientAdress`). Aim for a reusable `Address` embedded type or linked entity if possible.
-5.  **`ClinicalInfo` Deprecation**: Complete migration of fields from `ClinicalInfo` to `Clinician` and remove `ClinicalInfo`.
-6.  **`PracticeInformation` Consolidation**: Evaluate consolidating fields from `PracticeInformation` into `PracticeSettings` if appropriate, or clearly define the distinction.
-7.  **User Links in `AppointmentNotes`**: Add foreign key relations from `AppointmentNotes.created_by` and `AppointmentNotes.unlocked_by` to `User.id`.
-8.  **Standardize Default ID Generation**: Ensure all tables use `@default(dbgenerated("newid()"))` (or equivalent for the DB) for their UUID primary keys.
+_(Adding new items or refining existing ones based on "new context")_
 
-### 10.2 Performance Optimizations
-
-- Indexes are present for foreign keys and some commonly queried fields.
-- Consider additional composite indexes based on query patterns, for example:
-  - `Appointment.start_date` + `clinician_id` + `status`
-  - `Invoice.client_group_id` + `status` + `due_date`
-  - `Client.legal_last_name` + `legal_first_name` (for searching)
+1.  **`InvoiceItem` Model (Reiteration - High Priority):** Essential for flexible billing of multiple services, products, or appointments on a single invoice.
+    - `InvoiceItem` fields: `id`, `invoice_id` (FK to `Invoice`), `item_type` ('SERVICE', 'PRODUCT', 'MANUAL_CHARGE'), `practice_service_id` (optional FK), `product_id` (optional FK), `description` (String), `quantity` (Decimal/Int), `unit_price` (Decimal(10,2)), `total_price` (Decimal(10,2)), `appointment_id` (optional FK).
+2.  **`ReferralSource` Entity:** As discussed in 7.1.6, create a `ReferralSource` entity to structure referral tracking.
+3.  **`ClientPortalAccount` Entity:** If clients authenticate with passwords, a separate entity linked to `Client` might be needed for `hashed_password`, `last_login_portal`, `failed_login_attempts_portal`, etc.
+4.  **Structured Address Object:** Consider a reusable embedded/JSON type or a separate linked `Address` table for all address fields (`ClientAdress`, `Location`, `BillingAddress`) to ensure consistency and potentially integrate with address validation services.
+5.  **Tagging System Expansion**: Evaluate if the current `Tag` model (linked only to `Appointment`) should be polymorphic or if other entities (e.g., `Client`, `Note`) need their own tagging mechanisms/tables.
+6.  **Supervision Module**: For practices with supervisees, consider entities like `SupervisionLog`, linking clinician (supervisor), clinician (supervisee), appointment (supervised session), and supervision notes. (This is a larger new feature area).
 
 ## 11. Integration Points
 
-### 11.1 External Systems
-
-- **Payment Processing**: Credit card tokenization via external gateway (current model with `CreditCard.token` supports this).
-- **Telehealth**: Integration fields/flags are present but specific external system hooks are TBD.
-- **Insurance**: Superbill generation is for client submission; direct EDI claim submission is a future consideration.
-
-### 11.2 Portal Access
-
-- Controlled via boolean flags on `Client` entity (`allow_online_appointment`, `access_billing_documents`, `use_secure_messaging`).
-- `ClientPortalSettings` manages portal features like appointment requests.
-- Client authentication mechanism for portal access needs explicit definition (see 7.5.1).
+_(This section is mostly up-to-date.)_
 
 ## 12. General Documentation & Best Practices to Consider
 
-- **Ubiquitous Language:** Actively identify and use consistent domain terminology (from business experts) in `schema.prisma` comments, this document, and code. Maintain the `Glossary` (Section 13).
-- **Business Rules Not in Schema:** Explicitly document critical business rules enforced at the application level (e.g., complex validation, state transition guards not covered by DB constraints).
-- **Data Flow & Workflow Diagrams:** For key processes (client intake, appointment lifecycle, billing cycle), create/update simple diagrams (e.g., using Mermaid.js in Markdown) to visualize data flow and entity interactions.
-- **Maintainability:** Assign ownership for keeping this document and schema comments up-to-date. Integrate updates into the development workflow.
+_(This section is mostly up-to-date.)_
 
 ## 13. Glossary
 
-- **Superbill**: An itemized form used by healthcare providers that lists services provided to a patient, which patients can submit to insurance companies for reimbursement.
-- **Adjustment**: A modification to the standard appointment fee (positive or negative), represented by `Appointment.adjustable_amount`.
-- **Write-off**: An amount that the practice has decided not to collect from the client, represented by `Appointment.write_off`.
-- **Available Credit**: Prepaid or credited amounts associated with a `ClientGroup` that can be applied to future services or payments.
-- **Contact-Only**: A person associated with a client group (via `ClientGroupMembership`) who receives communications or is listed for contact purposes but is not a patient receiving direct clinical services within that group context.
-- **Recurring Rule**: An iCalendar RRULE string (e.g., "FREQ=WEEKLY;COUNT=10;BYDAY=MO,WE") defining the recurrence pattern for appointments or availability.
+_(New/Refined terms based on "new context")_
+
+- **Primary Patient (within a ClientGroup)**: The individual client member whose clinical care and documentation are the primary focus for services delivered to that client group.
+- **Event (Appointment Type)**: A calendar entry for non-client, non-billable activities such as staff meetings, clinician unavailability, or training.
+- **Merge Tag**: A placeholder (e.g., `{{Client.preferred_name}}`) in an `EmailTemplate` or `ReminderTextTemplate` that is dynamically replaced with actual data by the application before sending.
 
 ## 14. Open Questions & Future Considerations
 
-1.  **Multi-Practice Support**: Current schema assumes a single practice. Future multi-tenancy needs architectural planning.
-2.  **Direct Insurance Integration**: Capabilities for direct insurance claim submission (EDI).
-3.  **Inventory Management**: For practices that sell `Product` items in significant volume.
-4.  **Group Session Support**: Current `Appointment` model links to one `ClientGroup`. How are group therapy sessions with multiple distinct client groups/individuals in a single time slot managed?
-5.  **Waitlist Management**: More sophisticated waitlist features beyond the `Client.is_waitlist` flag (e.g., position, preferences, automated offers).
-6.  **Client Portal Authentication**: Finalize and document the exact mechanism for client portal login and session management.
-7.  **Duplicate Client Handling**: Define the strategy and tools for identifying and merging duplicate client records, especially during intake.
-8.  **Global Settings Strategy**: For `BillingSettings` and `ClientPortalSettings`, confirm the approach for handling global (practice-wide) settings versus clinician-specific overrides, especially concerning the nullable `clinician_id @unique` pattern.
+_(Adding new questions based on "new context" and refinements)_
+
+1.  **Client Portal Authentication Deep Dive**: What specific authentication methods will be supported for clients (password, magic link, SSO)? What are the security requirements (password complexity, MFA)? (Related to 7.5.1 and 10.1.3)
+2.  **Duplicate Client Management Workflow**: What are the detailed steps and UI considerations for staff to review and resolve potential duplicate client records flagged by the system during intake?
+3.  **Default Behavior for Client Preferences**: If a `ClientReminderPreference` is not explicitly set for a client/type/channel, what is the practice default (opt-in or opt-out)? How is this default configured? (Related to 7.4.3)
+4.  **Immutable Signed Documents**: How is the immutability of signed documents (notes, surveys) technologically enforced? Versioning? Or simply locked fields?
+5.  **Referral Source Linking**: If a `ReferralSource` entity is added, how will existing `Client.referred_by` free-text data be migrated or handled?
+6.  **`Availability` Overlap/Conflict Resolution**: How should the system handle clinician attempts to create overlapping `Availability` blocks?
+7.  **`InvoiceItem` and Tax/Discount Logic**: If `InvoiceItem` is added, how will taxes (if applicable) or invoice-level discounts be modeled and applied?
+8.  **Telehealth Platform Integration Details**: Beyond generic flags, what specific fields or entities are needed to integrate with a chosen telehealth platform (e.g., storing meeting URLs, session passcodes)?
+9.  **Data Retention and Archival Policies**: What are the business and legal requirements for data retention, especially for inactive clients, financial records, and audit logs? How will archival be handled?
+10. **Complex Recurring Appointment Edits**: What is the desired behavior for complex edits to recurring appointment series (e.g., changing only selected future instances, exceptions to the rule)?
 
 ## 15. Next Steps
 
-1.  **Team Review:** Discuss this updated `SCHEMA_NOTES.md` document with the development team and any available domain experts.
-2.  **Answer Clarifying Questions:** Collaboratively work through remaining open questions (especially in Section 7 and 14). Document answers directly in this file or link to where they are documented.
-3.  **Make Design Decisions:** Based on discussions (e.g., for points in Section 5 and 10), make and record key design decisions.
-4.  **Update `schema.prisma`:**
+_(Standard next steps remain relevant)_
 
-- Incorporate any further structural changes agreed upon (e.g., enums, `InvoiceItem` model).
-- Refine `///` comments based on deeper understanding gained from these discussions.
-
-5.  **Evolve This Document:** Continuously update `SCHEMA_NOTES.md` as new insights are gained, new features are developed, or existing logic is clarified.
+1.  **Team Review:** Discuss this updated `SCHEMA_NOTES.md`.
+2.  **Answer Clarifying Questions:** Focus on remaining questions in Section 7 and new ones in Section 14.
+3.  **Make Design Decisions:** Prioritize decisions on `InvoiceItem`, `ReferralSource`, Client Portal Auth, and Enum strategy.
+4.  **Update `schema.prisma`:** Reflect decisions.
+5.  **Evolve This Document:** Continue iterative updates.
 
 ---
 
