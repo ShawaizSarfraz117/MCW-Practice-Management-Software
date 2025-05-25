@@ -184,11 +184,11 @@ model Client {
   preferred_name           String?                    @db.VarChar(100)
   /// Date of birth, stored as Date only.
   date_of_birth            DateTime?                  @db.Date
-  /// Portal permission: can request appointments online. Managed via client portal settings after invitation and activation.
+  /// Portal permission: Client can request appointments online. This is typically managed via client portal settings after successful invitation and account activation.
   allow_online_appointment Boolean                    @default(false, map: "DF_Client_allow_online_appointment")
-  /// Portal permission: can view invoices, statements, superbills, and potentially make payments. Managed via client portal settings.
+  /// Portal permission: Client can view their invoices, statements, and superbills. Also governs ability to make payments for outstanding balances through the portal. Managed via client portal settings.
   access_billing_documents Boolean                    @default(false, map: "DF_Client_access_billing_documents")
-  /// Portal permission: can send secure messages to clinician. Managed via client portal settings.
+  /// Portal permission: Client can send and receive secure messages with their clinician through the portal. Managed via client portal settings.
   use_secure_messaging     Boolean                    @default(false, map: "DF_Client_use_secure_messaging")
   /// Free text field for initial referral source.
   /// Practice is moving towards structured referral tracking via a dedicated ReferralSource entity.
@@ -269,8 +269,9 @@ model ClientAdress {
 model ClientContact {
   id                       String                     @id @default(dbgenerated("newid()"), map: "PK_ClientContact_ID") @db.UniqueIdentifier
   client_id                String                     @db.UniqueIdentifier
-  /// Whether this is the primary contact method of its specific category (e.g. primary email, primary mobile).
-  /// Primary verified email is typically used for portal invitations and critical communications. [cite: 1]
+  /// Whether this is the primary contact method for its specific category (e.g., primary email, primary mobile phone).
+  /// The primary verified email is crucial for client portal invitations and critical communications.
+  /// The primary phone number may be used for SMS notifications if opted-in.
   is_primary               Boolean                    @default(false, map: "DF_ClientContact_IsPrimary")
   /// Permission level: who can use this contact (e.g., 'CLIENT_ONLY', 'EMERGENCY_CONTACT_ONLY', 'SHARED_WITH_GROUP').
   /// (Consider enum; schema_notes.md 5.2).
@@ -282,7 +283,7 @@ model ClientContact {
   /// Subcategory or usage label for the contact method: 'HOME', 'WORK', 'MOBILE', 'OTHER', 'FAX'.
   /// (Consider enum; schema_notes.md 5.2, 7.1.5).
   type                     String                     @db.VarChar(50)
-  /// The actual contact value (e.g., email address or phone number). Used for sending portal invitations.
+  /// The actual contact value (e.g., email address like "user@example.com" or phone number like "+15551234567"). /// Used for sending client portal invitations (typically to the primary email) and other communications based on ClientReminderPreference.
   value                    String                     @db.VarChar(255)
   Client                   Client                     @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientContact_Client")
   ClientReminderPreference ClientReminderPreference[]
@@ -307,9 +308,9 @@ model ClientGroup {
   /// See Glossary (13) and schema_notes.md 4.3.2, 7.3.1.
   available_credit               Decimal                    @db.Decimal(10,2) @default(0)
   created_at                     DateTime?                  @default(now(), map: "ClientGroup_created_at")
-  /// Whether to automatically generate monthly statements for this group.
+  /// Whether to automatically generate and potentially email monthly billing statements for this group. Governed by ClientBillingPreferences.
   auto_monthly_statement_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_statement_enabled")
-  /// Whether to automatically generate monthly superbills for insurance for this group.
+  /// Whether to automatically generate monthly superbills for insurance purposes for this group. Governed by ClientBillingPreferences.
   auto_monthly_superbill_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_superbill_enabled")
   /// Date of first appointment for this group.
   first_seen_at                  DateTime?                  @default(now(), map: "ClientGroup_first_seen_at")
@@ -492,8 +493,9 @@ model CreditCard {
   /// Billing address associated with this card (e.g., street, city, zip).
   /// Stored as text, consider structured fields or link to an Address entity (see schema_notes.md 10.1.4).
   billing_address String?   @db.Text
-  /// Payment processor token (e.g., from Stripe) for secure transactions. This should be unique if it's the processor's main token for this card.
-  /// This token is used to charge the card without storing full card details.
+  /// Secure payment processor token (e.g., from Stripe) representing the card.
+  /// This token allows for charging the card without storing sensitive card details directly in this database.
+  /// Should ideally be unique per card entry from the payment processor.
   token           String?   @db.VarChar(255) @unique
   created_at      DateTime  @default(now(), map: "DF__CreditCar__creat__01FE2E39")
   Client          Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_CreditCard_Client") // Consider if onDelete should be SetNull or Restrict
@@ -540,7 +542,9 @@ model Invoice {
   service_description String?      @db.Text
   /// Whether this invoice has been exported to an external accounting system or marked as sent to the client.
   is_exported         Boolean      @default(false, map: "DF_Invoice_is_exported")
-  /// Method by which the invoice was delivered or made available (e.g., 'EMAIL', 'PORTAL', 'PRINTED', 'NOT_SENT').
+  /// Tracks how or if the invoice was delivered to the client.
+  /// Example values: 'NOT_SENT', 'EMAILED_TO_CLIENT', 'VIEWED_ON_PORTAL', 'PRINTED_AND_MAILED'.
+  /// Reflects statuses seen like "Not Sent" or "Emailed" in billing document views.
   delivery_method     String?      @db.VarChar(50) // New field based on video showing "Not Sent", "Emailed"
 
   Appointment         Appointment? @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Appointment")
@@ -1322,7 +1326,7 @@ model ClientPortalSettings {
   is_enabled                      Boolean  @default(false, map: "DF_ClientPortalSettings_is_client_portal_enabled")
   /// Custom domain URL for the client portal (e.g., portal.mypractice.com).
   domain_url                      String?  @db.VarChar(250)
-  /// Allow clients to submit appointment requests through the portal.
+  /// Controls if clients can submit appointment requests via the client portal.
   is_appointment_requests_enabled Boolean? @default(true)
   /// Available start times for appointments shown in portal, JSON array of strings (e.g., ["09:00", "09:30", "14:00"]).
   appointment_start_times         String?  @db.VarChar(250) // Store as JSON string or Text
@@ -1342,11 +1346,11 @@ model ClientPortalSettings {
   is_prescreen_new_clinets        Boolean  @default(false, map: "DF_ClientPortalSettings_is_prescreen_new_clinets") // Typo: clients
   /// Require credit card information to be on file or entered for submitting an appointment request.
   card_for_appointment_request    Boolean  @default(false, map: "DF_ClientPortalSettings_card_for_appointment_request")
-  /// Allow clients to upload documents through the portal.
+  /// Determines if clients have the permission to upload documents through the client portal.
   is_upload_documents_allowed     Boolean  @default(false, map: "DF_ClientPortalSettings_is_upload_documents_allowed")
-  /// Allow clients to make payments through the portal (e.g., for outstanding balances).
+  /// Enables or disables the feature for clients to make online payments for outstanding balances via the portal.
   is_online_payment_enabled       Boolean? @default(false) // New field based on video
-  /// Welcome message displayed on the client portal homepage. Supports markdown or HTML.
+  /// Custom welcome message displayed on the client portal's main page. Can support rich text formatting (e.g., markdown or HTML).
   welcome_message                 String?  @db.NVarChar(Max)
   // Add relation to Clinician if clinician_id is not null
   Clinician                       Clinician? @relation(fields: [clinician_id], references: [id], onDelete: Cascade)
