@@ -607,8 +607,7 @@ model Payment {
 model PracticeService {
   id                   String                 @id @default(dbgenerated("newid()"), map: "PK_PracticeService_ID") @db.UniqueIdentifier
   /// Service name for display (e.g., "Individual Therapy 50 min", "Couples Counseling").
-  /// Consider renaming field to `name` (schema_notes.md 5.3.2).
-  type                 String                 @db.VarChar(255)
+  name                String                @db.VarChar(255) // Renamed from 'type' for clarity (schema_notes.md 5.3.2)
   /// Standard rate in dollars for this service. Stored as Decimal(10,2).
   rate                 Decimal                @db.Decimal(10, 2)
   /// Service code (e.g., CPT code like 90834, or internal code) for billing. Should be unique.
@@ -770,6 +769,8 @@ model User {
   Statement       Statement[] // Statements created by this user.
   Superbill       Superbill[] // Superbills created by this user.
   UserRole        UserRole[] // Roles assigned to this user.
+  NotesCreatedBy  AppointmentNotes[] @relation("NotesCreatedBy")
+  NotesUnlockedBy AppointmentNotes[] @relation("NotesUnlockedBy")
 }
 
 /// Many-to-many junction table linking users to their assigned roles.
@@ -1070,11 +1071,11 @@ model AppointmentNotes {
   /// Link to completed survey/form if this note is directly derived from or incorporates it (schema_notes.md 7.2.5). Made optional as a note might not always come from a survey.
   survey_answer_id   String?        @db.UniqueIdentifier
   /// User (clinician) who created the note. Should link to User.id (schema_notes.md 7.2.8).
-  created_by         String?        @db.UniqueIdentifier // Should link to User
+  created_by         String        @db.UniqueIdentifier // User (clinician) who created the note (schema_notes.md 7.2.8 Action)
   /// Whether note has been signed/finalized by the clinician. See schema_notes.md 7.6.4 for signing process.
   is_signed          Boolean        @default(false, map: "DF_AppointmentNotes_is_signed")
   /// User who unlocked a previously signed note for editing (requires specific permissions). Should link to User.id (schema_notes.md 7.2.8).
-  unlocked_by        String?        @db.UniqueIdentifier // Should link to User
+  unlocked_by        String?       @db.UniqueIdentifier // User who unlocked a signed note (schema_notes.md 7.2.8 Action)
   /// Timestamp when note was unlocked, in UTC.
   unlocked_time      DateTime?
   /// Name of person who signed the note (usually the clinician). Captured at time of signing.
@@ -1089,6 +1090,8 @@ model AppointmentNotes {
   SurveyAnswers      SurveyAnswers? @relation(fields: [survey_answer_id], references: [id], onUpdate: NoAction, map: "FK_AppointmentNotes_SurveyAnswers") // onDelete: SetNull if survey is deleted but note remains.
   // User_created_by User? @relation("NotesCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction) // Placeholder for relation
   // User_unlocked_by User? @relation("NotesUnlockedBy", fields: [unlocked_by], references: [id], onDelete: NoAction, onUpdate: NoAction) // Placeholder for relation
+  User_created_by    User          @relation("NotesCreatedBy", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  User_unlocked_by   User?         @relation("NotesUnlockedBy", fields: [unlocked_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 /// Billing notification preferences for a client group. Unique per client_group_id.
