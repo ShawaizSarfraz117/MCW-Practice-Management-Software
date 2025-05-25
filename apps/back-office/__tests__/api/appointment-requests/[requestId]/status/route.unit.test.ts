@@ -92,4 +92,18 @@ describe("PUT /api/appointment-requests/[requestId]/status", () => {
     expect(json.error).toBe("Invalid input");
     expect(json.details).toBeDefined();
   });
+
+  it("returns 400 for invalid or missing requestId in params", async () => {
+    const req = createRequestWithBody(
+      "/api/appointment-requests//status",
+      { status: "accepted" },
+      { method: "PUT" },
+    );
+    // Simulate missing requestId param
+    // @ts-expect-error: Simulate missing param
+    const res = await PUT(req, { params: {} });
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid or missing requestId");
+  });
 });
