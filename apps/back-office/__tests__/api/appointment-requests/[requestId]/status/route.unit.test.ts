@@ -62,4 +62,34 @@ describe("PUT /api/appointment-requests/[requestId]/status", () => {
     const json = await res.json();
     expect(json.error).toBe("Appointment request not found");
   });
+
+  it("returns 400 for invalid request body (missing status)", async () => {
+    const existing = mockAppointmentRequest();
+    prismaMock.appointmentRequests.findUnique.mockResolvedValueOnce(existing);
+    const req = createRequestWithBody(
+      "/api/appointment-requests/test-id/status",
+      {},
+      { method: "PUT" },
+    );
+    const res = await PUT(req, { params: { requestId: "test-id" } });
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid input");
+    expect(json.details).toBeDefined();
+  });
+
+  it("returns 400 for invalid request body (invalid status value)", async () => {
+    const existing = mockAppointmentRequest();
+    prismaMock.appointmentRequests.findUnique.mockResolvedValueOnce(existing);
+    const req = createRequestWithBody(
+      "/api/appointment-requests/test-id/status",
+      { status: "not-a-valid-status" },
+      { method: "PUT" },
+    );
+    const res = await PUT(req, { params: { requestId: "test-id" } });
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid input");
+    expect(json.details).toBeDefined();
+  });
 });
