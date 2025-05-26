@@ -701,15 +701,18 @@ export function AppointmentSidebar({
                       (service: AvailabilityService) => (
                         <div
                           key={service.id}
-                          className="flex items-center justify-between p-4 border rounded-lg"
+                          className="flex items-center justify-between p-4 border rounded-lg bg-green-50 border-green-200"
                         >
                           <div className="flex-1">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium">
                               {service.code} {service.type}
                             </div>
-                            <div className="text-sm text-gray-600">
-                              {service.duration} min • $
-                              {service.defaultRate || service.rate}
+                            <div className="text-sm text-gray-600 flex items-center gap-2">
+                              <span>{service.duration} min</span>
+                              <span>•</span>
+                              <span>
+                                ${service.defaultRate || service.rate}
+                              </span>
                             </div>
                           </div>
                           <Button
@@ -763,14 +766,26 @@ export function AppointmentSidebar({
                     return (
                       <div
                         key={serviceData.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className={cn(
+                          "flex items-center justify-between p-4 border rounded-lg",
+                          !serviceData.isActive && "opacity-50 bg-gray-50",
+                        )}
                       >
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium">
                             {serviceData.code} {serviceData.type}
+                            {!serviceData.isActive && (
+                              <span className="ml-2 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                                Inactive
+                              </span>
+                            )}
                           </div>
-                          <div className="text-sm text-gray-600">
-                            {serviceData.duration} min • ${serviceData.rate}
+                          <div className="text-sm text-gray-600 flex items-center gap-2">
+                            <span>{serviceData.duration} min</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              ${serviceData.rate}
+                            </span>
                           </div>
                         </div>
                         <Button
