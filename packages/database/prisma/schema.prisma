@@ -378,6 +378,7 @@ model PracticeService {
   require_call        Boolean               @default(false)
   Appointment         Appointment[]
   AppointmentRequests AppointmentRequests[]
+  AvailabilityServices AvailabilityServices[]
   ClientGroupServices ClientGroupServices[]
   ClinicianServices   ClinicianServices[]
   GoodFaithServices   GoodFaithServices[]
@@ -804,9 +805,10 @@ model AppointmentRequests {
 }
 
 model AvailabilityServices {
-  availability_id String       @db.UniqueIdentifier
-  service_id      String       @db.UniqueIdentifier
-  Availability    Availability @relation(fields: [availability_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_Availability")
+  availability_id String          @db.UniqueIdentifier
+  service_id      String          @db.UniqueIdentifier
+  Availability    Availability    @relation(fields: [availability_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_Availability")
+  PracticeService PracticeService @relation(fields: [service_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_PracticeService")
 
   @@id([availability_id, service_id], map: "PK_AvailabilityServices")
 }

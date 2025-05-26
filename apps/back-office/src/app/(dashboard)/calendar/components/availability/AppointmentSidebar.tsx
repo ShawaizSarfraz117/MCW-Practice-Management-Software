@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import {
   Button,
@@ -10,51 +9,23 @@ import {
   SelectTrigger,
   SelectValue,
   Input,
-  SearchSelect,
 } from "@mcw/ui";
-import { X, Plus, Minus } from "lucide-react";
+import { X, Minus } from "lucide-react";
 import { DateTimeControls } from "./components/FormControls";
 import { AvailabilityFormProvider } from "./context/FormContext";
 import { useFormTabs } from "./hooks/useFormTabs";
-import {
-  AppointmentData,
-  Clinician,
-  Service,
-} from "../appointment-dialog/types";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@mcw/utils";
 import { ValidationError } from "../appointment-dialog/components/ValidationError";
 import { calculateDuration } from "../appointment-dialog/utils/CalculateDuration";
-
-interface AppointmentSidebarProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  selectedDate: Date;
-  selectedResource: string | null;
-  onCreateClient?: (date: string, time: string) => void;
-  onDone: () => void;
-  appointmentData?: AppointmentData;
-  isViewMode?: boolean;
-  timeSlot?: {
-    startTime: string;
-    endTime: string;
-    duration: string;
-  };
-  onClose: () => void;
-}
-
-interface Location {
-  id: string;
-  name: string;
-  address: string;
-  is_active: boolean;
-}
-
-// function adaptFormToInterface(originalForm: unknown): FormInterface {
-//   return originalForm as FormInterface;
-// }
+import {
+  AppointmentSidebarProps,
+  Location,
+  DetailedService,
+  AvailabilityService,
+} from "./types";
 
 export function AppointmentSidebar({
   open,
@@ -81,15 +52,14 @@ export function AppointmentSidebar({
   const [endType, setEndType] = useState("never");
   const [endValue, setEndValue] = useState<string>("");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
-  const [services, setServices] = useState<Service[]>([]);
-  const [_clinician, setClinician] = useState<Clinician[]>([]);
   const [duration, setDuration] = useState<string>("0 mins");
 
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [clinicianPage, setClinicianPage] = useState(1);
-  const [_clinicianSearchTerm, setClinicianSearchTerm] = useState("");
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [availabilityId, setAvailabilityId] = useState<string | null>(null);
+  const [preSelectedServices, setPreSelectedServices] = useState<string[]>([]);
+  const [removedAutoServices, setRemovedAutoServices] = useState<string[]>([]);
 
-  // Get stored time slot from session storage
   const timeSlot =
     typeof window !== "undefined"
       ? JSON.parse(window.sessionStorage.getItem("selectedTimeSlot") || "{}")
@@ -98,7 +68,6 @@ export function AppointmentSidebar({
   const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
     useFormTabs(selectedResource, selectedDate);
 
-  // Set initial time values from session storage when component mounts or when timeSlot changes
   useEffect(() => {
     if (timeSlot.startTime) {
       setAvailabilityFormValues((prev) => ({
@@ -108,89 +77,101 @@ export function AppointmentSidebar({
       }));
       forceUpdate();
     }
-  }, [timeSlot.startTime, timeSlot.endTime, open]); // Add open to dependencies to update when sidebar opens
+  }, [timeSlot.startTime, timeSlot.endTime, open]);
 
-  // Clear time slot when sidebar closes
   useEffect(() => {
     if (!open) {
       window.sessionStorage.removeItem("selectedTimeSlot");
     }
   }, [open]);
 
-  // Fetch clinicians with role-based permissions
-  const { data: clinicians = [], isLoading: isLoadingClinicians } = useQuery({
-    queryKey: [
-      "clinicians",
-      selectedResource,
-      session?.user?.roles?.includes("CLINICIAN") &&
-        !session?.user?.roles?.includes("ADMIN") &&
-        session?.user?.id,
-    ],
-    queryFn: async () => {
-      let url = "/api/clinician";
-      // If user is a clinician and not an admin, fetch only their own data
-      if (
-        session?.user?.roles?.includes("CLINICIAN") &&
-        !session?.user?.roles?.includes("ADMIN") &&
-        session?.user?.id
-      ) {
-        url += `?userId=${session.user.id}`;
-      }
+  useEffect(() => {
+    if (selectedResource && open) {
+      setAvailabilityFormValues((prev) => ({
+        ...prev,
+        clinician: selectedResource,
+      }));
+    }
+  }, [selectedResource, open, setAvailabilityFormValues]);
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Failed to fetch clinicians");
+  const { data: services = [], isLoading: isLoadingServices } = useQuery<
+    DetailedService[]
+  >({
+    queryKey: ["services", availabilityFormValues.clinician],
+    queryFn: async (): Promise<DetailedService[]> => {
+      try {
+        let url = "/api/service";
+
+        if (availabilityFormValues.clinician) {
+          url += `?clinicianId=${availabilityFormValues.clinician}&detailed=true`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            const allServices: DetailedService[] = data.services || [];
+            return allServices.filter(
+              (service: DetailedService) => service.availableOnline === true,
+            );
+          }
+        }
+        return [];
+      } catch (error) {
+        console.error("Error fetching services:", error);
+        return [];
       }
-      const data = await response.json();
-      return Array.isArray(data) ? data : [data];
     },
-    enabled: !!session?.user,
+    enabled: !!session?.user && !!availabilityFormValues.clinician,
   });
 
-  // Format clinician options for the SearchSelect
-  const formattedClinicianOptions = clinicians.map((clinician) => ({
-    label: `${clinician.first_name} ${clinician.last_name}`,
-    value: clinician.id,
-  }));
-
-  // Fetch services when component mounts
-  useEffect(() => {
-    const fetchServices = async () => {
+  const { data: allServices = [], isLoading: isLoadingAllServices } = useQuery<
+    DetailedService[]
+  >({
+    queryKey: ["allServices", availabilityFormValues.clinician],
+    queryFn: async (): Promise<DetailedService[]> => {
       try {
-        const response = await fetch(`/api/service`);
+        let url = "/api/service";
+
+        if (availabilityFormValues.clinician) {
+          url += `?clinicianId=${availabilityFormValues.clinician}&detailed=true`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            return data.services || [];
+          }
+        }
+        return [];
+      } catch (error) {
+        console.error("Error fetching all services:", error);
+        return [];
+      }
+    },
+    enabled: !!session?.user && !!availabilityFormValues.clinician,
+  });
+
+  const {
+    data: availabilityServices = [],
+    isLoading: isLoadingAvailabilityServices,
+    refetch: refetchAvailabilityServices,
+  } = useQuery<AvailabilityService[]>({
+    queryKey: ["availabilityServices", availabilityId],
+    queryFn: async (): Promise<AvailabilityService[]> => {
+      if (!availabilityId) return [];
+      try {
+        const response = await fetch(
+          `/api/availability?id=${availabilityId}&services=true`,
+        );
         if (response.ok) {
           const data = await response.json();
-          setServices(data);
+          return data.services || [];
         }
+        return [];
       } catch (error) {
-        console.error("Error fetching services:", error);
+        console.error("Error fetching availability services:", error);
+        return [];
       }
-    };
+    },
+    enabled: !!availabilityId,
+  });
 
-    if (session?.user?.id || selectedResource) {
-      fetchServices();
-    }
-  }, [session?.user?.id, selectedResource]);
-
-  useEffect(() => {
-    const fetchClinician = async () => {
-      try {
-        const response = await fetch(`/api/clinician`);
-        if (response.ok) {
-          const data = await response.json();
-          setClinician(data);
-        }
-      } catch (error) {
-        console.error("Error fetching services:", error);
-      }
-    };
-
-    if (session?.user?.id || selectedResource) {
-      fetchClinician();
-    }
-  }, [session?.user?.id, selectedResource]);
-
-  // Add location query
   const { data: locations = [], isLoading: isLoadingLocations } = useQuery({
     queryKey: ["locations"],
     queryFn: async () => {
@@ -203,27 +184,22 @@ export function AppointmentSidebar({
     },
   });
 
-  // Helper function to create recurring rule in RFC5545 format
   const createRecurringRule = () => {
     if (!isRecurring) return null;
 
     const parts = [`FREQ=${period.toUpperCase()}`];
 
-    // Add interval (frequency)
     if (frequency && parseInt(frequency) > 1) {
       parts.push(`INTERVAL=${frequency}`);
     }
 
-    // Add weekdays for weekly recurrence
     if (period === "week" && selectedDays.length > 0) {
       parts.push(`BYDAY=${selectedDays.join(",")}`);
     }
 
-    // Add end condition
     if (endType === "occurrences" && endValue) {
       parts.push(`COUNT=${endValue}`);
     } else if (endType === "date" && endValue) {
-      // Format the end date as YYYYMMDD for UNTIL
       const endDate = new Date(endValue);
       const year = endDate.getFullYear();
       const month = String(endDate.getMonth() + 1).padStart(2, "0");
@@ -250,27 +226,20 @@ export function AppointmentSidebar({
       }
     }
 
-    // Get the timezone offset in minutes and convert to milliseconds
     const tzOffset = newDate.getTimezoneOffset() * 60000;
 
-    // Create a new date that accounts for the timezone offset
     const localDate = new Date(newDate.getTime() - tzOffset);
 
-    // Return the ISO string with the correct timezone offset
     return localDate.toISOString();
   };
 
-  // Handle save button click
   const handleSave = async () => {
     try {
-      // Clear any existing errors first
       setValidationState({});
       setGeneralError(null);
 
-      // Validate required fields
       if (!availabilityFormValues.clinician) {
-        setValidationState((prev) => ({ ...prev, clinician: true }));
-        setGeneralError("Please select a team member");
+        setGeneralError("No team member selected from calendar");
         return;
       }
 
@@ -280,7 +249,6 @@ export function AppointmentSidebar({
         return;
       }
 
-      // Construct the payload
       const payload = {
         title: title || "New Availability",
         start_date: getDateTimeUTC(
@@ -296,9 +264,14 @@ export function AppointmentSidebar({
         allow_online_requests: allowOnlineRequests,
         is_recurring: isRecurring,
         recurring_rule: isRecurring ? createRecurringRule() : null,
+        selectedServices: [
+          ...services
+            .filter((s: DetailedService) => !removedAutoServices.includes(s.id))
+            .map((s) => s.id),
+          ...preSelectedServices,
+        ],
       };
 
-      // Call the API to create availability
       const response = await fetch("/api/availability", {
         method: "POST",
         headers: {
@@ -313,12 +286,11 @@ export function AppointmentSidebar({
         throw new Error(responseData.error || "Failed to create availability");
       }
 
-      // Close the sidebar and refresh the calendar
+      setAvailabilityId(responseData.id);
+
       onOpenChange(false);
 
-      // Trigger a refresh of availabilities
       if (typeof window !== "undefined") {
-        // Dispatch a custom event to notify the calendar to refresh
         window.dispatchEvent(new CustomEvent("refreshAvailabilities"));
       }
 
@@ -339,17 +311,28 @@ export function AppointmentSidebar({
     }
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showServiceDropdown) {
+        const target = event.target as Element;
+        if (!target.closest(".service-dropdown-container")) {
+          setShowServiceDropdown(false);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showServiceDropdown]);
+
   const toggleDay = (day: string) => {
     setSelectedDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
     );
   };
 
-  // const setValidationErrors = (errors: Record<string, boolean>) => {
-  //   setValidationState(errors);
-  // };
-
-  // Clear validation error for a specific field
   const clearValidationError = (field: string) => {
     setValidationState((prev) => ({
       ...prev,
@@ -358,7 +341,70 @@ export function AppointmentSidebar({
     setGeneralError(null);
   };
 
-  // Update duration when times change
+  // Add service to pre-selected list (before availability creation)
+  const handlePreSelectService = (serviceId: string) => {
+    setPreSelectedServices((prev) => {
+      if (prev.includes(serviceId)) {
+        return prev.filter((id) => id !== serviceId);
+      } else {
+        return [...prev, serviceId];
+      }
+    });
+    setShowServiceDropdown(false);
+  };
+
+  // Add service to availability
+  const handleAddServiceToAvailability = async (serviceId: string) => {
+    if (!availabilityId) return;
+
+    try {
+      const response = await fetch(
+        `/api/availability?id=${availabilityId}&services=true`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ serviceId }),
+        },
+      );
+
+      if (response.ok) {
+        refetchAvailabilityServices();
+        setShowServiceDropdown(false);
+      } else {
+        const errorData = await response.json();
+        setGeneralError(errorData.error || "Failed to add service");
+      }
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      setGeneralError("Failed to add service to availability");
+    }
+  };
+
+  const handleRemoveServiceFromAvailability = async (serviceId: string) => {
+    if (!availabilityId) return;
+
+    try {
+      const response = await fetch(
+        `/api/availability?id=${availabilityId}&services=true&serviceId=${serviceId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (response.ok) {
+        refetchAvailabilityServices();
+      } else {
+        const errorData = await response.json();
+        setGeneralError(errorData.error || "Failed to remove service");
+      }
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      setGeneralError("Failed to remove service from availability");
+    }
+  };
+
   useEffect(() => {
     const startDate = availabilityFormValues.startDate;
     const endDate = availabilityFormValues.endDate;
@@ -399,8 +445,8 @@ export function AppointmentSidebar({
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            {session?.user?.roles?.includes("CLINICIAN") &&
-              !session?.user?.roles?.includes("ADMIN") && (
+            {session?.user?.roles?.includes("CLINICIAN") ||
+              (session?.user?.roles?.includes("ADMIN") && (
                 <Button
                   className="bg-[#16A34A] hover:bg-[#16A34A]/90 text-white"
                   disabled={!!generalError}
@@ -408,7 +454,7 @@ export function AppointmentSidebar({
                 >
                   Save
                 </Button>
-              )}
+              ))}
           </div>
         </div>
 
@@ -426,7 +472,6 @@ export function AppointmentSidebar({
                 ...prev,
                 [field]: value,
               }));
-              // Clear validation error when clinician is selected
               if (field === "clinician" && value) {
                 clearValidationError("clinician");
               }
@@ -440,9 +485,7 @@ export function AppointmentSidebar({
                 ...availabilityFormValues,
                 ...values,
               }),
-            handleSubmit: () => {
-              /* implement submit logic here */
-            },
+            handleSubmit: () => {},
             state: { values: availabilityFormValues },
           }}
           setGeneralError={setGeneralError}
@@ -475,39 +518,6 @@ export function AppointmentSidebar({
             </div>
 
             <DateTimeControls id="availability-date-time" />
-
-            <div>
-              <label className="block mb-2">Team member</label>
-              <SearchSelect
-                searchable
-                showPagination
-                className={cn(
-                  "border-gray-200",
-                  validationState.clinician && "border-red-500",
-                )}
-                currentPage={clinicianPage}
-                options={formattedClinicianOptions}
-                placeholder={
-                  isLoadingClinicians
-                    ? "Loading team members..."
-                    : "Search Team Members *"
-                }
-                value={availabilityFormValues.clinician}
-                onPageChange={setClinicianPage}
-                onSearch={setClinicianSearchTerm}
-                onValueChange={(value) => {
-                  setAvailabilityFormValues((prev) => ({
-                    ...prev,
-                    clinician: value,
-                  }));
-                  clearValidationError("clinician");
-                }}
-              />
-              <ValidationError
-                message="Team member is required"
-                show={!!validationState.clinician}
-              />
-            </div>
 
             <div className="bg-gray-50 p-6 space-y-4">
               <div className="flex items-start gap-3">
@@ -657,27 +667,8 @@ export function AppointmentSidebar({
 
             {/* Services Section */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div>
                 <h3 className="text-base font-medium">Services</h3>
-                <Button
-                  className="text-[#16A34A] hover:text-[#16A34A]/90"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (
-                      services.length > 0 &&
-                      !selectedServices.includes(services[0].id)
-                    ) {
-                      setSelectedServices([
-                        ...selectedServices,
-                        services[0].id,
-                      ]);
-                    }
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add service
-                </Button>
               </div>
 
               <div className="text-sm text-gray-600">
@@ -692,35 +683,432 @@ export function AppointmentSidebar({
                 </button>
               </div>
 
-              <div className="space-y-3">
-                {services.map((service) => {
-                  return (
-                    <div
-                      key={service?.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div>
-                        <div className="font-medium">
-                          {service.code} {service.type}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {service.duration} min • ${service.rate}
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setSelectedServices(
-                            selectedServices.filter((id) => id !== service.id),
-                          );
-                        }}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
+              {availabilityId ? (
+                isLoadingAvailabilityServices ? (
+                  <div className="text-center py-4 text-gray-500">
+                    Loading availability services...
+                  </div>
+                ) : availabilityServices.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">
+                    No services added to this availability yet
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium text-gray-700">
+                      Added Services:
                     </div>
-                  );
-                })}
+                    {availabilityServices.map(
+                      (service: AvailabilityService) => (
+                        <div
+                          key={service.id}
+                          className="flex items-center justify-between p-4 border rounded-lg bg-green-50 border-green-200"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium">
+                              {service.code} {service.type}
+                            </div>
+                            <div className="text-sm text-gray-600 flex items-center gap-2">
+                              <span>{service.duration} min</span>
+                              <span>•</span>
+                              <span>
+                                ${service.defaultRate || service.rate}
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              handleRemoveServiceFromAvailability(service.id)
+                            }
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )
+              ) : isLoadingServices ? (
+                <div className="text-center py-4 text-gray-500">
+                  Loading services...
+                </div>
+              ) : !availabilityFormValues.clinician ? (
+                <div className="text-center py-4 text-gray-500">
+                  No team member selected from calendar
+                </div>
+              ) : services.length === 0 && preSelectedServices.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No services available for online requests for the selected
+                  team member
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {[
+                    ...services.filter(
+                      (s: DetailedService) =>
+                        !removedAutoServices.includes(s.id),
+                    ),
+                    ...allServices.filter((s: DetailedService) =>
+                      preSelectedServices.includes(s.id),
+                    ),
+                  ].map((service: DetailedService) => {
+                    const serviceData = {
+                      id: service.id,
+                      code: service.code,
+                      type: service.type,
+                      duration: service.duration,
+                      rate: service.defaultRate || service.rate,
+                      isCustomRate: !!service.customRate,
+                      isActive: service.isActive !== false,
+                    };
+
+                    return (
+                      <div
+                        key={serviceData.id}
+                        className={cn(
+                          "flex items-center justify-between p-4 border rounded-lg",
+                          !serviceData.isActive && "opacity-50 bg-gray-50",
+                        )}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">
+                            {serviceData.code} {serviceData.type}
+                            {!serviceData.isActive && (
+                              <span className="ml-2 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-600 flex items-center gap-2">
+                            <span>{serviceData.duration} min</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              ${serviceData.rate}
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (preSelectedServices.includes(serviceData.id)) {
+                              // Remove from pre-selected services
+                              setPreSelectedServices((prev) =>
+                                prev.filter((id) => id !== serviceData.id),
+                              );
+                            } else {
+                              // This is an auto-added service, add it to removed list
+                              setRemovedAutoServices((prev) => [
+                                ...prev,
+                                serviceData.id,
+                              ]);
+                            }
+                          }}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="relative service-dropdown-container">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 px-3 py-2 text-left text-gray-600 bg-[#E5E7EB] rounded-md"
+                  onClick={() => setShowServiceDropdown(!showServiceDropdown)}
+                >
+                  <span>Add service</span>
+                </button>
+
+                {showServiceDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-96 overflow-hidden">
+                    {/* Header with title */}
+                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        Add Service
+                      </h3>
+                    </div>
+
+                    {/* Search Input */}
+                    <div className="p-4 border-b border-gray-100">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg
+                            className="h-4 w-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                          </svg>
+                        </div>
+                        <Input
+                          type="text"
+                          placeholder="Search"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="!pl-8 w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    {isLoadingAllServices ? (
+                      <div className="px-4 py-8 text-center">
+                        <div className="text-gray-400 mb-2">
+                          <svg
+                            className="h-8 w-8 mx-auto animate-spin"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          Loading services...
+                        </p>
+                      </div>
+                    ) : allServices.length === 0 ? (
+                      <div className="px-4 py-8 text-center">
+                        <div className="text-gray-400 mb-2">
+                          <svg
+                            className="h-8 w-8 mx-auto"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-sm font-medium text-gray-700">
+                          No services available
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          No services found for the selected team member
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="max-h-64 overflow-y-auto">
+                        {!availabilityId &&
+                          allServices.filter(
+                            (service: DetailedService) =>
+                              searchTerm === "" ||
+                              service.code
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()) ||
+                              service.type
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()),
+                          ).length > 0 && (
+                            <div className="px-4 py-2 bg-[#2D84671A] border-b border-blue-100">
+                              <button
+                                type="button"
+                                className="w-full text-left py-2 px-3  rounded-lg text-[#2D8467] font-medium text-sm transition-colors duration-150"
+                                onClick={() => {
+                                  const filteredServices = allServices.filter(
+                                    (service: DetailedService) =>
+                                      searchTerm === "" ||
+                                      service.code
+                                        .toLowerCase()
+                                        .includes(searchTerm.toLowerCase()) ||
+                                      service.type
+                                        .toLowerCase()
+                                        .includes(searchTerm.toLowerCase()),
+                                  );
+                                  filteredServices.forEach(
+                                    (service: DetailedService) => {
+                                      if (
+                                        !preSelectedServices.includes(
+                                          service.id,
+                                        )
+                                      ) {
+                                        handlePreSelectService(service.id);
+                                      }
+                                    },
+                                  );
+                                  setShowServiceDropdown(false);
+                                  setSearchTerm("");
+                                }}
+                              >
+                                Add all services
+                              </button>
+                            </div>
+                          )}
+
+                        {/* Services list */}
+                        <div className="py-2">
+                          {availabilityId
+                            ? // After availability is created - show services not yet added
+                              allServices
+                                .filter(
+                                  (service: DetailedService) =>
+                                    !availabilityServices.some(
+                                      (as: AvailabilityService) =>
+                                        as.id === service.id,
+                                    ),
+                                )
+                                .filter(
+                                  (service: DetailedService) =>
+                                    searchTerm === "" ||
+                                    service.code
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase()) ||
+                                    service.type
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase()),
+                                )
+                                .map((service: DetailedService) => (
+                                  <button
+                                    key={service.id}
+                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors duration-150"
+                                    onClick={() => {
+                                      handleAddServiceToAvailability(
+                                        service.id,
+                                      );
+                                      setShowServiceDropdown(false);
+                                      setSearchTerm("");
+                                    }}
+                                  >
+                                    <div className="text-gray-900 text-sm">
+                                      {service.code} {service.type}
+                                      {service.duration && (
+                                        <span className="text-gray-500">
+                                          , {service.duration} min
+                                        </span>
+                                      )}
+                                    </div>
+                                  </button>
+                                ))
+                            : // Before availability is created - show all services that can be selected
+                              allServices
+                                .filter(
+                                  (service: DetailedService) =>
+                                    searchTerm === "" ||
+                                    service.code
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase()) ||
+                                    service.type
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase()),
+                                )
+                                .map((service: DetailedService) => (
+                                  <button
+                                    key={service.id}
+                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors duration-150"
+                                    onClick={() => {
+                                      handlePreSelectService(service.id);
+                                      setShowServiceDropdown(false);
+                                      setSearchTerm("");
+                                    }}
+                                  >
+                                    <div className="text-gray-900 text-sm">
+                                      {service.code} {service.type}
+                                      {service.duration && (
+                                        <span className="text-gray-500">
+                                          , {service.duration} min
+                                        </span>
+                                      )}
+                                    </div>
+                                  </button>
+                                ))}
+
+                          {/* No results message */}
+                          {allServices.filter(
+                            (service: DetailedService) =>
+                              searchTerm === "" ||
+                              service.code
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()) ||
+                              service.type
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()),
+                          ).length === 0 &&
+                            searchTerm !== "" && (
+                              <div className="px-4 py-8 text-center">
+                                <div className="text-gray-400 mb-2">
+                                  <svg
+                                    className="h-8 w-8 mx-auto"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                    />
+                                  </svg>
+                                </div>
+                                <p className="text-sm text-gray-500">
+                                  No services found matching
+                                </p>
+                                <p className="text-sm font-medium text-gray-700">
+                                  "{searchTerm}"
+                                </p>
+                              </div>
+                            )}
+                        </div>
+
+                        {/* All services already added message */}
+                        {availabilityId &&
+                          allServices.filter(
+                            (service: DetailedService) =>
+                              !availabilityServices.some(
+                                (as: AvailabilityService) =>
+                                  as.id === service.id,
+                              ),
+                          ).length === 0 && (
+                            <div className="px-4 py-8 text-center">
+                              <div className="text-green-400 mb-2">
+                                <svg
+                                  className="h-8 w-8 mx-auto"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                              </div>
+                              <p className="text-sm font-medium text-gray-700">
+                                All services added
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                All available services have been added to this
+                                availability
+                              </p>
+                            </div>
+                          )}
+
+                        {/* Bottom spacing */}
+                        <div className="h-4"></div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -733,4 +1121,3 @@ export function AppointmentSidebar({
     </div>
   );
 }
-// ... existing code ...
