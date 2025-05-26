@@ -17,40 +17,6 @@ import { forwardRef, useImperativeHandle } from "react";
 import statesUS from "@/(dashboard)/clients/services/statesUS.json";
 import { TeamMember } from "../../hooks/useRolePermissions";
 
-// NPI validation using Luhn algorithm
-function isValidNPI(npi: string): boolean {
-  if (!/^\d{10}$/.test(npi)) {
-    return false;
-  }
-
-  // NPI uses Luhn algorithm (also known as "modulus 10")
-  const digits = npi.split("").map(Number);
-
-  // For NPI:
-  // 1. The first 9 digits are the identifier
-  // 2. The 10th digit is the check digit
-
-  // Step 1: Double every other digit starting from the right (excluding check digit)
-  let sum = 0;
-  for (let i = 8; i >= 0; i--) {
-    let value = digits[i];
-    if (i % 2 === 0) {
-      // Double every other digit
-      value *= 2;
-      if (value > 9) {
-        value -= 9; // Same as summing the digits of the doubled value
-      }
-    }
-    sum += value;
-  }
-
-  // Step 2: The check digit is what is needed to make the sum divisible by 10
-  const checkDigit = (10 - (sum % 10)) % 10;
-
-  // Step 3: Verify the check digit matches the last digit of the NPI
-  return checkDigit === digits[9];
-}
-
 interface ClinicalInfoFormProps {
   initialData: Partial<TeamMember>;
   onSubmit: (data: Partial<TeamMember>) => void;
@@ -140,16 +106,7 @@ const ClinicalInfoForm = forwardRef<ClinicalInfoFormRef, ClinicalInfoFormProps>(
           name="npiNumber"
           validators={{
             onBlur: ({ value }) => {
-              if (value) {
-                if (!/^\d{10}$/.test(value)) {
-                  return "NPI Number must be 10 digits";
-                }
-
-                // Verify the check digit via Luhn algorithm
-                if (!isValidNPI(value)) {
-                  return "Invalid NPI Number";
-                }
-              }
+              if (!value) return "NPI Number is required";
               return undefined;
             },
           }}
@@ -164,7 +121,7 @@ const ClinicalInfoForm = forwardRef<ClinicalInfoFormRef, ClinicalInfoFormProps>(
                   }
                   id={field.name}
                   name={field.name}
-                  placeholder="Enter 10-digit NPI number"
+                  placeholder="Enter NPI number"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
@@ -174,8 +131,7 @@ const ClinicalInfoForm = forwardRef<ClinicalInfoFormRef, ClinicalInfoFormProps>(
                 <FormMessage>{field.state.meta.errors[0]}</FormMessage>
               )}
               <p className="text-xs text-gray-500">
-                National Provider Identifier - 10 digit unique identification
-                number
+                National Provider Identifier - unique identification number
               </p>
             </FormItem>
           )}
