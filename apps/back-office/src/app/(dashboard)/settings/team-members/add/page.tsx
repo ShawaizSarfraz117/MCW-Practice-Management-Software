@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@mcw/ui";
-import PersonalInfoForm from "../components/AddTeamMember/PersonalInfoForm";
-import ClinicalInfoForm from "../components/AddTeamMember/ClinicalInfoForm";
-import LicenseInfoForm from "../components/AddTeamMember/LicenseInfoForm";
-import RoleInfoForm from "../components/AddTeamMember/RoleInfoForm";
+import PersonalInfoForm, {
+  PersonalInfoFormRef,
+} from "../components/AddTeamMember/PersonalInfoForm";
+import ClinicalInfoForm, {
+  ClinicalInfoFormRef,
+} from "../components/AddTeamMember/ClinicalInfoForm";
+import LicenseInfoForm, {
+  LicenseInfoFormRef,
+} from "../components/AddTeamMember/LicenseInfoForm";
+import RoleInfoForm, {
+  RoleInfoFormRef,
+} from "../components/AddTeamMember/RoleInfoForm";
 import CompletionStep from "../components/AddTeamMember/CompletionStep";
 import TeamMemberSummary from "./components/TeamMemberSummary";
 import { TeamMember } from "../hooks/useRolePermissions";
@@ -26,6 +34,12 @@ export default function AddTeamMemberPage() {
       state: "",
     },
   });
+
+  // Refs to trigger form submissions
+  const personalFormRef = useRef<PersonalInfoFormRef>(null);
+  const roleFormRef = useRef<RoleInfoFormRef>(null);
+  const clinicalFormRef = useRef<ClinicalInfoFormRef>(null);
+  const licenseFormRef = useRef<LicenseInfoFormRef>(null);
 
   // // Ensure roles is always an array
   // const roles = useMemo(() => {
@@ -58,8 +72,24 @@ export default function AddTeamMemberPage() {
     handleNext();
   };
 
-  const handleFormChange = (data: Partial<TeamMember>) => {
-    setTeamMemberData((prev) => ({ ...prev, ...data }));
+  // Handle Next button click - trigger form submission
+  const handleNextClick = () => {
+    switch (activeStep) {
+      case 0:
+        personalFormRef.current?.submitForm();
+        break;
+      case 1:
+        roleFormRef.current?.submitForm();
+        break;
+      case 2:
+        clinicalFormRef.current?.submitForm();
+        break;
+      case 3:
+        licenseFormRef.current?.submitForm();
+        break;
+      default:
+        handleNext();
+    }
   };
 
   // Just move to the final step, no API call
@@ -73,30 +103,31 @@ export default function AddTeamMemberPage() {
       case 0:
         return (
           <PersonalInfoForm
+            ref={personalFormRef}
             initialData={teamMemberData}
             onSubmit={handleStepSubmit}
-            onChange={handleFormChange}
           />
         );
       case 1:
         return (
           <RoleInfoForm
+            ref={roleFormRef}
             initialData={teamMemberData}
             onSubmit={handleStepSubmit}
-            onChange={handleFormChange}
           />
         );
       case 2:
         return (
           <ClinicalInfoForm
+            ref={clinicalFormRef}
             initialData={teamMemberData}
             onSubmit={handleStepSubmit}
-            onChange={handleFormChange}
           />
         );
       case 3:
         return (
           <LicenseInfoForm
+            ref={licenseFormRef}
             initialData={teamMemberData}
             onSubmit={handleStepSubmit}
           />
@@ -115,14 +146,11 @@ export default function AddTeamMemberPage() {
 
   // Calculate if this is the final confirmation step
   const isCompletionStep = activeStep === steps.length - 1;
-  const isLastFormStep = 4;
+  const isLastFormStep = activeStep === 3; // License step is the last form step
 
   // Determine button text based on active step
   const getButtonText = () => {
-    console.log(activeStep + 1);
-    console.log(steps.length - 1);
-    if (activeStep + 1 === steps.length - 1) return "Submit";
-    if (activeStep === 1) return "Next"; // Specifically for Role step
+    if (isLastFormStep) return "Submit";
     return "Next";
   };
 
@@ -170,7 +198,7 @@ export default function AddTeamMemberPage() {
                 </Button>
                 <Button
                   className="bg-[#2D8467] text-white hover:bg-[#256b53]"
-                  onClick={isLastFormStep ? handleFinish : handleNext}
+                  onClick={isLastFormStep ? handleFinish : handleNextClick}
                 >
                   {getButtonText()}
                 </Button>
