@@ -5,7 +5,8 @@ import { Input, Label } from "@mcw/ui";
 interface PersonalInfoEditProps {
   member: {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
   };
   onSubmit: (data: { name: string; email: string }) => void;
@@ -30,12 +31,21 @@ export default function PersonalInfoEdit({
       onSubmit={handleSubmit}
     >
       <div>
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="firstName">First Name</Label>
         <Input
           className="mt-1"
-          defaultValue={member.name}
-          id="name"
-          name="name"
+          defaultValue={member.firstName}
+          id="firstName"
+          name="firstName"
+        />
+      </div>
+      <div>
+        <Label htmlFor="lastName">Last Name</Label>
+        <Input
+          className="mt-1"
+          defaultValue={member.lastName}
+          id="lastName"
+          name="lastName"
         />
       </div>
       <div>

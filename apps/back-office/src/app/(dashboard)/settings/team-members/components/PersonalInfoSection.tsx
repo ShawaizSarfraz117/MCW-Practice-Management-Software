@@ -86,7 +86,7 @@ export function PersonalInfoSection({
           <div>
             <p className="text-base text-[#4B5563]">Name</p>
             <p className="text-base font-medium text-[#1F2937]">
-              {member.name || "No name found"}
+              {member.firstName || "No name found"}
             </p>
           </div>
           <div>

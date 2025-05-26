@@ -14,11 +14,11 @@ import Link from "next/link";
 import { useClinicianDetails } from "../services/member.service";
 import Loading from "@/components/Loading";
 
-// Define the type that EditTeamMember expects
+// Define the type that matches the one expected by EditTeamMember
 interface TeamMember {
   id: string;
-  clinicianId?: string | null;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: string;
   specialty?: string;
@@ -29,6 +29,7 @@ interface TeamMember {
     expirationDate: string;
     state: string;
   };
+  clinicianId?: string | null;
   licenses?: Array<{
     id?: number;
     license_type: string;
@@ -65,9 +66,10 @@ export default function TeamMemberEditPage() {
     } = {
       id: memberId,
       clinicianId: clinicianDetails?.Clinician?.id || null,
-      name: clinicianDetails.Clinician
-        ? `${clinicianDetails.Clinician.first_name} ${clinicianDetails.Clinician.last_name}`
-        : clinicianDetails.email.split("@")[0],
+      firstName:
+        clinicianDetails.Clinician?.first_name ||
+        clinicianDetails.email.split("@")[0],
+      lastName: clinicianDetails.Clinician?.last_name || "",
       email: clinicianDetails.email,
       role: "Clinician",
     };
@@ -164,7 +166,11 @@ export default function TeamMemberEditPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{formattedMember?.name}</BreadcrumbPage>
+            <BreadcrumbPage>
+              {formattedMember
+                ? `${formattedMember.firstName} ${formattedMember.lastName}`
+                : ""}
+            </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
