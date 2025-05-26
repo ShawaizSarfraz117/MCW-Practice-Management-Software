@@ -38,7 +38,93 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get("id");
+    const services = searchParams.get("services");
     const body = await request.json();
+
+    // If ID and services=true, add service to availability
+    if (id && services === "true") {
+      const { serviceId } = body;
+
+      if (!serviceId) {
+        return NextResponse.json(
+          { error: "Service ID is required" },
+          { status: 400 },
+        );
+      }
+
+      // Validate that the availability exists
+      const availability = await prisma.availability.findUnique({
+        where: { id },
+      });
+
+      if (!availability) {
+        return NextResponse.json(
+          { error: "Availability not found" },
+          { status: 404 },
+        );
+      }
+
+      // Validate that the service exists
+      const service = await prisma.practiceService.findUnique({
+        where: { id: serviceId },
+      });
+
+      if (!service) {
+        return NextResponse.json(
+          { error: "Service not found" },
+          { status: 404 },
+        );
+      }
+
+      // Check if the relationship already exists
+      const existingRelation = await prisma.availabilityServices.findUnique({
+        where: {
+          availability_id_service_id: {
+            availability_id: id,
+            service_id: serviceId,
+          },
+        },
+      });
+
+      if (existingRelation) {
+        return NextResponse.json(
+          { error: "Service already assigned to availability" },
+          { status: 409 },
+        );
+      }
+
+      // Create the availability-service relationship
+      const availabilityService = await prisma.availabilityServices.create({
+        data: {
+          availability_id: id,
+          service_id: serviceId,
+        },
+        include: {
+          PracticeService: true,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          message: "Service added to availability successfully",
+          service: {
+            id: availabilityService.PracticeService.id,
+            type: availabilityService.PracticeService.type,
+            code: availabilityService.PracticeService.code,
+            description: availabilityService.PracticeService.description,
+            duration: availabilityService.PracticeService.duration,
+            rate: availabilityService.PracticeService.rate,
+            availableOnline:
+              availabilityService.PracticeService.available_online,
+          },
+        },
+        { status: 201 },
+      );
+    }
+
+    // Otherwise, create new availability
     const validatedData = availabilitySchema.parse(body);
 
     // Convert string dates to Date objects and prepare data
@@ -53,11 +139,80 @@ export async function POST(request: NextRequest) {
       recurring_rule: validatedData.recurring_rule || null,
     };
 
-    const availability = await prisma.availability.create({
-      data,
+    // Use a transaction to create availability and add services
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the availability
+      const availability = await tx.availability.create({
+        data,
+      });
+
+      // Check if custom services are provided
+      if (body.selectedServices && Array.isArray(body.selectedServices)) {
+        // Use the services selected by the user
+        const selectedServiceIds = body.selectedServices;
+
+        if (selectedServiceIds.length > 0) {
+          const availabilityServicesData = selectedServiceIds.map(
+            (serviceId: string) => ({
+              availability_id: availability.id,
+              service_id: serviceId,
+            }),
+          );
+
+          await tx.availabilityServices.createMany({
+            data: availabilityServicesData,
+          });
+        }
+
+        return {
+          availability,
+          servicesAdded: selectedServiceIds.length,
+        };
+      } else {
+        // Fallback to original logic if no custom services provided
+        // Get all active online services for the clinician
+        const clinicianServices = await tx.clinicianServices.findMany({
+          where: {
+            clinician_id: validatedData.clinician_id,
+            is_active: true,
+          },
+          include: {
+            PracticeService: true,
+          },
+        });
+
+        // Filter for services that are available online
+        const onlineServices = clinicianServices.filter(
+          (cs) => cs.PracticeService.available_online === true,
+        );
+
+        // Create availability-service relationships for all online services
+        if (onlineServices.length > 0) {
+          const availabilityServicesData = onlineServices.map((cs) => ({
+            availability_id: availability.id,
+            service_id: cs.service_id,
+          }));
+
+          await tx.availabilityServices.createMany({
+            data: availabilityServicesData,
+          });
+        }
+
+        return {
+          availability,
+          servicesAdded: onlineServices.length,
+        };
+      }
     });
 
-    return NextResponse.json(availability);
+    logger.info(
+      `Created availability ${result.availability.id} with ${result.servicesAdded} services automatically added`,
+    );
+
+    return NextResponse.json({
+      ...result.availability,
+      servicesAdded: result.servicesAdded,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       logger.error(
@@ -92,6 +247,58 @@ export async function GET(request: NextRequest) {
     const clinicianId = searchParams.get("clinicianId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const services = searchParams.get("services");
+
+    // If ID is provided and services=true, return availability services
+    if (id && services === "true") {
+      const availability = await prisma.availability.findUnique({
+        where: { id },
+      });
+
+      if (!availability) {
+        return NextResponse.json(
+          { error: "Availability not found" },
+          { status: 404 },
+        );
+      }
+
+      // Get availability services with detailed information
+      const availabilityServices = await prisma.availabilityServices.findMany({
+        where: { availability_id: id },
+        include: {
+          PracticeService: true,
+        },
+        orderBy: {
+          PracticeService: {
+            type: "asc",
+          },
+        },
+      });
+
+      // Transform the data to include service details
+      const servicesData = availabilityServices.map((as) => ({
+        id: as.PracticeService.id,
+        type: as.PracticeService.type,
+        code: as.PracticeService.code,
+        description: as.PracticeService.description,
+        duration: as.PracticeService.duration,
+        rate: as.PracticeService.rate,
+        color: as.PracticeService.color,
+        isDefault: as.PracticeService.is_default,
+        billInUnits: as.PracticeService.bill_in_units,
+        availableOnline: as.PracticeService.available_online,
+        allowNewClients: as.PracticeService.allow_new_clients,
+        requireCall: as.PracticeService.require_call,
+        blockBefore: as.PracticeService.block_before,
+        blockAfter: as.PracticeService.block_after,
+      }));
+
+      return NextResponse.json({
+        availabilityId: id,
+        services: servicesData,
+        totalCount: servicesData.length,
+      });
+    }
 
     // If ID is provided, return single availability
     if (id) {
@@ -202,7 +409,56 @@ export async function DELETE(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
+    const services = searchParams.get("services");
+    const serviceId = searchParams.get("serviceId");
 
+    // If ID, services=true, and serviceId are provided, remove service from availability
+    if (id && services === "true" && serviceId) {
+      // Validate that the availability exists
+      const availability = await prisma.availability.findUnique({
+        where: { id },
+      });
+
+      if (!availability) {
+        return NextResponse.json(
+          { error: "Availability not found" },
+          { status: 404 },
+        );
+      }
+
+      // Check if the relationship exists
+      const existingRelation = await prisma.availabilityServices.findUnique({
+        where: {
+          availability_id_service_id: {
+            availability_id: id,
+            service_id: serviceId,
+          },
+        },
+      });
+
+      if (!existingRelation) {
+        return NextResponse.json(
+          { error: "Service not assigned to availability" },
+          { status: 404 },
+        );
+      }
+
+      // Delete the availability-service relationship
+      await prisma.availabilityServices.delete({
+        where: {
+          availability_id_service_id: {
+            availability_id: id,
+            service_id: serviceId,
+          },
+        },
+      });
+
+      return NextResponse.json({
+        message: "Service removed from availability successfully",
+      });
+    }
+
+    // Otherwise, delete the availability
     if (!id) {
       return NextResponse.json(
         { error: "Availability ID is required" },
@@ -210,8 +466,19 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await prisma.availability.delete({
-      where: { id },
+    // Use a transaction to delete availability and related services
+    await prisma.$transaction(async (tx) => {
+      // First, delete all related AvailabilityServices records
+      await tx.availabilityServices.deleteMany({
+        where: {
+          availability_id: id,
+        },
+      });
+
+      // Then delete the availability
+      await tx.availability.delete({
+        where: { id },
+      });
     });
 
     return NextResponse.json({ success: true });
