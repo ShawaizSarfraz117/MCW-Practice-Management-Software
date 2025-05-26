@@ -2,16 +2,19 @@
 
 import { Input, FormControl, FormItem, FormLabel, FormMessage } from "@mcw/ui";
 import { useForm } from "@tanstack/react-form";
+import { useEffect } from "react";
 import { TeamMember } from "../../hooks/useRolePermissions";
 
 interface PersonalInfoFormProps {
   initialData: Partial<TeamMember>;
   onSubmit: (data: Partial<TeamMember>) => void;
+  onChange?: (data: Partial<TeamMember>) => void;
 }
 
 export default function PersonalInfoForm({
   initialData,
   onSubmit,
+  onChange,
 }: PersonalInfoFormProps) {
   const form = useForm({
     defaultValues: {
@@ -24,6 +27,20 @@ export default function PersonalInfoForm({
     },
   });
 
+  // Watch for form changes and notify parent
+  useEffect(() => {
+    const subscription = form.store.subscribe(() => {
+      const currentValues = {
+        firstName: form.getFieldValue("firstName"),
+        lastName: form.getFieldValue("lastName"),
+        email: form.getFieldValue("email"),
+      };
+      onChange?.(currentValues);
+    });
+
+    return () => subscription();
+  }, [form.store, onChange]);
+
   return (
     <form
       className="space-y-6"
@@ -33,15 +50,6 @@ export default function PersonalInfoForm({
         form.handleSubmit();
       }}
     >
-      <div className="space-y-1.5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Personal Information
-        </h3>
-        <p className="text-sm text-gray-500">
-          Enter the team member's basic information
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <form.Field
           name="firstName"

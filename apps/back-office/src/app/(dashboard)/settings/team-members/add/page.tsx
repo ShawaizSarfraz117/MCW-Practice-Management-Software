@@ -1,33 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@mcw/ui";
 import PersonalInfoForm from "../components/AddTeamMember/PersonalInfoForm";
 import ClinicalInfoForm from "../components/AddTeamMember/ClinicalInfoForm";
 import LicenseInfoForm from "../components/AddTeamMember/LicenseInfoForm";
-import ServicesForm from "../components/AddTeamMember/ServicesForm";
 import RoleInfoForm from "../components/AddTeamMember/RoleInfoForm";
 import CompletionStep from "../components/AddTeamMember/CompletionStep";
-import StepperProgress from "./components/StepperProgress";
 import TeamMemberSummary from "./components/TeamMemberSummary";
-
-// Define the TeamMember type inline to avoid import issues
-interface TeamMember {
-  id?: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  role?: string;
-  specialty?: string;
-  npiNumber?: string;
-  license?: {
-    type: string;
-    number: string;
-    expirationDate: string;
-    state: string;
-  };
-  services?: string[];
-}
+import { TeamMember } from "../hooks/useRolePermissions";
 
 export default function AddTeamMemberPage() {
   const [activeStep, setActiveStep] = useState(0);
@@ -35,7 +16,8 @@ export default function AddTeamMemberPage() {
     firstName: "",
     lastName: "",
     email: "",
-    role: "Clinician with entire practice access",
+    roles: [], // Initialize with empty array
+    clinicianLevel: "Basic", // Initialize with default clinician level
     services: [],
     license: {
       type: "",
@@ -45,34 +27,22 @@ export default function AddTeamMemberPage() {
     },
   });
 
-  // This effect runs when form inputs change
-  useEffect(() => {
-    const handleFormInputChange = (event: Event) => {
-      const input = event.target as HTMLInputElement;
-      if (input && input.name) {
-        // Update teamMemberData in real-time as user types
-        setTeamMemberData((prev) => ({
-          ...prev,
-          [input.name]: input.value,
-        }));
-      }
-    };
+  // // Ensure roles is always an array
+  // const roles = useMemo(() => {
+  //   return Array.isArray(teamMemberData.roles)
+  //     ? teamMemberData.roles
+  //     : teamMemberData.role
+  //       ? [teamMemberData.role]
+  //       : [];
+  // }, [teamMemberData.roles, teamMemberData.role]);
 
-    // Add listener to form inputs
-    document.addEventListener("input", handleFormInputChange);
-
-    return () => {
-      document.removeEventListener("input", handleFormInputChange);
-    };
-  }, []);
-
+  // Fixed steps in sequence
   const steps = [
     { label: "Personal Info", description: "Basic information" },
+    { label: "Role & Permissions", description: "Access control" },
     { label: "Clinical Info", description: "Specialty details" },
     { label: "License", description: "Licensing information" },
-    { label: "Services", description: "Offered services" },
-    { label: "Role & Permissions", description: "Access control" },
-    { label: "Complete", description: "Review and save" },
+    { label: "Confirmation", description: "Review and save" },
   ];
 
   const handleBack = () => {
@@ -88,25 +58,14 @@ export default function AddTeamMemberPage() {
     handleNext();
   };
 
-  const handleSave = async () => {
-    try {
-      const response = await fetch("/api/clinician", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(teamMemberData),
-      });
+  const handleFormChange = (data: Partial<TeamMember>) => {
+    setTeamMemberData((prev) => ({ ...prev, ...data }));
+  };
 
-      if (!response.ok) {
-        throw new Error("Failed to create team member");
-      }
-
-      // Go to completion step
-      handleNext();
-    } catch (error) {
-      console.error("Error creating team member:", error);
-    }
+  // Just move to the final step, no API call
+  const handleFinish = () => {
+    // Go to completion step
+    handleNext();
   };
 
   const renderStepContent = () => {
@@ -116,37 +75,33 @@ export default function AddTeamMemberPage() {
           <PersonalInfoForm
             initialData={teamMemberData}
             onSubmit={handleStepSubmit}
+            onChange={handleFormChange}
           />
         );
       case 1:
         return (
-          <ClinicalInfoForm
+          <RoleInfoForm
             initialData={teamMemberData}
             onSubmit={handleStepSubmit}
+            onChange={handleFormChange}
           />
         );
       case 2:
+        return (
+          <ClinicalInfoForm
+            initialData={teamMemberData}
+            onSubmit={handleStepSubmit}
+            onChange={handleFormChange}
+          />
+        );
+      case 3:
         return (
           <LicenseInfoForm
             initialData={teamMemberData}
             onSubmit={handleStepSubmit}
           />
         );
-      case 3:
-        return (
-          <ServicesForm
-            initialData={teamMemberData}
-            onSubmit={handleStepSubmit}
-          />
-        );
       case 4:
-        return (
-          <RoleInfoForm
-            initialData={teamMemberData}
-            onSubmit={handleStepSubmit}
-          />
-        );
-      case 5:
         return (
           <CompletionStep
             teamMemberData={teamMemberData}
@@ -158,33 +113,47 @@ export default function AddTeamMemberPage() {
     }
   };
 
-  const isLastStep = activeStep === steps.length - 2;
+  // Calculate if this is the final confirmation step
   const isCompletionStep = activeStep === steps.length - 1;
+  const isLastFormStep = 4;
+
+  // Determine button text based on active step
+  const getButtonText = () => {
+    console.log(activeStep + 1);
+    console.log(steps.length - 1);
+    if (activeStep + 1 === steps.length - 1) return "Submit";
+    if (activeStep === 1) return "Next"; // Specifically for Role step
+    return "Next";
+  };
 
   return (
-    <section className="flex flex-col gap-6 w-full max-w-7xl mx-auto pt-2 pb-8 px-2 md:px-8">
+    <section className="w-full max-w-7xl mx-auto pt-2 pb-8 px-2 md:px-8">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Add Team Member
-          </h1>
-          <p className="text-gray-500 text-base mt-1">
-            Add a new member to your team
-          </p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">
+          Add Team Member
+        </h1>
+        <p className="text-gray-500 text-base mt-1">
+          Add a new member to your team
+        </p>
       </div>
-
-      {/* Two-column layout for desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Form Content - Takes up 2/3 of space on desktop */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            {/* Stepper Progress */}
-            <StepperProgress activeStep={activeStep} />
-
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
             {/* Form Content */}
-            <div className="px-6 py-6">{renderStepContent()}</div>
+            <div className="p-6">
+              {/* Add a title for the current step */}
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {steps[activeStep].label}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {steps[activeStep].description}
+                </p>
+              </div>
+
+              {renderStepContent()}
+            </div>
 
             {/* Footer */}
             {!isCompletionStep && (
@@ -201,16 +170,14 @@ export default function AddTeamMemberPage() {
                 </Button>
                 <Button
                   className="bg-[#2D8467] text-white hover:bg-[#256b53]"
-                  onClick={isLastStep ? handleSave : handleNext}
+                  onClick={isLastFormStep ? handleFinish : handleNext}
                 >
-                  {isLastStep ? "Save" : "Next"}
+                  {getButtonText()}
                 </Button>
               </div>
             )}
           </div>
         </div>
-
-        {/* Summary Section */}
         <TeamMemberSummary
           teamMemberData={teamMemberData}
           isHidden={isCompletionStep}

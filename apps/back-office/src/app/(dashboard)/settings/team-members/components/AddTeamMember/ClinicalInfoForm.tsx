@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@mcw/ui";
 import { useForm } from "@tanstack/react-form";
+import { useEffect } from "react";
 import { TeamMember } from "../../hooks/useRolePermissions";
 import statesUS from "@/(dashboard)/clients/services/statesUS.json";
 
@@ -53,12 +54,15 @@ function isValidNPI(npi: string): boolean {
 interface ClinicalInfoFormProps {
   initialData: Partial<TeamMember>;
   onSubmit: (data: Partial<TeamMember>) => void;
+  onChange?: (data: Partial<TeamMember>) => void;
 }
 
 export default function ClinicalInfoForm({
   initialData,
   onSubmit,
+  onChange,
 }: ClinicalInfoFormProps) {
+  console.log(initialData);
   const form = useForm({
     defaultValues: {
       specialty: initialData.specialty || "",
@@ -74,6 +78,25 @@ export default function ClinicalInfoForm({
       onSubmit(value);
     },
   });
+
+  // Watch for form changes and notify parent
+  useEffect(() => {
+    const subscription = form.store.subscribe(() => {
+      const currentValues = {
+        specialty: form.getFieldValue("specialty"),
+        npiNumber: form.getFieldValue("npiNumber"),
+        license: {
+          state: form.getFieldValue("license.state"),
+          type: form.getFieldValue("license.type"),
+          number: form.getFieldValue("license.number"),
+          expirationDate: form.getFieldValue("license.expirationDate"),
+        },
+      };
+      onChange?.(currentValues);
+    });
+
+    return () => subscription();
+  }, [form.store, onChange]);
 
   return (
     <form
@@ -214,13 +237,6 @@ export default function ClinicalInfoForm({
           </FormItem>
         )}
       </form.Field>
-
-      <div className="flex justify-end">
-        <button
-          className="hidden" // Hidden button to trigger form submission
-          type="submit"
-        />
-      </div>
     </form>
   );
 }

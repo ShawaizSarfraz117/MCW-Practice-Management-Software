@@ -2,10 +2,11 @@
 
 import { Button } from "@mcw/ui";
 import { CheckCircle2 } from "lucide-react";
-import { TeamMember } from "../../hooks/useRolePermissions";
+import { TeamMember, useRolePermissions } from "../../hooks/useRolePermissions";
+import { isClinicianWithSubroles } from "../../utils/roleUtils";
 
 interface CompletionStepProps {
-  teamMemberData: Partial<TeamMember>;
+  teamMemberData: Partial<TeamMember> & { role?: string };
   onClose: () => void;
 }
 
@@ -15,6 +16,26 @@ export default function CompletionStep({
 }: CompletionStepProps) {
   const fullName =
     `${teamMemberData.firstName || ""} ${teamMemberData.lastName || ""}`.trim();
+
+  const { getClinicianLevelDescription } = useRolePermissions();
+
+  // Get roles from either roles array or single role for backward compatibility
+  const roles = Array.isArray(teamMemberData.roles)
+    ? teamMemberData.roles
+    : teamMemberData.role
+      ? [teamMemberData.role]
+      : [];
+
+  // Format roles for display in text
+  const rolesDisplay =
+    roles.length > 1
+      ? `${roles.slice(0, -1).join(", ")} and ${roles[roles.length - 1]}`
+      : roles[0] || "team member";
+
+  // Check if specific Clinician role is present (not Supervisor)
+  const hasClinicianWithLevels = roles.some((role) =>
+    isClinicianWithSubroles(role),
+  );
 
   return (
     <div className="flex flex-col items-center py-6 text-center space-y-4">
@@ -27,7 +48,8 @@ export default function CompletionStep({
           Team Member Created Successfully
         </h3>
         <p className="text-gray-600 max-w-md">
-          {fullName} has been added to your team as a {teamMemberData.role}.
+          {fullName} has been added to your team with{" "}
+          {roles.length > 1 ? "multiple roles" : "the role of"} {rolesDisplay}.
         </p>
       </div>
 
@@ -44,9 +66,34 @@ export default function CompletionStep({
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Role</p>
-            <p className="font-medium">{teamMemberData.role}</p>
+            <p className="text-sm text-gray-500">Roles</p>
+            <div className="mt-1 space-y-2">
+              {teamMemberData.roleCategories?.map((roleCategory, index) => (
+                <div key={index} className="space-y-1">
+                  <p className="font-medium">{roleCategory.roleTitle}</p>
+                  <p className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md inline-block">
+                    {roleCategory.category}
+                  </p>
+                </div>
+              )) ||
+                roles.map((role, index) => (
+                  <div key={index} className="font-medium">
+                    {role}
+                  </div>
+                ))}
+            </div>
           </div>
+
+          {/* Show clinician level only if the Clinician role is selected (not Supervisor) */}
+          {hasClinicianWithLevels && teamMemberData.clinicianLevel && (
+            <div>
+              <p className="text-sm text-gray-500">Clinician Level</p>
+              <p className="font-medium">{teamMemberData.clinicianLevel}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {getClinicianLevelDescription(teamMemberData.clinicianLevel)}
+              </p>
+            </div>
+          )}
 
           {teamMemberData.specialty && (
             <div>

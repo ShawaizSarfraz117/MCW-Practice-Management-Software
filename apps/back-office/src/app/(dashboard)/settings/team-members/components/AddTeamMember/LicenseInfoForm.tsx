@@ -81,15 +81,6 @@ export default function LicenseInfoForm({
         form.handleSubmit();
       }}
     >
-      <div className="space-y-1.5">
-        <h3 className="text-lg font-semibold text-gray-900">
-          License Information
-        </h3>
-        <p className="text-sm text-gray-500">
-          Enter the team member's professional license details
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <form.Field
           name="license.type"
