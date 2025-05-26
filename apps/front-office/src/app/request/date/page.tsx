@@ -9,7 +9,7 @@ export default function DatePage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { appointmentData, onComplete, onUpdate } = useRequest();
-
+  const searchParamsObject = Object.fromEntries(searchParams.entries());
   return (
     <AppointmentStep
       onComplete={onComplete}
@@ -17,7 +17,7 @@ export default function DatePage() {
       onUpdate={onUpdate}
       currentPath={pathname}
       router={router}
-      searchParams={searchParams}
+      searchParams={searchParamsObject}
     />
   );
 }

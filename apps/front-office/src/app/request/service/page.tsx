@@ -9,6 +9,7 @@ export default function ServicePage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { appointmentData, onComplete, onUpdate } = useRequest();
+  const searchParamsObject = Object.fromEntries(searchParams.entries());
 
   return (
     <AppointmentStep
@@ -17,7 +18,7 @@ export default function ServicePage() {
       onUpdate={onUpdate}
       currentPath={pathname}
       router={router}
-      searchParams={searchParams}
+      searchParams={searchParamsObject}
     />
   );
 }
