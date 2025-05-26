@@ -3,6 +3,11 @@ description:
 globs: 
 alwaysApply: true
 ---
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # General Application Coding Guidelines
 
 This document outlines the key conventions and libraries used in the applications within the [apps/](mdc:apps) directory. Adhering to these guidelines ensures consistency and maintainability across the monorepo.

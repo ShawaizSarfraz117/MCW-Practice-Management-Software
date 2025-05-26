@@ -1,7 +1,12 @@
 ---
-description: API Implementation Guidelines
+description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
+---
+---
+description: 
+globs: 
+alwaysApply: true
 ---
 ## API Implementation Guidelines
 
@@ -218,31 +223,11 @@ These guidelines are applicable to all applications within the `apps/` directory
       // ... API logic ...
     } catch (error: unknown) {
       // Use the shared logger, imported as `logger`
-      logger.error("Operation failed in API route", { 
-        // It's helpful to include specifics about the route or operation if possible
-        // route: request.nextUrl.pathname, // Example context
-        errorDetails: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-        // Full error object can be verbose, consider logging selectively in production
-        // fullError: error 
-      });
+      const errorMessage = error?.message || String(error);
+        logger.error(`Operation failed in API route: ${errorMessage}`);
+        or 
+        logger.error(`Operation failed in API route: ${error?.message || error}`);
 
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        // Handle specific Prisma errors
-        if (error.code === 'P2002') { // Unique constraint violation
-          return NextResponse.json({ error: "A record with this value already exists.", details: error.meta?.target }, { status: 409 });
-        } else if (error.code === 'P2025') { // Record to update/delete not found
-           return NextResponse.json({ error: "Resource to operate on not found.", details: error.meta?.cause }, { status: 404 });
-        }
-        // Add more specific Prisma error codes as needed
-        return NextResponse.json({ error: "Database operation failed.", details: error.message }, { status: 500 });
-      } else if (error instanceof Error) {
-        // Handle generic errors
-        return NextResponse.json({ error: "An unexpected error occurred.", message: error.message }, { status: 500 });
-      } else {
-        // Handle non-Error objects thrown
-        return NextResponse.json({ error: "An unexpected error occurred.", message: String(error) }, { status: 500 });
-      }
     }
     ```
 *   **Specific Error Status Codes:** Return appropriate HTTP status codes (examples above).
@@ -355,7 +340,6 @@ These guidelines are applicable to all applications within the `apps/` directory
 *   **Code Consistency:** Refer to existing well-structured API routes as a template.
 
 By following these generalized guidelines, developers can create consistent, maintainable, and robust API routes across different applications in the monorepo. Always ensure thorough testing of API endpoints.
-
 
 
 

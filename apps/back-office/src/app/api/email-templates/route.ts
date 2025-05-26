@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
+import { logger } from "@mcw/logger";
+
+/**
+ * GET - Retrieve all email templates with optional type filtering
+ * @param request - The NextRequest object
+ * @returns - JSON response with email templates data or error
+ */
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,9 +21,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ data: templates });
-  } catch (error) {
-    console.error("Error fetching email templates:", error);
+    return NextResponse.json(templates);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to fetch email templates: ${errorMessage}`);
     return NextResponse.json(
       { error: "Failed to fetch email templates" },
       { status: 500 },

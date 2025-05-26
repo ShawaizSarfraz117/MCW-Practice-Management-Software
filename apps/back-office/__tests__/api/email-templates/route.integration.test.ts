@@ -39,9 +39,8 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json).toHaveProperty("data");
-      expect(Array.isArray(json.data)).toBe(true);
-      expect(json.data).toEqual([
+      expect(Array.isArray(json)).toBe(true);
+      expect(json).toEqual([
         expect.objectContaining({
           id: testTemplate.id,
           name: testTemplate.name,
@@ -60,7 +59,7 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.data).toEqual([
+      expect(json).toEqual([
         expect.objectContaining({
           type: "Test Type",
         }),
@@ -140,7 +139,7 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.data).toMatchObject({
+      expect(json).toMatchObject({
         id: testTemplate.id,
         name: testTemplate.name,
         subject: testTemplate.subject,
@@ -158,18 +157,15 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(404);
       const json = await response.json();
-      expect(json).toHaveProperty("error");
+      expect(json).toHaveProperty("error", "Email template not found");
     });
   });
 
   describe("PUT /api/email-templates/[id]", () => {
     it("should update an existing email template", async () => {
       const updatedData = {
-        name: "Updated Template",
         subject: "Updated Subject",
         content: "Updated Content",
-        type: "Updated Type",
-        email_type: "Updated Email Type",
       };
 
       const req = createRequestWithBody(
@@ -181,16 +177,30 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.data).toMatchObject({
+      expect(json).toHaveProperty(
+        "message",
+        "Email template updated successfully",
+      );
+      expect(json).toHaveProperty("template");
+      expect(json.template).toMatchObject({
         id: testTemplate.id,
-        ...updatedData,
+        subject: updatedData.subject,
+        content: updatedData.content,
+      });
+
+      // Verify the database was updated
+      const updatedTemplate = await prisma.emailTemplate.findUnique({
+        where: { id: testTemplate.id },
+      });
+      expect(updatedTemplate).toMatchObject({
+        subject: updatedData.subject,
+        content: updatedData.content,
       });
     });
 
     it("should return 400 if required fields are missing", async () => {
       const incompleteData = {
-        name: "Incomplete Update",
-        // Missing required fields
+        // Missing required fields (subject, content)
       };
 
       const req = createRequestWithBody(
@@ -202,7 +212,8 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(400);
       const json = await response.json();
-      expect(json).toHaveProperty("error");
+      expect(json).toHaveProperty("error", "Invalid input");
+      expect(json).toHaveProperty("details");
     });
   });
 

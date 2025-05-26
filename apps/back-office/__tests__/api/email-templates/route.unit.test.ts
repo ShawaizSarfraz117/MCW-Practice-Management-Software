@@ -4,6 +4,16 @@ import { DELETE, GET, POST } from "@/api/email-templates/route";
 import { GET as GETById, PUT } from "@/api/email-templates/[id]/route";
 import prismaMock from "@mcw/database/mock";
 
+// Mock logger to prevent test output pollution
+vi.mock("@mcw/logger", () => ({
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
 describe("Email Templates API", () => {
   const mockTemplate = {
     id: "dffa4ae9-55a4-48f9-8ee2-d06996b828ea",
@@ -30,9 +40,8 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json).toHaveProperty("data");
-      expect(Array.isArray(json.data)).toBe(true);
-      expect(json.data).toEqual([
+      expect(Array.isArray(json)).toBe(true);
+      expect(json).toEqual([
         {
           ...mockTemplate,
           created_at: mockTemplate.created_at.toISOString(),
@@ -56,7 +65,7 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.data).toEqual([
+      expect(json).toEqual([
         {
           ...mockTemplate,
           created_at: mockTemplate.created_at.toISOString(),
@@ -70,6 +79,19 @@ describe("Email Templates API", () => {
           created_at: "desc",
         },
       });
+    });
+
+    it("should handle database errors", async () => {
+      prismaMock.emailTemplate.findMany.mockRejectedValueOnce(
+        new Error("Database error"),
+      );
+
+      const req = createRequest("/api/email-templates");
+      const response = await GET(req);
+
+      expect(response.status).toBe(500);
+      const json = await response.json();
+      expect(json).toHaveProperty("error", "Failed to fetch email templates");
     });
   });
 
@@ -161,7 +183,7 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.data).toEqual({
+      expect(json).toEqual({
         ...mockTemplate,
         created_at: mockTemplate.created_at.toISOString(),
         updated_at: mockTemplate.updated_at.toISOString(),
@@ -182,18 +204,28 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(404);
       const json = await response.json();
-      expect(json).toHaveProperty("error");
+      expect(json).toHaveProperty("error", "Email template not found");
+    });
+
+    it("should handle database errors", async () => {
+      prismaMock.emailTemplate.findUnique.mockRejectedValueOnce(
+        new Error("Database error"),
+      );
+
+      const req = createRequest(`/api/email-templates/${mockTemplate.id}`);
+      const response = await GETById(req, { params: { id: mockTemplate.id } });
+
+      expect(response.status).toBe(500);
+      const json = await response.json();
+      expect(json).toHaveProperty("error", "Failed to retrieve email template");
     });
   });
 
   describe("PUT /api/email-templates/[id]", () => {
     it("should update an existing email template", async () => {
       const updatedData = {
-        name: "Updated Template",
         subject: "Updated Subject",
         content: "Updated Content",
-        type: "Updated Type",
-        email_type: "Updated Email Type",
       };
 
       const updatedTemplate = {
@@ -213,11 +245,17 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.data).toMatchObject({
+      expect(json).toHaveProperty(
+        "message",
+        "Email template updated successfully",
+      );
+      expect(json).toHaveProperty("template");
+      expect(json.template).toMatchObject({
         id: mockTemplate.id,
-        ...updatedData,
+        subject: updatedData.subject,
+        content: updatedData.content,
         created_at: mockTemplate.created_at.toISOString(),
-        updated_at: mockTemplate.updated_at.toISOString(),
+        updated_at: expect.any(String),
       });
 
       expect(prismaMock.emailTemplate.findUnique).toHaveBeenCalledWith({
@@ -226,14 +264,17 @@ describe("Email Templates API", () => {
 
       expect(prismaMock.emailTemplate.update).toHaveBeenCalledWith({
         where: { id: mockTemplate.id },
-        data: updatedData,
+        data: {
+          subject: updatedData.subject,
+          content: updatedData.content,
+          updated_at: expect.any(Date),
+        },
       });
     });
 
     it("should return 400 if required fields are missing", async () => {
       const incompleteData = {
-        name: "Incomplete Update",
-        // Missing required fields
+        // Missing required fields (subject, content)
       };
 
       const req = createRequestWithBody(
@@ -245,7 +286,51 @@ describe("Email Templates API", () => {
 
       expect(response.status).toBe(400);
       const json = await response.json();
-      expect(json).toHaveProperty("error");
+      expect(json).toHaveProperty("error", "Invalid input");
+      expect(json).toHaveProperty("details");
+    });
+
+    it("should return 404 for non-existent template", async () => {
+      const updatedData = {
+        subject: "Updated Subject",
+        content: "Updated Content",
+      };
+
+      prismaMock.emailTemplate.findUnique.mockResolvedValueOnce(null);
+
+      const req = createRequestWithBody(
+        "/api/email-templates/non-existent-id",
+        updatedData,
+        { method: "PUT" },
+      );
+      const response = await PUT(req, { params: { id: "non-existent-id" } });
+
+      expect(response.status).toBe(404);
+      const json = await response.json();
+      expect(json).toHaveProperty("error", "Email template not found");
+    });
+
+    it("should handle database errors", async () => {
+      const updatedData = {
+        subject: "Updated Subject",
+        content: "Updated Content",
+      };
+
+      prismaMock.emailTemplate.findUnique.mockResolvedValueOnce(mockTemplate);
+      prismaMock.emailTemplate.update.mockRejectedValueOnce(
+        new Error("Database error"),
+      );
+
+      const req = createRequestWithBody(
+        `/api/email-templates/${mockTemplate.id}`,
+        updatedData,
+        { method: "PUT" },
+      );
+      const response = await PUT(req, { params: { id: mockTemplate.id } });
+
+      expect(response.status).toBe(500);
+      const json = await response.json();
+      expect(json).toHaveProperty("error", "Failed to update email template");
     });
   });
 

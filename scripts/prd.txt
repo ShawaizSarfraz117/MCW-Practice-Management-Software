@@ -1,0 +1,104 @@
+# Notification Settings Product Requirements Document
+
+## Project Overview
+
+This project aims to implement comprehensive notification settings management for a healthcare practice management system. The system will allow users to manage email templates, text message templates, and client-specific reminder preferences.
+
+## Features
+
+### 1. Email Notification Settings
+
+**Description:**  
+Allows users to manage and preview email templates for automated notifications, reminders, and billing documents. Users can edit the subject and content of these templates, and toggle the preview functionality for reminder emails.
+
+**Requirements:**
+- Create a page for managing email templates at `/settings/notifications/email`
+- Allow filtering templates by type (automated, reminder, billing_document)
+- Implement an editor for modifying template subject and content
+- Add functionality to toggle the preview option for reminder emails
+- Include proper validation for email template content
+- Implement success and error notifications for user actions
+
+**API Requirements:**
+- GET `/api/email-templates` - Fetch all templates with optional type filtering
+- GET `/api/email-templates/:id` - Fetch a specific template
+- PUT `/api/email-templates/:id` - Update a template's subject and content
+- GET `/api/practice-settings` - Fetch practice settings including email preview toggle
+- PUT `/api/practice-settings` - Update practice settings
+
+**Database:**
+- Use EmailTemplate and PracticeSettings tables
+- Ensure proper relationships and constraints
+
+### 2. Text Message Notification Settings
+
+**Description:**  
+Manages text message templates for various reminder types (appointment, telehealth, document, cancellation). Users can add predefined macros and links to the message content and toggle the enablement of text reminders in practice settings.
+
+**Requirements:**
+- Create a page for managing text message templates at `/settings/notifications/text-messages`
+- Allow filtering templates by type (appointment, telehealth, document, cancellation)
+- Implement an editor with macro insertion functionality
+- Add character count display to ensure messages stay within SMS length limits
+- Implement toggle for enabling/disabling text reminders at the practice level
+- Include validation for text message content
+- Implement success and error notifications for user actions
+
+**API Requirements:**
+- GET `/api/reminder-text-templates` - Fetch all templates with optional type filtering
+- GET `/api/reminder-text-templates/:id` - Fetch a specific template
+- PUT `/api/reminder-text-templates/:id` - Update a template's content
+- GET `/api/practice-settings` - Fetch practice settings including text reminder enablement
+- PUT `/api/practice-settings` - Update practice settings
+
+**Database:**
+- Use ReminderTextTemplates and PracticeSettings tables
+- Ensure proper relationships and constraints
+
+### 3. Client Reminder Preferences
+
+**Description:**  
+Manages individual client's preferences for receiving various types of reminders (e.g., appointment, billing) and through which channels (e.g., email, text).
+
+**Requirements:**
+- Create a page for managing client reminder preferences at `/clients/:clientId/reminder-preferences`
+- Allow toggling of different reminder types per client
+- Enable selection of preferred communication channels based on available client contact information
+- Implement form validation for reminder preferences
+- Include success and error notifications for user actions
+
+**API Requirements:**
+- GET `/api/clients/:clientId/reminder-preferences` - Fetch client's reminder preferences
+- PUT `/api/clients/:clientId/reminder-preferences/:id` - Update a specific reminder preference
+
+**Database:**
+- Use ClientReminderPreference, Client, and ClientContact tables
+- Ensure proper relationships and constraints
+
+## Technical Requirements
+
+
+### Backend
+- Follow RESTful principles for endpoint design
+- Implement proper error handling and validation
+- Use NextAuth.js middleware for route protection
+- Use Prisma for database interactions
+- Ensure proper validation and sanitization of user inputs
+
+
+
+### Testing
+- Implement unit tests for API routes and utility functions
+- Add integration tests for critical user flows
+- Include UI component testing with appropriate test libraries
+
+
+## Dependencies
+- Next.js (App Router)
+- React Query
+- TanStack Form
+- Prisma
+- UI component library
+- Email template validator
+- Text message character counter
+- Macro insertion utility functions 
