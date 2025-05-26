@@ -49,9 +49,16 @@ export function useStepNavigation(teamMemberData: Partial<TeamMember>) {
   };
 
   const handleNext = () => {
-    setActiveStep((prevStep) =>
-      Math.min(visibleSteps.length - 1, prevStep + 1),
-    );
+    const nextStep = Math.min(visibleSteps.length - 1, activeStep + 1);
+
+    // Check if we're moving to the completion step
+    if (nextStep === visibleSteps.length - 1) {
+      console.log("=== MOVING TO COMPLETION STEP ===");
+      console.log("Complete Team Member Payload:", teamMemberData);
+      console.log("=====================================");
+    }
+
+    setActiveStep(nextStep);
   };
 
   const handleStepSubmit = (

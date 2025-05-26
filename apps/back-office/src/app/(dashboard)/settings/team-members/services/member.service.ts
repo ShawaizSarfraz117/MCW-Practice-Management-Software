@@ -140,26 +140,39 @@ export const useRoleDetails = (id: string) => {
 };
 
 export const createTeamMember = async ({ body = {} }) => {
+  console.log("createTeamMember called with:", body);
   try {
     const response: unknown = await FETCH.post({
       url: "/team-members",
       body,
       isFormData: false,
     });
-
-    return [response, null];
+    console.log("createTeamMember response:", response);
+    return response;
   } catch (error) {
-    return [null, error];
+    console.error("createTeamMember error:", error);
+    throw error;
   }
 };
 
-export const useCreateTeamMember = () => {
+export const useCreateTeamMember = (options?: {
+  onSuccess?: (data: unknown) => void;
+  onError?: (error: unknown) => void;
+}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: createTeamMember,
-    onSuccess: () => {
+    onSuccess: (data, _variables, _context) => {
+      console.log("Mutation hook onSuccess called with:", data);
       queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      // Call the custom onSuccess callback if provided
+      options?.onSuccess?.(data);
+    },
+    onError: (error, _variables, _context) => {
+      console.log("Mutation hook onError called with:", error);
+      // Call the custom onError callback if provided
+      options?.onError?.(error);
     },
   });
 };
