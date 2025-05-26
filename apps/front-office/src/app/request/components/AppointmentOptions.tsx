@@ -35,12 +35,12 @@ export function AppointmentOptions({ onSelect }: AppointmentOptionsProps) {
             <div>
               {option.image ? (
                 <Image
-                  src={option.image}
-                  alt={option.title}
-                  width={300}
-                  height={300}
-                  className="object-none"
                   priority
+                  alt={option.title}
+                  className="object-none"
+                  height={300}
+                  src={option.image}
+                  width={300}
                 />
               ) : (
                 <div className="w-full h-full bg-gray-200 rounded-lg" />
@@ -58,8 +58,8 @@ export function AppointmentOptions({ onSelect }: AppointmentOptionsProps) {
             )}
 
             <Button
-              variant="default"
               className="bg-green-700 hover:bg-green-800 text-white px-8 py-2 rounded-none"
+              variant="default"
               onClick={() => onSelect(option)}
             >
               SELECT

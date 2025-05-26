@@ -38,13 +38,6 @@ export function TimezoneModal({
   onUpdate,
   currentTimezone,
 }: TimezoneModalProps) {
-  if (!isOpen) return null;
-
-  const handleUpdate = () => {
-    onUpdate(currentTimezone);
-    onClose();
-  };
-
   const timezoneOptionsWithTime = useMemo(() => {
     const now = new Date();
 
@@ -64,6 +57,13 @@ export function TimezoneModal({
     });
   }, []);
 
+  if (!isOpen) return null;
+
+  const handleUpdate = () => {
+    onUpdate(currentTimezone);
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
@@ -73,20 +73,20 @@ export function TimezoneModal({
               Change timezone
             </h2>
             <button
-              onClick={onClose}
               className="text-gray-400 hover:text-gray-500"
+              onClick={onClose}
             >
               <svg
                 className="h-6 w-6"
                 fill="none"
-                viewBox="0 0 24 24"
                 stroke="currentColor"
+                viewBox="0 0 24 24"
               >
                 <path
+                  d="M6 18L18 6M6 6l12 12"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
             </button>
@@ -115,9 +115,9 @@ export function TimezoneModal({
                 viewBox="0 0 20 20"
               >
                 <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
                   clipRule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  fillRule="evenodd"
                 />
               </svg>
             </div>
@@ -125,14 +125,14 @@ export function TimezoneModal({
 
           <div className="flex justify-end gap-3">
             <button
-              onClick={onClose}
               className="px-4 py-2 text-gray-700 hover:text-gray-900 text-sm font-medium"
+              onClick={onClose}
             >
               CANCEL
             </button>
             <button
-              onClick={handleUpdate}
               className="px-4 py-2 bg-green-700 text-white rounded text-sm font-medium hover:bg-green-800"
+              onClick={handleUpdate}
             >
               UPDATE
             </button>

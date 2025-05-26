@@ -9,15 +9,16 @@ export default function LocationPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { appointmentData, onComplete, onUpdate } = useRequest();
+  const searchParamsObject = Object.fromEntries(searchParams.entries());
 
   return (
     <AppointmentStep
-      onComplete={onComplete}
-      initialData={appointmentData}
-      onUpdate={onUpdate}
       currentPath={pathname}
+      initialData={appointmentData}
       router={router}
-      searchParams={searchParams}
+      searchParams={searchParamsObject}
+      onComplete={onComplete}
+      onUpdate={onUpdate}
     />
   );
 }

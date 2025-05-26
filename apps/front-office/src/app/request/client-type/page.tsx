@@ -15,12 +15,12 @@ export default function ClientTypePage() {
 
   return (
     <AppointmentStep
-      onComplete={onComplete}
-      initialData={appointmentData}
-      onUpdate={onUpdate}
       currentPath={pathname}
+      initialData={appointmentData}
       router={router}
       searchParams={searchParamsObject}
+      onComplete={onComplete}
+      onUpdate={onUpdate}
     />
   );
 }

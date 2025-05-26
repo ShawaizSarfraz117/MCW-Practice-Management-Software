@@ -182,11 +182,11 @@ export default function InformationPage() {
             Legal first name
           </label>
           <Input
-            value={data.legalFirstName}
-            onChange={(e) => onChange("legalFirstName", e.target.value)}
             className={
               errors[`${prefix}_legalFirstName`] ? "border-red-500" : ""
             }
+            value={data.legalFirstName}
+            onChange={(e) => onChange("legalFirstName", e.target.value)}
           />
           {errors[`${prefix}_legalFirstName`] && (
             <p className="text-xs text-red-500">
@@ -200,11 +200,11 @@ export default function InformationPage() {
             Legal last name
           </label>
           <Input
-            value={data.legalLastName}
-            onChange={(e) => onChange("legalLastName", e.target.value)}
             className={
               errors[`${prefix}_legalLastName`] ? "border-red-500" : ""
             }
+            value={data.legalLastName}
+            onChange={(e) => onChange("legalLastName", e.target.value)}
           />
           {errors[`${prefix}_legalLastName`] && (
             <p className="text-xs text-red-500">
@@ -218,10 +218,10 @@ export default function InformationPage() {
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-900">Email</label>
           <Input
+            className={errors[`${prefix}_email`] ? "border-red-500" : ""}
             type="email"
             value={data.email}
             onChange={(e) => onChange("email", e.target.value)}
-            className={errors[`${prefix}_email`] ? "border-red-500" : ""}
           />
           {errors[`${prefix}_email`] && (
             <p className="text-xs text-red-500">{errors[`${prefix}_email`]}</p>
@@ -231,10 +231,10 @@ export default function InformationPage() {
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-900">Phone</label>
           <Input
+            className={errors[`${prefix}_phone`] ? "border-red-500" : ""}
             type="tel"
             value={data.phone}
             onChange={(e) => onChange("phone", e.target.value)}
-            className={errors[`${prefix}_phone`] ? "border-red-500" : ""}
           />
           {errors[`${prefix}_phone`] && (
             <p className="text-xs text-red-500">{errors[`${prefix}_phone`]}</p>
@@ -249,8 +249,8 @@ export default function InformationPage() {
         <Popover>
           <PopoverTrigger asChild>
             <Button
-              variant="outline"
               className={`w-full justify-start text-left font-normal ${!data.dateOfBirth && "text-muted-foreground"} ${errors[`${prefix}_dateOfBirth`] && "border-red-500"}`}
+              variant="outline"
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {data.dateOfBirth ? (
@@ -260,8 +260,10 @@ export default function InformationPage() {
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent align="start" className="w-auto p-0">
             <Calendar
+              initialFocus
+              disabled={(date) => date > new Date()}
               mode="single"
               selected={
                 data.dateOfBirth ? new Date(data.dateOfBirth) : undefined
@@ -269,8 +271,6 @@ export default function InformationPage() {
               onSelect={(date) =>
                 onChange("dateOfBirth", date ? date.toISOString() : "")
               }
-              disabled={(date) => date > new Date()}
-              initialFocus
             />
           </PopoverContent>
         </Popover>
@@ -341,21 +341,21 @@ export default function InformationPage() {
             <div className="space-y-4">
               <p className="text-sm text-gray-900">Is the client a minor?</p>
               <RadioGroup
+                className="flex space-x-4"
                 value={formData.clientInfo.isMinor ? "yes" : "no"}
                 onValueChange={(value: string) =>
                   handleClientInfoChange("isMinor", value === "yes")
                 }
-                className="flex space-x-4"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="minor-yes" />
-                  <label htmlFor="minor-yes" className="text-sm font-medium">
+                  <RadioGroupItem id="minor-yes" value="yes" />
+                  <label className="text-sm font-medium" htmlFor="minor-yes">
                     Yes
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="minor-no" />
-                  <label htmlFor="minor-no" className="text-sm font-medium">
+                  <RadioGroupItem id="minor-no" value="no" />
+                  <label className="text-sm font-medium" htmlFor="minor-no">
                     No
                   </label>
                 </div>
@@ -382,9 +382,9 @@ export default function InformationPage() {
 
       <div className="flex justify-end">
         <Button
-          onClick={handleSubmit}
-          variant="default"
           className="rounded-none bg-green-700 hover:bg-green-800"
+          variant="default"
+          onClick={handleSubmit}
         >
           REQUEST APPOINTMENT
         </Button>

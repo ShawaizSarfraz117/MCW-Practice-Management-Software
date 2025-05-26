@@ -12,7 +12,7 @@ export default function RequestLayout({
       {/* Header */}
       <div className="border-b bg-white">
         <div className="container mx-auto px-4 py-6">
-          <Link href="/" className="text-2xl font-serif text-gray-900">
+          <Link className="text-2xl font-serif text-gray-900" href="/">
             Alam Naqvi
           </Link>
         </div>

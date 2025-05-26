@@ -137,6 +137,7 @@ export function AppointmentScheduling({
             <div className="flex items-center justify-between p-4 border-b">
               <button
                 className="text-gray-600"
+                disabled={isBefore(monthStart, today)}
                 onClick={() =>
                   setCurrentMonth(
                     new Date(
@@ -144,18 +145,17 @@ export function AppointmentScheduling({
                     ),
                   )
                 }
-                disabled={isBefore(monthStart, today)}
               >
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
                   className={`h-5 w-5 ${isBefore(monthStart, today) ? "text-gray-300" : ""}`}
-                  viewBox="0 0 20 20"
                   fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    fillRule="evenodd"
-                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
                     clipRule="evenodd"
+                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                    fillRule="evenodd"
                   />
                 </svg>
               </button>
@@ -173,15 +173,15 @@ export function AppointmentScheduling({
                 }
               >
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
                   className="h-5 w-5"
-                  viewBox="0 0 20 20"
                   fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    fillRule="evenodd"
-                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
                     clipRule="evenodd"
+                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    fillRule="evenodd"
                   />
                 </svg>
               </button>
@@ -220,7 +220,6 @@ export function AppointmentScheduling({
                   return (
                     <button
                       key={i}
-                      onClick={() => setSelectedDate(date)}
                       className={`
                         p-2 text-center text-sm rounded relative
                         ${!isCurrentMonth || isPastDate || isFutureDisabled ? "text-gray-300 cursor-not-allowed" : "text-gray-700"}
@@ -229,20 +228,21 @@ export function AppointmentScheduling({
                         ${!isDisabled ? "hover:bg-gray-100" : ""}
                       `}
                       disabled={isDisabled}
+                      onClick={() => setSelectedDate(date)}
                     >
                       {format(date, "d")}
                       {_isToday && (
                         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                           <svg
-                            xmlns="http://www.w3.org/2000/svg"
                             className="h-4 w-4 text-gray-400"
-                            viewBox="0 0 20 20"
                             fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
                           >
                             <path
-                              fillRule="evenodd"
-                              d="M5 2a1 1 0 011 1v1h8V3a1 1 0 112 0v1h1a2 2 0 012 2v11a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2h1V3a1 1 0 011-1zm11 14V6H4v10h12z"
                               clipRule="evenodd"
+                              d="M5 2a1 1 0 011 1v1h8V3a1 1 0 112 0v1h1a2 2 0 012 2v11a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2h1V3a1 1 0 011-1zm11 14V6H4v10h12z"
+                              fillRule="evenodd"
                             />
                           </svg>
                         </div>
@@ -282,8 +282,8 @@ export function AppointmentScheduling({
                     .map((slot) => (
                       <div key={slot.time} className="flex justify-center">
                         <button
-                          onClick={() => handleTimeSelect(slot)}
                           className="bg-green-100 hover:bg-green-700 hover:text-white text-green-700 py-2 rounded-full text-sm w-full"
+                          onClick={() => handleTimeSelect(slot)}
                         >
                           {slot.time}
                         </button>
@@ -301,10 +301,10 @@ export function AppointmentScheduling({
       </div>
 
       <TimezoneModal
+        currentTimezone={currentTimezone}
         isOpen={isTimezoneModalOpen}
         onClose={() => setIsTimezoneModalOpen(false)}
         onUpdate={handleTimezoneUpdate}
-        currentTimezone={currentTimezone}
       />
     </div>
   );

@@ -74,8 +74,8 @@ export default function ClientDocuments() {
           </div>
           <div className="mt-12 flex justify-end">
             <Button
-              size="lg"
               className="bg-green-600 hover:bg-green-700 text-white px-8"
+              size="lg"
               onClick={() => setShowWelcome(false)}
             >
               GET STARTED

@@ -33,18 +33,18 @@ export const AppointmentFor: FC<AppointmentForProps> = ({ onSelect }) => {
       </p>
 
       <RadioGroup
+        className="space-y-4"
         value={selectedOption || ""}
         onValueChange={(value) =>
           setSelectedOption(value as typeof selectedOption)
         }
-        className="space-y-4"
       >
         {options.map((option) => (
           <div key={option.value} className="flex items-center space-x-3">
-            <RadioGroupItem value={option.value} id={option.value} />
+            <RadioGroupItem id={option.value} value={option.value} />
             <label
-              htmlFor={option.value}
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              htmlFor={option.value}
             >
               {option.label}
             </label>
@@ -54,10 +54,10 @@ export const AppointmentFor: FC<AppointmentForProps> = ({ onSelect }) => {
 
       <div className="flex justify-end pt-6">
         <Button
-          onClick={handleSelect}
+          className="rounded-none bg-green-700 hover:bg-green-800"
           disabled={!selectedOption}
           variant="default"
-          className="rounded-none bg-green-700 hover:bg-green-800"
+          onClick={handleSelect}
         >
           NEXT
         </Button>

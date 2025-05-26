@@ -87,13 +87,13 @@ export default function MessagePage() {
             <div key={reason} className="flex items-start space-x-3">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`reason-${reason}`}
                   checked={selectedReasons.includes(reason)}
+                  id={`reason-${reason}`}
                   onCheckedChange={() => handleReasonChange(reason)}
                 />
                 <label
-                  htmlFor={`reason-${reason}`}
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  htmlFor={`reason-${reason}`}
                 >
                   {reason}
                 </label>
@@ -114,13 +114,13 @@ export default function MessagePage() {
             <div key={option} className="flex items-start space-x-3">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`history-${option}`}
                   checked={history.includes(option)}
+                  id={`history-${option}`}
                   onCheckedChange={() => handleHistoryChange(option)}
                 />
                 <label
-                  htmlFor={`history-${option}`}
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  htmlFor={`history-${option}`}
                 >
                   {option}
                 </label>
@@ -140,11 +140,11 @@ export default function MessagePage() {
           questions, etc.
         </p>
         <Textarea
+          maxLength={600}
+          placeholder="Enter any additional information..."
+          rows={4}
           value={additionalInfo}
           onChange={(e) => setAdditionalInfo(e.target.value)}
-          maxLength={600}
-          rows={4}
-          placeholder="Enter any additional information..."
         />
         <p className="text-sm text-gray-500">Limited to 600 characters</p>
       </div>
@@ -160,7 +160,7 @@ export default function MessagePage() {
 
       {/* Navigation Buttons */}
       <div className="flex justify-end space-x-4">
-        <Button onClick={handleSkip} variant="default" className="rounded-none">
+        <Button className="rounded-none" variant="default" onClick={handleSkip}>
           Skip
         </Button>
       </div>

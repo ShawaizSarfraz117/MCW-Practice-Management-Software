@@ -11,11 +11,11 @@ export function Footer() {
               McNulty Counseling and Wellness
             </h3>
             <p>
-              <a href="tel:7273449867" className="hover:text-gray-400">
+              <a className="hover:text-gray-400" href="tel:7273449867">
                 727.344.9867
               </a>{" "}
               |{" "}
-              <Link href="#" className="hover:text-gray-400">
+              <Link className="hover:text-gray-400" href="#">
                 Contact
               </Link>
             </p>
@@ -23,7 +23,7 @@ export function Footer() {
           </div>
 
           {/* Divider Line */}
-          <div className="hidden md:block h-20 w-px bg-gray-500 mx-8"></div>
+          <div className="hidden md:block h-20 w-px bg-gray-500 mx-8" />
 
           {/* Middle: Location Info */}
           <div className="space-y-2">
@@ -40,23 +40,23 @@ export function Footer() {
         <div className="flex flex-col md:flex-row justify-evenly sm:items-start md:items-center md:text-left md:space-y-0 text-sm text-center  space-y-2 mt-12">
           <p className="font-medium">Powered By SimpléPractice</p>
           <div className="flex flex-wrap justify-center  gap-x-4 gap-y-1 text-gray-400">
-            <Link href="/" className="hover:text-gray-400">
+            <Link className="hover:text-gray-400" href="/">
               Privacy
             </Link>
             -
-            <Link href="/" className="hover:text-gray-400">
+            <Link className="hover:text-gray-400" href="/">
               Terms
             </Link>
             -
-            <Link href="/" className="hover:text-gray-400">
+            <Link className="hover:text-gray-400" href="/">
               License Agreement
             </Link>
             -
-            <Link href="/" className="hover:text-gray-400">
+            <Link className="hover:text-gray-400" href="/">
               Help Center
             </Link>
             -
-            <Link href="/" className="hover:text-gray-400">
+            <Link className="hover:text-gray-400" href="/">
               Cookies
             </Link>
           </div>

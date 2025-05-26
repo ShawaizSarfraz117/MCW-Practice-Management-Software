@@ -112,8 +112,8 @@ export default function RequestContent({
     <div className="flex gap-12">
       {/* Left Side - Stepper */}
       <Stepper
-        steps={steps}
         currentStep={currentStep}
+        steps={steps}
         onStepClick={handleStepClick}
       />
 
@@ -123,7 +123,7 @@ export default function RequestContent({
         <div className="bg-gray-100 p-4 rounded mb-8">
           <p className="text-gray-700">
             Already a client? To request an appointment,{" "}
-            <Link href="/login" className="text-green-700 hover:underline">
+            <Link className="text-green-700 hover:underline" href="/login">
               Sign In
             </Link>
           </p>

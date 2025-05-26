@@ -233,8 +233,8 @@ export const AppointmentStep: FC<AppointmentStepProps> = ({
                   </p>
                 </div>
                 <button
-                  onClick={() => handleServiceSelect(service)}
                   className="px-6 py-2 bg-green-700 rounded-none text-white font-medium rounded-lg hover:bg-green-700"
+                  onClick={() => handleServiceSelect(service)}
                 >
                   SELECT
                 </button>

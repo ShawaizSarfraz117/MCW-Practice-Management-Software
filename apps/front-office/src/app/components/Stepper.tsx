@@ -55,8 +55,8 @@ const StepperComponent: FC<StepperProps> = ({
           <div className="text-green-600 space-y-1">
             {step.summary.service && (
               <button
-                onClick={() => onStepClick?.(1, "service")}
                 className="block text-left w-full hover:text-green-700"
+                onClick={() => onStepClick?.(1, "service")}
               >
                 <div className="font-medium">{step.summary.service.title}</div>
                 <div>{step.summary.service.duration}</div>
@@ -64,10 +64,10 @@ const StepperComponent: FC<StepperProps> = ({
             )}
             {step.summary.office && (
               <button
+                className={`block text-left w-full ${step.summary.service ? "hover:text-green-700" : ""}`}
                 onClick={() =>
                   step.summary?.service && onStepClick?.(1, "office")
                 }
-                className={`block text-left w-full ${step.summary.service ? "hover:text-green-700" : ""}`}
               >
                 <div>{step.summary.office.name}</div>
                 <div>{step.summary.office.phone}</div>
@@ -75,12 +75,12 @@ const StepperComponent: FC<StepperProps> = ({
             )}
             {step.summary.dateTime && (
               <button
+                className={`block text-left w-full ${step.summary.service && step.summary.office ? "hover:text-green-700" : ""}`}
                 onClick={() =>
                   step.summary?.service &&
                   step.summary?.office &&
                   onStepClick?.(1, "datetime")
                 }
-                className={`block text-left w-full ${step.summary.service && step.summary.office ? "hover:text-green-700" : ""}`}
               >
                 <div>{step.summary.dateTime}</div>
               </button>
@@ -150,8 +150,8 @@ const StepperComponent: FC<StepperProps> = ({
         {steps.map((step, index) => (
           <div key={step.id} className="flex flex-col shrink-0">
             <button
-              onClick={() => step.isCompleted && onStepClick?.(step.id)}
               className={`flex items-center gap-3 ${step.isCompleted ? "cursor-pointer" : "cursor-default"}`}
+              onClick={() => step.isCompleted && onStepClick?.(step.id)}
             >
               <div
                 className={`
