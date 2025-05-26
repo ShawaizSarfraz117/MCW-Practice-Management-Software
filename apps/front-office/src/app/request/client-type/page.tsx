@@ -10,6 +10,9 @@ export default function ClientTypePage() {
   const searchParams = useSearchParams();
   const { appointmentData, onComplete, onUpdate } = useRequest();
 
+  // Convert searchParams to Record<string, string>
+  const searchParamsObject = Object.fromEntries(searchParams.entries());
+
   return (
     <AppointmentStep
       onComplete={onComplete}
@@ -17,7 +20,7 @@ export default function ClientTypePage() {
       onUpdate={onUpdate}
       currentPath={pathname}
       router={router}
-      searchParams={searchParams}
+      searchParams={searchParamsObject}
     />
   );
 }
