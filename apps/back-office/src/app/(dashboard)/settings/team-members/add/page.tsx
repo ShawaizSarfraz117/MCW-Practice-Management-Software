@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@mcw/ui";
 import PersonalInfoForm, {
   PersonalInfoFormRef,
@@ -17,15 +17,15 @@ import RoleInfoForm, {
 import CompletionStep from "../components/AddTeamMember/CompletionStep";
 import TeamMemberSummary from "./components/TeamMemberSummary";
 import { TeamMember } from "../hooks/useRolePermissions";
+import { useStepNavigation } from "../hooks/useStepNavigation";
 
 export default function AddTeamMemberPage() {
-  const [activeStep, setActiveStep] = useState(0);
   const [teamMemberData, setTeamMemberData] = useState<Partial<TeamMember>>({
     firstName: "",
     lastName: "",
     email: "",
-    roles: [], // Initialize with empty array
-    clinicianLevel: "Basic", // Initialize with default clinician level
+    roles: [],
+    clinicianLevel: "Basic",
     services: [],
     license: {
       type: "",
@@ -35,8 +35,16 @@ export default function AddTeamMemberPage() {
     },
   });
 
-  // Track whether roles have been submitted (step 2 completed)
-  const [rolesSubmitted, setRolesSubmitted] = useState(false);
+  const {
+    activeStep,
+    visibleSteps,
+    getActualStepIndex,
+    handleBack,
+    handleNext,
+    handleStepSubmit,
+    isCompletionStep,
+    isLastFormStep,
+  } = useStepNavigation(teamMemberData);
 
   // Refs to trigger form submissions
   const personalFormRef = useRef<PersonalInfoFormRef>(null);
@@ -44,136 +52,27 @@ export default function AddTeamMemberPage() {
   const clinicalFormRef = useRef<ClinicalInfoFormRef>(null);
   const licenseFormRef = useRef<LicenseInfoFormRef>(null);
 
-  // Helper function to check if Clinician role is selected
-  const isClinicianSelected = () => {
-    return teamMemberData.roles?.includes("Clinician") || false;
-  };
-
-  // All possible steps
-  const allSteps = [
-    {
-      label: "Personal Info",
-      description: "Basic information",
-      key: "personal",
-    },
-    {
-      label: "Role & Permissions",
-      description: "Access control",
-      key: "roles",
-    },
-    {
-      label: "Clinical Info",
-      description: "Specialty details",
-      key: "clinical",
-    },
-    { label: "License", description: "Licensing information", key: "license" },
-    {
-      label: "Confirmation",
-      description: "Review and save",
-      key: "confirmation",
-    },
-  ];
-
-  // Get visible steps based on selected roles - only after roles are submitted
-  const visibleSteps = useMemo(() => {
-    console.log("Calculating visible steps, roles:", teamMemberData.roles);
-    console.log("Roles submitted:", rolesSubmitted);
-    console.log("Is clinician selected:", isClinicianSelected());
-
-    // If roles haven't been submitted yet, show all steps (don't skip anything)
-    if (!rolesSubmitted) {
-      console.log("Roles not submitted yet, showing all steps");
-      return allSteps;
-    }
-
-    // After roles are submitted, determine which steps to show
-    if (isClinicianSelected()) {
-      console.log("Showing all steps (clinician selected)");
-      return allSteps; // Show all steps if Clinician is selected
-    } else {
-      console.log("Skipping clinical steps (no clinician role)");
-      // Skip Clinical Info and License steps if Clinician is not selected
-      return allSteps.filter(
-        (step) => step.key !== "clinical" && step.key !== "license",
-      );
-    }
-  }, [teamMemberData.roles, rolesSubmitted]); // Recalculate when roles change OR when roles are submitted
-
-  // Handle step adjustment when roles change
-  useEffect(() => {
-    // If we're currently on a step that's no longer visible, move to the confirmation step
-    if (activeStep >= visibleSteps.length) {
-      setActiveStep(visibleSteps.length - 1); // Move to confirmation step
-    }
-  }, [visibleSteps, activeStep]);
-
-  // Map visible step index to actual step index
-  const getActualStepIndex = (visibleIndex: number) => {
-    const visibleStep = visibleSteps[visibleIndex];
-    return allSteps.findIndex((step) => step.key === visibleStep.key);
-  };
-
-  // // Ensure roles is always an array
-  // const roles = useMemo(() => {
-  //   return Array.isArray(teamMemberData.roles)
-  //     ? teamMemberData.roles
-  //     : teamMemberData.role
-  //       ? [teamMemberData.role]
-  //       : [];
-  // }, [teamMemberData.roles, teamMemberData.role]);
-
-  const handleBack = () => {
-    setActiveStep((prevStep) => Math.max(0, prevStep - 1));
-  };
-
-  const handleNext = () => {
-    setActiveStep((prevStep) =>
-      Math.min(visibleSteps.length - 1, prevStep + 1),
-    );
-  };
-
-  const handleStepSubmit = (data: Partial<TeamMember>) => {
+  const updateTeamMemberData = (data: Partial<TeamMember>) => {
     setTeamMemberData((prev) => ({ ...prev, ...data }));
-
-    // If this is the role submission (step 1), check if we need to skip steps
-    if (activeStep === 1) {
-      setRolesSubmitted(true);
-
-      // Check if clinician role is selected in the submitted data
-      const hasClinicianRole = data.roles?.includes("Clinician") || false;
-
-      if (hasClinicianRole) {
-        // Clinician selected - proceed to next step (Clinical Info)
-        handleNext();
-      } else {
-        // No clinician role - skip to confirmation step
-        // Find the confirmation step index in the filtered steps
-        const confirmationStepIndex =
-          allSteps.filter(
-            (step) => step.key !== "clinical" && step.key !== "license",
-          ).length - 1;
-        setActiveStep(confirmationStepIndex);
-      }
-    } else {
-      // For all other steps, just proceed normally
-      handleNext();
-    }
   };
 
-  // Handle Next button click - trigger form submission based on actual step
+  const onStepSubmit = (data: Partial<TeamMember>) => {
+    handleStepSubmit(data, updateTeamMemberData);
+  };
+
   const handleNextClick = () => {
     const actualStepIndex = getActualStepIndex(activeStep);
     switch (actualStepIndex) {
-      case 0: // Personal Info
+      case 0:
         personalFormRef.current?.submitForm();
         break;
-      case 1: // Role & Permissions
+      case 1:
         roleFormRef.current?.submitForm();
         break;
-      case 2: // Clinical Info
+      case 2:
         clinicalFormRef.current?.submitForm();
         break;
-      case 3: // License
+      case 3:
         licenseFormRef.current?.submitForm();
         break;
       default:
@@ -181,48 +80,46 @@ export default function AddTeamMemberPage() {
     }
   };
 
-  // Just move to the final step, no API call
   const handleFinish = () => {
-    // Go to completion step
     handleNext();
   };
 
   const renderStepContent = () => {
     const actualStepIndex = getActualStepIndex(activeStep);
     switch (actualStepIndex) {
-      case 0: // Personal Info
+      case 0:
         return (
           <PersonalInfoForm
             ref={personalFormRef}
             initialData={teamMemberData}
-            onSubmit={handleStepSubmit}
+            onSubmit={onStepSubmit}
           />
         );
-      case 1: // Role & Permissions
+      case 1:
         return (
           <RoleInfoForm
             ref={roleFormRef}
             initialData={teamMemberData}
-            onSubmit={handleStepSubmit}
+            onSubmit={onStepSubmit}
           />
         );
-      case 2: // Clinical Info
+      case 2:
         return (
           <ClinicalInfoForm
             ref={clinicalFormRef}
             initialData={teamMemberData}
-            onSubmit={handleStepSubmit}
+            onSubmit={onStepSubmit}
           />
         );
-      case 3: // License
+      case 3:
         return (
           <LicenseInfoForm
             ref={licenseFormRef}
             initialData={teamMemberData}
-            onSubmit={handleStepSubmit}
+            onSubmit={onStepSubmit}
           />
         );
-      case 4: // Confirmation
+      case 4:
         return (
           <CompletionStep
             teamMemberData={teamMemberData}
@@ -234,13 +131,6 @@ export default function AddTeamMemberPage() {
     }
   };
 
-  // Calculate if this is the final confirmation step
-  const isCompletionStep = activeStep === visibleSteps.length - 1;
-
-  // Determine if this is the last form step (before confirmation)
-  const isLastFormStep = activeStep === visibleSteps.length - 2;
-
-  // Determine button text based on active step
   const getButtonText = () => {
     if (isLastFormStep) return "Submit";
     return "Next";
@@ -248,7 +138,6 @@ export default function AddTeamMemberPage() {
 
   return (
     <section className="w-full max-w-7xl mx-auto pt-2 pb-8 px-2 md:px-8">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">
           Add Team Member
@@ -260,9 +149,7 @@ export default function AddTeamMemberPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            {/* Form Content */}
             <div className="p-6">
-              {/* Add a title for the current step */}
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
                   {visibleSteps[activeStep].label}
@@ -271,11 +158,8 @@ export default function AddTeamMemberPage() {
                   {visibleSteps[activeStep].description}
                 </p>
               </div>
-
               {renderStepContent()}
             </div>
-
-            {/* Footer */}
             {!isCompletionStep && (
               <div className="px-6 py-4 border-t flex justify-between">
                 <Button
@@ -299,8 +183,8 @@ export default function AddTeamMemberPage() {
           </div>
         </div>
         <TeamMemberSummary
-          teamMemberData={teamMemberData}
           isHidden={isCompletionStep}
+          teamMemberData={teamMemberData}
         />
       </div>
     </section>
