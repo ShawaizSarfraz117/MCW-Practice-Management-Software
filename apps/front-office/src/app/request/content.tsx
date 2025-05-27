@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { Stepper, type Step } from "../components/Stepper";
 import { useRequest } from "./context";
@@ -12,7 +12,6 @@ export default function RequestContent({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { appointmentData, currentStep, onUpdate } = useRequest();
 
   const steps: Step[] = [
@@ -92,13 +91,7 @@ export default function RequestContent({
         router.push("/request/location");
         onUpdate?.({ office: undefined, dateTime: undefined });
       } else if (section === "datetime") {
-        const currentDate = searchParams.get("currentDate");
-        const currentTimeZone = searchParams.get("currentTimeZone");
-        const query =
-          currentDate && currentTimeZone
-            ? `?currentDate=${currentDate}&currentTimeZone=${currentTimeZone}`
-            : "";
-        router.push(`/request/date${query}`);
+        router.push("/request/date");
         onUpdate?.({ dateTime: undefined });
       }
     } else if (stepId === 2) {
