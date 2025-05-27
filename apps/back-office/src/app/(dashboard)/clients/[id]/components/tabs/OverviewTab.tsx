@@ -7,7 +7,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@mcw/ui";
-import { Bold, Italic, List, ListOrdered, LinkIcon } from "lucide-react";
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  LinkIcon,
+  ChevronDown,
+} from "lucide-react";
 import { useState } from "react";
 import { fetchAppointments } from "@/(dashboard)/clients/services/client.service";
 import { useQuery } from "@tanstack/react-query";
@@ -15,7 +22,14 @@ import { DateRangePicker } from "@mcw/ui";
 import { DateRange } from "react-day-picker";
 import Loading from "@/components/Loading";
 import { format } from "date-fns";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@mcw/ui";
+
 // Type definitions
 type Appointment = {
   id: string;
@@ -25,13 +39,15 @@ type Appointment = {
   title?: string;
 };
 
-export default function OverviewTab() {
+export default function OverviewTab({ clientName }: { clientName: string }) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(2025, 0, 8), // Jan 8, 2025
     to: new Date(2025, 8, 6), // Feb 6, 2025
   });
   const params = useParams();
   const [filterType, setFilterType] = useState("all");
+  const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const { data, isLoading } = useQuery({
     queryKey: ["appointments", dateRange, params.id],
@@ -102,7 +118,63 @@ export default function OverviewTab() {
             </SelectContent>
           </Select>
         </div>
-        <Button className="bg-[#2d8467] hover:bg-[#236c53]">New</Button>
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button className="bg-[#2d8467] hover:bg-[#236c53] flex items-center gap-1">
+              New
+              <ChevronDown
+                className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+              />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem
+              onSelect={() =>
+                router.push(
+                  `/clients/${params.id}/diagnosisAndTreatmentPlan?clientName=${encodeURIComponent(clientName)}`,
+                )
+              }
+            >
+              Diagnosis and treatment plan
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() =>
+                router.push(
+                  `/clients/${params.id}/goodFaithEstimate?clientName=${encodeURIComponent(clientName)}`,
+                )
+              }
+            >
+              Good faith estimate
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() =>
+                router.push(
+                  `/clients/${params.id}/mentalStatusExam?clientName=${encodeURIComponent(clientName)}`,
+                )
+              }
+            >
+              Mental Status Exam
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() =>
+                router.push(
+                  `/clients/${params.id}/scoredMeasure?clientName=${encodeURIComponent(clientName)}`,
+                )
+              }
+            >
+              Scored Measure
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() =>
+                router.push(
+                  `/clients/${params.id}/otherDocuments?clientName=${encodeURIComponent(clientName)}`,
+                )
+              }
+            >
+              Other document
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Timeline */}
