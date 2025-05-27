@@ -717,6 +717,59 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
+// PATCH - Update client status
+export async function PATCH(request: NextRequest) {
+  try {
+    const data = await request.json();
+    const { id, status } = data;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Client ID is required" },
+        { status: 400 },
+      );
+    }
+
+    if (status === undefined) {
+      return NextResponse.json(
+        { error: "Status is required" },
+        { status: 400 },
+      );
+    }
+
+    // Check if client exists
+    const existingClient = await prisma.client.findUnique({
+      where: { id },
+    });
+
+    if (!existingClient) {
+      return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    // Update client status
+    const updatedClient = await prisma.client.update({
+      where: { id },
+      data: {
+        is_active: status === "active",
+      },
+    });
+
+    return NextResponse.json({
+      message: "Client status updated successfully",
+      client: updatedClient,
+    });
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error(String(error)),
+      "Error updating client status",
+    );
+    return NextResponse.json(
+      { error: "Failed to update client status" },
+      { status: 500 },
+    );
+  }
+}
+
 async function createClientReminderPreferences(
   prisma: Omit<
     PrismaClient,
