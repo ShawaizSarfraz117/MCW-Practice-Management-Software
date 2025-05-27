@@ -8,7 +8,7 @@ export default function ClientProfilePage({
   params: { id: string };
 }) {
   return (
-    <div className="px-4 py-8 w-full max-w-6xl mx-auto">
+    <div className="flex-1 overflow-auto">
       {/* <TopBar /> Removed */}
       <ClientProfile clientId={params.id} />
     </div>
