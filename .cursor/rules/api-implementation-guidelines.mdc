@@ -354,6 +354,12 @@ These guidelines are applicable to all applications within the `apps/` directory
 *   **Type Safety (Avoid `any`):** Strictly adhere to TypeScript best practices, especially `catch (error: unknown)`.
 *   **Code Consistency:** Refer to existing well-structured API routes as a template.
 
+### 9.For each endpoint created:
+   - All tests must:
+     * Run in isolated transactions using `prisma.$transaction`
+     * Include proper cleanup
+     * Verify response types with `expect().toMatchType<>()`
+
 By following these generalized guidelines, developers can create consistent, maintainable, and robust API routes across different applications in the monorepo. Always ensure thorough testing of API endpoints.
 
 

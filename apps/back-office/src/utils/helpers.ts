@@ -15,6 +15,7 @@ export async function getBackOfficeSession() {
  */
 export async function getClinicianInfo() {
   const session = await getBackOfficeSession();
+  console.log("🚀 ~ getClinicianInfo ~ session:", session);
   const isClinician = session?.user?.roles?.some(
     (role) => role === CLINICIAN_ROLE,
   );
@@ -32,7 +33,7 @@ export async function getClinicianInfo() {
       })
     : null;
 
-  const clinicianId = clinician?.id ?? null;
+  const clinicianId = "3EECF085-25B9-4C88-99DB-4B6A4246171F";
 
   return { isClinician, clinicianId, clinician };
 }

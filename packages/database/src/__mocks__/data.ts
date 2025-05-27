@@ -26,6 +26,8 @@ import {
   registerScalarFieldValueGenerator,
   defineEmailTemplateFactory,
   defineBillingSettingsFactory,
+  defineAppointmentRequestsFactory,
+  defineRequestContactItemsFactory,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcrypt";
@@ -52,6 +54,8 @@ import {
   EmailTemplate,
   Product,
   ClinicianLocation,
+  AppointmentRequests,
+  RequestContactItems,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { BillingSettings } from "../types/billing.js";
@@ -658,3 +662,72 @@ export const BillingSettingsPrismaFactory = defineBillingSettingsFactory({
     };
   },
 });
+
+// AppointmentRequests factory for generating mock data
+export const AppointmentRequestsFactory = {
+  build: <T extends Partial<AppointmentRequests>>(overrides: T = {} as T) => {
+    const startTime = faker.date.future();
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+
+    return {
+      id: faker.string.uuid(),
+      clinician_id: faker.string.uuid(),
+      client_id: faker.helpers.maybe(() => faker.string.uuid(), {
+        probability: 0.7,
+      }),
+      service_id: faker.string.uuid(),
+      appointment_for: faker.helpers.arrayElement([
+        "individual",
+        "couple",
+        "family",
+      ]),
+      reasons_for_seeking_care: faker.lorem.paragraph(),
+      mental_health_history: faker.lorem.paragraph(),
+      additional_notes: faker.lorem.sentence(),
+      start_time: startTime,
+      end_time: endTime,
+      status: faker.helpers.arrayElement(["pending", "accepted", "archived"]),
+      received_date: faker.date.recent(),
+      updated_at: faker.date.recent(),
+      ...overrides,
+    };
+  },
+};
+
+// AppointmentRequests Prisma factory
+export const AppointmentRequestsPrismaFactory =
+  defineAppointmentRequestsFactory({
+    defaultData: () => ({
+      ...AppointmentRequestsFactory.build(),
+      PracticeService: PracticeServicePrismaFactory,
+    }),
+  });
+
+// RequestContactItems factory for generating mock data
+export const RequestContactItemsFactory = {
+  build: <T extends Partial<RequestContactItems>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    appointment_request_id: faker.string.uuid(),
+    type: faker.helpers.arrayElement(["individual", "couple", "family"]),
+    first_name: faker.person.firstName(),
+    last_name: faker.person.lastName(),
+    preferred_name: faker.helpers.maybe(() => faker.person.firstName()),
+    date_of_birth: faker.helpers.maybe(() => faker.date.past()),
+    email: faker.internet.email(),
+    phone: faker.phone.number(),
+    payment_method: faker.helpers.maybe(() =>
+      faker.helpers.arrayElement(["credit_card", "insurance", "cash"]),
+    ),
+    is_client_minor: faker.helpers.maybe(() => faker.datatype.boolean()),
+    ...overrides,
+  }),
+};
+
+// RequestContactItems Prisma factory
+export const RequestContactItemsPrismaFactory =
+  defineRequestContactItemsFactory({
+    defaultData: () => ({
+      ...RequestContactItemsFactory.build(),
+      AppointmentRequests: AppointmentRequestsPrismaFactory,
+    }),
+  });
