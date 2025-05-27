@@ -856,3 +856,15 @@ model RequestContactItems {
   is_client_minor        Boolean?
   AppointmentRequests    AppointmentRequests @relation(fields: [appointment_request_id], references: [id], onUpdate: NoAction, map: "FK_RequestContactItems_AppointmentRequests")
 }
+
+model ClientPortalPermission {
+  id               String   @id @default(dbgenerated("newid()"), map: "PK_ClientPortalPermission_ID") @db.UniqueIdentifier
+  startTime        String   @db.VarChar(5)
+  endTime          String   @db.VarChar(5)
+  weeklyDisplay    String   @db.VarChar(50)
+  cancellationHours Int?    @db.Int
+  createdAt        DateTime @default(now(), map: "DF_ClientPortalPermission_CreatedAt")
+  updatedAt        DateTime @updatedAt
+
+  @@map("ClientPortalPermission")
+}
