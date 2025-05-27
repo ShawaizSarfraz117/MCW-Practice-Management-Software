@@ -29,7 +29,7 @@ export default function ScoredMeasure() {
   const [time, setTime] = useState("07:00");
 
   return (
-    <div className="p-6">
+    <div className="px-4 py-8 w-full max-w-6xl mx-auto">
       {/* Breadcrumb and Message Button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
         <div className="text-sm text-gray-500 flex flex-wrap items-center gap-1">
