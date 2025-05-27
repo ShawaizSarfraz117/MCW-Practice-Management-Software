@@ -77,7 +77,6 @@ interface AppointmentStepProps {
   router: {
     push: (path: string) => void;
   };
-  searchParams: Record<string, string>;
 }
 
 const SERVICES: AppointmentService[] = [
