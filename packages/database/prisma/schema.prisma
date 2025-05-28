@@ -187,6 +187,7 @@ model ClientGroup {
   Invoice                        Invoice[]
   Statement                      Statement[]
   Superbill                      Superbill[]
+  ClientGroupChartNote           ClientGroupChartNote[]
 }
 
 model ClientGroupMembership {
@@ -202,6 +203,16 @@ model ClientGroupMembership {
 
   @@id([client_group_id, client_id], map: "PK_ClientGroupMembership_ID")
   @@index([client_id], map: "IX_ClientGroupMembership_client_id")
+}
+
+model ClientGroupChartNote {
+  id                 String        @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  text               String        @db.Text
+  client_group_id    String        @db.UniqueIdentifier
+  note_date          DateTime      @default(now())
+  ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupChartNote_ClientGroup")
+
+  @@index([client_group_id], map: "IX_ClientGroupChartNote_client_group_id")
 }
 
 model ClientReminderPreference {
