@@ -282,7 +282,7 @@ export default function ClientProfile({
               </div>
             </div>
             <TabsContent value="overview">
-              <OverviewTab />
+              <OverviewTab clientName={clientName} />
             </TabsContent>
 
             <TabsContent value="billing">
