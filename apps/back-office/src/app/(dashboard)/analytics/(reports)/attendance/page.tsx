@@ -17,6 +17,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  SearchSelect,
 } from "@mcw/ui";
 import {
   Calendar,
@@ -32,6 +33,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import DateRangePicker from "../../../activity/components/DateRangePicker";
 
 type Appointment = {
   id: string;
@@ -62,8 +64,46 @@ const mockData: Appointment[] = [
 ];
 
 export default function AttendancePage() {
-  const [dateRange, _setDateRange] = useState("04/01/2025 - 04/21/2025");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const today = new Date();
+  const formatDate = (date: Date) => {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  const todayStr = formatDate(today);
+  const [fromDate, setFromDate] = useState(todayStr);
+  const [toDate, setToDate] = useState(todayStr);
+  const [selectedTimeRange, setSelectedTimeRange] = useState(todayStr);
+  const [selectedClient, setSelectedClient] = useState("All clients");
+  const [selectedStatus, setSelectedStatus] = useState("All statuses");
+  const clientOptions = [
+    "All clients",
+    "Shawaiz Sarfraz",
+    "Shawaiz Sarfraz & Mrs Shawaiz",
+  ];
+  const statusOptions = ["All statuses", "Show", "No Show", "Cancelled"];
   const [rowsPerPage, setRowsPerPage] = useState("10");
+
+  const handleDatePickerApply = (
+    startDate: string,
+    endDate: string,
+    displayOption: string,
+  ) => {
+    setFromDate(startDate);
+    setToDate(endDate);
+    setSelectedTimeRange(
+      displayOption === "Custom Range"
+        ? `${startDate} - ${endDate}`
+        : displayOption,
+    );
+    setShowDatePicker(false);
+  };
+
+  const handleDatePickerCancel = () => {
+    setShowDatePicker(false);
+  };
 
   return (
     <div className="h-full">
@@ -126,23 +166,61 @@ export default function AttendancePage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            {dateRange}
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Users className="w-4 h-4" />
-            All clients
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Filter className="w-4 h-4" />
-            All statuses
-            <ChevronDown className="w-4 h-4" />
-          </Button>
+          <div className="relative inline-block">
+            <Button
+              variant="outline"
+              className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
+              onClick={() => setShowDatePicker(true)}
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              {selectedTimeRange}
+            </Button>
+            {showDatePicker && (
+              <div className="absolute z-50">
+                <DateRangePicker
+                  isOpen={showDatePicker}
+                  onClose={() => setShowDatePicker(false)}
+                  onApply={handleDatePickerApply}
+                  onCancel={handleDatePickerCancel}
+                  initialStartDate={fromDate}
+                  initialEndDate={toDate}
+                />
+              </div>
+            )}
+          </div>
+          <div className="w-[200px]">
+            <SearchSelect
+              options={clientOptions.map((client) => ({
+                label: client,
+                value: client,
+              }))}
+              value={selectedClient}
+              onValueChange={setSelectedClient}
+              placeholder="Select client"
+              searchable
+              icon={<Users className="w-4 h-4" />}
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="w-4 h-4" />
+                {selectedStatus}
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {statusOptions.map((status) => (
+                <DropdownMenuItem
+                  key={status}
+                  onClick={() => setSelectedStatus(status)}
+                  className="cursor-pointer"
+                >
+                  {status}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Table */}
