@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
-import type { AppointmentData } from "./components/AppointmentStep";
+import type { AppointmentData } from "@/request/components/AppointmentStep";
 
 export type AppointmentStep =
   | "service"
@@ -15,6 +15,21 @@ export interface RequestContextValue {
     reasons?: string[];
     history?: string[];
     additionalInfo?: string;
+    contactInfo?: {
+      legalFirstName: string;
+      legalLastName: string;
+      email: string;
+      phone: string;
+      partnerInfo?: {
+        legalFirstName: string;
+        legalLastName: string;
+      };
+      clientInfo?: {
+        legalFirstName: string;
+        legalLastName: string;
+        isMinor: boolean;
+      };
+    };
   };
   currentStep: number;
   appointmentStep: AppointmentStep;
@@ -25,11 +40,27 @@ export interface RequestContextValue {
         reasons?: string[];
         history?: string[];
         additionalInfo?: string;
+        contactInfo?: {
+          legalFirstName: string;
+          legalLastName: string;
+          email: string;
+          phone: string;
+          partnerInfo?: {
+            legalFirstName: string;
+            legalLastName: string;
+          };
+          clientInfo?: {
+            legalFirstName: string;
+            legalLastName: string;
+            isMinor: boolean;
+          };
+        };
       }
     >,
   ) => void;
   setCurrentStep: (step: number) => void;
   setAppointmentStep: (step: AppointmentStep) => void;
+  reset: () => void;
 }
 
 const RequestContext = createContext<RequestContextValue | null>(null);
@@ -51,6 +82,12 @@ export function RequestProvider({ children }: { children: React.ReactNode }) {
     setAppointmentData((prev) => ({ ...prev, ...data }));
   };
 
+  const reset = () => {
+    setAppointmentData({});
+    setCurrentStep(1);
+    setAppointmentStep("service");
+  };
+
   return (
     <RequestContext.Provider
       value={{
@@ -61,6 +98,7 @@ export function RequestProvider({ children }: { children: React.ReactNode }) {
         onUpdate: handleAppointmentUpdate,
         setCurrentStep,
         setAppointmentStep,
+        reset,
       }}
     >
       {children}

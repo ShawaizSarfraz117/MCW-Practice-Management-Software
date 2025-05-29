@@ -55,7 +55,8 @@ const StepperComponent: FC<StepperProps> = ({
           <div className="text-green-600 space-y-1">
             {step.summary.service && (
               <button
-                className="block text-left w-full hover:text-green-700"
+                className="block text-left w-full hover:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                aria-label={`Edit service: ${step.summary.service.title}`}
                 onClick={() => onStepClick?.(1, "service")}
               >
                 <div className="font-medium">{step.summary.service.title}</div>
@@ -64,7 +65,11 @@ const StepperComponent: FC<StepperProps> = ({
             )}
             {step.summary.office && (
               <button
-                className={`block text-left w-full ${step.summary.service ? "hover:text-green-700" : ""}`}
+                // className={`block text-left w-full ${step.summary.service ? "hover:text-green-700" : ""}`}
+
+                className={`block text-left w-full focus:outline-none focus:ring-2 focus:ring-green-500 ${step.summary.service ? "hover:text-green-700" : ""}`}
+                aria-label={`Edit office: ${step.summary.office.name}`}
+                disabled={!step.summary?.service}
                 onClick={() =>
                   step.summary?.service && onStepClick?.(1, "office")
                 }
@@ -75,7 +80,10 @@ const StepperComponent: FC<StepperProps> = ({
             )}
             {step.summary.dateTime && (
               <button
-                className={`block text-left w-full ${step.summary.service && step.summary.office ? "hover:text-green-700" : ""}`}
+                // className={`block text-left w-full ${step.summary.service && step.summary.office ? "hover:text-green-700" : ""}`}
+                className={`block text-left w-full focus:outline-none focus:ring-2 focus:ring-green-500 ${step.summary.service && step.summary.office ? "hover:text-green-700" : ""}`}
+                aria-label={`Edit date and time: ${step.summary.dateTime}`}
+                disabled={!(step.summary?.service && step.summary?.office)}
                 onClick={() =>
                   step.summary?.service &&
                   step.summary?.office &&
@@ -86,7 +94,13 @@ const StepperComponent: FC<StepperProps> = ({
               </button>
             )}
             {step.summary.appointmentFor && (
-              <div>{step.summary.appointmentFor}</div>
+              <button
+                className="block text-left w-full focus:outline-none focus:ring-2 focus:ring-green-500"
+                aria-label={`Edit appointment for: ${step.summary.appointmentFor}`}
+                onClick={() => onStepClick?.(1, "datetime")}
+              >
+                <div>{step.summary.appointmentFor}</div>
+              </button>
             )}
           </div>
         );

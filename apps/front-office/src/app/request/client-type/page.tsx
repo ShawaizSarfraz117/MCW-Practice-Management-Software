@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { AppointmentStep } from "../components/AppointmentStep";
-import { useRequest } from "../context";
+import { AppointmentStep } from "@/request/components/AppointmentStep";
+import { useRequest } from "@/request/context";
 
 export default function ClientTypePage() {
   const router = useRouter();

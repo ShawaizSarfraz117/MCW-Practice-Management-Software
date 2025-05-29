@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { RequestProvider } from "./context";
-import RequestContent from "./content";
-
+import { RequestProvider } from "@/request/context";
+import RequestContent from "@/request/content";
+import { Footer } from "@/components/Footer";
 export default function RequestLayout({
   children,
 }: {
@@ -13,7 +13,7 @@ export default function RequestLayout({
       <div className="border-b bg-white">
         <div className="container mx-auto px-4 py-6">
           <Link className="text-2xl font-serif text-gray-900" href="/">
-            Alam Naqvi
+            Client Portal
           </Link>
         </div>
       </div>
@@ -28,11 +28,12 @@ export default function RequestLayout({
       </div>
 
       {/* Content */}
-      <main className="container max-w-6xl mx-auto px-4 py-12">
+      <main className="container mb-12 max-w-6xl mx-auto px-4 py-12">
         <RequestProvider>
           <RequestContent>{children}</RequestContent>
         </RequestProvider>
       </main>
+      <Footer />
     </div>
   );
 }

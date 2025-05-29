@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRequest } from "../context";
+import { useRequest } from "@/request/context";
 import {
   Button,
   Input,
@@ -12,13 +12,7 @@ import {
   SelectValue,
   RadioGroup,
   RadioGroupItem,
-  Calendar,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
 } from "@mcw/ui";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
 
 interface PersonalInfo {
   legalFirstName: string;
@@ -246,34 +240,13 @@ export default function InformationPage() {
         <label className="text-sm font-medium text-gray-900">
           Date of birth
         </label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              className={`w-full justify-start text-left font-normal ${!data.dateOfBirth && "text-muted-foreground"} ${errors[`${prefix}_dateOfBirth`] && "border-red-500"}`}
-              variant="outline"
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {data.dateOfBirth ? (
-                format(new Date(data.dateOfBirth), "PP")
-              ) : (
-                <span>Pick a date</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-auto p-0">
-            <Calendar
-              initialFocus
-              disabled={(date) => date > new Date()}
-              mode="single"
-              selected={
-                data.dateOfBirth ? new Date(data.dateOfBirth) : undefined
-              }
-              onSelect={(date) =>
-                onChange("dateOfBirth", date ? date.toISOString() : "")
-              }
-            />
-          </PopoverContent>
-        </Popover>
+        <Input
+          type="date"
+          className={`w-full ${errors[`${prefix}_dateOfBirth`] ? "border-red-500" : ""}`}
+          value={data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : ""}
+          max={new Date().toISOString().slice(0, 10)}
+          onChange={(e) => onChange("dateOfBirth", e.target.value)}
+        />
         {errors[`${prefix}_dateOfBirth`] && (
           <p className="text-xs text-red-500">
             {errors[`${prefix}_dateOfBirth`]}

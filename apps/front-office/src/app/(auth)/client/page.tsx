@@ -28,7 +28,7 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="custom-bg-new-client px-4 pt-16 pb-24 text-center">
         <h1 className="text-4xl md:text-5xl font-serif mb-6 text-gray-900">
-          Alam Naqvi
+          Client Portal
         </h1>
 
         <Link

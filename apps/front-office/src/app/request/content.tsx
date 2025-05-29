@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import React from "react";
 import { Stepper, type Step } from "../components/Stepper";
 import { useRequest } from "./context";
@@ -12,7 +12,14 @@ export default function RequestContent({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { appointmentData, currentStep, onUpdate } = useRequest();
+
+  // Don't show stepper on confirmation page
+  const isConfirmationPage = pathname === "/request/confirmation";
+  if (isConfirmationPage) {
+    return children;
+  }
 
   const steps: Step[] = [
     {
@@ -100,6 +107,13 @@ export default function RequestContent({
       router.push("/request/information");
     }
   };
+
+  // Show confirmation UI when all steps are completed
+  const isAllStepsCompleted = steps.every((step) => step.isCompleted);
+  if (isAllStepsCompleted && appointmentData.contactInfo) {
+    router.push("/request/confirmation");
+    return null;
+  }
 
   return (
     <div className="flex gap-12">

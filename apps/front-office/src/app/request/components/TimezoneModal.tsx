@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 interface TimezoneModalProps {
   isOpen: boolean;
@@ -38,6 +38,8 @@ export function TimezoneModal({
   onUpdate,
   currentTimezone,
 }: TimezoneModalProps) {
+  const [selectedTimezone, setSelectedTimezone] = useState(currentTimezone);
+
   const timezoneOptionsWithTime = useMemo(() => {
     const now = new Date();
 
@@ -60,7 +62,7 @@ export function TimezoneModal({
   if (!isOpen) return null;
 
   const handleUpdate = () => {
-    onUpdate(currentTimezone);
+    onUpdate(selectedTimezone);
     onClose();
   };
 
@@ -99,8 +101,8 @@ export function TimezoneModal({
           <div className="relative mb-6">
             <select
               className="w-full border rounded px-4 py-2 appearance-none bg-white pr-10 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              value={currentTimezone}
-              onChange={(e) => onUpdate(e.target.value)}
+              value={selectedTimezone}
+              onChange={(e) => setSelectedTimezone(e.target.value)}
             >
               {timezoneOptionsWithTime.map((option) => (
                 <option key={option.value} value={option.value}>

@@ -1,8 +1,8 @@
 import { FC, useEffect } from "react";
-import { AppointmentOptions } from "./AppointmentOptions";
-import { AppointmentScheduling } from "./AppointmentScheduling";
-import { AppointmentFor } from "./AppointmentFor";
-import { useRequest } from "../context";
+import { AppointmentOptions } from "@/request/components/AppointmentOptions";
+import { AppointmentScheduling } from "@/request/components/AppointmentScheduling";
+import { AppointmentFor } from "@/request/components/AppointmentFor";
+import { useRequest } from "@/request/context";
 
 interface AppointmentService {
   id: string;
@@ -127,56 +127,6 @@ export const AppointmentStep: FC<AppointmentStepProps> = ({
     }
   }, [currentPath, setAppointmentStep, setCurrentStep]);
 
-  // const steps: Step[] = [
-  //   {
-  //     id: 1,
-  //     label: 'Appointment info',
-  //     summary: appointmentData.service ? {
-  //       service: {
-  //         title: appointmentData.service.title,
-  //         duration: appointmentData.service.duration
-  //       },
-  //       office: appointmentData.office ? {
-  //         name: appointmentData.office.name,
-  //         phone: appointmentData.office.phone,
-  //         type: appointmentData.office.type
-  //       } : undefined,
-  //       dateTime: appointmentData.dateTime,
-  //       appointmentFor: appointmentData.appointmentFor === 'me' ? 'Me' :
-  //         appointmentData.appointmentFor === 'partner-and-me' ? 'My partner and me' :
-  //         appointmentData.appointmentFor === 'someone-else' ? 'Someone else' : undefined
-  //     } : undefined,
-  //     isCompleted: Boolean(appointmentData.service && appointmentData.office && appointmentData.dateTime && appointmentData.appointmentFor)
-  //   },
-  //   {
-  //     id: 2,
-  //     label: 'Reason for visit',
-  //     summary: appointmentData.reasons ? {
-  //       reasons: appointmentData.reasons,
-  //       history: appointmentData.history,
-  //       additionalInfo: appointmentData.additionalInfo
-  //     } : undefined,
-  //     isCompleted: currentStep > 2
-  //   },
-  //   {
-  //     id: 3,
-  //     label: 'Your info',
-  //     summary: appointmentData.contactInfo ? {
-  //       name: `${appointmentData.contactInfo.legalFirstName} ${appointmentData.contactInfo.legalLastName}`,
-  //       email: appointmentData.contactInfo.email,
-  //       phone: appointmentData.contactInfo.phone,
-  //       ...(appointmentData.appointmentFor === 'partner-and-me' && appointmentData.contactInfo.partnerInfo && {
-  //         partner: `${appointmentData.contactInfo.partnerInfo.legalFirstName} ${appointmentData.contactInfo.partnerInfo.legalLastName}`
-  //       }),
-  //       ...(appointmentData.appointmentFor === 'someone-else' && appointmentData.contactInfo.clientInfo && {
-  //         client: `${appointmentData.contactInfo.clientInfo.legalFirstName} ${appointmentData.contactInfo.clientInfo.legalLastName}`,
-  //         isMinor: appointmentData.contactInfo.clientInfo.isMinor
-  //       })
-  //     } : undefined,
-  //     isCompleted: currentStep > 3
-  //   },
-  // ];
-
   const handleServiceSelect = (service: AppointmentService) => {
     onUpdate?.({ service });
     router.push("/request/location");
@@ -232,7 +182,7 @@ export const AppointmentStep: FC<AppointmentStepProps> = ({
                   </p>
                 </div>
                 <button
-                  className="px-6 py-2 bg-green-700 rounded-none text-white font-medium rounded-lg hover:bg-green-700"
+                  className="px-6 py-2 bg-green-700 text-white font-medium rounded-lg hover:bg-green-800"
                   onClick={() => handleServiceSelect(service)}
                 >
                   SELECT
