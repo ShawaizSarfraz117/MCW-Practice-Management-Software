@@ -17,8 +17,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@mcw/ui";
-import { DateRangePicker } from "@mcw/ui";
-import { DateRange } from "react-day-picker";
 import { useQueryClient } from "@tanstack/react-query";
 import Loading from "@/components/Loading";
 import { format } from "date-fns";
@@ -35,6 +33,8 @@ import { toast } from "@mcw/ui";
 import { useFetchAppointments } from "@/(dashboard)/clients/services/client.service";
 import { SuperbillModal } from "../SuperbillModal";
 import { SuperbillDialog } from "../SuperbillDialog";
+import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
+
 // Type definitions
 type Invoice = {
   id: string;
@@ -72,10 +72,10 @@ export default function BillingTab({
   setInvoiceDialogOpen: (invoiceDialogOpen: boolean) => void;
   fetchInvoicesData: () => Promise<void>;
 }) {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date(2025, 0, 8), // Jan 8, 2025
-    to: new Date(2025, 8, 6), // Sep 6, 2025
-  });
+  const [dateRangePickerOpen, setDateRangePickerOpen] = useState(false);
+  const [selectedDateRangeDisplay, setSelectedDateRangeDisplay] =
+    useState<string>("All time");
+  const [customDateRange, setCustomDateRange] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("billable");
   const [editingAppointment, setEditingAppointment] =
     useState<Appointment | null>(null);
@@ -90,15 +90,13 @@ export default function BillingTab({
   const { data, isLoading } = useFetchAppointments(
     [
       "appointments",
-      dateRange,
+      selectedDateRangeDisplay,
       statusFilter,
       addPaymentModalOpen,
       invoiceDialogOpen,
     ],
     {
       clientGroupId: params.id,
-      startDate: dateRange?.from?.toISOString(),
-      endDate: dateRange?.to?.toISOString(),
       status: statusFilter !== "billable" ? statusFilter : undefined,
     },
   );
@@ -248,11 +246,26 @@ export default function BillingTab({
       )}
       {/* Date Range and Filter */}
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 relative">
+          <div
+            className="w-auto h-9 bg-white border-[#e5e7eb] border rounded cursor-pointer flex items-center px-3 text-sm whitespace-nowrap"
+            onClick={() => setDateRangePickerOpen(true)}
+          >
+            {selectedDateRangeDisplay === "Custom Range"
+              ? customDateRange
+              : selectedDateRangeDisplay}
+          </div>
           <DateRangePicker
-            className="w-full sm:w-[280px] h-9 bg-white border-[#e5e7eb]"
-            value={dateRange}
-            onChange={setDateRange}
+            isOpen={dateRangePickerOpen}
+            onClose={() => setDateRangePickerOpen(false)}
+            onApply={(_startDate, _endDate, displayOption) => {
+              setSelectedDateRangeDisplay(displayOption);
+              if (displayOption === "Custom Range") {
+                setCustomDateRange(`${_startDate} - ${_endDate}`);
+              }
+              setDateRangePickerOpen(false);
+            }}
+            onCancel={() => setDateRangePickerOpen(false)}
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">

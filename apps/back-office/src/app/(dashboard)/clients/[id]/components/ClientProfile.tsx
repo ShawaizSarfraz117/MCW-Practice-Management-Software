@@ -1,10 +1,11 @@
 /* eslint-disable max-lines-per-function */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
+import ShareModal from "./ShareModal";
 
 import { Button } from "@mcw/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
@@ -13,7 +14,7 @@ import { format } from "date-fns";
 import OverviewTab from "./tabs/OverviewTab";
 import BillingTab from "./tabs/BillingTab";
 import MeasuresTab from "./tabs/MeasuresTab";
-import FilesTab from "./tabs/FilesTab";
+import FilesTab, { FilesTabRef } from "./tabs/FilesTab";
 import { AddPaymentModal } from "./AddPaymentModal";
 import {
   fetchInvoices,
@@ -73,6 +74,7 @@ export default function ClientProfile({
   const [activeTab, setActiveTab] = useState("overview");
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceWithPayments[]>([]);
   const [creditAmount, setCredit] = useState<number>(0);
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
@@ -80,6 +82,7 @@ export default function ClientProfile({
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const filesTabRef = useRef<FilesTabRef>(null);
 
   // Helper function to get the next appointment date
   const getNextAppointmentDate = (): string | null => {
@@ -169,6 +172,20 @@ export default function ClientProfile({
     });
   };
 
+  const handleShare = (
+    selectedUsers: { id: string; name: string; initials: string }[],
+  ) => {
+    console.log("Sharing with users:", selectedUsers);
+  };
+
+  const handleUpload = () => {
+    setActiveTab("files");
+    // Small delay to ensure tab is switched before triggering upload
+    setTimeout(() => {
+      filesTabRef.current?.triggerFileUpload();
+    }, 100);
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Breadcrumb */}
@@ -184,6 +201,11 @@ export default function ClientProfile({
           onOpenChange={setAddPaymentModalOpen}
         />
       )}
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        onShare={handleShare}
+      />
       <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
         <Link className="hover:text-gray-700" href="/clients">
           Clients and contacts
@@ -218,10 +240,18 @@ export default function ClientProfile({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button className="bg-white text-xs sm:text-sm" variant="outline">
+          <Button
+            className="bg-white text-xs sm:text-sm"
+            variant="outline"
+            onClick={() => setShareModalOpen(true)}
+          >
             Share
           </Button>
-          <Button className="bg-white text-xs sm:text-sm" variant="outline">
+          <Button
+            className="bg-white text-xs sm:text-sm"
+            variant="outline"
+            onClick={handleUpload}
+          >
             Upload
           </Button>
           <Button className="bg-[#2d8467] hover:bg-[#236c53] text-xs sm:text-sm">
@@ -299,7 +329,7 @@ export default function ClientProfile({
             </TabsContent>
 
             <TabsContent value="files">
-              <FilesTab />
+              <FilesTab ref={filesTabRef} />
             </TabsContent>
           </Tabs>
         </div>
