@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { DELETE, GET, POST } from "@/api/templates/route";
 import { GET as GETById, PUT } from "@/api/templates/[id]/route";
-import { Prisma } from "@prisma/client";
 
 describe("Templates API Integration Tests", () => {
   let testTemplate: SurveyTemplate;
@@ -50,10 +49,10 @@ describe("Templates API Integration Tests", () => {
       const responseData = await response.json();
       expect(responseData).toHaveProperty("data");
       expect(Array.isArray(responseData.data)).toBe(true);
-      
+
       // Find our test template in the results
       const foundTemplate = responseData.data.find(
-        (template: SurveyTemplate) => template.id === testTemplate.id
+        (template: SurveyTemplate) => template.id === testTemplate.id,
       );
       expect(foundTemplate).toBeDefined();
       expect(foundTemplate).toMatchObject({
@@ -73,10 +72,83 @@ describe("Templates API Integration Tests", () => {
       const responseData = await response.json();
       expect(responseData).toHaveProperty("data");
       expect(Array.isArray(responseData.data)).toBe(true);
-      
+
       // All returned templates should have the specified type
       responseData.data.forEach((template: SurveyTemplate) => {
         expect(template.type).toBe(testTemplate.type);
+      });
+    });
+
+    it("should filter templates by is_active status", async () => {
+      // Create an inactive template
+      const inactiveTemplate = await prisma.surveyTemplate.create({
+        data: {
+          name: "Inactive Template",
+          content: "Inactive Content",
+          type: testTemplate.type,
+          description: "Inactive Description",
+          is_active: false,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(inactiveTemplate.id);
+
+      // Test filtering by active status
+      const reqActive = createRequest("/api/templates?is_active=true");
+      const responseActive = await GET(reqActive);
+      expect(responseActive.status).toBe(200);
+      const activeData = await responseActive.json();
+
+      // All returned templates should be active
+      activeData.data.forEach((template: SurveyTemplate) => {
+        expect(template.is_active).toBe(true);
+      });
+
+      // Test filtering by inactive status
+      const reqInactive = createRequest("/api/templates?is_active=false");
+      const responseInactive = await GET(reqInactive);
+      expect(responseInactive.status).toBe(200);
+      const inactiveData = await responseInactive.json();
+
+      // All returned templates should be inactive
+      inactiveData.data.forEach((template: SurveyTemplate) => {
+        expect(template.is_active).toBe(false);
+      });
+
+      // Find our inactive template in the results
+      const foundInactiveTemplate = inactiveData.data.find(
+        (template: SurveyTemplate) => template.id === inactiveTemplate.id,
+      );
+      expect(foundInactiveTemplate).toBeDefined();
+    });
+
+    it("should filter templates by search term", async () => {
+      // Create a template with unique name to search for
+      const uniqueTemplate = await prisma.surveyTemplate.create({
+        data: {
+          name: "UniqueSearchableName",
+          content: "Unique Content",
+          type: "Unique Type",
+          description: "Unique Description",
+          is_active: true,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(uniqueTemplate.id);
+
+      // Search by the unique name
+      const req = createRequest("/api/templates?search=UniqueSearchableName");
+      const response = await GET(req);
+      expect(response.status).toBe(200);
+      const responseData = await response.json();
+
+      // Should find our unique template
+      const foundTemplate = responseData.data.find(
+        (template: SurveyTemplate) => template.id === uniqueTemplate.id,
+      );
+      expect(foundTemplate).toBeDefined();
+      expect(foundTemplate).toMatchObject({
+        name: "UniqueSearchableName",
       });
     });
   });
@@ -101,10 +173,10 @@ describe("Templates API Integration Tests", () => {
       expect(response.status).toBe(201);
       const responseData = await response.json();
       expect(responseData).toHaveProperty("data");
-      
+
       // Store ID for cleanup
       createdTemplateIds.push(responseData.data.id);
-      
+
       // Verify key properties were saved correctly
       expect(responseData.data).toMatchObject({
         name: newTemplate.name,
@@ -115,7 +187,7 @@ describe("Templates API Integration Tests", () => {
         requires_signature: newTemplate.requires_signature,
         is_shareable: newTemplate.is_shareable,
       });
-      
+
       // Verify template was created in database
       const createdTemplate = await prisma.surveyTemplate.findUnique({
         where: { id: responseData.data.id },
@@ -136,7 +208,9 @@ describe("Templates API Integration Tests", () => {
       expect(response.status).toBe(400);
       const responseData = await response.json();
       expect(responseData).toHaveProperty("error");
-      expect(responseData.error).toBe("Name, content, and type are required fields");
+      expect(responseData.error).toBe(
+        "Name, content, and type are required fields",
+      );
     });
   });
 
@@ -185,14 +259,14 @@ describe("Templates API Integration Tests", () => {
       const req = createRequestWithBody(
         `/api/templates/${testTemplate.id}`,
         updateData,
-        { method: "PUT" }
+        { method: "PUT" },
       );
       const response = await PUT(req, { params: { id: testTemplate.id } });
 
       expect(response.status).toBe(200);
       const responseData = await response.json();
       expect(responseData).toHaveProperty("data");
-      
+
       // Verify key properties were updated correctly
       expect(responseData.data).toMatchObject({
         id: testTemplate.id,
@@ -224,7 +298,7 @@ describe("Templates API Integration Tests", () => {
       const req = createRequestWithBody(
         `/api/templates/${nonExistentId}`,
         updateData,
-        { method: "PUT" }
+        { method: "PUT" },
       );
       const response = await PUT(req, { params: { id: nonExistentId } });
 
@@ -254,7 +328,9 @@ describe("Templates API Integration Tests", () => {
       expect(deletedTemplate).toBeNull();
 
       // Remove from createdTemplateIds since it's been deleted
-      createdTemplateIds = createdTemplateIds.filter(id => id !== testTemplate.id);
+      createdTemplateIds = createdTemplateIds.filter(
+        (id) => id !== testTemplate.id,
+      );
     });
 
     it("should return 400 if template ID is missing", async () => {
@@ -267,4 +343,4 @@ describe("Templates API Integration Tests", () => {
       expect(responseData.error).toBe("Template ID is required");
     });
   });
-}); 
+});
