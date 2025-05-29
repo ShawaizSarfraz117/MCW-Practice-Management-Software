@@ -8,15 +8,29 @@ import ClientSection from "./components/ClientSection";
 import ProviderSection from "./components/ProviderSection";
 import ServiceDetails from "./components/ServiceDetails";
 
+interface ServiceDetailsFormData {
+  dateProvided: string;
+  timeProvided: string;
+  expirationDate: string;
+  serviceDates: string;
+  diagnosisCodes: string;
+  notes: string;
+  services: Array<{
+    detail: string;
+    diagnosis: string;
+    location: string;
+    quantity: number;
+    fee: number;
+  }>;
+}
+
 export default function GoodFaithEstimate() {
   const searchParams = useSearchParams();
-  const clientName = searchParams.get("clientName");
+  const clientName = searchParams.get("clientName") ?? "";
 
-  // State for edit mode
   const [editClient, setEditClient] = useState(false);
   const [editProvider, setEditProvider] = useState(false);
 
-  // Example state for form fields (replace with your real data/state management)
   const [client, setClient] = useState({
     name: "Jamie D. Appleseed",
     dob: "July 12, 2024",
@@ -34,36 +48,33 @@ export default function GoodFaithEstimate() {
     email: "alam@mcnultycw.com",
   });
 
-  const [dateProvided, setDateProvided] = useState("2025-03-29");
-  const [timeProvided, setTimeProvided] = useState("19:13");
-  const [expirationDate, setExpirationDate] = useState("2026-03-29");
-  const [serviceDates, setServiceDates] = useState(
-    "Mar 29, 2025 - Sep 29, 2025",
-  );
-  const [diagnosisCodes, setDiagnosisCodes] = useState("F41.9");
-  const [notes, setNotes] = useState("");
-  const [services, setServices] = useState([
-    {
-      detail: "90834 Psychotherapy, 45 min",
-      diagnosis: "F41.9",
-      location: "Video Office",
-      quantity: 1,
-      fee: 100,
-    },
-  ]);
-  const totalCost = services.reduce((sum, s) => sum + s.fee * s.quantity, 0);
+  const initialServiceData = {
+    dateProvided: "2025-03-29",
+    timeProvided: "19:13",
+    expirationDate: "2026-03-29",
+    serviceDates: "Mar 29, 2025 - Sep 29, 2025",
+    diagnosisCodes: "F41.9",
+    notes: "",
+    services: [
+      {
+        detail: "90834 Psychotherapy, 45 min",
+        diagnosis: "F41.9",
+        location: "Video Office",
+        quantity: 1,
+        fee: 100,
+      },
+    ],
+  };
 
-  function updateService(idx: number, key: string, value: string | number) {
-    setServices((services) =>
-      services.map((s, i) => (i === idx ? { ...s, [key]: value } : s)),
-    );
-  }
-  function addService() {
-    setServices([
-      ...services,
-      { detail: "", diagnosis: "", location: "", quantity: 1, fee: 100 },
-    ]);
-  }
+  const totalCost = initialServiceData.services.reduce(
+    (sum, s) => sum + s.fee * s.quantity,
+    0,
+  );
+
+  const handleServiceSubmit = (data: ServiceDetailsFormData) => {
+    console.log("Form submitted:", data);
+    // Handle form submission here
+  };
 
   return (
     <div className="px-4 py-8 w-full max-w-6xl mx-auto">
@@ -177,22 +188,10 @@ export default function GoodFaithEstimate() {
         />
       </div>
       <ServiceDetails
-        dateProvided={dateProvided}
-        setDateProvided={setDateProvided}
-        timeProvided={timeProvided}
-        setTimeProvided={setTimeProvided}
-        expirationDate={expirationDate}
-        setExpirationDate={setExpirationDate}
-        serviceDates={serviceDates}
-        setServiceDates={setServiceDates}
-        diagnosisCodes={diagnosisCodes}
-        setDiagnosisCodes={setDiagnosisCodes}
-        notes={notes}
-        setNotes={setNotes}
-        services={services}
-        updateService={updateService}
-        addService={addService}
         totalCost={totalCost}
+        clientName={clientName}
+        initialData={initialServiceData}
+        onSubmit={handleServiceSubmit}
       />
       <div className="flex justify-start gap-4 mt-6">
         <Button variant="outline" onClick={() => window.history.back()}>
@@ -200,10 +199,7 @@ export default function GoodFaithEstimate() {
         </Button>
         <Button
           className="bg-[#2d8467] hover:bg-[#236c53] text-white"
-          onClick={() => {
-            // TODO: Implement save functionality
-            console.log("Saving GFE...");
-          }}
+          onClick={() => {}}
         >
           Save
         </Button>

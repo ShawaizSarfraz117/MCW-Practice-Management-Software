@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import DiagnosisRows from "./components/DiagnosisRows"; // adjust path if needed
+import DiagnosisRows from "./components/DiagnosisRows";
 import TreatmentPlanTemplate from "./components/TreatmentPlanTemplate";
 import DocumentationHistorySidebar from "../components/DocumentationHistorySidebar";
 

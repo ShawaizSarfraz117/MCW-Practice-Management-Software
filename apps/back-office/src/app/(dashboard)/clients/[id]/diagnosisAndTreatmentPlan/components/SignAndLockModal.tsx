@@ -56,7 +56,15 @@ const SignAndLockModal: React.FC<SignAndLockModalProps> = ({
           <div className="text-2xl font-signature mb-2">{name}</div>
           <div className="text-sm text-gray-700">Signed by {name}</div>
           <div className="text-sm text-gray-700">{credentials}</div>
-          <div className="text-xs text-gray-500 mt-2">May 27, 2025 4:05 PM</div>
+          <div className="text-xs text-gray-500 mt-2">
+            {new Date().toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </div>
         </div>
       </div>
       <div className="text-xs text-gray-500 mt-4">

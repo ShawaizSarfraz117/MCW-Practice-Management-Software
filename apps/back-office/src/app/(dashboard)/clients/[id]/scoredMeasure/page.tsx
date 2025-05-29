@@ -11,22 +11,22 @@ import {
 } from "@mcw/ui";
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 import GAD7Form from "./components/GAD7";
 import PHQ9Form from "./components/PHQ9";
 import ARM5Form from "./components/ARM5";
-
-export default function ScoredMeasure() {
-  const searchParams = useSearchParams();
-  const clientName = searchParams.get("clientName") || "Jamie D. Appleseed";
+interface PageProps {
+  searchParams: { clientName?: string };
+}
+export default function ScoredMeasure({ searchParams }: PageProps) {
+  const clientName = searchParams.clientName || "Unknown Client";
   const [measure, setMeasure] = useState("GAD-7");
   const [gad7Answers, setGad7Answers] = useState<string[]>(Array(7).fill(""));
   const [gad7Difficulty, setGad7Difficulty] = useState<string>("");
   const [phq9Answers, setPhq9Answers] = useState<string[]>(Array(9).fill(""));
   const [phq9Difficulty, setPhq9Difficulty] = useState<string>("");
   const [arm5Answers, setArm5Answers] = useState<string[]>(Array(5).fill(""));
-  const [date, setDate] = useState("2025-03-30");
-  const [time, setTime] = useState("07:00");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
 
   return (
     <div className="px-4 py-8 w-full max-w-6xl mx-auto">
