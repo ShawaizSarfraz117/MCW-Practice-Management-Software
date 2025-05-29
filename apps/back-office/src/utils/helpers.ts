@@ -33,7 +33,7 @@ export async function getClinicianInfo() {
       })
     : null;
 
-  const clinicianId = "3EECF085-25B9-4C88-99DB-4B6A4246171F";
+  const clinicianId = clinician?.id ?? null;
 
   return { isClinician, clinicianId, clinician };
 }

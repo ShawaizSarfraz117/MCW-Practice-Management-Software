@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
-import { GET } from "../../../src/app/api/requests/route";
+import { GET } from "@/api/requests/route";
 import { prisma } from "@mcw/database";
 import { createRequest, generateUUID } from "@mcw/utils";
 import { vi } from "vitest";
@@ -10,7 +10,7 @@ vi.mock("../../../src/utils/helpers", () => ({
   __esModule: true,
 }));
 
-import { getClinicianInfo } from "../../../src/utils/helpers";
+import { getClinicianInfo } from "@/utils/helpers";
 
 describe("Requests API Integration Tests", () => {
   let testClinicianId: string;

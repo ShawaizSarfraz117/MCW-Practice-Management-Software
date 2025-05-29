@@ -1,13 +1,13 @@
+/* eslint-disable max-lines-per-function */
 import { beforeEach, describe, expect, it, vi, Mock } from "vitest";
-import { GET } from "../../../src/app/api/requests/route";
-import { NextRequest } from "next/server";
+import { GET } from "@/api/requests/route";
 import {
   AppointmentRequestsFactory,
   RequestContactItemsFactory,
   ClientFactory,
   PracticeServiceFactory,
 } from "@mcw/database/mock-data";
-
+import { createRequest } from "@mcw/utils";
 // Mock the logger
 vi.mock("@mcw/logger", () => ({
   logger: {
@@ -44,11 +44,6 @@ vi.mock("@mcw/database", () => {
 // Import mocked modules
 import { prisma } from "@mcw/database";
 import { getClinicianInfo } from "@/utils/helpers";
-
-// Helper function to create request
-function createRequest(url: string): NextRequest {
-  return new NextRequest(`http://localhost${url}`);
-}
 
 // Type definitions for test data
 interface MockAppointmentRequest {
@@ -229,10 +224,13 @@ describe("Requests API Unit Tests", () => {
 
       const mockRequest = AppointmentRequestsFactory.build({
         id: "request-1",
-        client_id: null, // New client
+        client_id: "client-1",
         clinician_id: MOCK_CLINICIAN_ID,
         service_id: "service-1",
         status: "pending",
+        start_time: new Date("2024-01-15T10:00:00Z"),
+        end_time: new Date("2024-01-15T11:00:00Z"),
+        received_date: new Date("2024-01-10T09:00:00Z"),
       });
 
       const mockAppointmentRequestWithIncludes: MockAppointmentRequest = {
