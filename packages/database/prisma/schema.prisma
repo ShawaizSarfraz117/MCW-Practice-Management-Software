@@ -122,8 +122,8 @@ model Client {
   ClinicianClient          ClinicianClient[]
   CreditCard               CreditCard[]
   DiagnosisTreatmentPlan   DiagnosisTreatmentPlan[]
-  GoodFaithEstimate        GoodFaithEstimate[]
   SurveyAnswers            SurveyAnswers[]
+  GoodFaithClients         GoodFaithClients[]
 }
 
 model ClientProfile {
@@ -743,17 +743,8 @@ model DiagnosisTreatmentPlanItem {
 }
 
 model GoodFaithEstimate {
-  id                    String              @id(map: "PK_GoodFaithEstimate") @db.UniqueIdentifier
-  client_id             String              @db.UniqueIdentifier
+  id                    String              @id(map: "PK_GoodFaithEstimate") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   clinician_id          String              @db.UniqueIdentifier
-  client_name           String?             @db.VarChar(100)
-  client_dob            DateTime?           @db.Date
-  client_address        String?             @db.VarChar(250)
-  client_city           String?             @db.VarChar(100)
-  client_state          String?             @db.VarChar(100)
-  client_zip_code       Int?
-  client_phone          String?             @db.VarChar(50)
-  client_email          String?             @db.VarChar(100)
   clinician_npi         String?             @db.VarChar(100)
   clinician_tin         String?             @db.VarChar(100)
   clinician_location_id String              @db.UniqueIdentifier
@@ -765,14 +756,35 @@ model GoodFaithEstimate {
   service_start_date    DateTime?           @db.Date
   service_end_date      DateTime?           @db.Date
   total_cost            Int
-  Client                Client              @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Client")
+  notes                 String?             @db.Text
   Clinician             Clinician           @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Clinician")
   Location              Location            @relation(fields: [clinician_location_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Location")
   GoodFaithServices     GoodFaithServices[]
+  GoodFaithClients      GoodFaithClients[]
+}
+
+model GoodFaithClients {
+  id                String            @id(map: "PK_GoodFaithClients") @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  client_id         String            @db.UniqueIdentifier
+  good_faith_id     String            @db.UniqueIdentifier
+  name              String            @db.VarChar(100)
+  dob               DateTime          @db.Date 
+  address           String?           @db.VarChar(250)
+  city              String?           @db.VarChar(100)
+  state             String?           @db.VarChar(100)
+  zip_code          String?           @db.VarChar(50)
+  phone             String?           @db.VarChar(50)
+  email             String?           @db.VarChar(100)
+  should_voice      Boolean           @default(false, map: "DF_GoodFaithClients_should_voice")
+  should_text       Boolean           @default(false, map: "DF_GoodFaithClients_should_text")
+  should_email      Boolean           @default(false, map: "DF_GoodFaithClients_should_email")
+ 
+  Client            Client            @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithClients_Client")
+  GoodFaithEstimate GoodFaithEstimate @relation(fields: [good_faith_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithClients_GoodFaithEstimate")
 }
 
 model GoodFaithServices {
-  id                String            @id(map: "PK_GoodFaithServices") @db.UniqueIdentifier
+  id                String            @id(map: "PK_GoodFaithServices") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   good_faith_id     String            @db.UniqueIdentifier
   service_id        String            @db.UniqueIdentifier
   diagnosis_id      String            @db.UniqueIdentifier
