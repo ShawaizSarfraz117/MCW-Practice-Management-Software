@@ -23,7 +23,8 @@ import {
   Textarea,
 } from "@mcw/ui";
 import { Info } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useReminderTemplates } from "./hooks/useTextReminders";
 
 const TABS = [
   { label: "Appointment reminders", value: "appointment" },
@@ -51,9 +52,122 @@ const DEFAULT_TEXTS = {
     "Your appointment on {appointment_date} has been cancelled. Please contact us to reschedule.",
 };
 
+interface TabContentProps {
+  tab: { label: string; value: string };
+  settings: { reminderTime: string; text: string };
+  onReminderTimeChange: (time: string) => void;
+  onTextChange: (text: string) => void;
+}
+
+function TabContent({
+  tab,
+  settings,
+  onReminderTimeChange,
+  onTextChange,
+}: TabContentProps) {
+  return (
+    <div className="flex flex-col lg:flex-row gap-8">
+      {/* Left: Form */}
+      <Card className="flex-1 bg-white border border-gray-200 shadow-sm rounded-xl p-0">
+        <CardContent className="p-6">
+          {/* Reminder time select */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <Label
+              htmlFor={`reminder-time-${tab.value}`}
+              className="text-sm text-gray-700 font-medium mr-2 mb-0"
+            >
+              Send text reminder
+            </Label>
+            <div className="w-40">
+              <Select
+                value={settings.reminderTime}
+                onValueChange={onReminderTimeChange}
+              >
+                <SelectTrigger
+                  className="h-9 text-sm bg-white border-gray-300"
+                  id={`reminder-time-${tab.value}`}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {REMINDER_TIMES.map((rt) => (
+                    <SelectItem
+                      className="text-sm"
+                      key={rt.value}
+                      value={rt.value}
+                    >
+                      {rt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <span className="text-sm text-gray-700 ml-0 sm:ml-2">
+              before start time of appointment
+            </span>
+          </div>
+
+          {/* Textarea */}
+          <CardHeader className="py-2 !px-0">
+            <CardTitle className="text-lg font-semibold text-gray-900 mb-1 p-0">
+              Customize text reminder
+            </CardTitle>
+          </CardHeader>
+          <div className="flex flex-row lg:flex-col">
+            <div className="flex flex-col w-2/3 mr-20 justify-start items-start mb-2">
+              <div className="w-full border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+                <Textarea
+                  onChange={(e) => onTextChange(e.target.value)}
+                  value={settings.text}
+                  rows={5}
+                  maxLength={500}
+                  className="resize-none text-sm bg-white border-gray-300 focus-visible:ring-1 focus-visible:ring-[#2D8467]"
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="link"
+                      className="text-[#2D8467] px-0 h-auto text-[16px] font-medium"
+                    >
+                      Add information
+                    </Button>
+                    <Button
+                      variant="link"
+                      className="text-[#2D8467] px-0 h-auto text-[16px] font-medium"
+                    >
+                      Add confirm / cancel link
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="text-xs text-gray-400 mt-2">
+                {settings.text.length}/500
+              </div>
+            </div>
+            <div className="flex flex-col border-l-[10px] border-r-[10px] border-t-[10px] rounded-t-3xl p-5 bg-[#F4F4F4] border-[#DADADA] w-[350px] h-[500px] justify-start items-center gap-4">
+              <div className="w-[60px] h-[20px] bg-[#DADADA] rounded-3xl"></div>
+              <div className="w-full max-w-xs shadow-lg">
+                <div className="flex flex-col items-center">
+                  <div className="relative w-[295px] h-[110px] border border-gray-200 bg-white rounded-lg shadow-sm flex items-center justify-center">
+                    <div className="absolute top-2 left-2 text-[11px] text-gray-500 whitespace-pre-line leading-tight">
+                      {settings.text}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function TextSettingsPage() {
   const [enabled, setEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState("appointment");
+  const { templates, isLoading, updateTemplate, isUpdating } =
+    useReminderTemplates();
 
   // State for each tab's content
   const [tabSettings, setTabSettings] = useState(
@@ -67,6 +181,26 @@ export default function TextSettingsPage() {
       ]),
     ),
   );
+
+  // Update local state when templates are loaded from API
+  useEffect(() => {
+    if (templates.length > 0) {
+      const templatesData = Object.fromEntries(
+        templates.map((template) => [
+          template.type,
+          {
+            reminderTime: template.reminderTime || "24h",
+            text: template.content,
+          },
+        ]),
+      );
+
+      setTabSettings((prev) => ({
+        ...prev,
+        ...templatesData,
+      }));
+    }
+  }, [templates]);
 
   const handleReminderTimeChange = (tabValue: string, time: string) => {
     setTabSettings((prev) => ({
@@ -88,13 +222,39 @@ export default function TextSettingsPage() {
     }));
   };
 
+  const handleSaveChanges = async () => {
+    // Update each template that has changed
+    const updatePromises = TABS.map(async (tab) => {
+      const templateSettings = tabSettings[tab.value];
+      if (templateSettings?.text) {
+        return updateTemplate({
+          type: tab.value,
+          content: templateSettings.text,
+        });
+      }
+    });
+
+    await Promise.all(updatePromises.filter(Boolean));
+  };
+
   return (
     <>
       {/* Header */}
-      <h1 className="text-2xl font-semibold mb-2 text-gray-900">Text</h1>
-      <p className="text-gray-600 mb-6 text-base">
-        Automate reminder text messages.
-      </p>
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold mb-2 text-gray-900">Text</h1>
+          <p className="text-gray-600 text-base">
+            Automate reminder text messages.
+          </p>
+        </div>
+        <Button
+          onClick={handleSaveChanges}
+          className="bg-[#2D8467] hover:bg-[#2D8467]/90 text-white"
+          disabled={isUpdating || isLoading}
+        >
+          {isUpdating ? "Saving..." : "Save changes"}
+        </Button>
+      </div>
 
       {/* Info alert with toggle */}
       <Alert className="flex items-center gap-4 bg-blue-50 border-0 mb-6 p-5 sm:p-6">
@@ -106,13 +266,16 @@ export default function TextSettingsPage() {
           <AlertDescription className="text-sm text-gray-700 mt-0">
             Customize the content for your text reminders. Note: Clients only
             receive reminders if they are also enabled at the client level.{" "}
-            <a href="#" className="text-blue-600 hover:underline">
+            <a className="text-blue-600 hover:underline" href="#">
               Learn more
             </a>
           </AlertDescription>
         </div>
         <div className="flex items-start ml-4">
-          <Switch checked={enabled} onCheckedChange={setEnabled} />
+          <Switch
+            checked={enabled}
+            onCheckedChange={(value) => setEnabled(value)}
+          />
         </div>
       </Alert>
 
@@ -121,9 +284,9 @@ export default function TextSettingsPage() {
         <TabsList className="bg-transparent flex justify-start items-center gap-2 sm:gap-6 p-0 rounded-none h-auto min-h-0">
           {TABS.map((t) => (
             <TabsTrigger
+              className={`pb-2 font-normal h-full border data-[state=active]:border-b-2 data-[state=active]:rounded-md text-sm transition data-[state=active]:!shadow-none data-[state=active]:text-[#2D8467] data-[state=active]:bg-[#2D8467]/20 border-b-4 border-transparent focus:outline-none`}
               key={t.value}
               value={t.value}
-              className={`pb-2 font-normal h-full border data-[state=active]:border-b-2 data-[state=active]:rounded-md text-sm transition data-[state=active]:!shadow-none data-[state=active]:text-[#2D8467] data-[state=active]:bg-[#2D8467]/20 border-b-4 border-transparent focus:outline-none`}
             >
               {t.label}
             </TabsTrigger>
@@ -133,104 +296,14 @@ export default function TextSettingsPage() {
         {/* Tab Content */}
         {TABS.map((t) => (
           <TabsContent key={t.value} value={t.value} className="pt-6 px-0">
-            <div className="flex flex-col lg:flex-row gap-8">
-              {/* Left: Form */}
-              <Card className="flex-1 bg-white border border-gray-200 shadow-sm rounded-xl p-0">
-                <CardContent className="p-6">
-                  {/* Reminder time select */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <Label
-                      htmlFor={`reminder-time-${t.value}`}
-                      className="text-sm text-gray-700 font-medium mr-2 mb-0"
-                    >
-                      Send text reminder
-                    </Label>
-                    <div className="w-40">
-                      <Select
-                        value={tabSettings[t.value].reminderTime}
-                        onValueChange={(val) =>
-                          handleReminderTimeChange(t.value, val)
-                        }
-                      >
-                        <SelectTrigger
-                          id={`reminder-time-${t.value}`}
-                          className="h-9 text-sm bg-white border-gray-300"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REMINDER_TIMES.map((rt) => (
-                            <SelectItem
-                              key={rt.value}
-                              value={rt.value}
-                              className="text-sm"
-                            >
-                              {rt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <span className="text-sm text-gray-700 ml-0 sm:ml-2">
-                      before start time of appointment
-                    </span>
-                  </div>
-
-                  {/* Textarea */}
-                  <CardHeader className="py-2 !px-0">
-                    <CardTitle className="text-lg font-semibold text-gray-900 mb-1 p-0">
-                      Customize text reminder
-                    </CardTitle>
-                  </CardHeader>
-                  <div className="flex flex-row lg:flex-col">
-                    <div className="flex flex-col w-2/3 mr-20 justify-start items-start mb-2">
-                      <div className="w-full border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
-                        <Textarea
-                          value={tabSettings[t.value].text}
-                          onChange={(e) =>
-                            handleTextChange(t.value, e.target.value)
-                          }
-                          rows={5}
-                          maxLength={500}
-                          className="resize-none text-sm bg-white border-gray-300 focus-visible:ring-1 focus-visible:ring-[#2D8467]"
-                        />
-                        <div className="flex justify-between items-center mt-1">
-                          <div className="flex gap-2">
-                            <Button
-                              variant="link"
-                              className="text-[#2D8467] px-0 h-auto text-[16px] font-medium"
-                            >
-                              Add information
-                            </Button>
-                            <Button
-                              variant="link"
-                              className="text-[#2D8467] px-0 h-auto text-[16px] font-medium"
-                            >
-                              Add confirm / cancel link
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-400 mt-2">
-                        {tabSettings[t.value].text.length}/500
-                      </div>
-                    </div>
-                    <div className="flex flex-col border-l-[10px] border-r-[10px] border-t-[10px] rounded-t-3xl p-5 bg-[#F4F4F4] border-[#DADADA] w-[350px] h-[500px] justify-start items-center gap-4">
-                      <div className="w-[60px] h-[20px] bg-[#DADADA] rounded-3xl"></div>
-                      <div className="w-full max-w-xs shadow-lg">
-                        <div className="flex flex-col items-center">
-                          <div className="relative w-[295px] h-[110px] border border-gray-200 bg-white rounded-lg shadow-sm flex items-center justify-center">
-                            <div className="absolute top-2 left-2 text-[11px] text-gray-500 whitespace-pre-line leading-tight">
-                              {tabSettings[t.value].text}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <TabContent
+              tab={t}
+              settings={tabSettings[t.value]}
+              onReminderTimeChange={(time) =>
+                handleReminderTimeChange(t.value, time)
+              }
+              onTextChange={(text) => handleTextChange(t.value, text)}
+            />
           </TabsContent>
         ))}
       </Tabs>

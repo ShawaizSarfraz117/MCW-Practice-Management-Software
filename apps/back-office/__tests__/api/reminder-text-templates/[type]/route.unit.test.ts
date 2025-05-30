@@ -172,8 +172,15 @@ describe("PUT /api/reminder-text-templates/[type] Unit Tests", () => {
     });
   });
 
-  it("should return 404 when template does not exist for update", async () => {
+  it("should create a new template when it does not exist", async () => {
+    const newTemplate = {
+      id: "new-test-id",
+      type: "appointment",
+      content: "New content",
+    };
+
     prismaMock.reminderTextTemplates.findFirst.mockResolvedValueOnce(null);
+    prismaMock.reminderTextTemplates.create.mockResolvedValueOnce(newTemplate);
 
     const mockRequest = createRequestWithBody(
       "/api/reminder-text-templates/appointment",
@@ -184,10 +191,13 @@ describe("PUT /api/reminder-text-templates/[type] Unit Tests", () => {
     const response = await PUT(mockRequest as any, {
       params: { type: "appointment" },
     });
-    const data = await response.json();
+    const data = (await response.json()) as ReminderTextTemplate;
 
-    expect(response.status).toBe(404);
-    expect(data).toHaveProperty("error", "Template not found");
+    expect(response.status).toBe(200);
+    expect(data).toEqual(newTemplate);
+    expect(prismaMock.reminderTextTemplates.create).toHaveBeenCalledWith({
+      data: { type: "appointment", content: "New content" },
+    });
   });
 
   it("should return 400 for invalid template type on update", async () => {

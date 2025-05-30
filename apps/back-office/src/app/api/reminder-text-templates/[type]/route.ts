@@ -70,25 +70,27 @@ export async function PUT(
       );
     }
 
-    // Check if template exists before updating
+    // Check if template exists
     const existingTemplate = await prisma.reminderTextTemplates.findFirst({
       where: { type },
     });
 
-    if (!existingTemplate) {
-      return NextResponse.json(
-        { error: "Template not found" },
-        { status: 404 },
-      );
+    let template;
+
+    if (existingTemplate) {
+      // Update existing template
+      template = await prisma.reminderTextTemplates.update({
+        where: { id: existingTemplate.id },
+        data: { content },
+      });
+    } else {
+      // Create new template
+      template = await prisma.reminderTextTemplates.create({
+        data: { type, content },
+      });
     }
 
-    // Update the template
-    const updatedTemplate = await prisma.reminderTextTemplates.update({
-      where: { id: existingTemplate.id },
-      data: { content },
-    });
-
-    return NextResponse.json(updatedTemplate);
+    return NextResponse.json(template);
   } catch (error) {
     console.error("Error updating reminder text template:", error);
     return NextResponse.json(
