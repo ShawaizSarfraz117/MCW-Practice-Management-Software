@@ -42,6 +42,17 @@ Integration tests verify that different components work together correctly, ofte
 - **Database**: Use the actual database with proper setup and teardown.
 - **Example**: `apps/back-office/__tests__/api/location/route.integration.test.ts`
 
+After creating each test:
+   - Auto-run the test suite
+   - Fix any failing tests immediately
+   - Ensure 100% type safety before moving on
+
+Follow testing guidelines from context:
+   - Use test data factories
+   - Verify database state changes
+   - Include edge case scenarios
+   - Mock external dependencies
+   
 ## File Structure and Naming
 
 - Place tests in the `apps/<app-name>/__tests__` directory, mirroring the structure of the `src` directory.
