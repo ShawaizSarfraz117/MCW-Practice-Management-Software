@@ -10,6 +10,7 @@ import {
   useDuplicateTemplate,
   Template,
 } from "./hooks/useTemplates";
+import { TemplateType } from "@/types/templateTypes";
 
 export default function TemplateLibraryPage() {
   const { data, isLoading } = useTemplates({
@@ -25,35 +26,36 @@ export default function TemplateLibraryPage() {
   const getScoredMeasures = () => {
     if (!data?.data) return [];
     return data.data.filter(
-      (template: Template) => template.type === "scored_measures",
+      (template: Template) => template.type === TemplateType.SCORED_MEASURES,
     );
   };
 
   const getIntakeForms = () => {
     if (!data?.data) return [];
     return data.data.filter(
-      (template: Template) => template.type === "intake_forms",
+      (template: Template) => template.type === TemplateType.INTAKE_FORMS,
     );
   };
 
   const getProgressNotes = () => {
     if (!data?.data) return [];
     return data.data.filter(
-      (template: Template) => template.type === "progress_notes",
+      (template: Template) => template.type === TemplateType.PROGRESS_NOTES,
     );
   };
 
   const getDiagnosisPlans = () => {
     if (!data?.data) return [];
     return data.data.filter(
-      (template: Template) => template.type === "diagnosis_and_treatment_plans",
+      (template: Template) =>
+        template.type === TemplateType.DIAGNOSIS_AND_TREATMENT_PLANS,
     );
   };
 
   const getOtherDocuments = () => {
     if (!data?.data) return [];
     return data.data.filter(
-      (template: Template) => template.type === "other_documents",
+      (template: Template) => template.type === TemplateType.OTHER_DOCUMENTS,
     );
   };
 
@@ -144,11 +146,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate
-                        id={template.id}
-                        title={template.name}
-                        type={template.type}
-                      />
+                      <ViewTemplate id={template.id} title={template.name} />
                       <DeleteTemplateDialog
                         id={template.id}
                         title={template.name}
@@ -194,11 +192,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate
-                        id={template.id}
-                        title={template.name}
-                        type={template.type}
-                      />
+                      <ViewTemplate id={template.id} title={template.name} />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -249,11 +243,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate
-                        id={template.id}
-                        title={template.name}
-                        type={template.type}
-                      />
+                      <ViewTemplate id={template.id} title={template.name} />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -302,11 +292,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate
-                        id={template.id}
-                        title={template.name}
-                        type={template.type}
-                      />
+                      <ViewTemplate id={template.id} title={template.name} />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -357,11 +343,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate
-                        id={template.id}
-                        title={template.name}
-                        type={template.type}
-                      />
+                      <ViewTemplate id={template.id} title={template.name} />
                       <Button
                         variant="ghost"
                         size="icon"

@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { TemplateType } from "@/types/templateTypes";
 
 export interface Template {
   id: string;
   name: string;
   content: string;
-  type: string;
+  type: TemplateType;
   description: string | null;
   frequency_options: Record<string, unknown> | null;
   is_active: boolean;
@@ -18,7 +19,7 @@ export interface Template {
 
 // Fetch all templates
 export function useTemplates(filters?: {
-  type?: string;
+  type?: TemplateType;
   is_active?: boolean;
   search?: string;
   sharable?: boolean;
