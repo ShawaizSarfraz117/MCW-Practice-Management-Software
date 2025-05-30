@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
+import { TemplateType } from "@/types/templateTypes";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const type = searchParams.get("type");
+    const type = searchParams.get("type") as TemplateType | null;
     const sharable = searchParams.get("sharable");
     const is_active = searchParams.get("is_active");
     const search = searchParams.get("search");
@@ -38,7 +39,6 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Get templates without pagination
     const templates = await prisma.surveyTemplate.findMany({
       where: whereCondition,
       orderBy: {
@@ -46,7 +46,6 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Return templates without pagination metadata
     return NextResponse.json({
       data: templates,
     });
