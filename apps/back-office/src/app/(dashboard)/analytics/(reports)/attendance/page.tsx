@@ -64,7 +64,6 @@ const mockData: Appointment[] = [
 ];
 
 export default function AttendancePage() {
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const today = new Date();
   const formatDate = (date: Date) => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -73,36 +72,45 @@ export default function AttendancePage() {
     return `${month}/${day}/${year}`;
   };
   const todayStr = formatDate(today);
-  const [fromDate, setFromDate] = useState(todayStr);
-  const [toDate, setToDate] = useState(todayStr);
-  const [selectedTimeRange, setSelectedTimeRange] = useState(todayStr);
-  const [selectedClient, setSelectedClient] = useState("All clients");
-  const [selectedStatus, setSelectedStatus] = useState("All statuses");
+
+  const [filters, setFilters] = useState({
+    showDatePicker: false,
+    fromDate: todayStr,
+    toDate: todayStr,
+    selectedTimeRange: todayStr,
+    selectedClient: "All clients",
+    selectedStatus: "All statuses",
+    rowsPerPage: "10",
+  });
   const clientOptions = [
     "All clients",
     "Shawaiz Sarfraz",
     "Shawaiz Sarfraz & Mrs Shawaiz",
   ];
   const statusOptions = ["All statuses", "Show", "No Show", "Cancelled"];
-  const [rowsPerPage, setRowsPerPage] = useState("10");
 
   const handleDatePickerApply = (
     startDate: string,
     endDate: string,
     displayOption: string,
   ) => {
-    setFromDate(startDate);
-    setToDate(endDate);
-    setSelectedTimeRange(
-      displayOption === "Custom Range"
-        ? `${startDate} - ${endDate}`
-        : displayOption,
-    );
-    setShowDatePicker(false);
+    setFilters((prev) => ({
+      ...prev,
+      fromDate: startDate,
+      toDate: endDate,
+      selectedTimeRange:
+        displayOption === "Custom Range"
+          ? `${startDate} - ${endDate}`
+          : displayOption,
+      showDatePicker: false,
+    }));
   };
 
   const handleDatePickerCancel = () => {
-    setShowDatePicker(false);
+    setFilters((prev) => ({
+      ...prev,
+      showDatePicker: false,
+    }));
   };
 
   return (
@@ -170,20 +178,21 @@ export default function AttendancePage() {
             <Button
               variant="outline"
               className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-              onClick={() => setShowDatePicker(true)}
+              onClick={() =>
+                setFilters((prev) => ({ ...prev, showDatePicker: true }))
+              }
             >
               <Calendar className="w-4 h-4 mr-2" />
-              {selectedTimeRange}
+              {filters.selectedTimeRange}
             </Button>
-            {showDatePicker && (
+            {filters.showDatePicker && (
               <div className="absolute z-50">
                 <DateRangePicker
-                  isOpen={showDatePicker}
-                  onClose={() => setShowDatePicker(false)}
+                  isOpen={filters.showDatePicker}
+                  onClose={handleDatePickerCancel}
                   onApply={handleDatePickerApply}
-                  onCancel={handleDatePickerCancel}
-                  initialStartDate={fromDate}
-                  initialEndDate={toDate}
+                  initialStartDate={filters.fromDate}
+                  initialEndDate={filters.toDate}
                 />
               </div>
             )}
@@ -194,8 +203,10 @@ export default function AttendancePage() {
                 label: client,
                 value: client,
               }))}
-              value={selectedClient}
-              onValueChange={setSelectedClient}
+              value={filters.selectedClient}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedClient: value }))
+              }
               placeholder="Select client"
               searchable
               icon={<Users className="w-4 h-4" />}
@@ -205,7 +216,7 @@ export default function AttendancePage() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Filter className="w-4 h-4" />
-                {selectedStatus}
+                {filters.selectedStatus}
                 <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -213,7 +224,9 @@ export default function AttendancePage() {
               {statusOptions.map((status) => (
                 <DropdownMenuItem
                   key={status}
-                  onClick={() => setSelectedStatus(status)}
+                  onClick={() =>
+                    setFilters((prev) => ({ ...prev, selectedStatus: status }))
+                  }
                   className="cursor-pointer"
                 >
                   {status}
@@ -252,7 +265,12 @@ export default function AttendancePage() {
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-700">Rows per page</span>
-              <Select value={rowsPerPage} onValueChange={setRowsPerPage}>
+              <Select
+                value={filters.rowsPerPage}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, rowsPerPage: value }))
+                }
+              >
                 <SelectTrigger className="w-[70px]">
                   <SelectValue />
                 </SelectTrigger>

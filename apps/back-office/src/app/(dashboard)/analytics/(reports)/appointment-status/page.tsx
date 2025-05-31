@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import DateRangePicker from "../../../activity/components/DateRangePicker";
+import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
 
 type Appointment = {
   id: string;
@@ -102,7 +102,6 @@ const mockData: Appointment[] = [
 ];
 
 export default function AppointmentStatusPage() {
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const today = new Date();
   const formatDate = (date: Date) => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -111,12 +110,17 @@ export default function AppointmentStatusPage() {
     return `${month}/${day}/${year}`;
   };
   const todayStr = formatDate(today);
-  const [fromDate, setFromDate] = useState(todayStr);
-  const [toDate, setToDate] = useState(todayStr);
-  const [selectedTimeRange, setSelectedTimeRange] = useState(todayStr);
-  const [selectedClient, setSelectedClient] = useState("All clients");
-  const [selectedStatus, setSelectedStatus] = useState("All statuses");
-  const [selectedNote, setSelectedNote] = useState("All notes");
+
+  const [filters, setFilters] = useState({
+    showDatePicker: false,
+    fromDate: todayStr,
+    toDate: todayStr,
+    selectedTimeRange: todayStr,
+    selectedClient: "All clients",
+    selectedStatus: "All statuses",
+    selectedNote: "All notes",
+    rowsPerPage: "10",
+  });
   const clientOptions = [
     "All clients",
     "Shawaiz Sarfraz",
@@ -124,25 +128,29 @@ export default function AppointmentStatusPage() {
   ];
   const statusOptions = ["All statuses", "Unpaid", "Paid", "Cancelled"];
   const noteOptions = ["All notes", "No Note", "Signed", "Draft"];
-  const [rowsPerPage, setRowsPerPage] = useState("10");
 
   const handleDatePickerApply = (
     startDate: string,
     endDate: string,
     displayOption: string,
   ) => {
-    setFromDate(startDate);
-    setToDate(endDate);
-    setSelectedTimeRange(
-      displayOption === "Custom Range"
-        ? `${startDate} - ${endDate}`
-        : displayOption,
-    );
-    setShowDatePicker(false);
+    setFilters((prev) => ({
+      ...prev,
+      fromDate: startDate,
+      toDate: endDate,
+      selectedTimeRange:
+        displayOption === "Custom Range"
+          ? `${startDate} - ${endDate}`
+          : displayOption,
+      showDatePicker: false,
+    }));
   };
 
   const handleDatePickerCancel = () => {
-    setShowDatePicker(false);
+    setFilters((prev) => ({
+      ...prev,
+      showDatePicker: false,
+    }));
   };
 
   return (
@@ -194,20 +202,21 @@ export default function AppointmentStatusPage() {
             <Button
               variant="outline"
               className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-              onClick={() => setShowDatePicker(true)}
+              onClick={() =>
+                setFilters((prev) => ({ ...prev, showDatePicker: true }))
+              }
             >
               <Calendar className="w-4 h-4 mr-2" />
-              {selectedTimeRange}
+              {filters.selectedTimeRange}
             </Button>
-            {showDatePicker && (
+            {filters.showDatePicker && (
               <div className="absolute z-50">
                 <DateRangePicker
-                  isOpen={showDatePicker}
-                  onClose={() => setShowDatePicker(false)}
+                  isOpen={filters.showDatePicker}
+                  onClose={handleDatePickerCancel}
                   onApply={handleDatePickerApply}
-                  onCancel={handleDatePickerCancel}
-                  initialStartDate={fromDate}
-                  initialEndDate={toDate}
+                  initialStartDate={filters.fromDate}
+                  initialEndDate={filters.toDate}
                 />
               </div>
             )}
@@ -218,8 +227,10 @@ export default function AppointmentStatusPage() {
                 label: client,
                 value: client,
               }))}
-              value={selectedClient}
-              onValueChange={setSelectedClient}
+              value={filters.selectedClient}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedClient: value }))
+              }
               placeholder="Select client"
               searchable
               icon={<Users className="w-4 h-4" />}
@@ -231,8 +242,10 @@ export default function AppointmentStatusPage() {
                 label: status,
                 value: status,
               }))}
-              value={selectedStatus}
-              onValueChange={setSelectedStatus}
+              value={filters.selectedStatus}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedStatus: value }))
+              }
               placeholder="Select status"
               searchable
             />
@@ -243,8 +256,10 @@ export default function AppointmentStatusPage() {
                 label: note,
                 value: note,
               }))}
-              value={selectedNote}
-              onValueChange={setSelectedNote}
+              value={filters.selectedNote}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedNote: value }))
+              }
               placeholder="Select note"
               searchable
             />
@@ -320,7 +335,12 @@ export default function AppointmentStatusPage() {
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-700">Rows per page</span>
-                <Select value={rowsPerPage} onValueChange={setRowsPerPage}>
+                <Select
+                  value={filters.rowsPerPage}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({ ...prev, rowsPerPage: value }))
+                  }
+                >
                   <SelectTrigger className="w-[70px]">
                     <SelectValue />
                   </SelectTrigger>

@@ -19,7 +19,6 @@ import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
 import { useState } from "react";
 
 export default function IncomePage() {
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const today = new Date();
   const formatDate = (date: Date) => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -28,27 +27,36 @@ export default function IncomePage() {
     return `${month}/${day}/${year}`;
   };
   const todayStr = formatDate(today);
-  const [fromDate, setFromDate] = useState(todayStr);
-  const [toDate, setToDate] = useState(todayStr);
-  const [selectedTimeRange, setSelectedTimeRange] = useState(todayStr);
+
+  const [filters, setFilters] = useState({
+    showDatePicker: false,
+    fromDate: todayStr,
+    toDate: todayStr,
+    selectedTimeRange: todayStr,
+  });
 
   const handleDatePickerApply = (
     startDate: string,
     endDate: string,
     displayOption: string,
   ) => {
-    setFromDate(startDate);
-    setToDate(endDate);
-    setSelectedTimeRange(
-      displayOption === "Custom Range"
-        ? `${startDate} - ${endDate}`
-        : displayOption,
-    );
-    setShowDatePicker(false);
+    setFilters((prev) => ({
+      ...prev,
+      fromDate: startDate,
+      toDate: endDate,
+      selectedTimeRange:
+        displayOption === "Custom Range"
+          ? `${startDate} - ${endDate}`
+          : displayOption,
+      showDatePicker: false,
+    }));
   };
 
   const handleDatePickerCancel = () => {
-    setShowDatePicker(false);
+    setFilters((prev) => ({
+      ...prev,
+      showDatePicker: false,
+    }));
   };
 
   return (
@@ -90,20 +98,23 @@ export default function IncomePage() {
         <div className="relative inline-block">
           <button
             className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-md"
-            onClick={() => setShowDatePicker(true)}
+            onClick={() =>
+              setFilters((prev) => ({ ...prev, showDatePicker: true }))
+            }
           >
             <Calendar className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm font-medium">{selectedTimeRange}</span>
+            <span className="text-sm font-medium">
+              {filters.selectedTimeRange}
+            </span>
           </button>
-          {showDatePicker && (
+          {filters.showDatePicker && (
             <div className="absolute z-50">
               <DateRangePicker
-                isOpen={showDatePicker}
-                onClose={() => setShowDatePicker(false)}
+                isOpen={filters.showDatePicker}
+                onClose={handleDatePickerCancel}
                 onApply={handleDatePickerApply}
-                onCancel={handleDatePickerCancel}
-                initialStartDate={fromDate}
-                initialEndDate={toDate}
+                initialStartDate={filters.fromDate}
+                initialEndDate={filters.toDate}
               />
             </div>
           )}

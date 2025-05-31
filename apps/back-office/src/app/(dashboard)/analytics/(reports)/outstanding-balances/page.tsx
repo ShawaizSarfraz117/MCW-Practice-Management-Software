@@ -73,7 +73,6 @@ const mockData: ClientBalance[] = [
 ];
 
 export default function OutstandingBalancesPage() {
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const today = new Date();
   const formatDate = (date: Date) => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -82,11 +81,15 @@ export default function OutstandingBalancesPage() {
     return `${month}/${day}/${year}`;
   };
   const todayStr = formatDate(today);
-  const [fromDate, setFromDate] = useState(todayStr);
-  const [toDate, setToDate] = useState(todayStr);
-  const [selectedTimeRange, setSelectedTimeRange] = useState(todayStr);
-  const [rowsPerPage, setRowsPerPage] = useState("10");
-  const [currentPage, setCurrentPage] = useState(1);
+
+  const [filters, setFilters] = useState({
+    showDatePicker: false,
+    fromDate: todayStr,
+    toDate: todayStr,
+    selectedTimeRange: todayStr,
+    rowsPerPage: "10",
+    currentPage: 1,
+  });
   const totalPages = 3;
 
   const formatCurrency = (amount: number) => {
@@ -103,18 +106,23 @@ export default function OutstandingBalancesPage() {
     endDate: string,
     displayOption: string,
   ) => {
-    setFromDate(startDate);
-    setToDate(endDate);
-    setSelectedTimeRange(
-      displayOption === "Custom Range"
-        ? `${startDate} - ${endDate}`
-        : displayOption,
-    );
-    setShowDatePicker(false);
+    setFilters((prev) => ({
+      ...prev,
+      fromDate: startDate,
+      toDate: endDate,
+      selectedTimeRange:
+        displayOption === "Custom Range"
+          ? `${startDate} - ${endDate}`
+          : displayOption,
+      showDatePicker: false,
+    }));
   };
 
   const handleDatePickerCancel = () => {
-    setShowDatePicker(false);
+    setFilters((prev) => ({
+      ...prev,
+      showDatePicker: false,
+    }));
   };
 
   return (
@@ -158,20 +166,21 @@ export default function OutstandingBalancesPage() {
             <Button
               variant="outline"
               className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-              onClick={() => setShowDatePicker(true)}
+              onClick={() =>
+                setFilters((prev) => ({ ...prev, showDatePicker: true }))
+              }
             >
               <Calendar className="w-4 h-4 mr-2" />
-              {selectedTimeRange}
+              {filters.selectedTimeRange}
             </Button>
-            {showDatePicker && (
+            {filters.showDatePicker && (
               <div className="absolute z-50">
                 <DateRangePicker
-                  isOpen={showDatePicker}
-                  onClose={() => setShowDatePicker(false)}
+                  isOpen={true}
+                  onClose={handleDatePickerCancel}
                   onApply={handleDatePickerApply}
-                  onCancel={handleDatePickerCancel}
-                  initialStartDate={fromDate}
-                  initialEndDate={toDate}
+                  initialStartDate={filters.fromDate}
+                  initialEndDate={filters.toDate}
                 />
               </div>
             )}
@@ -231,7 +240,12 @@ export default function OutstandingBalancesPage() {
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-700">Rows per page</span>
-              <Select value={rowsPerPage} onValueChange={setRowsPerPage}>
+              <Select
+                value={filters.rowsPerPage}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, rowsPerPage: value }))
+                }
+              >
                 <SelectTrigger className="w-[70px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -247,25 +261,35 @@ export default function OutstandingBalancesPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(1)}
+                disabled={filters.currentPage === 1}
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, currentPage: 1 }))
+                }
               >
                 <ChevronFirst className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={filters.currentPage === 1}
+                onClick={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    currentPage: Math.max(1, prev.currentPage - 1),
+                  }))
+                }
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                disabled={currentPage === totalPages}
+                disabled={filters.currentPage === totalPages}
                 onClick={() =>
-                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  setFilters((prev) => ({
+                    ...prev,
+                    currentPage: Math.min(totalPages, prev.currentPage + 1),
+                  }))
                 }
               >
                 <ChevronRight className="w-4 h-4" />
@@ -273,8 +297,10 @@ export default function OutstandingBalancesPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(totalPages)}
+                disabled={filters.currentPage === totalPages}
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, currentPage: totalPages }))
+                }
               >
                 <ChevronLast className="w-4 h-4" />
               </Button>
