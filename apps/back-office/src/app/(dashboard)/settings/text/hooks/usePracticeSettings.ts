@@ -25,7 +25,6 @@ export function usePracticeSettings(keys?: string[]) {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (settingsData: Partial<PracticeSettings>) => {
-      console.log("updateSettingsMutation called with:", settingsData);
       const response = await fetch("/api/practice-settings", {
         method: "PUT",
         headers: {
@@ -34,23 +33,17 @@ export function usePracticeSettings(keys?: string[]) {
         body: JSON.stringify(settingsData),
       });
 
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error response:", errorData);
         throw new Error(
           errorData.error || "Failed to update practice settings",
         );
       }
 
       const result = await response.json();
-      console.log("Success response:", result);
       return result;
     },
-    onSuccess: (data) => {
-      console.log("updateSettingsMutation success:", data);
+    onSuccess: (_data) => {
       queryClient.invalidateQueries({ queryKey: ["practiceSettings"] });
       toast({
         title: "Success",
@@ -59,7 +52,6 @@ export function usePracticeSettings(keys?: string[]) {
       });
     },
     onError: (error: Error) => {
-      console.error("updateSettingsMutation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to update practice settings",
@@ -81,26 +73,20 @@ export function useTextReminderSettings() {
   const { settings, isLoading, updateSettings, isUpdating } =
     usePracticeSettings(["is-text-reminders-enabled", "reminder-duration"]);
 
-  console.log("useTextReminderSettings - raw settings:", settings);
-
   const textSettings = {
     isTextRemindersEnabled:
       (settings["is-text-reminders-enabled"] as boolean) ?? true,
     reminderDuration: (settings["reminder-duration"] as string) ?? "24h",
   };
 
-  console.log("useTextReminderSettings - processed settings:", textSettings);
-
   const updateTextSettings = (newSettings: {
     isTextRemindersEnabled: boolean;
     reminderDuration: string;
   }) => {
-    console.log("updateTextSettings called with:", newSettings);
     const payload = {
       "is-text-reminders-enabled": newSettings.isTextRemindersEnabled,
       "reminder-duration": newSettings.reminderDuration,
     };
-    console.log("Sending payload:", payload);
     updateSettings(payload);
   };
 

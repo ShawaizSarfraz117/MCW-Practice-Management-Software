@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { z } from "zod";
+import { logger } from "@mcw/logger";
 
 type PracticeSettingValue = string | number | boolean | object;
 const practiceSettingsPayload = z.record(z.string(), z.any()).refine(
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(settingsObject);
   } catch (error) {
-    console.error("Error fetching practice settings:", error);
+    logger.error(error as Error, "Error fetching practice settings");
     return NextResponse.json(
       { error: "Failed to fetch practice settings" },
       { status: 500 },
@@ -89,12 +90,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const data = await request.json();
-    console.log("Received data:", JSON.stringify(data, null, 2));
+    logger.info({ data }, "Received practice settings data");
 
     // Validate request body
     const validationResult = practiceSettingsPayload.safeParse(data);
     if (!validationResult.success) {
-      console.log("Validation failed:", validationResult.error);
+      logger.warn(
+        { error: validationResult.error },
+        "Practice settings validation failed",
+      );
       return NextResponse.json(
         {
           error: "Invalid request payload",
@@ -104,9 +108,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log(
-      "Validation passed, validated data:",
-      JSON.stringify(validationResult.data, null, 2),
+    logger.info(
+      { data: validationResult.data },
+      "Practice settings validation passed",
     );
 
     // Update or create the settings
@@ -114,8 +118,9 @@ export async function PUT(request: NextRequest) {
       key: string,
       value: PracticeSettingValue,
     ) => {
-      console.log(
-        `Processing setting: ${key} = ${JSON.stringify(value)} (type: ${typeof value})`,
+      logger.debug(
+        { key, value, type: typeof value },
+        "Processing practice setting",
       );
 
       const existing = await prisma.practiceSettings.findFirst({
@@ -126,10 +131,16 @@ export async function PUT(request: NextRequest) {
       let stringValue: string;
       if (typeof value === "object") {
         stringValue = JSON.stringify(value);
-        console.log(`Converted object to string: ${stringValue}`);
+        logger.debug(
+          { key, stringValue },
+          "Converted object to string for storage",
+        );
       } else {
         stringValue = String(value);
-        console.log(`Converted ${typeof value} to string: ${stringValue}`);
+        logger.debug(
+          { key, type: typeof value, stringValue },
+          "Converted value to string for storage",
+        );
       }
 
       if (existing) {
@@ -160,7 +171,7 @@ export async function PUT(request: NextRequest) {
       updated: Object.keys(validationResult.data),
     });
   } catch (error) {
-    console.error("Error updating practice settings:", error);
+    logger.error(error as Error, "Error updating practice settings");
     return NextResponse.json(
       { error: "Failed to update practice settings" },
       { status: 500 },
