@@ -146,7 +146,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate id={template.id} title={template.name} />
+                      <ViewTemplate template={template} />
                       <DeleteTemplateDialog
                         id={template.id}
                         title={template.name}
@@ -192,7 +192,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate id={template.id} title={template.name} />
+                      <ViewTemplate template={template} />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -243,7 +243,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate id={template.id} title={template.name} />
+                      <ViewTemplate template={template} />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -292,7 +292,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate id={template.id} title={template.name} />
+                      <ViewTemplate template={template} />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -343,7 +343,7 @@ export default function TemplateLibraryPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <ViewTemplate id={template.id} title={template.name} />
+                      <ViewTemplate template={template} />
                       <Button
                         variant="ghost"
                         size="icon"
