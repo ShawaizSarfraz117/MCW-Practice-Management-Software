@@ -53,6 +53,9 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.323.0",
+    "react-quill": "^2.0.0",
+    "survey-core": "^2.1.0",
+    "survey-react-ui": "^2.1.0",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7"
   },

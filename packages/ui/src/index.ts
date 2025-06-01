@@ -55,4 +55,7 @@ export * from "./components/toggle";
 export * from "./components/toggle-group";
 export * from "./components/tooltip";
 export * from "./hooks/useMobile";
-export * from "./components/SurveyPreview";
+export * from "./components/survey/SurveyPreview";
+export * from "./components/survey/ReactQuillWidget";
+export * from "./components/survey/registerCustomWidgets";
+export * from "./components/survey/initializeWidgets";
