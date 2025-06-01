@@ -9,6 +9,7 @@ import {
   getDefaultSurveyJson,
   configureSurveyTheme,
   SurveyMode,
+  initializeCustomWidgets,
 } from "@mcw/utils";
 
 interface SurveyPreviewProps {
@@ -32,48 +33,53 @@ export function SurveyPreview({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get the custom theme
-    const theme = configureSurveyTheme();
+    const setupSurvey = async () => {
+      // Initialize custom widgets
+      await initializeCustomWidgets();
+      const theme = configureSurveyTheme();
 
-    // Parse survey content
-    const surveyJson = parseSurveyContent(content);
+      // Parse survey content
+      const surveyJson = parseSurveyContent(content);
 
-    if (!surveyJson) {
-      // Use default survey if parsing fails
-      const defaultJson = getDefaultSurveyJson(type, title);
-      const model = createSurveyModel(defaultJson, mode, { theme });
-      setSurveyModel(model);
-      setError("Unable to load survey content. Showing default template.");
-      return;
-    }
-
-    // Create survey model
-    try {
-      const model = createSurveyModel(surveyJson, mode, {
-        showNavigationButtons: mode === "edit",
-        showCompletedPage: false,
-        showProgressBar: "off",
-        theme,
-      });
-
-      // Set up completion handler
-      if (onComplete && mode === "edit") {
-        model.onComplete.add((sender) => {
-          onComplete(sender.data as Record<string, unknown>);
-        });
+      if (!surveyJson) {
+        // Use default survey if parsing fails
+        const defaultJson = getDefaultSurveyJson(type, title);
+        const model = createSurveyModel(defaultJson, mode, { theme });
+        setSurveyModel(model);
+        setError("Unable to load survey content. Showing default template.");
+        return;
       }
 
-      setSurveyModel(model);
-      setError(null);
-    } catch (err) {
-      console.error("Error creating survey model:", err);
-      setError("Failed to create survey preview.");
+      // Create survey model
+      try {
+        const model = createSurveyModel(surveyJson, mode, {
+          showNavigationButtons: mode === "edit",
+          showCompletedPage: false,
+          showProgressBar: "off",
+          theme,
+        });
 
-      // Fallback to default
-      const defaultJson = getDefaultSurveyJson(type, title);
-      const model = createSurveyModel(defaultJson, mode, { theme });
-      setSurveyModel(model);
-    }
+        // Set up completion handler
+        if (onComplete && mode === "edit") {
+          model.onComplete.add((sender) => {
+            onComplete(sender.data as Record<string, unknown>);
+          });
+        }
+
+        setSurveyModel(model);
+        setError(null);
+      } catch (err) {
+        console.error("Error creating survey model:", err);
+        setError("Failed to create survey preview.");
+
+        // Fallback to default
+        const defaultJson = getDefaultSurveyJson(type, title);
+        const model = createSurveyModel(defaultJson, mode, { theme });
+        setSurveyModel(model);
+      }
+    };
+
+    setupSurvey();
   }, [content, title, type, mode, onComplete]);
 
   if (!surveyModel) {
