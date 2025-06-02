@@ -103,15 +103,17 @@ export default function ClientProfile({
         searchParams: { id },
       });
       if (error) throw error;
-      if (response && "available_credit" in response) {
-        setCredit(Number(response.available_credit) || 0);
+      if (response && response.data && response.data.length > 0) {
+        const clientGroupData = response.data[0];
+        setCredit(Number(clientGroupData.available_credit) || 0);
 
-        if (response.ClientGroupMembership?.length) {
-          const name = getClientGroupInfo(response);
+        if (clientGroupData.ClientGroupMembership?.length) {
+          const name = getClientGroupInfo(clientGroupData);
           setClientName(name || "");
         }
+        return clientGroupData;
       }
-      return response;
+      return null;
     },
     enabled: !!id, // Only run when id exists
   });

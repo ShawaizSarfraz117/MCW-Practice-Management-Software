@@ -60,7 +60,15 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      return NextResponse.json(clientGroup);
+      // Return consistent paginated format even for single items
+      return NextResponse.json({
+        data: [clientGroup],
+        pagination: {
+          page: 1,
+          limit: 1,
+          total: 1,
+        },
+      });
     } else {
       logger.info("Retrieving all client groups with pagination");
 
