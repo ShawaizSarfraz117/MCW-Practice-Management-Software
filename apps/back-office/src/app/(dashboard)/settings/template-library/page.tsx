@@ -94,31 +94,6 @@ export default function TemplateLibraryPage() {
           </p>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-100 p-6 mb-6">
-          <div className="flex items-start justify-between">
-            <div className="max-w-[75%]">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Expand your template library
-              </h2>
-              <p className="mt-1 text-sm text-gray-600">
-                Find customizable, pre-built templates designed for your
-                specialty or start with a blank canvas in the template builder
-              </p>
-              <div className="flex gap-3 mt-6">
-                <Button
-                  variant="default"
-                  className="bg-green-700 hover:bg-green-800"
-                >
-                  Browse pre-built templates
-                </Button>
-                <Button variant="outline">Build new template</Button>
-              </div>
-            </div>
-            <div className="w-24 h-24 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <FileText className="h-12 w-12 text-blue-500" />
-            </div>
-          </div>
-        </div>
 
         <div className="space-y-6">
           <div className="space-y-4">
@@ -389,13 +364,6 @@ export default function TemplateLibraryPage() {
                         onClick={() => handleDuplicateTemplate(template)}
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-gray-100"
-                      >
-                        <FileText className="h-4 w-4 text-gray-500" />
                       </Button>
                       {!template.is_default && (
                         <DeleteTemplateDialog

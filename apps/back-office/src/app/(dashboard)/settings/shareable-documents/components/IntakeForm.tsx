@@ -15,27 +15,25 @@ import {
 } from "@mcw/ui";
 import { Eye, Plus } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ShareableTemplate } from "../hooks/useShareableTemplates";
+import { SurveyPreview } from "@mcw/ui";
 
 // Types
 interface BaseForm {
+  id?: string;
   name: string;
   default: boolean;
   content?: string;
 }
 
-// Mock Data
+interface IntakeFormProps {
+  intakeForms: ShareableTemplate[];
+  scoredMeasures: ShareableTemplate[];
+}
+
+// Mock Data for uploaded files only
 const MOCK_DATA = {
-  intakeForms: [
-    { name: "COVID-19 Pre-Appointment Screening Questionnaire", default: true },
-    { name: "Standard Intake Questionnaire Template", default: true },
-    { name: "Release of Information", default: true },
-    { name: "Consent for Minor Usage of Software Services", default: true },
-    { name: "Third Party Financial Responsibility Form", default: true },
-  ],
-  scoredMeasures: [
-    { name: "GAD-7", default: true },
-    { name: "PHQ-9", default: true },
-  ],
   uploadedFiles: [
     { name: "Authorization for Release of Information", type: "pdf" },
     { name: "BAI", type: "pdf" },
@@ -43,9 +41,9 @@ const MOCK_DATA = {
   ],
 };
 
-export function IntakeForm() {
+export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
+  const router = useRouter();
   const [viewingIntake, setViewingIntake] = useState<BaseForm | null>(null);
-  const [editingIntake, setEditingIntake] = useState<BaseForm | null>(null);
   const [viewingMeasure, setViewingMeasure] = useState<BaseForm | null>(null);
 
   return (
@@ -89,13 +87,13 @@ export function IntakeForm() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MOCK_DATA.scoredMeasures.map((measure) => (
-                <TableRow key={measure.name}>
+              {scoredMeasures.map((measure) => (
+                <TableRow key={measure.id}>
                   <TableCell className="font-medium">{measure.name}</TableCell>
                   <TableCell>
                     <div className="pl-4">
                       <span className="text-sm text-gray-600">
-                        {measure.default ? "Yes" : "No"}
+                        {measure.is_default ? "Yes" : "No"}
                       </span>
                     </div>
                   </TableCell>
@@ -105,7 +103,12 @@ export function IntakeForm() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
-                        onClick={() => setViewingMeasure(measure)}
+                        onClick={() => setViewingMeasure({
+                          id: measure.id,
+                          name: measure.name,
+                          default: measure.is_default,
+                          content: measure.content
+                        })}
                       >
                         <Eye className="h-4 w-4 text-gray-500" />
                       </Button>
@@ -135,17 +138,17 @@ export function IntakeForm() {
               <TableRow>
                 <TableHead className="w-[400px]">Name</TableHead>
                 <TableHead className="w-[100px]">Default</TableHead>
-                <TableHead className="w-[200px]">Actions</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MOCK_DATA.intakeForms.map((form) => (
-                <TableRow key={form.name}>
+              {intakeForms.map((form) => (
+                <TableRow key={form.id}>
                   <TableCell className="font-medium">{form.name}</TableCell>
                   <TableCell>
                     <div className="pl-4">
                       <span className="text-sm text-gray-600">
-                        {form.default ? "Yes" : "No"}
+                        {form.is_default ? "Yes" : "No"}
                       </span>
                     </div>
                   </TableCell>
@@ -155,12 +158,15 @@ export function IntakeForm() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
+                        onClick={() => setViewingIntake({
+                          id: form.id,
+                          name: form.name,
+                          default: form.is_default,
+                          content: form.content
+                        })}
                       >
                         <Eye className="h-4 w-4 text-gray-500" />
                       </Button>
-                      <button className="text-green-600 hover:text-green-800 text-sm">
-                        Edit
-                      </button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -169,7 +175,11 @@ export function IntakeForm() {
           </Table>
         </div>
 
-        <Button className="border text-green-700" variant="outline">
+        <Button 
+          className="border text-green-700" 
+          variant="outline"
+          onClick={() => router.push('/settings/template-library')}
+        >
           <span>Manage Forms</span>
         </Button>
       </div>
@@ -250,52 +260,89 @@ export function IntakeForm() {
         open={!!viewingMeasure}
         onOpenChange={() => setViewingMeasure(null)}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-full h-full w-full flex flex-col items-center p-0 bg-[#e9e9e9] rounded-md shadow-md">
           {viewingMeasure && (
             <>
-              <DialogHeader>
-                <DialogTitle>{viewingMeasure.name}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  Preview of the scored measure form will be displayed here.
-                </p>
+              {/* Header */}
+              <div className="flex w-full justify-between bg-white border-b p-6 border-gray-200 pb-4 flex-shrink-0">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {viewingMeasure.name}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => window.print()}
+                >
+                  🖨️
+                </Button>
+              </div>
+
+              {/* Survey Preview */}
+              <div className="mt-4 p-8 w-[50%] flex-1 overflow-y-auto bg-white rounded-md">
+                {viewingMeasure.content ? (
+                  <SurveyPreview
+                    content={viewingMeasure.content}
+                    title={viewingMeasure.name}
+                    type="SCORED_MEASURES"
+                    mode="edit"
+                    showInstructions={true}
+                  />
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    No preview available for this template.
+                  </p>
+                )}
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* View/Edit Intake Form Sheet */}
-      <Sheet
-        open={!!viewingIntake || !!editingIntake}
-        onOpenChange={() => {
-          setViewingIntake(null);
-          setEditingIntake(null);
-        }}
+      {/* View Intake Form Dialog */}
+      <Dialog
+        open={!!viewingIntake}
+        onOpenChange={() => setViewingIntake(null)}
       >
-        <SheetContent className="w-[600px] sm:max-w-[600px]">
-          <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between border-b pb-4">
-              <h2 className="text-lg font-medium">
-                {editingIntake ? "Edit Intake Form" : "View Intake Form"}
-              </h2>
-              {editingIntake && (
-                <Button className="bg-[#2d8467] hover:bg-[#236c53]">
-                  Save Changes
+        <DialogContent className="max-w-full h-full w-full flex flex-col items-center p-0 bg-[#e9e9e9] rounded-md shadow-md">
+          {viewingIntake && (
+            <>
+              {/* Header */}
+              <div className="flex w-full justify-between bg-white border-b p-6 border-gray-200 pb-4 flex-shrink-0">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {viewingIntake.name}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => window.print()}
+                >
+                  🖨️
                 </Button>
-              )}
-            </div>
-            <div className="flex-1 overflow-auto py-4">
-              <p className="text-sm text-gray-600">
-                {editingIntake
-                  ? "Edit form content here"
-                  : "Form preview content"}
-              </p>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+              </div>
+
+              {/* Survey Preview */}
+              <div className="mt-4 p-8 w-[50%] flex-1 overflow-y-auto bg-white rounded-md">
+                {viewingIntake.content ? (
+                  <SurveyPreview
+                    content={viewingIntake.content}
+                    title={viewingIntake.name}
+                    type="INTAKE_FORMS"
+                    mode="edit"
+                    showInstructions={true}
+                  />
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    No preview available for this template.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
