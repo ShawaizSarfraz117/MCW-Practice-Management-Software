@@ -197,6 +197,14 @@ Integration tests use a separate SQL Server instance via Docker:
 - **Security**: HIPAA compliance, no secrets in code
 - **Consistency**: Follow existing patterns in codebase
 
+### Error Visibility for Development
+
+- **Critical Rule**: All errors must trickle back to developers in ALL environments except production
+- **Development/Staging/Testing**: Show maximum error information to developers (full stack traces, detailed messages, context)
+- **Production Only**: Handle errors differently for end users (sanitized messages)
+- **Implementation**: Always include error details in responses for non-production environments
+- **Rationale**: Maximum error visibility saves significant development time by providing immediate feedback
+
 ### Security Principles
 
 - HIPAA compliance is mandatory
@@ -225,6 +233,20 @@ Integration tests use a separate SQL Server instance via Docker:
 - Always use `catch (error: unknown)` pattern
 - Mock boundaries at repository level for unit tests
 - Integration tests use real database interactions
+
+**Test Location and Naming Rules**:
+
+- **Test Co-location**: All tests must be placed parallel to the source file they test, mirroring the exact `src/` directory structure in the `__tests__/` directory
+- **Speed-based Naming**: Use `.unit.test.ts/.tsx` for fast tests (< 2 seconds), `.integration.test.ts/.tsx` for slow tests (> 2 seconds)
+- **DOM Environment Tests**: Use `.ui.test.tsx` for tests that need DOM environment (document, window objects) - these automatically use happy-dom environment
+- **Test Documentation**: Only add documentation comments IN THE TEST FILE when a simple test is marked as `.integration.test` due to speed rather than complexity
+- **Examples**:
+  - Source: `src/app/(dashboard)/settings/page.tsx`
+  - Test: `__tests__/(dashboard)/settings/page.unit.test.tsx` (fast, no DOM)
+  - Test: `__tests__/(dashboard)/settings/page.ui.test.tsx` (needs DOM)
+  - Test: `__tests__/(dashboard)/settings/page.integration.test.ts` (slow due to complexity)
+  - Source: `src/app/api/client/route.ts`
+  - Test: `__tests__/api/client/route.integration.test.ts` (due to database operations)
 
 **API Implementation**:
 
