@@ -64,14 +64,14 @@ describe("Team Member Components UI", () => {
       "@/(dashboard)/settings/team-members/components/shared/StateSelector"
     );
 
-    const { container } = render(
+    const { getByText } = render(
       <StateSelector
+        errors={[]}
         label="Test State"
         value=""
         onChange={() => {}}
-        errors={[]}
       />,
     );
-    expect(container.querySelector("label")).toBeDefined();
+    expect(getByText("Test State")).toBeDefined();
   });
 });

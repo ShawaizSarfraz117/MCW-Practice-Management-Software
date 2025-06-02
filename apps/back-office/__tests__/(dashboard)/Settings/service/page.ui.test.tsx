@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
  * Unit tests for service settings page
@@ -20,7 +21,18 @@ describe("Service Settings Page", () => {
       "@/(dashboard)/settings/service/page"
     );
 
-    render(<ServiceSettingsPage />);
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ServiceSettingsPage />
+      </QueryClientProvider>,
+    );
     // Add assertions for expected UI elements
   });
 });
