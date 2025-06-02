@@ -194,7 +194,7 @@ export function EditEvent({
             {isRecurringExpanded && (
               <RecurringSettings
                 recurringData={
-                  parseRecurringRule(appointmentData?.recurring_rule) || {
+                  parseRecurringRule(appointmentData?.recurring_rule || "") || {
                     period: "WEEKLY",
                     frequency: "1",
                     selectedDays: ["MO"],
