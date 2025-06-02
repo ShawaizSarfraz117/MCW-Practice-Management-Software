@@ -3,7 +3,8 @@
   "compilerOptions": {
     "incremental": true,
     "rootDir": "src",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "isolatedModules": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "prisma", "__tests__"]
