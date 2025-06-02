@@ -214,7 +214,7 @@ npx prisma migrate reset --schema=./packages/database/prisma/schema.prisma --for
 ### Key Testing Patterns
 
 - Use `createRequest()` and `createRequestWithBody()` helpers from `@mcw/utils`
-- Import API routes as `@/api/**/route` using path aliases
+- Import API routes using path aliases: `@/api/**/route`
 - For unit tests: Use `prismaMock` from `@mcw/database/mock`
 - For integration tests: Use real `prisma` client with cleanup in `afterEach`
 - Use factory functions for test data generation
@@ -257,7 +257,7 @@ Integration tests use a separate SQL Server instance via Docker:
 ### Error Visibility for Development
 
 - **Critical Rule**: All errors must trickle back to developers in ALL environments except production
-- **Development/Staging/Testing**: Show maximum error information to developers (full stack traces, detailed messages, context)
+- **Development, staging, and testing**: Show maximum error information to developers (full stack traces, detailed messages, context)
 - **Production Only**: Handle errors differently for end users (sanitized messages)
 - **Implementation**: Always include error details in responses for non-production environments
 - **Rationale**: Maximum error visibility saves significant development time by providing immediate feedback
@@ -306,14 +306,6 @@ Integration tests use a separate SQL Server instance via Docker:
   - Source: `src/app/api/client/route.ts`
   - Test: `__tests__/api/client/route.integration.test.ts` (due to database operations)
 
-**API Implementation**:
-
-- Use URL search params for GET filters: `request.nextUrl.searchParams`
-- Return appropriate status codes (200, 201, 400, 404, 500)
-- Log with context using `logger.fromRequest(request)`
-- Validate input thoroughly (consider Zod for complex validation)
-- Use transactions for multi-write operations
-
 **Testing Requirements**:
 
 - No feature is complete without tests
@@ -353,7 +345,7 @@ Integration tests use a separate SQL Server instance via Docker:
 
 For quick verification that changes haven't broken anything, use these commands in order of speed:
 
-### 1. Fastest - Linting (10-20 seconds)
+### 1. Fastest – Linting (10–20 seconds)
 
 ```bash
 npm run lint               # Full monorepo linting
@@ -363,7 +355,7 @@ npm run lint:front-office  # Front-office only (if available)
 
 **What it catches**: Import violations, code style issues, basic syntax errors
 
-### 2. Fast - Type checking (30-60 seconds)
+### 2. Fast – Type checking (30–60 seconds)
 
 ```bash
 npm run typecheck          # Full monorepo TypeScript checking
