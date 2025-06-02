@@ -1,8 +1,10 @@
 "use client";
 
-import { Input, FormControl, FormItem, FormLabel } from "@mcw/ui";
+import { Input, FormControl, FormItem, FormLabel, FormMessage } from "@mcw/ui";
 import { useForm } from "@tanstack/react-form";
 import type { TeamMemberFormData } from "@/types/entities";
+import { validators } from "../shared/validators";
+import { StateSelector } from "../shared/StateSelector";
 
 interface ClinicalInfoFormProps {
   initialData: Partial<TeamMemberFormData>;
@@ -84,14 +86,7 @@ export default function ClinicalInfoForm({
         validators={{
           onBlur: ({ value }) => {
             if (value) {
-              if (!/^\d{10}$/.test(value)) {
-                return "NPI Number must be 10 digits";
-              }
-
-              // Verify the check digit via Luhn algorithm
-              if (!isValidNPI(value)) {
-                return "Invalid NPI Number";
-              }
+              return validators.npi(value);
             }
             return undefined;
           },
@@ -134,38 +129,13 @@ export default function ClinicalInfoForm({
         }}
       >
         {(field) => (
-          <FormItem className="space-y-2">
-            <FormLabel htmlFor={field.name}>State</FormLabel>
-            <Select
-              value={field.state.value}
-              onOpenChange={() => field.handleBlur()}
-              onValueChange={field.handleChange}
-            >
-              <FormControl>
-                <SelectTrigger
-                  className={
-                    field.state.meta.errors.length ? "border-red-500" : ""
-                  }
-                  id={field.name}
-                >
-                  <SelectValue placeholder="Select state" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {statesUS.map((state) => (
-                  <SelectItem
-                    key={state.abbreviation}
-                    value={state.abbreviation}
-                  >
-                    {state.name} ({state.abbreviation})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {field.state.meta.errors.length > 0 && (
-              <FormMessage>{field.state.meta.errors[0]}</FormMessage>
-            )}
-          </FormItem>
+          <StateSelector
+            label="State"
+            value={field.state.value}
+            onChange={field.handleChange}
+            errors={field.state.meta.errors.map(String)}
+            placeholder="Select state"
+          />
         )}
       </form.Field>
 
