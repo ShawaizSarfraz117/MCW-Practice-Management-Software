@@ -28,11 +28,13 @@ describe("Service Settings Page", () => {
       },
     });
 
-    render(
+    const { getByRole } = render(
       <QueryClientProvider client={queryClient}>
         <ServiceSettingsPage />
       </QueryClientProvider>,
     );
-    // Add assertions for expected UI elements
+
+    // Verify the page renders with expected structure
+    expect(getByRole("main")).toBeDefined();
   });
 });

@@ -30,50 +30,6 @@ interface BillingDocument {
   clientGroupName: string;
 }
 
-// Helper function for cleaning up test data
-async function _cleanupTestData(ids: {
-  clientGroupId?: string;
-  invoiceId?: string;
-  superbillId?: string;
-  statementId?: string;
-}) {
-  // Delete statement
-  if (ids.statementId) {
-    try {
-      await prisma.statement.delete({ where: { id: ids.statementId } });
-    } catch (error) {
-      console.log("Error deleting statement:", error);
-    }
-  }
-
-  // Delete superbill
-  if (ids.superbillId) {
-    try {
-      await prisma.superbill.delete({ where: { id: ids.superbillId } });
-    } catch (error) {
-      console.log("Error deleting superbill:", error);
-    }
-  }
-
-  // Delete invoice
-  if (ids.invoiceId) {
-    try {
-      await prisma.invoice.delete({ where: { id: ids.invoiceId } });
-    } catch (error) {
-      console.log("Error deleting invoice:", error);
-    }
-  }
-
-  // Delete client group
-  if (ids.clientGroupId) {
-    try {
-      await prisma.clientGroup.delete({ where: { id: ids.clientGroupId } });
-    } catch (error) {
-      console.log("Error deleting client group:", error);
-    }
-  }
-}
-
 describe("Billing Documents API - Integration Tests", () => {
   // Test data IDs
   const testIds = {
