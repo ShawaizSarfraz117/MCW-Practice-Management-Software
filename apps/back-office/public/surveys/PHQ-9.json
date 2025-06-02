@@ -1,0 +1,260 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "html",
+          "name": "question1",
+          "html": "<p>Over the <b>last 2 weeks</b>, how often have you been bothered by any of the following?</p>"
+        },
+        {
+          "type": "radiogroup",
+          "name": "question2",
+          "title": "Little interest or pleasure in doing things.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "More than half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question3",
+          "title": "Feeling down, depressed, or hopeless.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "More than half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question4",
+          "title": "Trouble falling or staying asleep, or sleeping too much.",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "More than half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question5",
+          "title": "Feeling tired or having little energy.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "More than half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question6",
+          "title": "Poor appetite or overeating.",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "More than half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question7",
+          "title": "Feeling bad about yourself — or that you are a failure or have let yourself or your family down.",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "More than half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question8",
+          "title": "Trouble concentrating on things, such as reading the newspaper or watching television.",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "More than half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question9",
+          "title": "Moving or speaking so slowly that other people could have noticed. Or the opposite — being so fidgety or restless that you have been moving around a lot more than usual.",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "More than half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question10",
+          "title": "Thoughts that you would be better off dead or of hurting yourself in some way.",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "More than half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question11",
+          "title": "If you checked off any problem on this questionnaire so far, how difficult have these problems made it for you to do your work, take care of things at home, or get along with other people?",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not difficult at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Somewhat difficult"
+            },
+            {
+              "value": "Item 3",
+              "text": "Very difficult"
+            },
+            {
+              "value": "Item 4",
+              "text": "Extremely difficult"
+            }
+          ]
+        },
+        {
+          "type": "html",
+          "name": "question12",
+          "html": "_________________________<br>\nDeveloped by Drs. Robert L. Spitzer, Janet B.W. Williams, Kurt Kroenke and colleagues."
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}

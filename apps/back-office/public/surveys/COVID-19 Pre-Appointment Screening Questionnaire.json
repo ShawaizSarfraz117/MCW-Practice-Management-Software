@@ -1,0 +1,284 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "html",
+          "name": "heading",
+          "html": "<b>Symptom Check</b> <br><br>\nHave you or anyone in your household experienced any of the following symptoms in the last 21 days?"
+        },
+        {
+          "type": "radiogroup",
+          "name": "fever",
+          "title": "Fever over 100°F",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "cough",
+          "title": "Cough",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "chills",
+          "title": "Chills",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "sore_throat",
+          "title": "Sore throat",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "aches",
+          "title": "Body aches",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "breath_shortness",
+          "title": "Shortness of breath",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "smell_loss",
+          "title": "Loss of smell or taste",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ]
+        },
+        {
+          "type": "html",
+          "name": "heading2",
+          "html": "<b>Lifestyle Questions</b>"
+        },
+        {
+          "type": "radiogroup",
+          "name": "lifestyle_question1",
+          "title": "Have you or anyone in your household been tested for COVID-19?",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes, and I am awaiting test results"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes, and I have received the results"
+        },
+        {
+          "type": "radiogroup",
+          "name": "lifecycle_question2",
+          "title": "Have you or anyone in your household visited or received treatment in a hospital, nursing home, long-term care, or other health care facility in the last 30 days?",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ],
+          "otherText": "Yes, and I have received the results"
+        },
+        {
+          "type": "radiogroup",
+          "name": "lifecycle_question3",
+          "title": "Have you or anyone in your household traveled within or outside of the U.S. in the last 21 days?",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ],
+          "otherText": "Yes, and I have received the results"
+        },
+        {
+          "type": "radiogroup",
+          "name": "lifecycle_question4",
+          "title": "Have you or anyone in your household traveled on a cruise ship in the last 21 days?",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ],
+          "otherText": "Yes, and I have received the results"
+        },
+        {
+          "type": "radiogroup",
+          "name": "lifecycle_question5",
+          "title": "Are you or anyone in your household a health care provider or emergency responder?",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ],
+          "otherText": "Yes, and I have received the results"
+        },
+        {
+          "type": "radiogroup",
+          "name": "lifecycle_question6",
+          "title": "Have you or anyone in your household cared for an individual who is in quarantine or has tested positive for COVID-19 in the last 21 days?",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ],
+          "otherText": "Yes, and I have received the results"
+        },
+        {
+          "type": "radiogroup",
+          "name": "lifecycle_question7",
+          "title": "Have you been in close proximity to any individual who tested positive for COVID-19 in the last 21 days?",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ],
+          "otherText": "Yes, and I have received the results"
+        },
+        {
+          "type": "radiogroup",
+          "name": "lifecycle_question8",
+          "title": "Have you been in close proximity to any individual who tested positive for COVID-19 in the last 21 days?",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Yes"
+            },
+            {
+              "value": "Item 2",
+              "text": "No"
+            }
+          ],
+          "otherText": "Yes, and I have received the results"
+        },
+        {
+          "type": "html",
+          "name": "question1",
+          "html": "<b>I agree that I have answered all of the above questions to the best of my knowledge.</b>"
+        },
+        {
+          "type": "html",
+          "name": "signature",
+          "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Sign Here Form</title>\n    <style>\n        * {\n            margin: 0;\n            padding: 0;\n            box-sizing: border-box;\n        }\n        \n        body {\n            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n            background-color: #f5f5f5;\n            padding: 40px 20px;\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            min-height: 100vh;\n        }\n        \n        .sign-container {\n            background-color: #ffffff;\n            border: 2px solid #4a90e2;\n            border-radius: 8px;\n            padding: 40px 30px;\n            text-align: center;\n            max-width: 400px;\n            width: 100%;\n            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);\n        }\n        \n        .document-icon {\n            width: 60px;\n            height: 60px;\n            margin: 0 auto 20px;\n            position: relative;\n            background-color: #e8f2ff;\n            border-radius: 4px;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n        \n        .document-icon::before {\n            content: '';\n            width: 24px;\n            height: 30px;\n            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\n            border-radius: 2px;\n            position: relative;\n        }\n        \n        .document-icon::after {\n            content: '';\n            position: absolute;\n            bottom: 8px;\n            right: 8px;\n            width: 0;\n            height: 0;\n            border-left: 8px solid #ff4444;\n            border-top: 4px solid transparent;\n            border-bottom: 4px solid transparent;\n        }\n        \n        .sign-title {\n            color: #4a90e2;\n            font-size: 18px;\n            font-weight: 500;\n            margin-bottom: 15px;\n        }\n        \n        .sign-description {\n            color: #666666;\n            font-size: 14px;\n            line-height: 1.4;\n            margin-bottom: 0;\n        }\n        \n        .sign-container:hover {\n            transform: translateY(-1px);\n            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);\n            transition: all 0.2s ease;\n            cursor: pointer;\n        }\n        \n        @media (max-width: 480px) {\n            .sign-container {\n                padding: 30px 20px;\n            }\n            \n            .document-icon {\n                width: 50px;\n                height: 50px;\n            }\n            \n            .sign-title {\n                font-size: 16px;\n            }\n            \n            .sign-description {\n                font-size: 13px;\n            }\n        }\n    </style>\n</head>\n<body>\n    <div class=\"sign-container\" onclick=\"handleSignClick()\">\n        <div class=\"document-icon\"></div>\n        <h5 class=\"sign-title\">Sign here</h5>\n        <p class=\"sign-description\">By adding your signature you are<br>eSigning this form</p>\n    </div>\n\n    <script>\n        function handleSignClick() {\n            // Add your signature handling logic here\n            alert('Opening signature pad...');\n            \n            // Example: You could open a modal, navigate to a signature page, etc.\n            // For now, just showing an alert as placeholder\n        }\n        \n        // Add hover effect with JavaScript for better browser support\n        const container = document.querySelector('.sign-container');\n        \n        container.addEventListener('mouseenter', function() {\n            this.style.transform = 'translateY(-1px)';\n            this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';\n            this.style.transition = 'all 0.2s ease';\n        });\n        \n        container.addEventListener('mouseleave', function() {\n            this.style.transform = 'translateY(0)';\n            this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';\n        });\n    </script>\n</body>\n</html>"
+        },
+        {
+          "type": "html",
+          "name": "footer",
+          "html": "Source: American Medical Association"
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}
