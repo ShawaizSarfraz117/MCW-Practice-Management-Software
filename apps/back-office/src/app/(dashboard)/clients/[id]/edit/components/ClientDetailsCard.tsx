@@ -33,7 +33,15 @@ const ClientDetailsRow: React.FC<ClientDetailsRowProps> = ({
   </div>
 );
 
-export function ClientDetailsCard({ client }: { client: ClientMembership }) {
+export function ClientDetailsCard({
+  client,
+  type = "client",
+  onRefresh,
+}: {
+  client: ClientMembership;
+  type?: "client" | "contact";
+  onRefresh?: () => void;
+}) {
   const emails = client.Client.ClientContact.filter(
     (contact: { contact_type: string }) => contact.contact_type === "EMAIL",
   );
@@ -47,7 +55,7 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
         <h3 className="text-base font-medium">
           {client.Client.legal_first_name} {client.Client.legal_last_name}
         </h3>
-        <ManageButton clientData={client} />
+        <ManageButton clientData={client} type={type} onRefresh={onRefresh} />
       </CardHeader>
       <CardContent className="px-6 pt-0 pb-4">
         <ClientDetailsRow
@@ -211,7 +219,15 @@ export function ClientDetailsCard({ client }: { client: ClientMembership }) {
   );
 }
 
-function ManageButton({ clientData }: { clientData: ClientMembership }) {
+function ManageButton({
+  clientData,
+  type,
+  onRefresh,
+}: {
+  clientData: ClientMembership;
+  type?: "client" | "contact";
+  onRefresh?: () => void;
+}) {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [drawerType, setDrawerType] = useState<"edit" | "reminders">("edit");
 
@@ -227,6 +243,12 @@ function ManageButton({ clientData }: { clientData: ClientMembership }) {
       variant: "success",
       description: "Client information updated successfully",
     });
+    setIsEditDrawerOpen(false);
+
+    // Call the refresh callback if provided
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
   const toggleDrawer = (type: "edit" | "reminders") => {
@@ -257,6 +279,7 @@ function ManageButton({ clientData }: { clientData: ClientMembership }) {
         clientData={clientData}
         drawerType={drawerType}
         isOpen={isEditDrawerOpen}
+        type={type}
         title={`Edit ${clientData.Client.legal_first_name} ${clientData.Client.legal_last_name}`}
         onClose={() => setIsEditDrawerOpen(false)}
         onSave={handleSaveClient}

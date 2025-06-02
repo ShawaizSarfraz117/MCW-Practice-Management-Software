@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const includeProfile = searchParams.get("includeProfile");
     const includeAdress = searchParams.get("includeAdress");
+    const isContactOnly = searchParams.get("isContactOnly");
     const { clinicianId } = await getClinicianInfo();
     // Parse status parameter (could be a comma-separated list)
     const statusArray = status ? status.split(",") : ["all"];
@@ -40,6 +41,9 @@ export async function GET(request: NextRequest) {
         where: { id },
         include: {
           ClientGroupMembership: {
+            where: {
+              is_contact_only: isContactOnly === "true",
+            },
             include: {
               Client: {
                 include: {

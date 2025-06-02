@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get("id");
     const status = searchParams.get("status");
     const search = searchParams.get("search");
-    const isContactOnly = searchParams.get("isContactOnly");
     const sortBy = searchParams.get("sortBy") || "legal_last_name";
 
     const clinicianInfo = await getClinicianInfo();
@@ -89,23 +88,6 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json(client);
-    } else if (isContactOnly === "true") {
-      const clients = await prisma.client.findMany({
-        where: {
-          ClientGroupMembership: {
-            some: {
-              is_contact_only: true,
-            },
-          },
-        },
-        include: {
-          ClientGroupMembership: true,
-          ClientContact: true,
-          ClientAdress: true,
-        },
-      });
-
-      return NextResponse.json(clients);
     } else {
       const statusArray = status?.split(",") || [];
       let whereCondition: Prisma.ClientWhereInput = {};
@@ -228,7 +210,22 @@ export async function PUT(request: NextRequest) {
     if (!existingClient) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
-
+    if (data.userType === "contact") {
+      await prisma.clientGroupMembership.update({
+        where: {
+          client_group_id_client_id: {
+            client_group_id: data.client_group_id,
+            client_id: id,
+          },
+        },
+        data: {
+          role: data.relationship_type,
+          is_contact_only: data.is_contact_only || true,
+          is_responsible_for_billing: data.isResponsibleForBilling || false,
+          is_emergency_contact: data.is_emergency_contact || false,
+        },
+      });
+    }
     // Update client basic info first
     await prisma.client.update({
       where: { id },

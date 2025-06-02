@@ -132,6 +132,20 @@ export const createClient = async ({ body = {} }) => {
   }
 };
 
+export const createClientContact = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/client/contact",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
 export const updateClient = async ({ body = {} }) => {
   try {
     const response: unknown = await FETCH.update({
@@ -161,13 +175,8 @@ export const updateClientGroup = async ({ body = {} }) => {
 };
 
 export const useUpdateClient = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: updateClient,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clientGroup"] });
-    },
   });
 };
 export const useUpdateClientGroup = () => {

@@ -57,16 +57,38 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const { clientGroupId, clientId, role, isEmergencyContact } = data;
+    const { clientGroupId, relationship_type, is_emergency_contact } = data;
 
+    let clientId = data.client_id;
     const results = await prisma.$transaction(async (tx) => {
+      if (!clientId) {
+        const client = await tx.client.create({
+          data: {
+            legal_first_name: data.legal_first_name,
+            legal_last_name: data.legal_last_name,
+            preferred_name: data.preferred_name,
+          },
+        });
+        clientId = client.id;
+
+        if (data.middle_name || data.notes) {
+          await tx.clientProfile.create({
+            data: {
+              client_id: clientId,
+              middle_name: data.middle_name,
+              notes: data.notes,
+            },
+          });
+        }
+      }
+
       const res = await tx.clientGroupMembership.create({
         data: {
           client_group_id: clientGroupId,
           client_id: clientId,
           is_contact_only: true,
-          is_emergency_contact: isEmergencyContact === "true",
-          role: role,
+          is_emergency_contact: is_emergency_contact === "true",
+          role: relationship_type,
         },
       });
 
