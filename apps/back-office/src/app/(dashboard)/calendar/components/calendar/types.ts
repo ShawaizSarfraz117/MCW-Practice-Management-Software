@@ -10,10 +10,6 @@ export interface Clinician extends Partial<BaseClinicianType> {
   value: string;
   label: string;
   group: string;
-  first_name?: string;
-  last_name?: string;
-  user_id?: string;
-  id?: string;
 }
 
 export interface Location extends Partial<BaseLocationType> {

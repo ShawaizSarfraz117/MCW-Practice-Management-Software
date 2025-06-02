@@ -96,6 +96,11 @@ npm run test:front-office:integration
 
 # Run specific test file
 npx vitest apps/back-office/__tests__/api/client/route.unit.test.ts
+
+# Integration tests with local database
+# Check packages/database/prisma/.env for your local database connection details
+# Run single test: DATABASE_URL="<connection_string_from_env>" npx vitest __tests__/api/availability/route.integration.test.ts --run
+# Run all integration tests: DATABASE_URL="<connection_string_from_env>" npx vitest --config=apps/back-office/vitest.config.integration.ts --run
 ```
 
 ### Database Operations

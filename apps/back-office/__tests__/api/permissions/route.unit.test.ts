@@ -21,9 +21,9 @@ vi.mock("@mcw/logger", () => ({
   __esModule: true,
 }));
 
-// Get references to the mocks
-const { getBackOfficeSession } = await import("@/utils/helpers");
-const { logger } = await import("@mcw/logger");
+// Import mocked modules
+import { getBackOfficeSession } from "@/utils/helpers";
+import { logger } from "@mcw/logger";
 
 describe("Permissions API Unit Tests", () => {
   beforeEach(() => {
