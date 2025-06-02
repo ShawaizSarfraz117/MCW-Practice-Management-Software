@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@mcw/ui";
 import { useForm } from "@tanstack/react-form";
-import { TeamMember } from "../../hooks/useRolePermissions";
+import { TeamMember } from "@/(dashboard)/settings/team-members/hooks/useRolePermissions";
 import statesUS from "@/(dashboard)/clients/services/statesUS.json";
 
 // NPI validation using Luhn algorithm

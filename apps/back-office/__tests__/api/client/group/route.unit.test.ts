@@ -99,7 +99,29 @@ describe("Client Group API Unit Tests", () => {
     expect(json.pagination).toHaveProperty("total", 1);
     expect(Array.isArray(json.data)).toBe(true);
     expect(json.data).toHaveLength(1);
-    expect(json.data[0]).toEqual(mockClientGroup);
+    // Compare data excluding dates due to JSON serialization
+    expect(json.data[0]).toMatchObject({
+      id: mockClientGroup.id,
+      name: mockClientGroup.name,
+      type: mockClientGroup.type,
+      is_active: mockClientGroup.is_active,
+      notes: mockClientGroup.notes,
+      clinician_id: mockClientGroup.clinician_id,
+      auto_monthly_statement_enabled:
+        mockClientGroup.auto_monthly_statement_enabled,
+      auto_monthly_superbill_enabled:
+        mockClientGroup.auto_monthly_superbill_enabled,
+      first_seen_at: mockClientGroup.first_seen_at,
+      ClientGroupMembership: mockClientGroup.ClientGroupMembership,
+    });
+
+    // Check date serialization separately
+    expect(json.data[0].created_at).toBe(
+      mockClientGroup.created_at.toISOString(),
+    );
+    expect(json.data[0].available_credit).toBe(
+      mockClientGroup.available_credit.toString(),
+    );
   });
 
   it("GET /api/client/group?id=non-existent should return 404", async () => {

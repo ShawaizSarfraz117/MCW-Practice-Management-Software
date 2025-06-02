@@ -2,7 +2,7 @@
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import { createRequestWithBody } from "@mcw/utils";
-import { PUT } from "../../../../src/app/api/clinician/services/route";
+import { PUT } from "@/api/clinician/services/route";
 import prismaMock from "@mcw/database/mock";
 import {
   ClinicianFactory,

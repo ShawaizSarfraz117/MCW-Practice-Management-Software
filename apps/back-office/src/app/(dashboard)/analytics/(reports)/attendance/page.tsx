@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import DateRangePicker from "../../../activity/components/DateRangePicker";
+import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
 
 type Appointment = {
   id: string;

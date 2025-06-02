@@ -177,6 +177,144 @@ Integration tests use a separate SQL Server instance via Docker:
 5. Run lint, typecheck, and tests before committing
 6. Ensure HIPAA compliance and security best practices
 
+### Important Guidelines
+
+**From Cursor Rules**:
+
+- Follow KISS & YAGNI principles
+- Single responsibility for all functions
+- Descriptive naming conventions
+- Strict TypeScript (avoid `any`)
+- Always use `catch (error: unknown)` pattern
+- Mock boundaries at repository level for unit tests
+- Integration tests use real database interactions
+
+**API Implementation**:
+
+- Use URL search params for GET filters: `request.nextUrl.searchParams`
+- Return appropriate status codes (200, 201, 400, 404, 500)
+- Log with context using `logger.fromRequest(request)`
+- Validate input thoroughly (consider Zod for complex validation)
+- Use transactions for multi-write operations
+
+**Testing Requirements**:
+
+- No feature is complete without tests
+- Keep test files under 600 lines
+- Use `createRequest` and `createRequestWithBody` from `@mcw/utils`
+- Always run tests until all pass (no failures or pending)
+- Account for JSON serialization (Date → ISO string, Decimal → string)
+
+**Component Development**:
+
+- Use shared components from `packages/ui`
+- Add missing ShadCN components via CLI: `npx shadcn-ui@latest add <component> --cwd ./packages/ui`
+- Follow existing patterns in the codebase
+
+**Import Conventions**:
+
+- **REQUIRED**: Use `@/` path aliases instead of relative imports with `../..` syntax
+- For imports within the same app: Use `@/` (resolves to `src/`)
+- For cross-package imports: Use `@mcw/package-name`
+- Get user approval before using relative imports with `../..` paths
+- Examples:
+
+  ```typescript
+  // ✅ Preferred - use @ aliases
+  import { Component } from "@/components/Component";
+  import { utils } from "@/utils/helpers";
+  import { prisma } from "@mcw/database";
+
+  // ❌ Avoid - relative imports
+  import { Component } from "../../../components/Component";
+  import { utils } from "../../utils/helpers";
+  ```
+
+- Use Tailwind CSS for all styling
+
+## Fast Verification Commands
+
+For quick verification that changes haven't broken anything, use these commands in order of speed:
+
+### 1. Fastest - Linting (10-20 seconds)
+
+```bash
+npm run lint               # Full monorepo linting
+npm run lint:back-office   # Back-office only (if available)
+npm run lint:front-office  # Front-office only (if available)
+```
+
+**What it catches**: Import violations, code style issues, basic syntax errors
+
+### 2. Fast - Type checking (30-60 seconds)
+
+```bash
+npm run typecheck          # Full monorepo TypeScript checking
+```
+
+**What it catches**: Type mismatches, missing imports, interface violations
+
+### 3. Medium - Unit Tests (1-3 minutes)
+
+```bash
+npm run test:back-office:unit    # Back-office unit tests
+npm run test:front-office:unit   # Front-office unit tests
+npm test:unit                    # All unit tests
+```
+
+**What it catches**: Business logic errors, component behavior, mocked API responses
+
+### 4. Slower - Integration Tests (3-10 minutes, requires Docker)
+
+```bash
+npm run test:back-office:integration    # Back-office with real database
+npm run test:front-office:integration   # Front-office integration tests
+npm test:integration                    # All integration tests
+```
+
+**What it catches**: Database schema issues, real API behavior, end-to-end workflows
+
+### 5. Complete - All Checks (5-15 minutes)
+
+```bash
+npm run checks             # Lint + TypeCheck + Format check
+npm test                   # All tests (unit + integration)
+```
+
+### Recommended Verification Strategy
+
+**For small changes (import fixes, styling, minor refactors):**
+
+```bash
+npm run lint && npm run typecheck
+```
+
+**For logic changes (new features, API modifications):**
+
+```bash
+npm run lint && npm run typecheck && npm run test:unit
+```
+
+**For database/schema changes:**
+
+```bash
+npm run lint && npm run typecheck && npm test
+```
+
+### Import Convention Enforcement
+
+The project now automatically prevents `../..` relative imports via ESLint:
+
+```bash
+# This will fail linting with helpful error message
+import { Component } from "../../components/Component";  // ❌
+
+# This will pass
+import { Component } from "@/components/Component";      // ✅
+```
+
+Error message: "Use @/ path aliases instead of relative imports with ../.. - see CLAUDE.md Import Conventions"
+
 ## Pre-commit Checks
 
 The project uses Husky and lint-staged for:

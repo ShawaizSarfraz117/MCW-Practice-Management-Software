@@ -6,7 +6,7 @@ import {
   TeamMember,
   useRolePermissions,
   RoleType,
-} from "../../hooks/useRolePermissions";
+} from "@/(dashboard)/settings/team-members/hooks/useRolePermissions";
 
 interface RoleInfoFormProps {
   initialData: Partial<TeamMember>;
