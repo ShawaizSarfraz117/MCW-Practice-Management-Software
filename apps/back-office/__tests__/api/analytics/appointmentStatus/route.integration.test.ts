@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { GET } from "../../../../src/app/api/analytics/appointmentStatus/route";
+import { GET } from "@/api/analytics/appointmentStatus/route";
 import { prisma } from "@mcw/database";
 import { createRequest } from "@mcw/utils";
 import { v4 as uuidv4 } from "uuid";

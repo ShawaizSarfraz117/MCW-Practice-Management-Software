@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@mcw/database";
 import { z } from "zod";
 import { getServerSession } from "next-auth/next";
-import { backofficeAuthOptions } from "../../auth/[...nextauth]/auth-options";
+import { backofficeAuthOptions } from "@/api/auth/[...nextauth]/auth-options";
 import { logger } from "@mcw/logger";
 
 // Schema for validating availability update data

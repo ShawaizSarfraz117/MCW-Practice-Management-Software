@@ -24,6 +24,19 @@ export default tseslint.config(
       ],
       "max-lines-per-function": ["warn", 200],
       "max-lines": ["warn", 400],
+      // Prevent relative imports with ../.. - prefer @/ aliases
+      "no-restricted-imports": [
+        "warn",
+        {
+          patterns: [
+            {
+              group: ["../..*"],
+              message:
+                "Use @/ path aliases instead of relative imports with ../.. - see CLAUDE.md Import Conventions",
+            },
+          ],
+        },
+      ],
     },
   },
 );
