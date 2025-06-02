@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get("id");
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const isContactOnly = searchParams.get("isContactOnly");
     const sortBy = searchParams.get("sortBy") || "legal_last_name";
 
     const clinicianInfo = await getClinicianInfo();
@@ -88,6 +89,23 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json(client);
+    } else if (isContactOnly === "true") {
+      const clients = await prisma.client.findMany({
+        where: {
+          ClientGroupMembership: {
+            some: {
+              is_contact_only: true,
+            },
+          },
+        },
+        include: {
+          ClientGroupMembership: true,
+          ClientContact: true,
+          ClientAdress: true,
+        },
+      });
+
+      return NextResponse.json(clients);
     } else {
       const statusArray = status?.split(",") || [];
       let whereCondition: Prisma.ClientWhereInput = {};
