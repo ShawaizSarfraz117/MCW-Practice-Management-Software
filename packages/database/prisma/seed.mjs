@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import process from "process";
 import { seedPermissions } from "./seed-permissions.mjs";
 import { seedUsers } from "./seed-users.mjs";
+import { seedSurveys } from "./seed-surveys.mjs";
 
 const prisma = new PrismaClient();
 
@@ -86,13 +87,6 @@ async function main() {
       subject: "Appointment Reminder for {{client_full_name}}",
       content: "Hi {client_first_name},\n\nThis is a reminder that you have an appointment with {practice_full_name} at {appointment_time} on {appointment_date}.\n\nAdd to your Calendar:\n{appointment_reminder_links}\n",
       type: "reminder",
-      is_active: true,
-      is_enabled: true,
-      reminder_time: 48,
-      include_attachments: false,
-      send_to_client: true,
-      send_to_clinician: false,
-      send_to_practice: false,
       created_at: new Date("2025-05-06T18:34:05.860Z"),
       updated_at: new Date("2025-05-09T08:00:48.505Z"),
       created_by: admin.id
@@ -103,13 +97,6 @@ async function main() {
       subject: "Your invoice(s) for {{client_first_appointment_date}} {{client_first_appointment_time}}",
       content: "Hi {{client_full_name}},\n\nYour invoice(s) for {{client_first_appointment_date}} are attached.\n\nThank you.\n{{clinician_first_name}}\nalam@mcnultycw.com\n{{practice_phone_number}}",
       type: "billing",
-      is_active: true,
-      is_enabled: true,
-      reminder_time: 48,
-      include_attachments: true,
-      send_to_client: true,
-      send_to_clinician: false,
-      send_to_practice: false,
       created_at: new Date("2025-05-06T18:37:23.203Z"),
       updated_at: new Date("2025-05-06T18:37:23.203Z"),
       created_by: admin.id
@@ -120,13 +107,6 @@ async function main() {
       subject: "Welcome from {{client_full_name}}",
       content: "{{client_first_name}} offers a secure Client Portal to manage care with ease.\n\nBefore your visit, {{clinician_first_name}} would like you to complete practice documents. Sign in to your Client Portal to get started.\n\n{link}",
       type: "automated",
-      is_active: true,
-      is_enabled: true,
-      reminder_time: 0,
-      include_attachments: false,
-      send_to_client: true,
-      send_to_clinician: true,
-      send_to_practice: true,
       created_at: new Date("2025-05-06T18:19:22.490Z"),
       updated_at: new Date("2025-05-11T10:12:06.733Z"),
       created_by: admin.id
@@ -176,6 +156,9 @@ async function main() {
     console.error("Error assigning permissions to roles:", error);
     throw error;
   }
+
+  // Seed survey templates
+  await seedSurveys(prisma);
 }
 
 main()

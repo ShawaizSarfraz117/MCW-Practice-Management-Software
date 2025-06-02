@@ -1,0 +1,315 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "radiogroup",
+          "name": "mental_health",
+          "title": "Have you seen a mental health professional before?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes"
+        },
+        {
+          "type": "radiogroup",
+          "name": "drink_alcohol",
+          "title": "Do you drink alcohol?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes"
+        },
+        {
+          "type": "radiogroup",
+          "name": "use_drugs",
+          "title": "Do you use recreational drugs?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes"
+        },
+        {
+          "type": "radiogroup",
+          "name": "suicidal_thoughts",
+          "title": "Do you have suicidal thoughts?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes"
+        },
+        {
+          "type": "radiogroup",
+          "name": "attempt_suicide",
+          "title": "Have you ever attempted suicide?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes"
+        },
+        {
+          "type": "radiogroup",
+          "name": "urge_to_harm",
+          "title": "Do you have thoughts or urges to harm others?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes"
+        },
+        {
+          "type": "radiogroup",
+          "name": "psychiatric_issue",
+          "title": "Have you ever been hospitalized for a psychiatric issue?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes"
+        },
+        {
+          "type": "radiogroup",
+          "name": "mental_illness",
+          "title": "Is there a history of mental illness in your family?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes"
+        },
+        {
+          "type": "radiogroup",
+          "name": "question1",
+          "title": "Is there a history of mental illness in your family?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "No"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Yes"
+        },
+        {
+          "type": "checkbox",
+          "name": "past_experience",
+          "title": "Please check any of the following you have experienced in the past six months",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Increased appetite"
+            },
+            {
+              "value": "Item 2",
+              "text": "Decreased appetite"
+            },
+            {
+              "value": "Item 3",
+              "text": "Trouble concentrating"
+            },
+            {
+              "value": "Item 4",
+              "text": "Difficulty sleeping"
+            },
+            {
+              "value": "Item 5",
+              "text": "Excessive sleep"
+            },
+            {
+              "value": "Item 6",
+              "text": "Low motivation"
+            },
+            {
+              "value": "Item 7",
+              "text": "Isolation from others"
+            },
+            {
+              "value": "Item 8",
+              "text": "Fatigue/low energy"
+            },
+            {
+              "value": "Item 9",
+              "text": "Low self-esteem"
+            },
+            {
+              "value": "Item 10",
+              "text": "Depressed mood"
+            },
+            {
+              "value": "Item 11",
+              "text": "Tearful or crying spells"
+            },
+            {
+              "value": "Item 12",
+              "text": "Anxiety"
+            },
+            {
+              "value": "Item 13",
+              "text": "Fear"
+            },
+            {
+              "value": "Item 14",
+              "text": "Hopelessness"
+            },
+            {
+              "value": "Item 15",
+              "text": "PanicItem 15"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "checkbox",
+          "name": "issues",
+          "title": "Please check any of the following that apply",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Headache"
+            },
+            {
+              "value": "Item 2",
+              "text": "High blood pressure"
+            },
+            {
+              "value": "Item 3",
+              "text": "Gastritis or esophagitis"
+            },
+            {
+              "value": "Item 4",
+              "text": "Hormone-related problems"
+            },
+            {
+              "value": "Item 5",
+              "text": "Head injury"
+            },
+            {
+              "value": "Item 6",
+              "text": "Angina or chest pain"
+            },
+            {
+              "value": "Item 7",
+              "text": "Irritable bowel"
+            },
+            {
+              "value": "Item 8",
+              "text": "Chronic pain"
+            },
+            {
+              "value": "Item 9",
+              "text": "Loss of consciousness"
+            },
+            {
+              "value": "Item 10",
+              "text": "Heart attack"
+            },
+            {
+              "value": "Item 11",
+              "text": "Bone or joint problems"
+            },
+            {
+              "value": "Item 12",
+              "text": "Seizures"
+            },
+            {
+              "value": "Item 13",
+              "text": "Kidney-related issues"
+            },
+            {
+              "value": "Item 14",
+              "text": "Chronic fatigue"
+            },
+            {
+              "value": "Item 15",
+              "text": "Dizziness"
+            },
+            {
+              "value": "Item 16",
+              "text": "Faintness"
+            },
+            {
+              "value": "Item 17",
+              "text": "Heart valve problems"
+            },
+            {
+              "value": "Item 18",
+              "text": "Urinary tract problems"
+            },
+            {
+              "value": "Item 19",
+              "text": "Fibromyalgia"
+            },
+            {
+              "value": "Item 20",
+              "text": "Numbness & tingling"
+            },
+            {
+              "value": "Item 21",
+              "text": "Shortness of breath"
+            },
+            {
+              "value": "Item 22",
+              "text": "Diabetes"
+            },
+            {
+              "value": "Item 23",
+              "text": "Hepatitis"
+            },
+            {
+              "value": "Item 24",
+              "text": "Asthma"
+            },
+            {
+              "value": "Item 25",
+              "text": "Arthritis"
+            },
+            {
+              "value": "Item 26",
+              "text": "Thyroid issues"
+            },
+            {
+              "value": "Item 27",
+              "text": "HIV/AIDS"
+            },
+            {
+              "value": "Item 28",
+              "text": "Cancer"
+            }
+          ],
+          "showOtherItem": true
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}
