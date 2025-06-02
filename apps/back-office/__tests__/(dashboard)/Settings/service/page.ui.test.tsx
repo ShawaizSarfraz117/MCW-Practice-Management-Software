@@ -13,4 +13,14 @@ describe("Service Settings Page", () => {
     expect(ServiceSettingsPage).toBeDefined();
     expect(ServiceSettingsPage.default).toBeDefined();
   });
+
+  it("should render the service settings page", async () => {
+    const { render } = await import("@testing-library/react");
+    const { default: ServiceSettingsPage } = await import(
+      "@/(dashboard)/settings/service/page"
+    );
+
+    render(<ServiceSettingsPage />);
+    // Add assertions for expected UI elements
+  });
 });

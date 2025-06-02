@@ -1,5 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { prisma } from "@mcw/database";
+import { safeCleanupDatabase } from "@mcw/database/test-utils";
 import { generateUUID } from "@mcw/utils";
 import { createRequest } from "@mcw/utils";
 
@@ -30,7 +31,7 @@ interface BillingDocument {
 }
 
 // Helper function for cleaning up test data
-async function cleanupTestData(ids: {
+async function _cleanupTestData(ids: {
   clientGroupId?: string;
   invoiceId?: string;
   superbillId?: string;
@@ -225,34 +226,8 @@ describe("Billing Documents API - Integration Tests", () => {
     }
   });
 
-  // Clean up test data
-  afterAll(async () => {
-    try {
-      await cleanupTestData({
-        clientGroupId: testIds.clientGroupId,
-        invoiceId: testIds.invoiceId,
-        superbillId: testIds.superbillId,
-        statementId: testIds.statementId,
-      });
-
-      // Also clean up appointment
-      if (testIds.appointmentId) {
-        await prisma.appointment.delete({
-          where: { id: testIds.appointmentId },
-        });
-      }
-
-      // Clean up clinician and user
-      if (testIds.clinicianId) {
-        await prisma.clinician.delete({ where: { id: testIds.clinicianId } });
-      }
-
-      if (testIds.userId) {
-        await prisma.user.delete({ where: { id: testIds.userId } });
-      }
-    } catch (error) {
-      console.error("Error cleaning up test data:", error);
-    }
+  afterEach(async () => {
+    await safeCleanupDatabase(prisma, { verbose: false });
   });
 
   it("GET /api/billing-documents should return all billing documents", async () => {

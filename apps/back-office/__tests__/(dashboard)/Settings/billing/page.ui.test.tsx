@@ -13,4 +13,13 @@ describe("Billing Settings Page", () => {
     expect(BillingSettingsPage).toBeDefined();
     expect(BillingSettingsPage.default).toBeDefined();
   });
+
+  it("should render without crashing", async () => {
+    const { render } = await import("@testing-library/react");
+    const BillingSettingsPage = await import(
+      "@/(dashboard)/settings/billing/page"
+    );
+
+    expect(() => render(<BillingSettingsPage.default />)).not.toThrow();
+  });
 });
