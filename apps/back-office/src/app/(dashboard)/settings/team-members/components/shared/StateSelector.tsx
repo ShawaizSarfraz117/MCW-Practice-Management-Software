@@ -37,7 +37,7 @@ export const StateSelector: React.FC<StateSelectorProps> = ({
           </SelectTrigger>
           <SelectContent>
             {statesUS.map((state) => (
-              <SelectItem key={state.code} value={state.code}>
+              <SelectItem key={state.abbreviation} value={state.abbreviation}>
                 {state.name}
               </SelectItem>
             ))}

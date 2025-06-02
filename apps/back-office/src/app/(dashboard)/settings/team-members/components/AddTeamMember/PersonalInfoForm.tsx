@@ -42,7 +42,8 @@ export default function PersonalInfoForm({
         <form.Field
           name="firstName"
           validators={{
-            onBlur: validators.required("First name is required"),
+            onBlur: ({ value }) =>
+              validators.required("First name is required")(value),
           }}
         >
           {(field) => (
@@ -70,7 +71,8 @@ export default function PersonalInfoForm({
         <form.Field
           name="lastName"
           validators={{
-            onBlur: validators.required("Last name is required"),
+            onBlur: ({ value }) =>
+              validators.required("Last name is required")(value),
           }}
         >
           {(field) => (
