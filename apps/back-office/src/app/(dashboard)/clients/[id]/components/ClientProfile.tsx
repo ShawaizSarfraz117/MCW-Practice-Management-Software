@@ -103,7 +103,7 @@ export default function ClientProfile({
     queryKey: ["clientGroup", id],
     queryFn: async () => {
       const [response, error] = await fetchClientGroups({
-        searchParams: { id },
+        searchParams: { id: Array.isArray(id) ? id[0] : id },
       });
       if (error) throw error;
       if (response && response.data && response.data.length > 0) {

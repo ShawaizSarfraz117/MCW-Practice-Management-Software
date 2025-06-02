@@ -182,7 +182,7 @@ export const useUpdateClientGroup = () => {
 };
 
 export const fetchClientGroups = async (params: {
-  searchParams?: Record<string, unknown>;
+  searchParams?: Record<string, string | number | boolean>;
 }): Promise<
   [PaginatedResponse<ClientGroupWithMembership> | null, Error | null]
 > => {

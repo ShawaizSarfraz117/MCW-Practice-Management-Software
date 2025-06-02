@@ -271,7 +271,7 @@ const CalendarPage: React.FC = () => {
       setIsLoading(true);
       const [clients, error] = await fetchClientGroups({
         searchParams: {
-          status: statusFilter,
+          status: statusFilter.join(","),
           search: searchQuery,
           sortBy,
           ...params,

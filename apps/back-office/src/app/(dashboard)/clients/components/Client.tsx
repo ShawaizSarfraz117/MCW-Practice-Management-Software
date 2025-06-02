@@ -42,7 +42,7 @@ export default function Clients() {
     e.preventDefault();
     const [clients, error] = await fetchClientGroups({
       searchParams: {
-        status: statusFilter,
+        status: statusFilter.join(","),
         search: searchQuery,
         sortBy,
       },
@@ -80,7 +80,7 @@ export default function Clients() {
       setIsLoading(true);
       const [clients, error] = await fetchClientGroups({
         searchParams: {
-          status: statusFilter,
+          status: statusFilter.join(","),
           search: searchQuery,
           sortBy,
           ...params,
