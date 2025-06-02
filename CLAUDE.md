@@ -213,6 +213,7 @@ Integration tests use a separate SQL Server instance via Docker:
 **Test Location and Naming Rules**:
 
 - **Test Co-location**: All tests must be placed parallel to the source file they test, mirroring the exact `src/` directory structure in the `__tests__/` directory
+- **⚠️ NEVER place test files in `src/` directories**: ESLint will error on any `.test.` or `.spec.` files found in `src/` - they must be in `__tests__/`
 - **Speed-based Naming**: Use `.unit.test.ts/.tsx` for fast tests (< 2 seconds), `.integration.test.ts/.tsx` for slow tests (> 2 seconds)
 - **DOM Environment Tests**: Use `.ui.test.tsx` for tests that need DOM environment (document, window objects) - these automatically use happy-dom environment
 - **Test Documentation**: Only add documentation comments IN THE TEST FILE when a simple test is marked as `.integration.test` due to speed rather than complexity
