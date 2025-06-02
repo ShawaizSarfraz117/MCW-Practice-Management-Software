@@ -23,6 +23,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
 import { ContactAddDrawer } from "./ContactAddDrawer";
 import { ClientFormValues } from "../types";
+import { EmptyContactsState } from "./EmptyContactsState";
 // Matching the structure in ClientDetailsCard
 export interface ClientMembership {
   client_id: string;
@@ -307,6 +308,7 @@ export default function ClientEdit({
           <TabsContent value="contacts">
             <div className="mt-6">
               {clientContact &&
+              clientContact?.ClientGroupMembership.length > 0 ? (
                 clientContact?.ClientGroupMembership.map((membership) => (
                   <ClientDetailsCard
                     key={membership.client_id}
@@ -314,7 +316,13 @@ export default function ClientEdit({
                     type="contact"
                     onRefresh={fetchClientContactsData}
                   />
-                ))}
+                ))
+              ) : (
+                <EmptyContactsState
+                  clientName={clientData?.name}
+                  onAddContact={handleAddContact}
+                />
+              )}
             </div>
           </TabsContent>
         )}

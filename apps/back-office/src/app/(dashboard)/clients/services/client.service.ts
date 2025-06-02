@@ -146,6 +146,19 @@ export const createClientContact = async ({ body = {} }) => {
   }
 };
 
+export const deleteClientContact = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.remove({
+      url: `/client/contact`,
+      body,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
 export const updateClient = async ({ body = {} }) => {
   try {
     const response: unknown = await FETCH.update({

@@ -149,6 +149,37 @@ const update = async ({
   }
 };
 
-const FETCH = { get, post, update };
+const remove = async ({ url, body = {} }: FetchParams) => {
+  try {
+    const headers: AuthHeaders = {
+      Accept: "application/json, text/plain, */*",
+      "Content-Type": "application/json",
+    };
+
+    const promise = await fetch(`${ROUTES.BASE_URL}/${url}`, {
+      method: "DELETE",
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!promise.ok) {
+      const errorData = await promise.json();
+
+      return Promise.reject(errorData);
+    }
+
+    const data = await promise.json();
+
+    return data;
+  } catch (ex) {
+    if (ex instanceof TypeError && ex.message === "Failed to fetch") {
+      throw new Error("Network Error: Please check your internet connection");
+    }
+
+    throw new Error(ex as string);
+  }
+};
+
+const FETCH = { get, post, update, remove };
 
 export { FETCH, ROUTES };

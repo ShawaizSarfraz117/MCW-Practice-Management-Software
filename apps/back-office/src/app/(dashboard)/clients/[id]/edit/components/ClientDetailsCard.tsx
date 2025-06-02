@@ -16,7 +16,10 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { EditClientDrawer } from "./EditClientDrawer";
 import { ClientFormValues } from "../types";
-import { useUpdateClient } from "@/(dashboard)/clients/services/client.service";
+import {
+  useUpdateClient,
+  deleteClientContact,
+} from "@/(dashboard)/clients/services/client.service";
 
 type ClientDetailsRowProps = {
   label: string;
@@ -256,6 +259,23 @@ function ManageButton({
     setDrawerType(type);
   };
 
+  const removeContact = async (clientData: ClientMembership) => {
+    await deleteClientContact({
+      body: {
+        client_group_id: clientData.client_group_id,
+        client_id: clientData.Client.id,
+      },
+    });
+    toast({
+      title: "Contact deleted",
+      variant: "success",
+      description: "Contact deleted successfully",
+    });
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -272,6 +292,11 @@ function ManageButton({
           <DropdownMenuItem onSelect={() => toggleDrawer("reminders")}>
             Edit Appointment Reminders
           </DropdownMenuItem>
+          {type === "contact" && (
+            <DropdownMenuItem onSelect={() => removeContact(clientData)}>
+              <span className="text-red-500">Delete Contact</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

@@ -193,9 +193,9 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const client_group_id = searchParams.get("client_group_id");
-    const client_id = searchParams.get("client_id");
+    const data = await request.json();
+    const client_group_id = data.client_group_id;
+    const client_id = data.client_id;
 
     if (!client_group_id || !client_id) {
       return NextResponse.json(
