@@ -8,6 +8,7 @@ import { DeleteTemplateDialog } from "./components/DeleteTemplateDialog";
 import {
   useTemplates,
   useDuplicateTemplate,
+  useUpdateTemplate,
   Template,
 } from "./hooks/useTemplates";
 import { TemplateType } from "@/types/templateTypes";
@@ -18,9 +19,17 @@ export default function TemplateLibraryPage() {
   });
 
   const duplicateTemplate = useDuplicateTemplate();
+  const updateTemplate = useUpdateTemplate();
 
   const handleDuplicateTemplate = (template: Template) => {
     duplicateTemplate.mutate(template);
+  };
+
+  const handleShareableChange = (template: Template, checked: boolean) => {
+    updateTemplate.mutate({
+      id: template.id,
+      is_shareable: checked,
+    });
   };
 
   const getScoredMeasures = () => {
@@ -140,17 +149,25 @@ export default function TemplateLibraryPage() {
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        checked={template.is_shareable}
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
+                        disabled={template.is_default}
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <ViewTemplate template={template} />
-                      <DeleteTemplateDialog
-                        id={template.id}
-                        title={template.name}
-                      />
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -186,9 +203,15 @@ export default function TemplateLibraryPage() {
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        checked={template.is_shareable}
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
+                        disabled={template.is_default}
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -201,13 +224,12 @@ export default function TemplateLibraryPage() {
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-gray-100"
-                      >
-                        <FileText className="h-4 w-4 text-gray-500" />
-                      </Button>
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -237,9 +259,15 @@ export default function TemplateLibraryPage() {
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        checked={template.is_shareable}
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
+                        disabled={template.is_default}
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -252,13 +280,12 @@ export default function TemplateLibraryPage() {
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-gray-100"
-                      >
-                        <FileText className="h-4 w-4 text-gray-500" />
-                      </Button>
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -286,9 +313,15 @@ export default function TemplateLibraryPage() {
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        checked={template.is_shareable}
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
+                        disabled={template.is_default}
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -301,13 +334,12 @@ export default function TemplateLibraryPage() {
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-gray-100"
-                      >
-                        <FileText className="h-4 w-4 text-gray-500" />
-                      </Button>
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -337,9 +369,15 @@ export default function TemplateLibraryPage() {
                       <input
                         type="checkbox"
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        checked={template.is_shareable}
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
+                        disabled={template.is_default}
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -359,6 +397,12 @@ export default function TemplateLibraryPage() {
                       >
                         <FileText className="h-4 w-4 text-gray-500" />
                       </Button>
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
