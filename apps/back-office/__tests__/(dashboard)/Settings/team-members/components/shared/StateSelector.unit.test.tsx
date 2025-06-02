@@ -2,8 +2,11 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 /**
- * Component tests for StateSelector
+ * Fast unit tests for StateSelector component
  * These tests would have caught the state.code vs state.abbreviation issue
+ *
+ * Located here to mirror: src/app/(dashboard)/settings/team-members/components/shared/StateSelector.tsx
+ * Named .unit.test.tsx because these are fast import/render tests
  */
 describe("StateSelector", () => {
   it("should import without errors", async () => {

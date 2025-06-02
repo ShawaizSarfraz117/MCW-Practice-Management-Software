@@ -2,8 +2,11 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 /**
- * Component render tests for PersonalInfoForm
+ * Fast unit tests for PersonalInfoForm component
  * These tests would have caught validator signature issues
+ *
+ * Located here to mirror: src/app/(dashboard)/settings/team-members/components/AddTeamMember/PersonalInfoForm.tsx
+ * Named .unit.test.tsx because these are fast import/render tests
  */
 describe("PersonalInfoForm", () => {
   it("should import without errors", async () => {
