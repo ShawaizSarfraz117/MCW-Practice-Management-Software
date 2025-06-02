@@ -27,7 +27,7 @@ describe("EmailService", () => {
 
   beforeEach(() => {
     mockTransporter = mockDeep<nodemailer.Transporter>();
-    mockedNodemailer.createTransporter.mockReturnValue(mockTransporter);
+    mockedNodemailer.createTransport.mockReturnValue(mockTransporter);
 
     config = {
       gmail: {
@@ -48,16 +48,13 @@ describe("EmailService", () => {
 
   describe("constructor", () => {
     it("should initialize EmailService with correct configuration", () => {
-      expect(mockedNodemailer.createTransporter).toHaveBeenCalledWith({
+      expect(mockedNodemailer.createTransport).toHaveBeenCalledWith({
         host: "smtp.gmail.com",
         port: 587,
         secure: false,
         auth: {
           user: "test@gmail.com",
           pass: "test-app-password",
-        },
-        tls: {
-          rejectUnauthorized: false,
         },
       });
     });
@@ -72,7 +69,7 @@ describe("EmailService", () => {
       };
 
       new EmailService(minimalConfig);
-      expect(mockedNodemailer.createTransporter).toHaveBeenCalled();
+      expect(mockedNodemailer.createTransport).toHaveBeenCalled();
     });
   });
 

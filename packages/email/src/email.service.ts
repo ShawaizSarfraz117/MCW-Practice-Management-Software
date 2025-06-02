@@ -46,9 +46,6 @@ export class EmailService {
       port: emailConfig.port,
       secure: emailConfig.secure,
       auth: emailConfig.auth,
-      tls: {
-        rejectUnauthorized: false,
-      },
     });
 
     logger.info("Email service initialized with Gmail SMTP");

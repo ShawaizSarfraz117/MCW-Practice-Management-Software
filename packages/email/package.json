@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "clean": "if exist dist rd /s /q dist",
+    "clean": "rimraf dist",
     "lint": "eslint src",
     "format": "prettier --write src",
     "prettier:check": "prettier --check src",
@@ -19,13 +19,14 @@
   "dependencies": {
     "@mcw/logger": "*",
     "@mcw/tsconfig-config": "*",
-    "nodemailer": "^6.9.8"
+    "nodemailer": "^6.9.9"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
     "@types/nodemailer": "^6.4.14",
     "dotenv": "^16.4.7",
     "eslint": "^9.22.0",
+    "rimraf": "^5.0.5",
     "typescript": "^5.3.3",
     "vitest": "^1.2.2",
     "vitest-mock-extended": "^3.0.1"
