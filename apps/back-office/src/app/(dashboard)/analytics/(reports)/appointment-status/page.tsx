@@ -21,6 +21,7 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
+  SearchSelect,
 } from "@mcw/ui";
 import {
   Calendar,
@@ -34,6 +35,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
 
 type Appointment = {
   id: string;
@@ -100,8 +102,56 @@ const mockData: Appointment[] = [
 ];
 
 export default function AppointmentStatusPage() {
-  const [dateRange, _setDateRange] = useState("04/01/2025 - 04/21/2025");
-  const [rowsPerPage, setRowsPerPage] = useState("10");
+  const today = new Date();
+  const formatDate = (date: Date) => {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  const todayStr = formatDate(today);
+
+  const [filters, setFilters] = useState({
+    showDatePicker: false,
+    fromDate: todayStr,
+    toDate: todayStr,
+    selectedTimeRange: todayStr,
+    selectedClient: "All clients",
+    selectedStatus: "All statuses",
+    selectedNote: "All notes",
+    rowsPerPage: "10",
+  });
+  const clientOptions = [
+    "All clients",
+    "Shawaiz Sarfraz",
+    "Shawaiz Sarfraz & Mrs Shawaiz",
+  ];
+  const statusOptions = ["All statuses", "Unpaid", "Paid", "Cancelled"];
+  const noteOptions = ["All notes", "No Note", "Signed", "Draft"];
+
+  const handleDatePickerApply = (
+    startDate: string,
+    endDate: string,
+    displayOption: string,
+  ) => {
+    setFilters((prev) => ({
+      ...prev,
+      fromDate: startDate,
+      toDate: endDate,
+      selectedTimeRange:
+        displayOption === "Custom Range"
+          ? `${startDate} - ${endDate}`
+          : displayOption,
+      showDatePicker: false,
+    }));
+  };
+
+  const handleDatePickerCancel = () => {
+    setFilters((prev) => ({
+      ...prev,
+      showDatePicker: false,
+    }));
+  };
 
   return (
     <div className="h-full">
@@ -148,26 +198,72 @@ export default function AppointmentStatusPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            {dateRange}
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Users className="w-4 h-4" />
-            All clients
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" className="gap-2">
-            All
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" className="gap-2">
-            All Notes
-            <ChevronDown className="w-4 h-4" />
-          </Button>
+          <div className="relative inline-block">
+            <Button
+              variant="outline"
+              className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
+              onClick={() =>
+                setFilters((prev) => ({ ...prev, showDatePicker: true }))
+              }
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              {filters.selectedTimeRange}
+            </Button>
+            {filters.showDatePicker && (
+              <div className="absolute z-50">
+                <DateRangePicker
+                  isOpen={filters.showDatePicker}
+                  onClose={handleDatePickerCancel}
+                  onApply={handleDatePickerApply}
+                  initialStartDate={filters.fromDate}
+                  initialEndDate={filters.toDate}
+                />
+              </div>
+            )}
+          </div>
+          <div className="w-[200px]">
+            <SearchSelect
+              options={clientOptions.map((client) => ({
+                label: client,
+                value: client,
+              }))}
+              value={filters.selectedClient}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedClient: value }))
+              }
+              placeholder="Select client"
+              searchable
+              icon={<Users className="w-4 h-4" />}
+            />
+          </div>
+          <div className="w-[160px]">
+            <SearchSelect
+              options={statusOptions.map((status) => ({
+                label: status,
+                value: status,
+              }))}
+              value={filters.selectedStatus}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedStatus: value }))
+              }
+              placeholder="Select status"
+              searchable
+            />
+          </div>
+          <div className="w-[160px]">
+            <SearchSelect
+              options={noteOptions.map((note) => ({
+                label: note,
+                value: note,
+              }))}
+              value={filters.selectedNote}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedNote: value }))
+              }
+              placeholder="Select note"
+              searchable
+            />
+          </div>
           <Button variant="outline" className="gap-2">
             More: 1
             <ChevronDown className="w-4 h-4" />
@@ -239,7 +335,12 @@ export default function AppointmentStatusPage() {
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-700">Rows per page</span>
-                <Select value={rowsPerPage} onValueChange={setRowsPerPage}>
+                <Select
+                  value={filters.rowsPerPage}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({ ...prev, rowsPerPage: value }))
+                  }
+                >
                   <SelectTrigger className="w-[70px]">
                     <SelectValue />
                   </SelectTrigger>

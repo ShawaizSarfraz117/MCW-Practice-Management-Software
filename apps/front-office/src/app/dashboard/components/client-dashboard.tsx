@@ -53,9 +53,9 @@ export default function ClientDashboard() {
                       viewBox="0 0 24 24"
                     >
                       <path
+                        d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
                     Travis McNulty
@@ -69,14 +69,14 @@ export default function ClientDashboard() {
                       viewBox="0 0 24 24"
                     >
                       <path
+                        d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"
                       />
                       <path
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
                     <div>
@@ -87,7 +87,7 @@ export default function ClientDashboard() {
                   </div>
                 </div>
                 <div className="flex flex-row items-center gap-2 text-sm text-green-700 mt-2">
-                  <a href="#" className="underline">
+                  <a className="underline" href="#">
                     Add to Calendar
                   </a>
                   <span className="text-gray-400">·</span>
@@ -100,10 +100,10 @@ export default function ClientDashboard() {
               <div className="flex flex-col items-center justify-center">
                 {/* Figma map image */}
                 <Image
-                  src={appointmentMap}
                   alt="Map"
-                  width={400}
                   height={400}
+                  src={appointmentMap}
+                  width={400}
                 />
               </div>
             </div>

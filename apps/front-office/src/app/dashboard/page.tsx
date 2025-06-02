@@ -22,13 +22,13 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="flex items-center gap-6 mt-4 md:mt-0">
-            <Button variant="ghost" size="icon" aria-label="Notifications">
+            <Button aria-label="Notifications" size="icon" variant="ghost">
               <Bell className="w-5 h-5 text-gray-400" />
             </Button>
             <Button
-              variant="ghost"
-              size="sm"
               className="text-gray-400 flex items-center gap-2"
+              size="sm"
+              variant="ghost"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign out</span>
@@ -59,7 +59,7 @@ export default function Dashboard() {
               </button>
             </div>
             {activeTab === "appointments" && (
-              <Button size="sm" className="ml-auto">
+              <Button className="ml-auto" size="sm">
                 REQUEST APPOINTMENT
               </Button>
             )}
