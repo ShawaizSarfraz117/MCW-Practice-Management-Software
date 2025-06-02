@@ -1,17 +1,12 @@
 {
   "extends": "@mcw/tsconfig-config/react",
   "compilerOptions": {
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }
