@@ -142,11 +142,10 @@ function DateRangeFilterControls({
 }
 
 // Navigation Dropdown Component
-function NavigationDropdown() {
+function NavigationDropdown({ clientName }: { clientName: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const params = useParams();
-  const clientName = ""; // TODO: Get actual client name
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -209,7 +208,7 @@ function NavigationDropdown() {
   );
 }
 
-export default function OverviewTab() {
+export default function OverviewTab({ clientName }: { clientName: string }) {
   const [selectedDate] = useState<Date | undefined>(
     new Date(2025, 0, 8), // Jan 8, 2025
   );
@@ -241,7 +240,7 @@ export default function OverviewTab() {
           filterType={filterType}
           setFilterType={setFilterType}
         />
-        <NavigationDropdown />
+        <NavigationDropdown clientName={clientName} />
       </div>
 
       {/* Timeline */}
