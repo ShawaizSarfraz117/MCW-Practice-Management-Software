@@ -197,6 +197,14 @@ Integration tests use a separate SQL Server instance via Docker:
 - **Security**: HIPAA compliance, no secrets in code
 - **Consistency**: Follow existing patterns in codebase
 
+### Error Visibility for Development
+
+- **Critical Rule**: All errors must trickle back to developers in ALL environments except production
+- **Development/Staging/Testing**: Show maximum error information to developers (full stack traces, detailed messages, context)
+- **Production Only**: Handle errors differently for end users (sanitized messages)
+- **Implementation**: Always include error details in responses for non-production environments
+- **Rationale**: Maximum error visibility saves significant development time by providing immediate feedback
+
 ### Security Principles
 
 - HIPAA compliance is mandatory
