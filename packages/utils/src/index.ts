@@ -1,6 +1,6 @@
 export * from "./formatting";
 export * from "./styles";
-export * from "./next-test";
+export * from "./test-utils";
 export * from "./fetch";
 export * from "./surveyjs";
 export * from "./surveyjs-custom";
