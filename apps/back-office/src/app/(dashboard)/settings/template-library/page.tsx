@@ -1,15 +1,77 @@
 "use client";
 
+import React from "react";
 import { Button, Badge } from "@mcw/ui";
 import { Copy, FileText } from "lucide-react";
 import { ViewTemplate } from "./components/ViewTemplate";
 import { DeleteTemplateDialog } from "./components/DeleteTemplateDialog";
+import {
+  useTemplates,
+  useDuplicateTemplate,
+  Template,
+} from "./hooks/useTemplates";
+import { TemplateType } from "@/types/templateTypes";
 
 export default function TemplateLibraryPage() {
-  const handleDeleteTemplate = (title: string) => {
-    // This will be replaced with actual API call later
-    console.log(`Deleting template: ${title}`);
+  const { data, isLoading } = useTemplates({
+    is_active: true,
+  });
+
+  const duplicateTemplate = useDuplicateTemplate();
+
+  const handleDuplicateTemplate = (template: Template) => {
+    duplicateTemplate.mutate(template);
   };
+
+  const getScoredMeasures = () => {
+    if (!data?.data) return [];
+    return data.data.filter(
+      (template: Template) => template.type === TemplateType.SCORED_MEASURES,
+    );
+  };
+
+  const getIntakeForms = () => {
+    if (!data?.data) return [];
+    return data.data.filter(
+      (template: Template) => template.type === TemplateType.INTAKE_FORMS,
+    );
+  };
+
+  const getProgressNotes = () => {
+    if (!data?.data) return [];
+    return data.data.filter(
+      (template: Template) => template.type === TemplateType.PROGRESS_NOTES,
+    );
+  };
+
+  const getDiagnosisPlans = () => {
+    if (!data?.data) return [];
+    return data.data.filter(
+      (template: Template) =>
+        template.type === TemplateType.DIAGNOSIS_AND_TREATMENT_PLANS,
+    );
+  };
+
+  const getOtherDocuments = () => {
+    if (!data?.data) return [];
+    return data.data.filter(
+      (template: Template) => template.type === TemplateType.OTHER_DOCUMENTS,
+    );
+  };
+
+  const scoredMeasures: Template[] = !isLoading ? getScoredMeasures() : [];
+  const intakeForms: Template[] = !isLoading ? getIntakeForms() : [];
+  const progressNotes: Template[] = !isLoading ? getProgressNotes() : [];
+  const diagnosisPlans: Template[] = !isLoading ? getDiagnosisPlans() : [];
+  const otherDocuments: Template[] = !isLoading ? getOtherDocuments() : [];
+
+  if (isLoading) {
+    return (
+      <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
+        <p>Loading templates...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-4rem)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]">
@@ -67,34 +129,33 @@ export default function TemplateLibraryPage() {
               Use these templates to track client-reported symptoms and outcomes
             </p>
 
-            <div className="space-y-2">
-              {[
-                "GAD-7 (Generalized Anxiety Disorder)",
-                "PHQ-9 (Patient Health Questionnaire)",
-              ].map((title) => (
-                <div
-                  key={title}
-                  className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-sm font-medium text-gray-900">
-                      {title}
-                    </span>
+            {scoredMeasures.length > 0 && (
+              <div className="space-y-2">
+                {scoredMeasures.map((template: Template) => (
+                  <div
+                    key={template.id}
+                    className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        {template.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ViewTemplate template={template} />
+                      <DeleteTemplateDialog
+                        id={template.id}
+                        title={template.name}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ViewTemplate title={title} type="Scored measures" />
-
-                    <DeleteTemplateDialog
-                      onDelete={() => handleDeleteTemplate(title)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -114,47 +175,44 @@ export default function TemplateLibraryPage() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              {[
-                "Consent for Minor Usage of Software Services",
-                "COVID-19 Pre-Appointment Screening Questionnaire",
-                "Release of Information",
-                "Standard Intake Questionnaire Template",
-                "Third Party Financial Responsibility Form",
-              ].map((title) => (
-                <div
-                  key={title}
-                  className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-sm font-medium text-gray-900">
-                      {title}
-                    </span>
+            {intakeForms.length > 0 && (
+              <div className="space-y-2">
+                {intakeForms.map((template: Template) => (
+                  <div
+                    key={template.id}
+                    className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        {template.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ViewTemplate template={template} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-gray-100"
+                        onClick={() => handleDuplicateTemplate(template)}
+                      >
+                        <Copy className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-gray-100"
+                      >
+                        <FileText className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ViewTemplate title={title} type="Intake forms" />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Copy className="h-4 w-4 text-gray-500" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <FileText className="h-4 w-4 text-gray-500" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -168,53 +226,45 @@ export default function TemplateLibraryPage() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              {[
-                "Biopsychosocial Assessment & SOAP",
-                "DAP Note",
-                "Group Therapy Progress Note",
-                "SOAP Note",
-                "Standard Progress Note",
-                "Treatment Plan & Goals Note",
-              ].map((title) => (
-                <div
-                  key={title}
-                  className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-sm font-medium text-gray-900">
-                      {title}
-                    </span>
+            {progressNotes.length > 0 && (
+              <div className="space-y-2">
+                {progressNotes.map((template: Template) => (
+                  <div
+                    key={template.id}
+                    className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        {template.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ViewTemplate template={template} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-gray-100"
+                        onClick={() => handleDuplicateTemplate(template)}
+                      >
+                        <Copy className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-gray-100"
+                      >
+                        <FileText className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ViewTemplate
-                      title={title}
-                      type="Progress Notes / Session Notes"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Copy className="h-4 w-4 text-gray-500" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <FileText className="h-4 w-4 text-gray-500" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
-
           <div className="space-y-4">
             <div>
               <h2 className="text-base font-semibold text-gray-900">
@@ -225,48 +275,44 @@ export default function TemplateLibraryPage() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              {[
-                "Behavioral Health Treatment Plan",
-                "Couples Behavioral Health Treatment Plan",
-                "Initial Clinical Mental Health Assessment and Treatment Plan",
-              ].map((title) => (
-                <div
-                  key={title}
-                  className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-sm font-medium text-gray-900">
-                      {title}
-                    </span>
+            {diagnosisPlans.length > 0 && (
+              <div className="space-y-2">
+                {diagnosisPlans.map((template: Template) => (
+                  <div
+                    key={template.id}
+                    className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        {template.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ViewTemplate template={template} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-gray-100"
+                        onClick={() => handleDuplicateTemplate(template)}
+                      >
+                        <Copy className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-gray-100"
+                      >
+                        <FileText className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ViewTemplate
-                      title={title}
-                      type="Diagnosis and Treatment Plans"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Copy className="h-4 w-4 text-gray-500" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <FileText className="h-4 w-4 text-gray-500" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -280,45 +326,44 @@ export default function TemplateLibraryPage() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              {[
-                "Discharge Summary Note",
-                "Good Faith Estimate for Health Care Items and Services",
-                "Release of Information",
-              ].map((title) => (
-                <div
-                  key={title}
-                  className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-sm font-medium text-gray-900">
-                      {title}
-                    </span>
+            {otherDocuments.length > 0 && (
+              <div className="space-y-2">
+                {otherDocuments.map((template: Template) => (
+                  <div
+                    key={template.id}
+                    className="flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-100 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        {template.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ViewTemplate template={template} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-gray-100"
+                        onClick={() => handleDuplicateTemplate(template)}
+                      >
+                        <Copy className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-gray-100"
+                      >
+                        <FileText className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ViewTemplate title={title} type="Other Documents" />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <Copy className="h-4 w-4 text-gray-500" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-gray-100"
-                    >
-                      <FileText className="h-4 w-4 text-gray-500" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-6 bg-white rounded-lg border border-gray-100 p-6">

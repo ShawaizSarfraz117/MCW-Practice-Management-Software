@@ -4,20 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MCW Practice Management Software is a HIPAA-compliant healthcare practice management system built as a monorepo with two main applications:
+MCW Practice Management Software is a HIPAA-compliant healthcare practice management system built as a Turborepo-based monorepo with two main applications:
 
 - **Back Office**: Admin/clinician dashboard (`apps/back-office/`) - runs on port 3001
 - **Front Office**: Client-facing portal (`apps/front-office/`) - runs on port 3000
 
-The project prioritizes **safety, security, and privacy** as it handles medical records. The goal is to generate 95% of code via AI while maintaining strict quality standards through comprehensive testing.
+The project prioritizes **safety, security, and privacy** as it handles medical records. The codebase follows AI-first development principles where 95% of code is AI-generated while maintaining strict quality standards for security, privacy, and testing.
 
 ## Architecture
 
 ### Monorepo Structure
 
-- **Apps**: `apps/back-office/` and `apps/front-office/` (Next.js with App Router)
-- **Packages**: Shared libraries in `packages/` including database, UI components, logger, types
-- **Database**: Single Prisma schema shared across applications (`packages/database/`)
+- **apps/back-office**: Admin/clinician dashboard (Next.js 14 App Router) - port 3001
+- **apps/front-office**: Client-facing portal (Next.js 14 App Router) - port 3000
+- **packages/database**: Shared Prisma ORM schema with MS SQL Server
+- **packages/ui**: Shared ShadCN-based UI components
+- **packages/logger**: Centralized Pino-based logging with request context
+- **packages/utils**: Shared utilities and helpers
+- **packages/types**: Shared TypeScript types
 - **Build System**: Turborepo for orchestrating builds and tasks
 
 ### Technology Stack
@@ -25,10 +29,10 @@ The project prioritizes **safety, security, and privacy** as it handles medical 
 - **Framework**: Next.js 14 with App Router and TypeScript
 - **UI**: React + Tailwind CSS + ShadCN UI components (`packages/ui/`)
 - **Database**: MS SQL Server with Prisma ORM
-- **Authentication**: NextAuth.js with role-based access control
+- **Authentication**: NextAuth.js with role-based access control (ADMIN, CLINICIAN)
 - **State Management**: TanStack Query for server state, React state for forms
 - **Testing**: Vitest with comprehensive integration and unit testing
-- **Logging**: Unified Pino-based logging system (`@mcw/logger`)
+- **Logging**: Unified Pino-based logging system with request context and file rotation
 
 ### Key Patterns
 
@@ -36,6 +40,27 @@ The project prioritizes **safety, security, and privacy** as it handles medical 
 - **Database Access**: Shared Prisma client from `@mcw/database` package
 - **Component Reuse**: Shared UI components in `packages/ui/` using ShadCN patterns
 - **Type Safety**: Strict TypeScript with shared types in `@mcw/types`
+
+### API Development Pattern
+
+All API routes follow this structure in `src/app/api/[feature]/route.ts`:
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@mcw/database";
+import { logger } from "@mcw/logger";
+
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    // Implementation
+    return NextResponse.json(data);
+  } catch (error: unknown) {
+    logger.error(`Operation failed: ${error?.message || error}`);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
+  }
+}
+```
 
 ## Development Commands
 
@@ -64,7 +89,7 @@ npm run dev
 cd apps/back-office && npm run dev   # Port 3001
 cd apps/front-office && npm run dev  # Port 3000
 
-# Build all apps
+# Build all apps and packages
 npm run build
 
 # Type checking
@@ -73,6 +98,7 @@ npm run typecheck
 # Lint and format
 npm run lint
 npm run format
+npm run checks              # Run typecheck, prettier, and lint
 ```
 
 ### Testing
@@ -84,15 +110,18 @@ The project uses comprehensive testing with different strategies:
 npm test
 
 # Specific test types
-npm run test:unit              # Unit tests only
+npm run test:unit              # Unit tests only (mocked)
 npm run test:integration       # Integration tests with database
 npm run test:ui               # UI/component tests
+npm run test:ci               # CI-specific test command
 
 # App-specific tests
 npm run test:back-office:unit
 npm run test:back-office:integration
+npm run test:back-office:ui
 npm run test:front-office:unit
 npm run test:front-office:integration
+npm run test:front-office:ui
 
 # Run specific test file
 npx vitest apps/back-office/__tests__/api/client/route.unit.test.ts
@@ -101,17 +130,17 @@ npx vitest apps/back-office/__tests__/api/client/route.unit.test.ts
 ### Database Operations
 
 ```bash
+# Generate Prisma client (run from root)
+npx prisma generate --schema=./packages/database/prisma/schema.prisma
+
 # Run migrations
-npm run db:migrate
+npm run db:migrate          # Development migrations
+npm run db:deploy           # Production migrations
+npm run db:seed             # Seed database with initial data
 
-# Deploy to production database
-npm run db:deploy
-
-# Seed database
-npm run db:seed
-
-# Generate Prisma client
-npm run db:generate
+# Database utilities
+npm run db:generate         # Regenerate Prisma client
+npx prisma studio --schema=./packages/database/prisma/schema.prisma  # Open Prisma Studio
 
 # Reset database for integration tests (when schema issues occur)
 npx prisma migrate reset --schema=./packages/database/prisma/schema.prisma --force
@@ -168,6 +197,14 @@ Integration tests use a separate SQL Server instance via Docker:
 - **Security**: HIPAA compliance, no secrets in code
 - **Consistency**: Follow existing patterns in codebase
 
+### Security Principles
+
+- HIPAA compliance is mandatory
+- No sensitive data in logs
+- Authentication required for all API routes (unless explicitly public)
+- Role-based authorization checks
+- Soft deletes preferred over hard deletes
+
 ### Development Workflow
 
 1. Search existing codebase for similar implementations before writing new code
@@ -176,6 +213,41 @@ Integration tests use a separate SQL Server instance via Docker:
 4. Write tests (both unit and integration) for all new features
 5. Run lint, typecheck, and tests before committing
 6. Ensure HIPAA compliance and security best practices
+
+### Important Guidelines
+
+**From Cursor Rules**:
+
+- Follow KISS & YAGNI principles
+- Single responsibility for all functions
+- Descriptive naming conventions
+- Strict TypeScript (avoid `any`)
+- Always use `catch (error: unknown)` pattern
+- Mock boundaries at repository level for unit tests
+- Integration tests use real database interactions
+
+**API Implementation**:
+
+- Use URL search params for GET filters: `request.nextUrl.searchParams`
+- Return appropriate status codes (200, 201, 400, 404, 500)
+- Log with context using `logger.fromRequest(request)`
+- Validate input thoroughly (consider Zod for complex validation)
+- Use transactions for multi-write operations
+
+**Testing Requirements**:
+
+- No feature is complete without tests
+- Keep test files under 600 lines
+- Use `createRequest` and `createRequestWithBody` from `@mcw/utils`
+- Always run tests until all pass (no failures or pending)
+- Account for JSON serialization (Date → ISO string, Decimal → string)
+
+**Component Development**:
+
+- Use shared components from `packages/ui`
+- Add missing ShadCN components via CLI: `npx shadcn-ui@latest add <component> --cwd ./packages/ui`
+- Follow existing patterns in the codebase
+- Use Tailwind CSS for all styling
 
 ## Pre-commit Checks
 
