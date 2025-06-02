@@ -2,28 +2,11 @@
 
 import DataTable from "@/components/table/DataTable";
 import { Badge } from "@mcw/ui";
-import { Client, ClientContact, ClientGroupMembership } from "@prisma/client";
+import { ClientGroupWithMembership } from "../services/client.service";
 
 interface ClientTableProps {
-  rows: Client[];
+  rows: ClientGroupWithMembership[];
   onRowClick: (row: object) => void;
-}
-
-// Define the expected shape of client data from the API
-interface ClientWithRelations extends Client {
-  name: string;
-  type: string;
-  is_waitlist: boolean;
-  ClientGroupMembership: (ClientGroupMembership & {
-    ClientGroup: {
-      id: string;
-      name: string;
-      type: string;
-    };
-    Client: Client & {
-      ClientContact: ClientContact[];
-    };
-  })[];
 }
 
 const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
@@ -33,7 +16,7 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
       label: "Name",
       value: "name",
       formatter: (value: unknown) => {
-        const row = value as ClientWithRelations;
+        const row = value as ClientGroupWithMembership;
         return <div className="text-blue-500 hover:underline">{row.name}</div>;
       },
     },
@@ -42,16 +25,16 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
       label: "Type",
       value: "type",
       formatter: (value: unknown) => {
-        const row = value as ClientWithRelations;
+        const row = value as ClientGroupWithMembership;
         return <div>{row.type}</div>;
       },
     },
     {
       key: "status",
       label: "Status",
-      value: "ClientGroupMembership",
+      value: "is_active",
       formatter: (value: unknown) => {
-        const row = value as ClientWithRelations;
+        const row = value as ClientGroupWithMembership;
         return (
           <Badge
             className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-50"
@@ -65,9 +48,9 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
     {
       key: "phone",
       label: "Phone",
-      value: "ClientContact",
+      value: "ClientGroupMembership",
       formatter: (value: unknown) => {
-        const row = value as ClientWithRelations;
+        const row = value as ClientGroupWithMembership;
         // Find the first client membership with a phone contact
         const phoneContact = row.ClientGroupMembership.flatMap((membership) =>
           membership.Client.ClientContact.filter(
@@ -81,9 +64,9 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
     {
       key: "email",
       label: "Email",
-      value: "ClientContact",
+      value: "ClientGroupMembership",
       formatter: (value: unknown) => {
-        const row = value as ClientWithRelations;
+        const row = value as ClientGroupWithMembership;
         // Find the first client membership with an email contact
         const emailContact = row.ClientGroupMembership.flatMap((membership) =>
           membership.Client.ClientContact.filter(
@@ -97,12 +80,12 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
     {
       key: "waitlist",
       label: "Waitlist",
-      value: "is_waitlist",
+      value: "ClientGroupMembership",
       formatter: (value: unknown) => {
-        const row = value as ClientWithRelations;
+        const row = value as ClientGroupWithMembership;
         return (
           <p>
-            {row.ClientGroupMembership[0].Client.is_waitlist ? "Yes" : "No"}
+            {row.ClientGroupMembership[0]?.Client?.is_waitlist ? "Yes" : "No"}
           </p>
         );
       },
@@ -112,7 +95,7 @@ const ClientTable = ({ rows, onRowClick }: ClientTableProps) => {
   return (
     <DataTable
       columns={columns}
-      rows={rows as Record<string, unknown>[]}
+      rows={rows as unknown as Record<string, unknown>[]}
       onRowClick={onRowClick}
     />
   );

@@ -7,13 +7,11 @@ import { Button, Input, Card, Checkbox } from "@mcw/ui";
 import ClientTable from "./ClientTable";
 import { useRouter } from "next/navigation";
 import { CreateClientDrawer } from "@/(dashboard)/clients/components/CreateClientDrawer";
-import { fetchClientGroups } from "../services/client.service";
-import { Client as PrismaClient } from "@prisma/client";
+import {
+  fetchClientGroups,
+  ClientGroupWithMembership,
+} from "../services/client.service";
 import Loading from "@/components/Loading";
-// Extended Client type that includes ClientGroupMembership
-interface Client extends PrismaClient {
-  ClientGroupMembership: { id: string }[];
-}
 
 export default function Clients() {
   const [sortBy, setSortBy] = useState("legal_last_name");
@@ -23,7 +21,7 @@ export default function Clients() {
   const [statusFilter, setStatusFilter] = useState<string[]>(["all"]);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [clients, setClients] = useState<{
-    data: Client[];
+    data: ClientGroupWithMembership[];
     pagination: { page: number; limit: number; total: number };
   }>({ data: [], pagination: { page: 1, limit: 20, total: 0 } });
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,12 +29,12 @@ export default function Clients() {
   const router = useRouter();
 
   const handleRedirect = (row: unknown) => {
-    const client = row as Client;
+    const clientGroup = row as ClientGroupWithMembership;
     if (
-      client.ClientGroupMembership &&
-      client.ClientGroupMembership.length > 0
+      clientGroup.ClientGroupMembership &&
+      clientGroup.ClientGroupMembership.length > 0
     ) {
-      router.push(`/clients/${client.id}`);
+      router.push(`/clients/${clientGroup.id}`);
     }
   };
 
@@ -49,13 +47,8 @@ export default function Clients() {
         sortBy,
       },
     });
-    if (!error) {
-      setClients(
-        clients as {
-          data: Client[];
-          pagination: { page: number; limit: number; total: number };
-        },
-      );
+    if (!error && clients) {
+      setClients(clients);
     }
   };
 
@@ -93,13 +86,8 @@ export default function Clients() {
           ...params,
         },
       });
-      if (!error) {
-        setClients(
-          clients as {
-            data: Client[];
-            pagination: { page: number; limit: number; total: number };
-          },
-        );
+      if (!error && clients) {
+        setClients(clients);
       }
       setIsLoading(false);
     },

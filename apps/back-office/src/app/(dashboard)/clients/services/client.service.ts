@@ -2,6 +2,7 @@ import { FETCH } from "@mcw/utils";
 import {
   Appointment,
   Client,
+  ClientContact,
   ClientGroup,
   ClientGroupMembership,
   Invoice,
@@ -16,20 +17,19 @@ interface Location {
   is_active?: boolean;
 }
 
-interface ClientGroupWithMembership extends ClientGroup {
-  ClientGroupMembership: (ClientGroupMembership & { Client: Client })[];
+export interface ClientGroupWithMembership extends ClientGroup {
+  ClientGroupMembership: (ClientGroupMembership & {
+    Client: Client & { ClientContact: ClientContact[] };
+  })[];
 }
 
 interface PaginatedResponse<T> {
   data: T[];
-  pagination:
-    | {
-        page: number;
-        limit: number;
-        total: number;
-      }
-    | null
-    | ClientGroupWithMembership;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  };
 }
 
 export const fetchClients = async ({
@@ -181,16 +181,16 @@ export const useUpdateClientGroup = () => {
   });
 };
 
-export const fetchClientGroups = async ({
-  searchParams = {},
+export const fetchClientGroups = async (params: {
+  searchParams?: Record<string, unknown>;
 }): Promise<
-  [PaginatedResponse<Client> | ClientGroupWithMembership | null, Error | null]
+  [PaginatedResponse<ClientGroupWithMembership> | null, Error | null]
 > => {
   try {
     const response = (await FETCH.get({
       url: "/client/group",
-      searchParams,
-    })) as PaginatedResponse<Client> | ClientGroupWithMembership;
+      searchParams: params.searchParams || {},
+    })) as PaginatedResponse<ClientGroupWithMembership>;
 
     return [response, null];
   } catch (error) {
