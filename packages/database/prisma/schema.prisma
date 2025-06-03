@@ -13,8 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Core appointment entity representing scheduled sessions, events, or meetings.
+/// Appointments are always associated with a ClientGroup (not individual clients) to support family/couple therapy.
 model Appointment {
   id                       String             @id @default(dbgenerated("newid()"), map: "PK_Appointment_ID") @db.UniqueIdentifier
+  /// Type of appointment: 'APPOINTMENT' (client sessions) or 'EVENT' (non-client activities).
   type                     String             @db.VarChar(50)
   title                    String?            @db.VarChar(255)
   is_all_day               Boolean            @default(false, map: "DF_Appointment_IsAllDay")
@@ -22,18 +25,25 @@ model Appointment {
   end_date                 DateTime
   location_id              String?            @db.UniqueIdentifier
   created_by               String             @db.UniqueIdentifier
+  /// Current status: e.g., 'SHOW', 'NO_SHOW' , 'CANCELLED' , 'LATE_CANCELLED' , 'CLINICIAN_CANCELLED'.
   status                   String             @db.VarChar(100)
   clinician_id             String?            @db.UniqueIdentifier
+  /// Base fee for the appointment in dollars (before adjustments).
   appointment_fee          Decimal?
   service_id               String?            @db.UniqueIdentifier
   is_recurring             Boolean            @default(false, map: "DF_Appointment_IsRecurring")
+  /// iCalendar RRULE format string defining recurrence pattern.
   recurring_rule           String?            @db.Text
   cancel_appointments      Boolean?
   notify_cancellation      Boolean?
+  /// For recurring appointments: NULL if this is the parent/template, or parent's ID if this is a child instance.
   recurring_appointment_id String?            @db.UniqueIdentifier
+  /// Client group (family/couple/individual) receiving services. Every 'APPOINTMENT' type is associated with a ClientGroup.
   client_group_id          String?            @db.UniqueIdentifier
+  /// Session-specific fee adjustment in dollars (can be negative for discounts/credits).
   adjustable_amount        Decimal?
   superbill_id             String?            @db.UniqueIdentifier
+  /// Amount written off (not expected to be collected) in dollars.
   write_off                Decimal?
   ClientGroup              ClientGroup?       @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_ClientGroup")
   Clinician                Clinician?         @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Clinician")
@@ -49,6 +59,7 @@ model Appointment {
   SurveyAnswers            SurveyAnswers[]
 }
 
+/// Many-to-many junction table linking appointments with categorization tags.
 model AppointmentTag {
   id             String      @id(map: "PK_AppointmentTag_ID") @default(dbgenerated("newid()"), map: "DF_AppointmentTag_ID") @db.UniqueIdentifier
   appointment_id String      @db.UniqueIdentifier
@@ -61,30 +72,43 @@ model AppointmentTag {
   @@index([tag_id], map: "IX_AppointmentTag_tag_id")
 }
 
+/// HIPAA compliance audit trail for tracking access and events related to protected health information (PHI).
 model Audit {
   Id         String   @id(map: "PK_Audit_ID") @default(dbgenerated("newid()"), map: "DF_Audit_ID") @db.UniqueIdentifier
+  /// Client whose data was accessed or affected (null for system-level events).
   client_id  String?  @db.UniqueIdentifier
+  /// User who performed the action or triggered the event.
   user_id    String?  @db.UniqueIdentifier
+  /// Timestamp of the event in UTC.
   datetime   DateTime @default(now(), map: "DF__Audit__datetime__17ED6F58") @db.DateTime
+  /// Type of event (e.g., 'VIEW', 'UPDATE', 'DELETE', 'LOGIN_SUCCESS', 'PHI_ACCESS').
   event_type String?  @db.NChar(10)
+  /// Human-readable description of the event.
   event_text String   @db.NVarChar(255)
+  /// Whether this event involves HIPAA-protected information.
   is_hipaa   Boolean  @default(false, map: "DF_Audit_IsHipaa")
   Client     Client?  @relation(fields: [client_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Audit_Client")
   User       User?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Audit_User")
 }
 
+/// Clinician availability windows for scheduling appointments.
+/// Supports both one-time and recurring availability patterns.
 model Availability {
   id                    String                 @id @default(dbgenerated("newid()"), map: "PK_Availability_ID") @db.UniqueIdentifier
   clinician_id          String                 @db.UniqueIdentifier
   created_at            DateTime               @default(now(), map: "DF_Availability_CreatedAt")
   updated_at            DateTime               @updatedAt
+  /// Whether this availability repeats according to recurring_rule.
   is_recurring          Boolean                @default(false, map: "DF_Availability_IsRecurring")
+  /// iCalendar RRULE format for recurring availability.
   recurring_rule        String?                @db.Text
   end_time              DateTime               @default(now(), map: "DF_Availability_EndTime")
   start_time            DateTime               @default(now(), map: "DF_Availability_StartTime")
   end_date              DateTime               @default(now(), map: "DF_Availability_EndDate")
   start_date            DateTime               @default(now(), map: "DF_Availability_StartDate")
+  /// Display title (e.g., "Morning Hours", "Evening Availability").
   title                 String                 @db.Text
+  /// Whether clients can request appointments during this time via portal.
   allow_online_requests Boolean                @default(false, map: "DF_Availability_AllowOnlineRequests")
   location_id           String                 @db.UniqueIdentifier
   Clinician             Clinician              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Clinician")
@@ -95,20 +119,28 @@ model Availability {
   @@index([start_time, end_time], map: "IX_Availability_time_range")
 }
 
+/// Individual client (patient) record - the core entity for a person receiving services.
+/// Clients are grouped into ClientGroups for appointments and billing.
 model Client {
   id                       String                     @id @default(dbgenerated("newid()"), map: "PK_Client_ID") @db.UniqueIdentifier
   legal_first_name         String                     @db.VarChar(100)
   legal_last_name          String                     @db.VarChar(100)
+  /// Whether client is on the practice's waitlist. If true, staff can view this client when looking for candidates for open slots.
   is_waitlist              Boolean                    @default(false, map: "DF_Client_IsWaitlist")
   primary_clinician_id     String?                    @db.UniqueIdentifier
   primary_location_id      String?                    @db.UniqueIdentifier
   created_at               DateTime                   @default(now(), map: "DF__Client__created___2FFA0313")
+  /// Soft delete flag - false means client is inactive/archived.
   is_active                Boolean                    @default(true, map: "DF_Client_IsActive")
   preferred_name           String?                    @db.VarChar(100)
   date_of_birth            DateTime?                  @db.Date
+  /// Portal permission: Client can request appointments online.
   allow_online_appointment Boolean                    @default(false, map: "DF_Client_allow_online_appointment")
+  /// Portal permission: Client can view their invoices, statements, and superbills.
   access_billing_documents Boolean                    @default(false, map: "DF_Client_access_billing_documents")
+  /// Portal permission: Client can send and receive secure messages with their clinician.
   use_secure_messaging     Boolean                    @default(false, map: "DF_Client_use_secure_messaging")
+  /// Free text field for initial referral source.
   referred_by              String?                    @db.VarChar(200)
   Audit                    Audit[]
   Clinician                Clinician?                 @relation(fields: [primary_clinician_id], references: [id], onUpdate: NoAction, map: "FK_Client_Clinician")
@@ -126,6 +158,8 @@ model Client {
   SurveyAnswers            SurveyAnswers[]
 }
 
+/// Extended demographic and personal information for a client.
+/// Separated from main Client table to keep core data lean.
 model ClientProfile {
   id                     String  @id @default(dbgenerated("newid()"), map: "PK_ClientProfile_ID") @db.UniqueIdentifier
   client_id              String  @unique @db.UniqueIdentifier
@@ -141,6 +175,7 @@ model ClientProfile {
   Client                 Client  @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientProfile_Client")
 }
 
+/// Physical addresses associated with a client.
 model ClientAdress {
   id            String  @id @default(dbgenerated("newid()"), map: "PK_ClientAddress_ID") @db.UniqueIdentifier
   client_id     String  @db.UniqueIdentifier
@@ -150,28 +185,39 @@ model ClientAdress {
   city          String  @db.VarChar(50)
   state         String  @db.VarChar(50)
   country       String  @db.VarChar(50)
+  /// Whether this is the client's primary address.
   is_primary    Boolean @default(false, map: "DF_ClientAddress_IsPrimary")
   Client        Client  @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientAddress_Client")
 }
 
+/// Contact methods for a client (email, phone, etc.).
 model ClientContact {
   id                       String                     @id @default(dbgenerated("newid()"), map: "PK_ClientContact_ID") @db.UniqueIdentifier
   client_id                String                     @db.UniqueIdentifier
+  /// Whether this is the primary contact method for its category.
   is_primary               Boolean                    @default(false, map: "DF_ClientContact_IsPrimary")
+  /// Permission level: who can use this contact (e.g., 'CLIENT_ONLY', 'EMERGENCY_CONTACT_ONLY').
   permission               String                     @db.VarChar(50)
+  /// Category of contact method: 'EMAIL', 'PHONE', 'SMS'.
   contact_type             String                     @db.VarChar(50)
+  /// Subcategory or usage label: 'HOME', 'WORK', 'MOBILE', 'OTHER'.
   type                     String                     @db.VarChar(50)
+  /// The actual contact value (e.g., email address, phone number).
   value                    String                     @db.VarChar(255)
   Client                   Client                     @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientContact_Client")
   ClientReminderPreference ClientReminderPreference[]
 }
 
+/// Groups of clients for scheduling and billing purposes. Every appointment is associated with a ClientGroup.
+/// Types: 'individual' (single client), 'couple', 'family', 'minor' (child with guardian(s)).
 model ClientGroup {
   id                             String                     @id(map: "PK_ClientGroup_ID") @db.UniqueIdentifier
+  /// Group type: 'individual', 'couple', 'family', 'minor'.
   type                           String                     @db.VarChar(150)
   name                           String                     @db.VarChar(250)
   clinician_id                   String?                    @db.UniqueIdentifier
   is_active                      Boolean                    @default(true, map: "DF_ClientGroup_IsActive")
+  /// Total credit balance available for this group in dollars.
   available_credit               Decimal                    @default(0)
   created_at                     DateTime?                  @default(now(), map: "ClientGroup_created_at")
   auto_monthly_statement_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_statement_enabled")
@@ -189,12 +235,14 @@ model ClientGroup {
   Superbill                      Superbill[]
 }
 
+/// Junction table linking clients to groups with role information.
 model ClientGroupMembership {
   client_group_id            String      @default(dbgenerated("newid()"), map: "DF_ClientGroupMembership_ID") @db.UniqueIdentifier
   client_id                  String      @db.UniqueIdentifier
   role                       String?     @db.VarChar(50)
   created_at                 DateTime    @default(now(), map: "DF__GroupClie__creat__6EEB59C5")
   is_contact_only            Boolean     @default(false, map: "DF_ClientGroupMembership_IsContactOnly")
+  /// Whether this member is responsible for billing for the group.
   is_responsible_for_billing Boolean?
   is_emergency_contact       Boolean?    @default(false, map: "DF_ClientGroupMembership_IsEmergencyContactOnly")
   Client                     Client      @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupMembership_Client")
@@ -204,9 +252,11 @@ model ClientGroupMembership {
   @@index([client_id], map: "IX_ClientGroupMembership_client_id")
 }
 
+/// Client preferences for appointment reminders and notifications.
 model ClientReminderPreference {
   id            String        @id @default(dbgenerated("newid()"), map: "PK_ClientReminderPreference_ID") @db.UniqueIdentifier
   client_id     String        @db.UniqueIdentifier
+  /// Type of reminder: 'APPOINTMENT', 'BILLING', 'FORM_DUE', etc.
   reminder_type String        @db.VarChar(100)
   is_enabled    Boolean       @default(true, map: "DF_ClientReminderPreference_IsEnabled")
   channel       String
@@ -217,12 +267,14 @@ model ClientReminderPreference {
   @@unique([client_id, reminder_type, channel])
 }
 
+/// Billing addresses for clinicians (for insurance claims and billing).
 model BillingAddress {
   id           String    @id @default(dbgenerated("newid()"), map: "PK_BillingAddress_ID") @db.UniqueIdentifier
   street       String    @db.VarChar(255)
   city         String    @db.VarChar(100)
   state        String    @db.VarChar(50)
   zip          String    @db.VarChar(20)
+  /// Address type: 'SERVICE_LOCATION' or 'PAY_TO_ADDRESS'.
   type         String    @db.VarChar(50)
   clinician_id String    @db.UniqueIdentifier
   Clinician    Clinician @relation("ManyBillingAddresses", fields: [clinician_id], references: [id], onDelete: Cascade, map: "FK_BillingAddress_Clinician")
@@ -231,15 +283,18 @@ model BillingAddress {
   @@index([clinician_id], map: "IX_BillingAddress_clinician_id")
 }
 
+/// Healthcare provider who delivers services to clients.
 model Clinician {
   id                  String                @id @default(dbgenerated("newid()"), map: "PK_Clinician_ID") @db.UniqueIdentifier
   user_id             String                @unique @db.UniqueIdentifier
   address             String                @db.Text
+  /// Revenue split percentage for this clinician.
   percentage_split    Float
   is_active           Boolean               @default(true, map: "DF_Clinician_IsActive")
   first_name          String                @db.VarChar(100)
   last_name           String                @db.VarChar(100)
   speciality          String?               @db.VarChar(250)
+  /// National Provider Identifier for insurance billing.
   NPI_number          String?               @db.VarChar(250)
   taxonomy_code       String?               @db.VarChar(250)
   Appointment         Appointment[]
@@ -259,6 +314,7 @@ model Clinician {
   PracticeInformation PracticeInformation[]
 }
 
+/// Many-to-many relationship between clinicians and clients.
 model ClinicianClient {
   client_id     String    @db.UniqueIdentifier
   clinician_id  String    @db.UniqueIdentifier
@@ -270,6 +326,7 @@ model ClinicianClient {
   @@id([client_id, clinician_id], map: "PK_ClinicianClient_ID")
 }
 
+/// Many-to-many relationship between clinicians and service locations.
 model ClinicianLocation {
   clinician_id String    @db.UniqueIdentifier
   location_id  String    @db.UniqueIdentifier
@@ -280,9 +337,11 @@ model ClinicianLocation {
   @@id([clinician_id, location_id], map: "PK_ClinicianLocation_ID")
 }
 
+/// Services offered by each clinician with optional custom rates.
 model ClinicianServices {
   clinician_id    String          @db.UniqueIdentifier
   service_id      String          @db.UniqueIdentifier
+  /// Custom rate for this service (overrides standard service rate).
   custom_rate     Decimal?
   is_active       Boolean         @default(true, map: "DF_ClinicianServices_IsActive")
   Clinician       Clinician       @relation(fields: [clinician_id], references: [id], map: "FK_ClinicianServices_Clinician")
@@ -291,6 +350,7 @@ model ClinicianServices {
   @@id([clinician_id, service_id], map: "PK_ClinicianServices_ID")
 }
 
+/// Stored payment methods for clients (tokenized for PCI compliance).
 model CreditCard {
   id              String    @id @default(dbgenerated("newid()"), map: "PK_CreditCard_ID") @db.UniqueIdentifier
   client_id       String    @db.UniqueIdentifier
@@ -301,12 +361,14 @@ model CreditCard {
   cardholder_name String    @db.VarChar(100)
   is_default      Boolean   @default(false, map: "DF_CreditCard_IsDefault")
   billing_address String?   @db.Text
+  /// Payment processor token (e.g., Stripe) for secure processing.
   token           String?   @db.VarChar(255)
   created_at      DateTime  @default(now(), map: "DF__CreditCar__creat__01FE2E39")
   Client          Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_CreditCard_Client")
   Payment         Payment[]
 }
 
+/// Billing invoices for services rendered.
 model Invoice {
   id                  String       @id @default(dbgenerated("newid()"), map: "PK_Invoice_ID") @db.UniqueIdentifier
   invoice_number      String       @db.VarChar(50)
@@ -316,7 +378,9 @@ model Invoice {
   issued_date         DateTime     @default(now(), map: "DF__Invoice__issued___7D39791C")
   due_date            DateTime
   amount              Decimal      @db.Decimal(10, 2)
+  /// Invoice status: 'DRAFT', 'SENT', 'PAID', 'OVERDUE', 'VOID'.
   status              String       @db.VarChar(50)
+  /// Invoice type: 'SERVICE', 'COPAY', 'DEDUCTIBLE', etc.
   type                String       @db.VarChar(50)
   client_info         String?      @db.Text
   notes               String?      @db.Text
@@ -329,6 +393,7 @@ model Invoice {
   Payment             Payment[]
 }
 
+/// Physical locations where services are provided.
 model Location {
   id                String              @id @default(dbgenerated("newid()"), map: "PK_Location_ID") @db.UniqueIdentifier
   name              String              @db.VarChar(255)
@@ -347,6 +412,7 @@ model Location {
   GoodFaithServices GoodFaithServices[]
 }
 
+/// Payment records for invoices, tracking partial or full payments.
 model Payment {
   id             String      @id @default(dbgenerated("newid()"), map: "PK_Payment_ID") @db.UniqueIdentifier
   invoice_id     String      @db.UniqueIdentifier
@@ -356,21 +422,29 @@ model Payment {
   transaction_id String?     @db.VarChar(100)
   status         String      @db.VarChar(50)
   response       String?     @db.Text
+  /// Amount of credit applied from ClientGroup.available_credit.
   credit_applied Decimal?    @db.Decimal(10, 2)
   CreditCard     CreditCard? @relation(fields: [credit_card_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Payment_CreditCard")
   Invoice        Invoice     @relation(fields: [invoice_id], references: [id], onUpdate: NoAction, map: "FK_Payment_Invoice")
 }
 
+/// Catalog of services offered by the practice.
 model PracticeService {
   id                  String                @id @default(dbgenerated("newid()"), map: "PK_PracticeService_ID") @db.UniqueIdentifier
   type                String                @db.VarChar(255)
+  /// Standard rate in dollars for this service.
   rate                Decimal               @db.Decimal(10, 2)
+  /// Service code (e.g., CPT code like 90834, or internal code) for billing.
   code                String                @db.VarChar(50)
   description         String?               @db.Text
+  /// Standard duration of the service in minutes.
   duration            Int
   color               String?               @db.VarChar(7)
+  /// Whether new clients are allowed to book this service.
   allow_new_clients   Boolean               @default(false)
+  /// Whether this service can be booked online via the client portal.
   available_online    Boolean               @default(false)
+  /// Whether to bill insurance in units (e.g., 15-minute increments).
   bill_in_units       Boolean               @default(false)
   block_after         Int                   @default(0)
   block_before        Int                   @default(0)
@@ -383,27 +457,36 @@ model PracticeService {
   GoodFaithServices   GoodFaithServices[]
 }
 
+/// User roles for role-based access control (RBAC).
 model Role {
   id             String           @id @default(dbgenerated("newid()"), map: "PK_Role_ID") @db.UniqueIdentifier
+  /// Unique role identifier (e.g., 'ADMIN', 'CLINICIAN', 'STAFF').
   name           String           @unique @db.VarChar(255)
   description    String?          @db.Text
   RolePermission RolePermission[]
   UserRole       UserRole[]
 }
 
+/// Client responses to surveys, forms, and questionnaires.
+/// Linked to SurveyTemplate for structure. Can be linked to an appointment or client intake process.
 model SurveyAnswers {
   id                     String                   @id(map: "PK_SurveyAnswers_ID") @default(dbgenerated("newid()"), map: "DF_SurveyAnswers_ID") @db.UniqueIdentifier
   template_id            String                   @db.UniqueIdentifier
   client_id              String                   @db.UniqueIdentifier
+  /// JSON content of the completed survey, storing answers to the questions from the template.
   content                String?                  @db.Text
   frequency              String?                  @db.NChar(10)
   completed_at           DateTime?
   assigned_at            DateTime                 @default(now(), map: "DF__ClientDoc__assig__4D8A65FA")
   expiry_date            DateTime?
+  /// Whether this is an intake form, often part of new client onboarding.
   is_intake              Boolean                  @default(false, map: "DF_SurveyAnswers_is_intake")
+  /// Current status: 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'EXPIRED', 'SUBMITTED'.
   status                 String                   @db.VarChar(100)
   appointment_id         String?                  @db.UniqueIdentifier
+  /// Whether the client (or clinician) has digitally signed this document.
   is_signed              Boolean?
+  /// Whether this document is locked from further edits (e.g., after signing).
   is_locked              Boolean?
   AppointmentNotes       AppointmentNotes[]
   ClientFiles            ClientFiles[]
@@ -413,6 +496,7 @@ model SurveyAnswers {
   SurveyTemplate         SurveyTemplate           @relation(fields: [template_id], references: [id], onUpdate: NoAction, map: "FK_SurveyAnswers_SurveyTemplate")
 }
 
+/// Templates for surveys, forms, and questionnaires (e.g., intake forms, consent forms, assessments).
 model SurveyTemplate {
   id                 String          @id(map: "PK_SurveyTemplate_ID") @default(dbgenerated("newid()"), map: "DF_SurveyTemplate_ID") @db.UniqueIdentifier
   name               String          @db.VarChar(255)
@@ -422,9 +506,12 @@ model SurveyTemplate {
   created_at         DateTime        @default(now(), map: "DF__DocumentT__creat__35B2DC69")
   description        String?         @db.Text
   updated_at         DateTime
+  /// Template type: 'INTAKE', 'CONSENT', 'ASSESSMENT', 'CUSTOM'.
   type               String          @db.VarChar(100)
   is_default         Boolean         @default(false, map: "DF_SurveyTemplate_is_default")
+  /// Whether this template requires digital signature for completion.
   requires_signature Boolean         @default(false, map: "DF_SurveyTemplate_RequiresSignature")
+  /// Whether this template can be shared with clients via portal or email.
   is_shareable       Boolean         @default(false, map: "DF_SurveyTemplate_is_shareable")
   SurveyAnswers      SurveyAnswers[]
 }
@@ -439,6 +526,7 @@ model sysdiagrams {
   @@unique([principal_id, name], map: "UK_principal_name")
 }
 
+/// Tags for categorizing appointments.
 model Tag {
   id             String           @id(map: "PK_Tag_ID") @default(dbgenerated("newid()"), map: "DF_Tag_ID") @db.UniqueIdentifier
   name           String           @db.NVarChar(100)
@@ -446,6 +534,7 @@ model Tag {
   AppointmentTag AppointmentTag[]
 }
 
+/// System users including clinicians, staff, and administrators.
 model User {
   id              String            @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   email           String            @unique @db.VarChar(255)
@@ -464,6 +553,7 @@ model User {
   UserRole        UserRole[]
 }
 
+/// Many-to-many junction table for user role assignments.
 model UserRole {
   user_id String @db.UniqueIdentifier
   role_id String @db.UniqueIdentifier
@@ -473,6 +563,7 @@ model UserRole {
   @@id([user_id, role_id], map: "PK_UserRole_ID")
 }
 
+/// Additional clinical information for users.
 model ClinicalInfo {
   id            Int    @id @default(autoincrement())
   speciality    String
@@ -482,16 +573,20 @@ model ClinicalInfo {
   User          User   @relation(fields: [user_id], references: [id], map: "FK_clinicalInfo_User")
 }
 
+/// Professional licenses held by clinicians.
 model License {
   id              String    @id(map: "PK_License") @default(dbgenerated("newid()"), map: "DF_License_id") @db.UniqueIdentifier
   clinician_id    String    @db.UniqueIdentifier
+  /// Type of license (e.g., 'LCSW', 'PSYCHOLOGIST', 'MFT').
   license_type    String
   license_number  String
   expiration_date DateTime
+  /// State where license is valid.
   state           String
   Clinician       Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_License_Clinician")
 }
 
+/// Practice-wide settings and information.
 model PracticeInformation {
   id             String     @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   clinician_id   String?    @db.UniqueIdentifier
@@ -504,9 +599,11 @@ model PracticeInformation {
   Clinician      Clinician? @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PracticeInformation_Clinician")
 }
 
+/// Daily appointment limits per clinician to prevent overbooking.
 model AppointmentLimit {
   id           String    @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   date         DateTime  @db.Date
+  /// Maximum number of appointments allowed on this date.
   max_limit    Int       @default(10)
   clinician_id String    @db.UniqueIdentifier
   Clinician    Clinician @relation(fields: [clinician_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -516,11 +613,13 @@ model AppointmentLimit {
   @@index([date], map: "IX_AppointmentLimit_date")
 }
 
+/// Customizable email templates for various communications.
 model EmailTemplate {
   id         String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   name       String   @db.VarChar(255)
   subject    String   @db.VarChar(255)
   content    String   @db.Text
+  /// Template category: 'REMINDER', 'BILLING', 'WELCOME', etc.
   type       String   @db.VarChar(50)
   email_type String?  @db.VarChar(250)
   created_at DateTime @default(now())
@@ -531,19 +630,23 @@ model EmailTemplate {
   @@index([created_by])
 }
 
+/// Additional products/services that can be billed.
 model Product {
   id    String  @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   name  String  @db.VarChar(255)
   price Decimal @db.Decimal(10, 2)
 }
 
+/// System permissions that can be assigned to roles.
 model Permission {
   id             String           @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   name           String           @db.VarChar(255)
+  /// Unique permission identifier (e.g., 'manage_clients', 'view_billing').
   slug           String           @unique @db.VarChar(100)
   RolePermission RolePermission[]
 }
 
+/// Many-to-many junction table linking roles with permissions.
 model RolePermission {
   role_id       String     @db.UniqueIdentifier
   permission_id String     @db.UniqueIdentifier
@@ -555,6 +658,7 @@ model RolePermission {
   @@index([permission_id], map: "IX_RolePermission_permission_id")
 }
 
+/// Documents and files associated with client groups.
 model ClientGroupFile {
   id                 String        @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   survey_template_id String?       @db.UniqueIdentifier
@@ -573,6 +677,7 @@ model ClientGroupFile {
   @@index([uploaded_by_id], map: "IX_ClientGroupFile_uploaded_by_id")
 }
 
+/// Monthly billing statements for client groups.
 model Statement {
   id                String          @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   statement_number  Int             @default(0)
@@ -592,6 +697,7 @@ model Statement {
   client_email      String?         @db.VarChar(255)
   created_at        DateTime        @default(now())
   created_by        String?         @db.UniqueIdentifier
+  /// Whether this statement has been exported to external billing system.
   is_exported       Boolean         @default(false, map: "DF_Statement_is_exported")
   ClientGroup       ClientGroup     @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_Statement_ClientGroup")
   User              User?           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Statement_User")
@@ -600,6 +706,7 @@ model Statement {
   @@index([client_group_id], map: "IX_Statement_client_group_id")
 }
 
+/// Superbills for insurance reimbursement claims.
 model Superbill {
   id               String        @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   superbill_number Int           @default(0)
@@ -620,6 +727,7 @@ model Superbill {
   @@index([client_group_id], map: "IX_Superbill_client_group_id")
 }
 
+/// Clinician-specific billing configuration.
 model BillingSettings {
   id                                   String     @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
   clinician_id                         String?    @unique @db.UniqueIdentifier
@@ -644,12 +752,14 @@ model BillingSettings {
   @@index([clinician_id])
 }
 
+/// Clinical notes linked to appointments and survey answers.
 model AppointmentNotes {
   id                 String        @id(map: "PK_AppointmentNotes") @db.UniqueIdentifier
   appointment_id     String        @db.UniqueIdentifier
   type               String        @db.VarChar(50)
   survey_answer_id   String        @db.UniqueIdentifier
   created_by         String?       @db.UniqueIdentifier
+  /// Whether the note has been signed by the clinician.
   is_signed          Boolean       @default(false, map: "DF_AppointmentNotes_is_signed")
   unlocked_by        String?       @db.UniqueIdentifier
   unlocked_time      DateTime?
@@ -661,6 +771,7 @@ model AppointmentNotes {
   SurveyAnswers      SurveyAnswers @relation(fields: [survey_answer_id], references: [id], onUpdate: NoAction, map: "FK_AppointmentNotes_SurveyAnswers")
 }
 
+/// Client group preferences for receiving billing documents.
 model ClientBillingPreferences {
   id                         String      @id(map: "PK_ClientBillingPreferences") @db.UniqueIdentifier
   client_group_id            String      @db.UniqueIdentifier
@@ -673,6 +784,7 @@ model ClientBillingPreferences {
   ClientGroup                ClientGroup @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_ClientBillingPreferences_ClientGroup")
 }
 
+/// Links between clients and files in their group.
 model ClientFiles {
   id                   String          @id(map: "PK_ClientFiles") @db.UniqueIdentifier
   client_group_file_id String          @db.UniqueIdentifier
@@ -684,6 +796,7 @@ model ClientFiles {
   SurveyAnswers        SurveyAnswers?  @relation(fields: [survey_answers_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientFiles_SurveyAnswers")
 }
 
+/// Custom service rates for specific client groups.
 model ClientGroupServices {
   id              String          @id(map: "PK_ClientGroupServices") @db.UniqueIdentifier
   client_group_id String          @db.UniqueIdentifier
@@ -693,6 +806,7 @@ model ClientGroupServices {
   PracticeService PracticeService @relation(fields: [service_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroupServices_PracticeService")
 }
 
+/// ICD-10 diagnosis codes used in treatment planning and billing.
 model Diagnosis {
   id                         String                       @id(map: "PK__Diagnosi__3213E83FF84A10BA") @default(dbgenerated("newid()"), map: "DF__Diagnosis__id__4F688CCB") @db.UniqueIdentifier
   code                       String                       @db.VarChar(50)
@@ -703,6 +817,7 @@ model Diagnosis {
   @@index([code], map: "IX_Diagnosis_Code")
 }
 
+/// Treatment plans linking clients with diagnoses.
 model DiagnosisTreatmentPlan {
   id                         String                       @id(map: "PK__Diagnosi__3213E83FDFE52E56") @default(dbgenerated("newid()"), map: "DF__DiagnosisTre__id__5244F976") @db.UniqueIdentifier
   client_id                  String                       @db.UniqueIdentifier
@@ -719,6 +834,7 @@ model DiagnosisTreatmentPlan {
   @@index([survey_answers_id], map: "IX_DiagnosisTreatmentPlan_SurveyAnswersId")
 }
 
+/// Individual diagnosis items within a treatment plan.
 model DiagnosisTreatmentPlanItem {
   id                     String                 @id(map: "PK__Diagnosi__3213E83F425BBD2A") @default(dbgenerated("newid()"), map: "DF__DiagnosisTre__id__58F1F705") @db.UniqueIdentifier
   treatment_plan_id      String                 @db.UniqueIdentifier
@@ -731,6 +847,7 @@ model DiagnosisTreatmentPlanItem {
   @@index([treatment_plan_id], map: "IX_DiagnosisTreatmentPlanItem_TreatmentPlanId")
 }
 
+/// Good faith estimates for uninsured clients (No Surprises Act compliance).
 model GoodFaithEstimate {
   id                    String              @id(map: "PK_GoodFaithEstimate") @db.UniqueIdentifier
   client_id             String              @db.UniqueIdentifier
@@ -753,6 +870,7 @@ model GoodFaithEstimate {
   expiration_date       DateTime?           @db.DateTime
   service_start_date    DateTime?           @db.Date
   service_end_date      DateTime?           @db.Date
+  /// Total estimated cost in dollars.
   total_cost            Int
   Client                Client              @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Client")
   Clinician             Clinician           @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Clinician")
@@ -760,6 +878,7 @@ model GoodFaithEstimate {
   GoodFaithServices     GoodFaithServices[]
 }
 
+/// Services included in a good faith estimate.
 model GoodFaithServices {
   id                String            @id(map: "PK_GoodFaithServices") @db.UniqueIdentifier
   good_faith_id     String            @db.UniqueIdentifier
@@ -774,6 +893,7 @@ model GoodFaithServices {
   PracticeService   PracticeService   @relation(fields: [service_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_PracticeService")
 }
 
+/// Line items on billing statements.
 model StatementItem {
   id           String    @id(map: "PK_StatementItem") @db.UniqueIdentifier
   statement_id String    @db.UniqueIdentifier
@@ -785,6 +905,7 @@ model StatementItem {
   Statement    Statement @relation(fields: [statement_id], references: [id], onUpdate: NoAction, map: "FK_StatementItem_Statement")
 }
 
+/// Client requests for appointments submitted via portal.
 model AppointmentRequests {
   id                       String                @id(map: "PK_AppointmentRequests") @db.UniqueIdentifier
   clinician_id             String                @db.UniqueIdentifier
@@ -796,6 +917,7 @@ model AppointmentRequests {
   additional_notes         String?               @db.Text
   start_time               DateTime              @db.DateTime
   end_time                 DateTime              @db.DateTime
+  /// Request status: 'PENDING', 'APPROVED', 'DECLINED', 'SCHEDULED'.
   status                   String                @db.VarChar(250)
   received_date            DateTime              @db.DateTime
   updated_at               DateTime?             @db.DateTime
@@ -803,6 +925,7 @@ model AppointmentRequests {
   RequestContactItems      RequestContactItems[]
 }
 
+/// Services that can be booked during specific availability windows.
 model AvailabilityServices {
   availability_id String       @db.UniqueIdentifier
   service_id      String       @db.UniqueIdentifier
@@ -811,6 +934,7 @@ model AvailabilityServices {
   @@id([availability_id, service_id], map: "PK_AvailabilityServices")
 }
 
+/// Configuration for client portal features per clinician.
 model ClientPortalSettings {
   id                              String   @id(map: "PK_ClientPortalSettings") @db.UniqueIdentifier
   clinician_id                    String   @db.UniqueIdentifier
@@ -830,18 +954,21 @@ model ClientPortalSettings {
   welcome_message                 String?  @db.NVarChar(Max)
 }
 
+/// Key-value store for practice-wide configuration.
 model PracticeSettings {
   id    String @id(map: "PK_PracticeSettings") @db.UniqueIdentifier
   key   String @db.VarChar(250)
   value String @db.NVarChar(Max)
 }
 
+/// SMS/text reminder templates.
 model ReminderTextTemplates {
   id      String @id(map: "PK_ReminderTextTemplates") @db.UniqueIdentifier
   type    String @db.VarChar(250)
   content String @db.Text
 }
 
+/// Contact information for appointment request submitters.
 model RequestContactItems {
   id                     String              @id(map: "PK_RequestContactItems") @db.UniqueIdentifier
   appointment_request_id String              @db.UniqueIdentifier
