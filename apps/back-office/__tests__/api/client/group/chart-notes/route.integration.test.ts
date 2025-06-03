@@ -21,9 +21,10 @@ describe("/api/client/group/chart-notes API endpoint integration tests", () => {
   let createdEntityIds: string[] = [];
 
   beforeEach(async () => {
-    // Clean up any existing data
+    // Clean up any existing data - order matters due to foreign key constraints
     await prisma.clientGroupChartNote.deleteMany({});
     await prisma.clientGroupMembership.deleteMany({});
+    await prisma.appointment.deleteMany({}); // Delete appointments before client groups
     await prisma.clientGroup.deleteMany({});
 
     // Create a test client group
@@ -44,9 +45,10 @@ describe("/api/client/group/chart-notes API endpoint integration tests", () => {
   });
 
   afterAll(async () => {
-    // Final cleanup
+    // Final cleanup - order matters due to foreign key constraints
     await prisma.clientGroupChartNote.deleteMany({});
     await prisma.clientGroupMembership.deleteMany({});
+    await prisma.appointment.deleteMany({}); // Delete appointments before client groups
     await prisma.clientGroup.deleteMany({});
     await prisma.$disconnect();
   });
