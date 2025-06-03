@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 
 /**
- * Unit tests for scheduled page
+ * UI tests for scheduled page
  * Tests imports and basic component loading
+ * Marked as UI test because the component accesses DOM during import
  */
 describe("Scheduled Page", () => {
   it("should import the page component without errors", async () => {
@@ -10,5 +11,5 @@ describe("Scheduled Page", () => {
 
     expect(ScheduledPage).toBeDefined();
     expect(ScheduledPage.default).toBeDefined();
-  }, 10000); // 10 second timeout for complex pages
+  });
 });

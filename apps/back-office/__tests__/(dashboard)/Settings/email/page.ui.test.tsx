@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 
 /**
- * Unit tests for email settings page
+ * UI tests for email settings page
  * Tests imports and basic component loading
+ * Marked as UI test because the component accesses DOM during import
  */
 describe("Email Settings Page", () => {
   it("should import the page component without errors", async () => {
@@ -10,5 +11,5 @@ describe("Email Settings Page", () => {
 
     expect(EmailSettingsPage).toBeDefined();
     expect(EmailSettingsPage.default).toBeDefined();
-  }, 10000); // 10 second timeout for complex pages
+  });
 });
