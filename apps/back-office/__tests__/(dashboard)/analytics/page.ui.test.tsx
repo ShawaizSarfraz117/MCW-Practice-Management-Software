@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 
 /**
- * Unit tests for analytics page
+ * UI tests for analytics page
  * Tests imports and basic component loading
+ * Marked as UI test because the component accesses DOM during import
  */
 describe("Analytics Page", () => {
   it("should import the page component without errors", async () => {
@@ -10,5 +11,5 @@ describe("Analytics Page", () => {
 
     expect(AnalyticsPage).toBeDefined();
     expect(AnalyticsPage.default).toBeDefined();
-  }, 10000); // 10 second timeout for complex pages
+  });
 });
