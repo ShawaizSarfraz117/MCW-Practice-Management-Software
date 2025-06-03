@@ -1,6 +1,7 @@
 {
   "extends": "@mcw/tsconfig-config/react",
   "compilerOptions": {
+    "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": false,
     "paths": {
