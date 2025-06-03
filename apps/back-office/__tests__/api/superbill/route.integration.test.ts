@@ -163,6 +163,7 @@ describe("Superbill API - Integration Tests", () => {
     appointmentId?: string;
     superbillId?: string;
     userId?: string;
+    clinicianId?: string;
   } = {};
 
   beforeAll(async () => {
@@ -265,8 +266,6 @@ describe("Superbill API - Integration Tests", () => {
           last_name: "Clinician",
           address: "123 Test St",
           percentage_split: 100.0,
-          created_at: new Date(),
-          updated_at: new Date(),
         },
       });
       testIds.clinicianId = clinician.id;
@@ -275,13 +274,9 @@ describe("Superbill API - Integration Tests", () => {
       const client = await prisma.client.create({
         data: {
           id: generateUUID(),
-          first_name: "Test",
-          last_name: "Client",
-          email: "test-client@example.com",
-          phone: "123-456-7890",
+          legal_first_name: "Test",
+          legal_last_name: "Client",
           date_of_birth: new Date("1990-01-01"),
-          created_at: new Date(),
-          updated_at: new Date(),
         },
       });
       testIds.clientId = client.id;
@@ -291,8 +286,7 @@ describe("Superbill API - Integration Tests", () => {
         data: {
           id: generateUUID(),
           name: "Test Group",
-          created_at: new Date(),
-          updated_at: new Date(),
+          type: "INDIVIDUAL",
         },
       });
       testIds.clientGroupId = clientGroup.id;
@@ -301,12 +295,11 @@ describe("Superbill API - Integration Tests", () => {
       const practiceService = await prisma.practiceService.create({
         data: {
           id: generateUUID(),
-          clinician_id: clinician.id,
-          name: "Test Service",
-          cost: "100.00",
+          type: "Test Service",
+          rate: 100.0,
+          code: "TEST001",
+          description: "Test Service Description",
           duration: 60,
-          created_at: new Date(),
-          updated_at: new Date(),
         },
       });
       testIds.practiceServiceId = practiceService.id;
@@ -317,10 +310,12 @@ describe("Superbill API - Integration Tests", () => {
           id: generateUUID(),
           client_group_id: clientGroup.id,
           clinician_id: clinician.id,
-          start_time: new Date(),
-          end_time: new Date(Date.now() + 60 * 60 * 1000),
+          start_date: new Date(),
+          end_date: new Date(Date.now() + 60 * 60 * 1000),
           status: "SCHEDULED",
           service_id: practiceService.id,
+          type: "IN_PERSON",
+          created_by: user.id,
         },
       });
       testIds.appointmentId = appointment.id;

@@ -158,8 +158,8 @@ export async function cleanupTestUserData(
           where: { clinician_id: clinician.id },
         });
 
-        // Clean up practice services
-        await tx.practiceService.deleteMany({
+        // Clean up practice services linked to clinician through ClinicianServices
+        await tx.clinicianServices.deleteMany({
           where: { clinician_id: clinician.id },
         });
 
