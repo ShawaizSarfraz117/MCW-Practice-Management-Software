@@ -206,6 +206,7 @@ export const ClientGroupFactory = {
     id: faker.string.uuid(),
     type: faker.helpers.arrayElement(["FAMILY", "INDIVIDUAL", "ORGANIZATION"]),
     name: faker.company.name(),
+    administrative_notes: null,
     ...overrides,
   }),
 };
