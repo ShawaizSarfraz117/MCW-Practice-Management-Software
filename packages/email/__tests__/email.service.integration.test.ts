@@ -127,9 +127,9 @@ describe("EmailService Integration Tests", () => {
       return;
     }
 
+    console.log("Sending to:", [testEmail]);
     const result = await emailService.sendEmail({
       to: [testEmail], // Using array with single address for testing
-      cc: [], // Empty CC for testing
       subject: "MCW Email Service - Multiple Recipients Test",
       html: "<h2>👥 Multiple Recipients</h2><p>Testing multiple recipient handling.</p>",
     });
