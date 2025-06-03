@@ -3,6 +3,7 @@ import { prisma } from "@mcw/database";
 import { safeCleanupDatabase } from "@mcw/database/test-utils";
 import { generateUUID } from "@mcw/utils";
 import { createRequest } from "@mcw/utils";
+import { GET } from "@/api/billing-documents/route";
 
 // Mock helpers module to avoid auth issues in tests
 vi.mock("@/utils/helpers", () => ({
@@ -15,9 +16,6 @@ vi.mock("@/utils/helpers", () => ({
     user: { id: "test-user-id" },
   }),
 }));
-
-// Import the route handler AFTER mocks are defined
-import { GET } from "@/api/billing-documents/route";
 
 // Define type for billing document
 interface BillingDocument {
