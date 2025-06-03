@@ -16,7 +16,7 @@ describe("Service Settings Page", () => {
   });
 
   it("should render the service settings page", async () => {
-    const { render } = await import("@testing-library/react");
+    const { render, screen } = await import("@testing-library/react");
     const { default: ServiceSettingsPage } = await import(
       "@/(dashboard)/settings/service/page"
     );
@@ -28,13 +28,13 @@ describe("Service Settings Page", () => {
       },
     });
 
-    const { getByRole } = render(
+    render(
       <QueryClientProvider client={queryClient}>
         <ServiceSettingsPage />
       </QueryClientProvider>,
     );
 
     // Verify the page renders with expected structure
-    expect(getByRole("main")).toBeDefined();
+    expect(screen.getByRole("main")).toBeDefined();
   });
 });

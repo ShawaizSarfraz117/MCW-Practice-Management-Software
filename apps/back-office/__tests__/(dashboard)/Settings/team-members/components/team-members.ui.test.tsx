@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 /**
  * UI tests for team member components
@@ -64,7 +64,7 @@ describe("Team Member Components UI", () => {
       "@/(dashboard)/settings/team-members/components/shared/StateSelector"
     );
 
-    const { getByText } = render(
+    render(
       <StateSelector
         errors={[]}
         label="Test State"
@@ -72,6 +72,6 @@ describe("Team Member Components UI", () => {
         onChange={() => {}}
       />,
     );
-    expect(getByText("Test State")).toBeDefined();
+    expect(screen.getByText("Test State")).toBeDefined();
   });
 });
