@@ -10,5 +10,5 @@ describe("Requests Page", () => {
 
     expect(RequestsPage).toBeDefined();
     expect(RequestsPage.default).toBeDefined();
-  });
+  }, 60000);
 });

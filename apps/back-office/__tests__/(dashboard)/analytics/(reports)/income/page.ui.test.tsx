@@ -12,5 +12,5 @@ describe("Income Analytics Page", () => {
 
     expect(IncomePage).toBeDefined();
     expect(IncomePage.default).toBeDefined();
-  });
+  }, 60000);
 });

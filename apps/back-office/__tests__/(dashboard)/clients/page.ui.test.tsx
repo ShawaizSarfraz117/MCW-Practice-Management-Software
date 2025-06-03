@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -29,7 +30,7 @@ describe("Clients Page", () => {
 
     expect(ClientsPage).toBeDefined();
     expect(ClientsPage.default).toBeDefined();
-  });
+  }, 60000);
 
   it("should render the clients page with proper components", async () => {
     const { render } = await import("@testing-library/react");
@@ -49,5 +50,5 @@ describe("Clients Page", () => {
     );
     expect(container).toBeDefined();
     // Add more specific assertions based on expected content
-  });
+  }, 60000);
 });

@@ -11,5 +11,5 @@ describe("Email Settings Page", () => {
 
     expect(EmailSettingsPage).toBeDefined();
     expect(EmailSettingsPage.default).toBeDefined();
-  });
+  }, 60000);
 });

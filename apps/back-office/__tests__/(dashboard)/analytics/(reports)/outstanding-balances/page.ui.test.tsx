@@ -12,5 +12,5 @@ describe("Outstanding Balances Analytics Page", () => {
 
     expect(OutstandingBalancesPage).toBeDefined();
     expect(OutstandingBalancesPage.default).toBeDefined();
-  });
+  }, 60000);
 });

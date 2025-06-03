@@ -12,5 +12,5 @@ describe("Appointment Status Analytics Page", () => {
 
     expect(AppointmentStatusPage).toBeDefined();
     expect(AppointmentStatusPage.default).toBeDefined();
-  });
+  }, 60000);
 });

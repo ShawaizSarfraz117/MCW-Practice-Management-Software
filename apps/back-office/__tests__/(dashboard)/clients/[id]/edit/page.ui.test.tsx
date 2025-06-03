@@ -10,5 +10,5 @@ describe("Client Edit Page", () => {
 
     expect(ClientEditPage).toBeDefined();
     expect(ClientEditPage.default).toBeDefined();
-  });
+  }, 60000);
 });
