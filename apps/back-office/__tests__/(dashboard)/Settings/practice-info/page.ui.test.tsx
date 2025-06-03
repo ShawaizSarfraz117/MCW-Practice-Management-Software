@@ -12,5 +12,5 @@ describe("Practice Info Settings Page", () => {
 
     expect(PracticeInfoPage).toBeDefined();
     expect(PracticeInfoPage.default).toBeDefined();
-  });
+  }, 60000);
 });

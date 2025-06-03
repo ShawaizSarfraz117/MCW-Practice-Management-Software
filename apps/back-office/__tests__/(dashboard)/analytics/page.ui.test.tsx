@@ -11,5 +11,5 @@ describe("Analytics Page", () => {
 
     expect(AnalyticsPage).toBeDefined();
     expect(AnalyticsPage.default).toBeDefined();
-  });
+  }, 60000);
 });

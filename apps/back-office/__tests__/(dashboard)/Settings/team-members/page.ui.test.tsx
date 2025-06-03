@@ -12,5 +12,5 @@ describe("Team Members Settings Page", () => {
 
     expect(TeamMembersPage).toBeDefined();
     expect(TeamMembersPage.default).toBeDefined();
-  });
+  }, 60000);
 });

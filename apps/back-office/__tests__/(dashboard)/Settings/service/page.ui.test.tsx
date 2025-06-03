@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, it, expect } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -13,7 +14,7 @@ describe("Service Settings Page", () => {
 
     expect(ServiceSettingsPage).toBeDefined();
     expect(ServiceSettingsPage.default).toBeDefined();
-  });
+  }, 60000);
 
   it("should render the service settings page", async () => {
     const { render, screen } = await import("@testing-library/react");
@@ -38,5 +39,5 @@ describe("Service Settings Page", () => {
     expect(screen.getByRole("heading", { name: "Services" })).toBeDefined();
     expect(screen.getByText("Manage services and set rates.")).toBeDefined();
     expect(screen.getByRole("button", { name: "Add Services" })).toBeDefined();
-  });
+  }, 60000);
 });

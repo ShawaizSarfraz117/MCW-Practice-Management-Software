@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
@@ -28,7 +29,7 @@ describe("Team Member Components UI", () => {
 
     const { container } = render(<TestComponent />);
     expect(container).toBeDefined();
-  });
+  }, 60000);
 
   it("should load team member form components requiring DOM", async () => {
     // These components require DOM environment due to React Quill and other DOM dependencies

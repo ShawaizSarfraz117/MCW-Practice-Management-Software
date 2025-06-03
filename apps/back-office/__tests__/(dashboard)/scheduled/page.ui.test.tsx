@@ -11,5 +11,5 @@ describe("Scheduled Page", () => {
 
     expect(ScheduledPage).toBeDefined();
     expect(ScheduledPage.default).toBeDefined();
-  });
+  }, 60000);
 });

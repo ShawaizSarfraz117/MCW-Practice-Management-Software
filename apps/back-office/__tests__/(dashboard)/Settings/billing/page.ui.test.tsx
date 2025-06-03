@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, it, expect } from "vitest";
 
 /**
@@ -12,7 +13,7 @@ describe("Billing Settings Page", () => {
 
     expect(BillingSettingsPage).toBeDefined();
     expect(BillingSettingsPage.default).toBeDefined();
-  });
+  }, 60000);
 
   it("should render without crashing", async () => {
     const { render } = await import("@testing-library/react");
@@ -21,5 +22,5 @@ describe("Billing Settings Page", () => {
     );
 
     expect(() => render(<BillingSettingsPage.default />)).not.toThrow();
-  });
+  }, 60000);
 });

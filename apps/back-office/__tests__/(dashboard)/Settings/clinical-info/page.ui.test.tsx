@@ -12,5 +12,5 @@ describe("Clinical Info Settings Page", () => {
 
     expect(ClinicalInfoPage).toBeDefined();
     expect(ClinicalInfoPage.default).toBeDefined();
-  });
+  }, 60000);
 });

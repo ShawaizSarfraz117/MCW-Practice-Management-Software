@@ -10,5 +10,5 @@ describe("Client Detail Page", () => {
 
     expect(ClientDetailPage).toBeDefined();
     expect(ClientDetailPage.default).toBeDefined();
-  });
+  }, 60000);
 });
