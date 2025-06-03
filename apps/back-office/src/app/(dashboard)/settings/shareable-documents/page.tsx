@@ -2,17 +2,16 @@
 
 import { ConsentForms } from "./components/ConsentForms";
 import { IntakeForm } from "./components/IntakeForm";
-import { 
-  useShareableTemplates, 
-  getConsentForms,
+import {
+  useShareableTemplates,
   getScoredMeasures,
-  getIntakeForms 
+  getIntakeForms,
+  ShareableTemplate,
 } from "./hooks/useShareableTemplates";
 import { TemplateType } from "@/types/templateTypes";
 
 export default function ShareableDocumentsPage() {
   const { data, isLoading, error } = useShareableTemplates();
-  
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
@@ -30,20 +29,23 @@ export default function ShareableDocumentsPage() {
   }
 
   const templates = data?.data || [];
-  
+
   // Filter templates by type
-  const consentForms = templates.filter((template: any) => 
-    template.type === TemplateType.OTHER_DOCUMENTS && 
-    (template.name.toLowerCase().includes('consent') || 
-     template.name.toLowerCase().includes('authorization') ||
-     template.name.toLowerCase().includes('privacy') ||
-     template.name.toLowerCase().includes('policies'))
-  ).map((template: any) => ({
-    id: template.id,
-    name: template.name,
-    default: template.is_default,
-    content: template.content
-  }));
+  const consentForms = templates
+    .filter(
+      (template: ShareableTemplate) =>
+        template.type === TemplateType.OTHER_DOCUMENTS &&
+        (template.name.toLowerCase().includes("consent") ||
+          template.name.toLowerCase().includes("authorization") ||
+          template.name.toLowerCase().includes("privacy") ||
+          template.name.toLowerCase().includes("policies")),
+    )
+    .map((template: ShareableTemplate) => ({
+      id: template.id,
+      name: template.name,
+      default: template.is_default,
+      content: template.content,
+    }));
 
   const scoredMeasures = getScoredMeasures(templates);
   const intakeForms = getIntakeForms(templates);
@@ -64,10 +66,7 @@ export default function ShareableDocumentsPage() {
       <ConsentForms forms={consentForms} />
 
       {/* Intake Forms */}
-      <IntakeForm 
-        intakeForms={intakeForms}
-        scoredMeasures={scoredMeasures}
-      />
+      <IntakeForm intakeForms={intakeForms} scoredMeasures={scoredMeasures} />
     </div>
   );
 }

@@ -20,7 +20,9 @@ export function useShareableTemplates() {
   return useQuery({
     queryKey: ["shareable-templates"],
     queryFn: async () => {
-      const response = await fetch("/api/templates?sharable=true&is_active=true");
+      const response = await fetch(
+        "/api/templates?sharable=true&is_active=true",
+      );
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to fetch shareable templates");
@@ -31,14 +33,18 @@ export function useShareableTemplates() {
 }
 
 // Helper functions to filter templates by type
-export function filterTemplatesByType(templates: ShareableTemplate[], type: TemplateType) {
-  return templates.filter(template => template.type === type);
+export function filterTemplatesByType(
+  templates: ShareableTemplate[],
+  type: TemplateType,
+) {
+  return templates.filter((template) => template.type === type);
 }
 
 export function getConsentForms(templates: ShareableTemplate[]) {
-  return templates.filter(template => 
-    template.type === TemplateType.OTHER_DOCUMENTS && 
-    template.name.toLowerCase().includes('consent')
+  return templates.filter(
+    (template) =>
+      template.type === TemplateType.OTHER_DOCUMENTS &&
+      template.name.toLowerCase().includes("consent"),
   );
 }
 
