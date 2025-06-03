@@ -1,23 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  X,
-  Bold,
-  Italic,
-  Strikethrough,
-  List,
-  ListOrdered,
-  Link,
-  Minus,
-  Undo,
-  Redo,
-  Image,
-} from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@mcw/ui";
 import { Sheet, SheetContent } from "@mcw/ui";
 import { useParams } from "next/navigation";
 import { useToast } from "@mcw/ui";
+import dynamic from "next/dynamic";
+
+// Dynamically import ReactQuill to avoid SSR issues
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+import "react-quill/dist/quill.snow.css";
 
 interface AdministrativeNote {
   id: string;
@@ -116,6 +109,28 @@ export default function AdministrativeNoteDrawer({
     }
   };
 
+  // React Quill configuration
+  const modules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link"],
+      ["clean"],
+    ],
+  };
+
+  const formats = [
+    "header",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "list",
+    "bullet",
+    "link",
+  ];
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-[450px] p-0 gap-0 [&>button]:hidden">
@@ -155,50 +170,19 @@ export default function AdministrativeNoteDrawer({
             </a>
           </div>
 
-          {/* Editor Toolbar */}
-          <div className="flex flex-wrap gap-1 mb-2 border-b pb-2">
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <Bold className="h-4 w-4" />
-            </Button>
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <Italic className="h-4 w-4" />
-            </Button>
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <Strikethrough className="h-4 w-4" />
-            </Button>
-            <div className="h-8 border-r mx-1" />
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <List className="h-4 w-4" />
-            </Button>
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <ListOrdered className="h-4 w-4" />
-            </Button>
-            <div className="h-8 border-r mx-1" />
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <Link className="h-4 w-4" />
-            </Button>
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <Minus className="h-4 w-4" />
-            </Button>
-            <div className="h-8 border-r mx-1" />
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <Undo className="h-4 w-4" />
-            </Button>
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <Redo className="h-4 w-4" />
-            </Button>
-            <Button className="h-8 w-8" size="icon" variant="ghost">
-              <Image className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Editor Content */}
+          {/* React Quill Editor */}
           <div className="min-h-[200px] mb-4">
-            <textarea
-              className="w-full h-full min-h-[200px] p-2 border-0 focus:outline-none resize-none"
-              placeholder="Begin typing here..."
+            <ReactQuill
+              theme="snow"
               value={noteContent}
-              onChange={(e) => setNoteContent(e.target.value)}
+              onChange={setNoteContent}
+              modules={modules}
+              formats={formats}
+              placeholder="Begin typing here..."
+              style={{
+                height: "200px",
+                marginBottom: "50px", // Add space for toolbar
+              }}
             />
           </div>
 

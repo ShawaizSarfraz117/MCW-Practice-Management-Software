@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Edit, Printer, Trash2, ChevronUp, ChevronDown, X } from "lucide-react";
 import { Button } from "@mcw/ui";
 import { format } from "date-fns";
+import DOMPurify from "dompurify";
 
 // Delete Confirmation Modal Component
 interface DeleteModalProps {
@@ -62,6 +63,106 @@ function DeleteConfirmationModal({
   );
 }
 
+// Extract print HTML generation
+function generatePrintHTML(
+  content: string,
+  dateOfBirth: string | undefined,
+  formatDate: (date: string | Date) => string,
+  createdAt: string | Date,
+) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Administrative Note</title>
+      <style>
+        @media print {
+          body { margin: 0; }
+        }
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+          line-height: 1.6;
+          color: #000;
+        }
+        .header {
+          margin-bottom: 30px;
+        }
+        .client-info {
+          font-size: 12px;
+          margin-bottom: 20px;
+          line-height: 1.4;
+        }
+        .note-title {
+          font-size: 18px;
+          font-weight: bold;
+          color: #333;
+          text-align: center;
+          margin: 20px 0;
+        }
+        .note-content {
+          font-size: 14px;
+          margin: 30px 0;
+          min-height: 100px;
+        }
+        .note-meta {
+          font-size: 11px;
+          color: #666;
+          border-top: 1px solid #ccc;
+          padding-top: 10px;
+          margin-top: 50px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .page-info {
+          font-size: 10px;
+          color: #666;
+        }
+        /* Quill content styles */
+        .note-content p {
+          margin: 0.5em 0;
+        }
+        .note-content strong {
+          font-weight: bold;
+        }
+        .note-content em {
+          font-style: italic;
+        }
+        .note-content u {
+          text-decoration: underline;
+        }
+        .note-content ol, .note-content ul {
+          margin: 0.5em 0;
+          padding-left: 2em;
+        }
+        .note-content h1, .note-content h2, .note-content h3 {
+          margin: 1em 0 0.5em 0;
+          font-weight: bold;
+        }
+        .note-content h1 { font-size: 1.5em; }
+        .note-content h2 { font-size: 1.3em; }
+        .note-content h3 { font-size: 1.1em; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="client-info">
+          <strong>Client 1:</strong> 
+          <strong>DOB 1:</strong> ${dateOfBirth}
+        </div>
+        <div class="note-title">Administrative Note</div>
+      </div>
+      <div class="note-content">${content}</div>
+      <div class="note-meta">
+        <div>Created on ${formatDate(createdAt)}. Last updated on ${formatDate(createdAt)}.</div>
+        <div class="page-info">Page 1 of 1</div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 interface AdministrativeNote {
   id: string;
   content: string;
@@ -80,7 +181,7 @@ interface AdministrativeNoteCardProps {
 
 export default function AdministrativeNoteCard({
   note,
-  clientName,
+  clientName: _clientName,
   dateOfBirth,
   onEdit,
   onDelete,
@@ -96,80 +197,18 @@ export default function AdministrativeNoteCard({
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
     if (printWindow) {
-      const printContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Administrative Note</title>
-          <style>
-            @media print {
-              body { margin: 0; }
-            }
-            body {
-              font-family: Arial, sans-serif;
-              margin: 20px;
-              line-height: 1.6;
-              color: #000;
-            }
-            .header {
-              margin-bottom: 30px;
-            }
-            .client-info {
-              font-size: 12px;
-              margin-bottom: 20px;
-              line-height: 1.4;
-            }
-            .note-title {
-              font-size: 18px;
-              font-weight: bold;
-              color: #333;
-              text-align: center;
-              margin: 20px 0;
-            }
-            .note-content {
-              font-size: 14px;
-              margin: 30px 0;
-              white-space: pre-wrap;
-              min-height: 100px;
-            }
-            .note-meta {
-              font-size: 11px;
-              color: #666;
-              border-top: 1px solid #ccc;
-              padding-top: 10px;
-              margin-top: 50px;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            }
-            .page-info {
-              font-size: 10px;
-              color: #666;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="client-info">
-              <strong>Client 1:</strong> ${clientName}<br>
-              <strong>DOB 1:</strong> ${dateOfBirth}
-            </div>
-            <div class="note-title">Administrative Note</div>
-          </div>
-          <div class="note-content">${note.content}</div>
-          <div class="note-meta">
-            <div>Created on Jun 3, 2025 at 5:10 am ET. Last updated on Jun 3, 2025 at 5:10 am ET.</div>
-            <div class="page-info">Page 1 of 1</div>
-          </div>
-        </body>
-        </html>
-      `;
+      const sanitizedContent = DOMPurify.sanitize(note.content);
+      const printContent = generatePrintHTML(
+        sanitizedContent,
+        dateOfBirth,
+        formatDate,
+        note.createdAt,
+      );
 
       printWindow.document.write(printContent);
       printWindow.document.close();
       printWindow.focus();
 
-      // Use setTimeout to ensure the content is loaded before opening print dialog
       setTimeout(() => {
         printWindow.print();
       }, 250);
@@ -249,9 +288,12 @@ export default function AdministrativeNoteCard({
           )}
         </div>
 
-        <div className="text-gray-800 mt-2 whitespace-pre-wrap">
-          {note.content}
-        </div>
+        <div
+          className="text-gray-800 mt-2"
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(note.content),
+          }}
+        />
 
         {isExpanded && (
           <div className="text-sm text-gray-500 mt-3">
