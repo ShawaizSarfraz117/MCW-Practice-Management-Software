@@ -7,19 +7,7 @@ import {
   DialogHeader,
 } from "@mcw/ui";
 import { AppointmentTabs } from "./AppointmentTabs";
-
-interface AppointmentData {
-  id?: string;
-  title?: string;
-  type?: string;
-  location_id?: string;
-  client_id?: string;
-  clinician_id?: string;
-  is_all_day?: boolean;
-  notes?: string;
-  start_date?: string;
-  end_date?: string;
-}
+import type { AppointmentFormData } from "@/types/entities";
 
 interface AppointmentDialogProps {
   isOpen: boolean;
@@ -27,7 +15,7 @@ interface AppointmentDialogProps {
   selectedDate: Date;
   selectedTime: string;
   onCreateClient: () => void;
-  appointmentData?: AppointmentData;
+  appointmentData?: AppointmentFormData;
   isViewMode?: boolean;
 }
 

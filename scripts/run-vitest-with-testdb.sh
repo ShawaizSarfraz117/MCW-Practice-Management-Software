@@ -38,4 +38,4 @@ npm run db:deploy
 # forward the arguments to vitest
 vitest $@
 
-# Cleanup is handled by the trap 
+# Cleanup is handled by the trap

@@ -90,8 +90,8 @@ export default function ClientBilling() {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-gray-700 text-lg">Cards on File (0)</h2>
                 <Button
-                  variant="ghost"
                   className="text-green-600 hover:text-green-700 font-medium"
+                  variant="ghost"
                 >
                   + New Card
                 </Button>
@@ -268,8 +268,8 @@ export default function ClientBilling() {
               ${totalBalance.toFixed(2)}
             </span>
             <Button
-              size="sm"
               className="bg-green-600 hover:bg-green-700 text-white"
+              size="sm"
             >
               PAY NOW
             </Button>

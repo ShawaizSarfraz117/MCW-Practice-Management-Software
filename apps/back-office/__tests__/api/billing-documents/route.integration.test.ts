@@ -1,5 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { prisma } from "@mcw/database";
+import { safeCleanupDatabase } from "@mcw/database/test-utils";
 import { generateUUID } from "@mcw/utils";
 import { createRequest } from "@mcw/utils";
 
@@ -27,50 +28,6 @@ interface BillingDocument {
   number: string;
   is_exported: boolean;
   clientGroupName: string;
-}
-
-// Helper function for cleaning up test data
-async function cleanupTestData(ids: {
-  clientGroupId?: string;
-  invoiceId?: string;
-  superbillId?: string;
-  statementId?: string;
-}) {
-  // Delete statement
-  if (ids.statementId) {
-    try {
-      await prisma.statement.delete({ where: { id: ids.statementId } });
-    } catch (error) {
-      console.log("Error deleting statement:", error);
-    }
-  }
-
-  // Delete superbill
-  if (ids.superbillId) {
-    try {
-      await prisma.superbill.delete({ where: { id: ids.superbillId } });
-    } catch (error) {
-      console.log("Error deleting superbill:", error);
-    }
-  }
-
-  // Delete invoice
-  if (ids.invoiceId) {
-    try {
-      await prisma.invoice.delete({ where: { id: ids.invoiceId } });
-    } catch (error) {
-      console.log("Error deleting invoice:", error);
-    }
-  }
-
-  // Delete client group
-  if (ids.clientGroupId) {
-    try {
-      await prisma.clientGroup.delete({ where: { id: ids.clientGroupId } });
-    } catch (error) {
-      console.log("Error deleting client group:", error);
-    }
-  }
 }
 
 describe("Billing Documents API - Integration Tests", () => {
@@ -225,34 +182,8 @@ describe("Billing Documents API - Integration Tests", () => {
     }
   });
 
-  // Clean up test data
-  afterAll(async () => {
-    try {
-      await cleanupTestData({
-        clientGroupId: testIds.clientGroupId,
-        invoiceId: testIds.invoiceId,
-        superbillId: testIds.superbillId,
-        statementId: testIds.statementId,
-      });
-
-      // Also clean up appointment
-      if (testIds.appointmentId) {
-        await prisma.appointment.delete({
-          where: { id: testIds.appointmentId },
-        });
-      }
-
-      // Clean up clinician and user
-      if (testIds.clinicianId) {
-        await prisma.clinician.delete({ where: { id: testIds.clinicianId } });
-      }
-
-      if (testIds.userId) {
-        await prisma.user.delete({ where: { id: testIds.userId } });
-      }
-    } catch (error) {
-      console.error("Error cleaning up test data:", error);
-    }
+  afterEach(async () => {
+    await safeCleanupDatabase(prisma, { verbose: false });
   });
 
   it("GET /api/billing-documents should return all billing documents", async () => {

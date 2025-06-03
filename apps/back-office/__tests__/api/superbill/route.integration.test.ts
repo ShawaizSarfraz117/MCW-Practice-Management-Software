@@ -1,6 +1,7 @@
 /* eslint-disable max-lines-per-function */
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@mcw/database";
+import { safeCleanupDatabase } from "@mcw/database/test-utils";
 import { generateUUID } from "@mcw/utils";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { NextResponse } from "next/server";
@@ -153,112 +154,6 @@ const POST = async (request: NextRequest) => {
   }
 };
 
-// Helper function for cleaning up test data
-async function cleanupTestData(ids: {
-  clientId?: string;
-  clientGroupId?: string;
-  practiceServiceId?: string;
-  appointmentId?: string;
-  superbillId?: string;
-  userId?: string;
-}) {
-  try {
-    // Update appointments to remove superbill reference first
-    if (ids.appointmentId) {
-      try {
-        await prisma.appointment.update({
-          where: { id: ids.appointmentId },
-          data: { superbill_id: null },
-        });
-      } catch (error) {
-        console.error("Error updating appointment:", error);
-      }
-    }
-
-    // Delete superbill
-    if (ids.superbillId) {
-      try {
-        await prisma.superbill.delete({
-          where: { id: ids.superbillId },
-        });
-      } catch (error) {
-        console.error("Error deleting superbill:", error);
-      }
-    }
-
-    // Delete appointment
-    if (ids.appointmentId) {
-      try {
-        await prisma.appointment.delete({
-          where: { id: ids.appointmentId },
-        });
-      } catch (error) {
-        console.error("Error deleting appointment:", error);
-      }
-    }
-
-    // Delete practice service
-    if (ids.practiceServiceId) {
-      try {
-        await prisma.practiceService.delete({
-          where: { id: ids.practiceServiceId },
-        });
-      } catch (error) {
-        console.error("Error deleting practice service:", error);
-      }
-    }
-
-    // Delete client group membership first (due to foreign key constraints)
-    if (ids.clientGroupId && ids.clientId) {
-      try {
-        await prisma.clientGroupMembership.deleteMany({
-          where: {
-            client_group_id: ids.clientGroupId,
-            client_id: ids.clientId,
-          },
-        });
-      } catch (error) {
-        console.error("Error deleting client group membership:", error);
-      }
-    }
-
-    // Delete client group
-    if (ids.clientGroupId) {
-      try {
-        await prisma.clientGroup.delete({
-          where: { id: ids.clientGroupId },
-        });
-      } catch (error) {
-        console.error("Error deleting client group:", error);
-      }
-    }
-
-    // Delete client
-    if (ids.clientId) {
-      try {
-        await prisma.client.delete({
-          where: { id: ids.clientId },
-        });
-      } catch (error) {
-        console.error("Error deleting client:", error);
-      }
-    }
-
-    // Delete user
-    if (ids.userId) {
-      try {
-        await prisma.user.delete({
-          where: { id: ids.userId },
-        });
-      } catch (error) {
-        console.error("Error deleting user:", error);
-      }
-    }
-  } catch (error) {
-    console.error("Error cleaning up data:", error);
-  }
-}
-
 describe("Superbill API - Integration Tests", () => {
   // Test data IDs
   const testIds: {
@@ -346,8 +241,93 @@ describe("Superbill API - Integration Tests", () => {
     }
   });
 
-  afterAll(async () => {
-    await cleanupTestData(testIds);
+  beforeEach(async () => {
+    await safeCleanupDatabase(prisma, { verbose: false });
+
+    // Recreate base test data for each test
+    try {
+      // Create user
+      const user = await prisma.user.create({
+        data: {
+          id: generateUUID(),
+          email: "test-user@example.com",
+          password_hash: "hash",
+        },
+      });
+      testIds.userId = user.id;
+
+      // Create clinician (with only required fields)
+      const clinician = await prisma.clinician.create({
+        data: {
+          id: generateUUID(),
+          user_id: user.id,
+          first_name: "Test",
+          last_name: "Clinician",
+          address: "123 Test St",
+          percentage_split: 100.0,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+      testIds.clinicianId = clinician.id;
+
+      // Create client
+      const client = await prisma.client.create({
+        data: {
+          id: generateUUID(),
+          first_name: "Test",
+          last_name: "Client",
+          email: "test-client@example.com",
+          phone: "123-456-7890",
+          date_of_birth: new Date("1990-01-01"),
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+      testIds.clientId = client.id;
+
+      // Create client group
+      const clientGroup = await prisma.clientGroup.create({
+        data: {
+          id: generateUUID(),
+          name: "Test Group",
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+      testIds.clientGroupId = clientGroup.id;
+
+      // Create practice service
+      const practiceService = await prisma.practiceService.create({
+        data: {
+          id: generateUUID(),
+          clinician_id: clinician.id,
+          name: "Test Service",
+          cost: "100.00",
+          duration: 60,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+      testIds.practiceServiceId = practiceService.id;
+
+      // Create appointment
+      const appointment = await prisma.appointment.create({
+        data: {
+          id: generateUUID(),
+          client_group_id: clientGroup.id,
+          clinician_id: clinician.id,
+          start_time: new Date(),
+          end_time: new Date(Date.now() + 60 * 60 * 1000),
+          status: "SCHEDULED",
+          service_id: practiceService.id,
+        },
+      });
+      testIds.appointmentId = appointment.id;
+    } catch (error) {
+      console.error("Error setting up test data:", error);
+      throw error;
+    }
   });
 
   // GET TESTS
@@ -389,6 +369,7 @@ describe("Superbill API - Integration Tests", () => {
         provider_name: "Test Provider",
         provider_email: "provider@example.com",
         superbill_number: 123456,
+        created_by: testIds.userId!,
       },
     });
     testIds.superbillId = superbill.id;
@@ -417,12 +398,6 @@ describe("Superbill API - Integration Tests", () => {
 
   // POST TESTS
   it("POST /api/superbill should create a superbill with appointment links", async () => {
-    // Reset superbill link from previous test
-    await prisma.appointment.update({
-      where: { id: testIds.appointmentId },
-      data: { superbill_id: null },
-    });
-
     const payload = {
       client_group_id: testIds.clientGroupId!,
       appointment_ids: [testIds.appointmentId!],

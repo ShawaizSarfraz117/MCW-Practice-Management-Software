@@ -10,28 +10,13 @@ import RoleInfoForm from "../components/AddTeamMember/RoleInfoForm";
 import CompletionStep from "../components/AddTeamMember/CompletionStep";
 import StepperProgress from "./components/StepperProgress";
 import TeamMemberSummary from "./components/TeamMemberSummary";
-
-// Define the TeamMember type inline to avoid import issues
-interface TeamMember {
-  id?: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  role?: string;
-  specialty?: string;
-  npiNumber?: string;
-  license?: {
-    type: string;
-    number: string;
-    expirationDate: string;
-    state: string;
-  };
-  services?: string[];
-}
+import type { TeamMemberFormData } from "@/types/entities";
 
 export default function AddTeamMemberPage() {
   const [activeStep, setActiveStep] = useState(0);
-  const [teamMemberData, setTeamMemberData] = useState<Partial<TeamMember>>({
+  const [teamMemberData, setTeamMemberData] = useState<
+    Partial<TeamMemberFormData>
+  >({
     firstName: "",
     lastName: "",
     email: "",
@@ -83,7 +68,7 @@ export default function AddTeamMemberPage() {
     setActiveStep((prevStep) => Math.min(steps.length - 1, prevStep + 1));
   };
 
-  const handleStepSubmit = (data: Partial<TeamMember>) => {
+  const handleStepSubmit = (data: Partial<TeamMemberFormData>) => {
     setTeamMemberData((prev) => ({ ...prev, ...data }));
     handleNext();
   };

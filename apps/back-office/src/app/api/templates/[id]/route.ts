@@ -70,13 +70,29 @@ export async function PUT(
       where: { id },
       data: {
         name: data.name !== undefined ? data.name : existingTemplate.name,
-        content: data.content !== undefined ? data.content : existingTemplate.content,
+        content:
+          data.content !== undefined ? data.content : existingTemplate.content,
         type: data.type !== undefined ? data.type : existingTemplate.type,
-        description: data.description !== undefined ? data.description : existingTemplate.description,
-        is_shareable: data.is_shareable !== undefined ? data.is_shareable : existingTemplate.is_shareable,
-        is_default: data.is_default !== undefined ? data.is_default : existingTemplate.is_default,
-        requires_signature: data.requires_signature !== undefined ? data.requires_signature : existingTemplate.requires_signature,
-        frequency_options: data.frequency_options !== undefined ? data.frequency_options : existingTemplate.frequency_options,
+        description:
+          data.description !== undefined
+            ? data.description
+            : existingTemplate.description,
+        is_shareable:
+          data.is_shareable !== undefined
+            ? data.is_shareable
+            : existingTemplate.is_shareable,
+        is_default:
+          data.is_default !== undefined
+            ? data.is_default
+            : existingTemplate.is_default,
+        requires_signature:
+          data.requires_signature !== undefined
+            ? data.requires_signature
+            : existingTemplate.requires_signature,
+        frequency_options:
+          data.frequency_options !== undefined
+            ? data.frequency_options
+            : existingTemplate.frequency_options,
         updated_at: new Date(),
       },
     });
@@ -90,4 +106,4 @@ export async function PUT(
       { status: 500 },
     );
   }
-} 
+}

@@ -22,3 +22,10 @@ body {
     rgba(255, 255, 255, 1) 24%
   );
 }
+.custom-bg-new-client {
+  background: linear-gradient(
+    180deg,
+    rgba(248, 246, 240, 1) 50%,
+    rgba(255, 255, 255, 1) 24%
+  );
+}

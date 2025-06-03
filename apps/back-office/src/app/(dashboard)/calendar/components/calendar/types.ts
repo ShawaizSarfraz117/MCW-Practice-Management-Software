@@ -1,17 +1,18 @@
 import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
+import type {
+  BaseAppointment,
+  Clinician as BaseClinicianType,
+  Location as BaseLocationType,
+} from "@/types/entities";
 
 // Calendar component types
-export interface Clinician {
-  first_name?: string;
-  last_name?: string;
-  user_id?: string;
-  id?: string;
+export interface Clinician extends Partial<BaseClinicianType> {
   value: string;
   label: string;
   group: string;
 }
 
-export interface Location {
+export interface Location extends Partial<BaseLocationType> {
   value: string;
   label: string;
   type: "physical" | "virtual" | "unassigned";
@@ -37,17 +38,7 @@ export interface Event {
   };
 }
 
-export interface AppointmentData {
-  id: string;
-  title: string;
-  start_date: string;
-  end_date: string;
-  location_id: string;
-  clinician_id: string;
-  client_id?: string;
-  status: string;
-  type: string;
-}
+export type AppointmentData = BaseAppointment;
 
 export interface AvailabilityData {
   id: string;
