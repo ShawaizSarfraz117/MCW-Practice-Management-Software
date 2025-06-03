@@ -30,6 +30,7 @@ describe("Client Group API Unit Tests", () => {
         auto_monthly_statement_enabled: false,
         auto_monthly_superbill_enabled: false,
         first_seen_at: null,
+        administrative_notes: null,
         ClientGroupMembership: [],
       },
       {
@@ -44,6 +45,7 @@ describe("Client Group API Unit Tests", () => {
         auto_monthly_statement_enabled: false,
         auto_monthly_superbill_enabled: false,
         first_seen_at: null,
+        administrative_notes: null,
         ClientGroupMembership: [],
       },
     ];
@@ -80,6 +82,7 @@ describe("Client Group API Unit Tests", () => {
       auto_monthly_statement_enabled: false,
       auto_monthly_superbill_enabled: false,
       first_seen_at: null,
+      administrative_notes: null,
       ClientGroupMembership: [],
     };
 

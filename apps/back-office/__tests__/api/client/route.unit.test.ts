@@ -292,6 +292,7 @@ describe("Client API", () => {
       id: MOCK_UUID,
       name: "John Doe",
       type: "individual",
+      administrative_notes: null,
     };
     const mockClientData = {
       client1: {

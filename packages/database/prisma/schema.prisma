@@ -178,6 +178,7 @@ model ClientGroup {
   auto_monthly_superbill_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_superbill_enabled")
   first_seen_at                  DateTime?                  @default(now(), map: "ClientGroup_first_seen_at")
   notes                          String?                    @db.Text
+  administrative_notes           String?                    @db.Text
   Appointment                    Appointment[]
   ClientBillingPreferences       ClientBillingPreferences[]
   Clinician                      Clinician?                 @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
