@@ -7,13 +7,11 @@ export default defineProject({
     include: ["**/*.integration.test.ts"],
     // Global timeout for slow imports
     testTimeout: 30000,
-    // Use threads for parallel compilation
-    pool: "threads",
+    // Run integration tests sequentially to avoid database conflicts
+    pool: "forks",
     poolOptions: {
-      threads: {
-        singleThread: false,
-        maxThreads: 4,
-        minThreads: 2,
+      forks: {
+        singleFork: true,
       },
     },
   },
