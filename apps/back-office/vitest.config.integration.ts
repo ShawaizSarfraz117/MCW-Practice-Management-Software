@@ -10,7 +10,11 @@ export default mergeConfig(
       name: "back-office/integration",
       include: ["**/*.integration.test.ts"],
     },
-    plugins: [tsconfigPaths()],
+    plugins: [
+      tsconfigPaths({
+        root: fileURLToPath(new URL(".", import.meta.url)),
+      }),
+    ],
     resolve: {
       alias: [
         {

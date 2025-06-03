@@ -35,6 +35,8 @@ describe("Service Settings Page", () => {
     );
 
     // Verify the page renders with expected structure
-    expect(screen.getByRole("main")).toBeDefined();
+    expect(screen.getByText("Services")).toBeDefined();
+    expect(screen.getByText("Manage services and set rates.")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Add Services" })).toBeDefined();
   });
 });

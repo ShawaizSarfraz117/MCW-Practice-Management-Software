@@ -240,7 +240,11 @@ describe("Client Group API - Integration Tests", () => {
 
     // Assert
     expect(response.status).toBe(200);
-    const clientGroup = await response.json();
+    const result = await response.json();
+
+    // API returns paginated format even for single items
+    expect(result.data).toHaveLength(1);
+    const clientGroup = result.data[0];
 
     expect(clientGroup.id).toBe(clientGroupId);
     expect(clientGroup.name).toBe("Test Family");

@@ -10,7 +10,11 @@ export default mergeConfig(
       name: "back-office/ui",
       include: ["**/*.ui.test.tsx"],
     },
-    plugins: [tsconfigPaths()],
+    plugins: [
+      tsconfigPaths({
+        root: fileURLToPath(new URL(".", import.meta.url)),
+      }),
+    ],
     resolve: {
       alias: [
         {
