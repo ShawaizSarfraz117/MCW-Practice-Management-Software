@@ -1,3 +1,6 @@
+// This test is marked as integration because it uses real database operations
+// which makes it slower than unit tests. It tests the actual database interactions
+// and foreign key relationships, ensuring the API works correctly with a real database.
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Clinician } from "@mcw/database";
 import { prisma } from "@mcw/database";
