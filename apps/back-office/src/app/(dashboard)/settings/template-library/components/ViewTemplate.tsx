@@ -25,7 +25,6 @@ interface TemplateData {
 export function ViewTemplate({ title }: ViewTemplateProps) {
   const [open, setOpen] = React.useState(false);
 
-  // This is a placeholder template content - will be replaced with API data later
   const templateContent: TemplateData = {
     "GAD-7 (Generalized Anxiety Disorder)": {
       sections: [
@@ -70,63 +69,75 @@ export function ViewTemplate({ title }: ViewTemplateProps) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
-          <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-normal">{title.split(" (")[0]}</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => window.print()}
-              ></Button>
-            </div>
+        <DialogContent className="max-w-full h-full w-full flex flex-col items-center p-0 bg-[#e9e9e9] rounded-md shadow-md">
+          {/* Header */}
+          <div className="flex w-full justify-between bg-white border-b p-6 border-gray-200 pb-4 flex-shrink-0">
+            <h2 className="text-xl font-semibold  text-gray-900">
+              {title.split(" (")[0]}
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => window.print()}
+            >
+              🖨️
+            </Button>
           </div>
 
-          <div className="py-4">
-            <p className="text-xs text-gray-500 mb-4 text-right">
-              <span className="text-red-500">*</span> Indicates a required field
-            </p>
+          {/* Instructions */}
+          <div className="mt-4 p-8 w-[50%] flex-1 gap-4 overflow-y-auto bg-white rounded-md">
+            <div className="py-4">
+              <p className="text-xs text-gray-500 mt-1 text-right">
+                <span className="text-red-500">*</span> indicates a required
+                field
+              </p>
+              <p className="text-sm text-gray-800 italic">
+                Thinking about{" "}
+                <strong>today's or the most recent meeting</strong>, please
+                indicate how strongly you agree or disagree with each statement.
+              </p>
+            </div>
 
-            {content.sections.map((section: TemplateSection, sIdx: number) => (
-              <div key={sIdx} className="space-y-6">
-                <p className="text-sm text-gray-900">{section.title}</p>
-                <div className="space-y-8">
-                  {section.questions.map((question: string, qIdx: number) => (
-                    <div key={qIdx} className="space-y-3">
-                      <p className="text-sm text-gray-900">
-                        <span className="text-red-500">*</span> {qIdx + 1}.{" "}
-                        {question}
-                      </p>
-                      {content.options && (
-                        <div className="space-y-2 pl-6">
-                          {content.options.map(
-                            (option: string, oIdx: number) => (
-                              <div
-                                key={oIdx}
-                                className="flex items-center gap-2"
-                              >
-                                <input
-                                  type="checkbox"
-                                  id={`question-${qIdx}-option-${oIdx}`}
-                                  name={`question-${qIdx}`}
-                                  className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                                  disabled
-                                />
-                                <label
-                                  htmlFor={`question-${qIdx}-option-${oIdx}`}
-                                  className="text-sm text-gray-700"
-                                >
-                                  {option}
-                                </label>
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+            {/* Questions */}
+            {content.sections.map((section, sIdx) => (
+              <div key={sIdx}>
+                <p className="text-sm text-gray-900 font-medium">
+                  {section.title}
+                </p>
+
+                {section.questions.map((question, qIdx) => (
+                  <div
+                    key={qIdx}
+                    className="space-y-3 border-b border-gray-200 pb-6"
+                  >
+                    <p className="text-sm font-medium text-gray-900">
+                      <span className="text-red-500">*</span> {qIdx + 1}.{" "}
+                      {question}
+                    </p>
+
+                    {content.options && (
+                      <div className="space-y-2 pl-4">
+                        {content.options.map((option, oIdx) => (
+                          <div key={oIdx} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              id={`question-${qIdx}-option-${oIdx}`}
+                              name={`question-${qIdx}`}
+                              className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                            />
+                            <label
+                              htmlFor={`question-${qIdx}-option-${oIdx}`}
+                              className="text-sm text-gray-700"
+                            >
+                              {option}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
