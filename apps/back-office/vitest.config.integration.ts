@@ -1,35 +1,21 @@
+import { defineProject } from "vitest/config";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { defineProject, mergeConfig } from "vitest/config";
-import { fileURLToPath } from "url";
-import baseConfig from "@mcw/vitest-config";
 
-export default mergeConfig(
-  baseConfig,
-  defineProject({
-    test: {
-      name: "back-office/integration",
-      include: ["**/*.integration.test.ts"],
+export default defineProject({
+  test: {
+    name: "back-office/integration",
+    include: ["**/*.integration.test.ts"],
+    // Global timeout for slow imports
+    testTimeout: 30000,
+    // Use threads for parallel compilation
+    pool: "threads",
+    poolOptions: {
+      threads: {
+        singleThread: false,
+        maxThreads: 4,
+        minThreads: 2,
+      },
     },
-    plugins: [
-      tsconfigPaths({
-        root: fileURLToPath(new URL(".", import.meta.url)),
-      }),
-    ],
-    resolve: {
-      alias: [
-        {
-          find: "@",
-          replacement: fileURLToPath(new URL("./src/app", import.meta.url)),
-        },
-        {
-          find: "@/utils",
-          replacement: fileURLToPath(new URL("./src/utils", import.meta.url)),
-        },
-        {
-          find: "@/types",
-          replacement: fileURLToPath(new URL("./src/types", import.meta.url)),
-        },
-      ],
-    },
-  }),
-);
+  },
+  plugins: [tsconfigPaths()],
+});
