@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function */
 import { beforeEach, describe, expect, it, vi, Mock } from "vitest";
-import { GET, POST } from "../../../src/app/api/invoice/route";
+import { GET, POST } from "@/api/invoice/route";
 import { Decimal } from "@prisma/client/runtime/library";
 import { NextRequest } from "next/server";
 

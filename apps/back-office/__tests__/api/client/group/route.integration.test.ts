@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { GET } from "../../../../src/app/api/client/group/route";
+import { GET } from "@/api/client/group/route";
 import { prisma } from "@mcw/database";
 import { generateUUID } from "@mcw/utils";
 import { createRequest } from "@mcw/utils";
@@ -240,7 +240,11 @@ describe("Client Group API - Integration Tests", () => {
 
     // Assert
     expect(response.status).toBe(200);
-    const clientGroup = await response.json();
+    const result = await response.json();
+
+    // API returns paginated format even for single items
+    expect(result.data).toHaveLength(1);
+    const clientGroup = result.data[0];
 
     expect(clientGroup.id).toBe(clientGroupId);
     expect(clientGroup.name).toBe("Test Family");

@@ -1,0 +1,327 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "text",
+          "name": "name",
+          "title": "Client:",
+          "isRequired": true
+        },
+        {
+          "type": "text",
+          "name": "date",
+          "title": "Date:",
+          "inputType": "date"
+        },
+        {
+          "type": "text",
+          "name": "group",
+          "title": "Group name:\n"
+        },
+        {
+          "type": "text",
+          "name": "meeting_no",
+          "title": "Meeting attended is what no. for this client?"
+        },
+        {
+          "type": "text",
+          "name": "no_present",
+          "title": "No. present in group:"
+        },
+        {
+          "type": "text",
+          "name": "start_time",
+          "title": "Start time:",
+          "inputType": "time"
+        },
+        {
+          "type": "text",
+          "name": "end_time",
+          "title": "End time:",
+          "inputType": "time"
+        },
+        {
+          "type": "panel",
+          "name": "client_assessment",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question1",
+              "html": "<b>Assessment of client</b>"
+            },
+            {
+              "type": "checkbox",
+              "name": "participation_level",
+              "title": "Participation level:",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Active/eager"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Variable"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Only responsive"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Minimal"
+                },
+                {
+                  "value": "Item 5",
+                  "text": "Withdrawn"
+                }
+              ]
+            },
+            {
+              "type": "checkbox",
+              "name": "participation_quality",
+              "title": "Participation quality:",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Expected"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Supportive"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Sharing"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Attentive"
+                },
+                {
+                  "value": "Item 5",
+                  "text": "Intrusive"
+                },
+                {
+                  "value": "Item 6",
+                  "text": "Monopolizing"
+                },
+                {
+                  "value": "Item 7",
+                  "text": "Resistant"
+                }
+              ],
+              "showOtherItem": true
+            },
+            {
+              "type": "checkbox",
+              "name": "mood",
+              "title": "Mood:",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Normal"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Anxious"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Depressed"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Angry"
+                },
+                {
+                  "value": "Item 5",
+                  "text": "Euphoric"
+                }
+              ],
+              "showOtherItem": true
+            },
+            {
+              "type": "checkbox",
+              "name": "affect",
+              "title": "Affect:",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Normal"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Intense"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Blunted"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Inappropriate"
+                },
+                {
+                  "value": "Item 5",
+                  "text": "Labile"
+                }
+              ],
+              "showOtherItem": true
+            },
+            {
+              "type": "checkbox",
+              "name": "mental_status",
+              "title": "Mental status:",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Normal"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Lack awareness"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Memory problems"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Disoriented"
+                },
+                {
+                  "value": "Item 5",
+                  "text": "Confused"
+                },
+                {
+                  "value": "Item 6",
+                  "text": "Disorganized"
+                },
+                {
+                  "value": "Item 7",
+                  "text": "Vigilant"
+                },
+                {
+                  "value": "Item 8",
+                  "text": "Delusions"
+                },
+                {
+                  "value": "Item 9",
+                  "text": "Hallucinations"
+                }
+              ],
+              "showOtherItem": true
+            },
+            {
+              "type": "checkbox",
+              "name": "suicide_risk",
+              "title": "Suicide/violence risk:",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Almost none"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Ideation"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Threat"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Rehearsal"
+                },
+                {
+                  "value": "Item 5",
+                  "text": "Gesture"
+                },
+                {
+                  "value": "Item 6",
+                  "text": "Attempt"
+                }
+              ]
+            },
+            {
+              "type": "checkbox",
+              "name": "stressors_changes",
+              "title": "Change in stressors:",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Less severe/fewer"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Different stressors"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "More/more severe"
+                },
+                {
+                  "value": "Item 6",
+                  "text": "Chronic"
+                }
+              ]
+            },
+            {
+              "type": "checkbox",
+              "name": "skills_change",
+              "title": "Change in coping ability/skills:",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "No change"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Improved"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Less able"
+                },
+                {
+                  "value": "Item 6",
+                  "text": "Much less able"
+                }
+              ]
+            },
+            {
+              "type": "checkbox",
+              "name": "symptoms_change",
+              "title": "Change in symptoms:",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Same"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Less severe"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Resolved"
+                },
+                {
+                  "value": "Item 6",
+                  "text": "More severe"
+                },
+                {
+                  "value": "Item 7",
+                  "text": "Much worse"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}

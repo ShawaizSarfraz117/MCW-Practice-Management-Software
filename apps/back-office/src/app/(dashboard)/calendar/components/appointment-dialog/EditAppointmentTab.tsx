@@ -15,9 +15,9 @@ import { DeleteConfirmationModal } from "./components/DeleteConfirmationModal";
 import { RecurringSettings } from "./components/RecurringSettings";
 import { RecurringHeader } from "./components/RecurringHeader";
 import { useAppointmentUpdate } from "./hooks/useAppointmentUpdate";
-import { useAppointmentDelete } from "../../hooks/useAppointmentDelete";
-import { parseRecurringRule } from "../../utils/recurringRuleUtils";
-import { appointmentStatusOptions } from "../../mock/appointmentData";
+import { useAppointmentDelete } from "@/(dashboard)/calendar/hooks/useAppointmentDelete";
+import { parseRecurringRule } from "@/(dashboard)/calendar/utils/recurringRuleUtils";
+import { appointmentStatusOptions } from "@/(dashboard)/calendar/mock/appointmentData";
 
 import CallIcon from "@/assets/images/call-icon.svg";
 import MessageIcon from "@/assets/images/message-icon.svg";
@@ -256,7 +256,7 @@ export function EditAppointmentTab({
             {isRecurringExpanded && (
               <RecurringSettings
                 recurringData={
-                  parseRecurringRule(appointmentData?.recurring_rule) || {
+                  parseRecurringRule(appointmentData?.recurring_rule || "") || {
                     period: "WEEKLY",
                     frequency: "1",
                     selectedDays: ["MO"],

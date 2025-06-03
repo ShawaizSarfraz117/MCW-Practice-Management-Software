@@ -1,13 +1,11 @@
-import baseConfig from "@mcw/vitest-config";
-import { defineProject, mergeConfig } from "vitest/config";
+import { defineProject } from "vitest/config";
+import tsconfigPaths from "vite-tsconfig-paths";
 
-export default mergeConfig(
-  baseConfig,
-  defineProject({
-    test: {
-      name: "back-office/unit",
-      include: ["**/*.unit.test.ts"],
-      setupFiles: ["./vitest.setup.unit.ts"],
-    },
-  }),
-);
+export default defineProject({
+  test: {
+    name: "back-office/unit",
+    include: ["**/*.unit.test.ts"],
+    setupFiles: ["./vitest.setup.unit.ts"],
+  },
+  plugins: [tsconfigPaths()],
+});

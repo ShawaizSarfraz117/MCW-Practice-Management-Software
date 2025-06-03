@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogDescription,
   Button,
+  SurveyPreview,
 } from "@mcw/ui";
 import { Eye, Plus, X, ExternalLink } from "lucide-react";
 
@@ -30,6 +31,7 @@ const ReactQuill = dynamic(() => import("react-quill"), {
 });
 
 interface ConsentForm {
+  id?: string;
   name: string;
   default: boolean;
   content?: string;
@@ -151,7 +153,7 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
           </TableHeader>
           <TableBody>
             {forms.map((form) => (
-              <TableRow key={form.name}>
+              <TableRow key={form.id || form.name}>
                 <TableCell className="font-medium">{form.name}</TableCell>
                 <TableCell>
                   <div className="pl-4">
@@ -203,19 +205,55 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
 
       {/* View Modal */}
       <Dialog open={!!viewingForm} onOpenChange={() => setViewingForm(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-full h-full w-full flex flex-col items-center p-0 bg-[#e9e9e9] rounded-md shadow-md">
           {viewingForm && (
             <>
-              <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-xl font-normal">{viewingForm.name}</h2>
-                </div>
+              {/* Header */}
+              <div className="flex w-full justify-between bg-white border-b p-6 border-gray-200 pb-4 flex-shrink-0">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {viewingForm.name}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => window.print()}
+                >
+                  🖨️
+                </Button>
               </div>
 
-              <div className="space-y-6 py-4">
-                <div className="whitespace-pre-wrap text-sm text-gray-700">
-                  {viewingForm.content || getDefaultContent(viewingForm.name)}
-                </div>
+              {/* Content Preview */}
+              <div className="mt-4 p-8 w-[50%] flex-1 overflow-y-auto bg-white rounded-md">
+                {viewingForm.content ? (
+                  // Check if content is JSON (SurveyJS) or plain text/HTML
+                  (() => {
+                    try {
+                      JSON.parse(viewingForm.content);
+                      // If it's valid JSON, assume it's a SurveyJS model
+                      return (
+                        <SurveyPreview
+                          content={viewingForm.content}
+                          title={viewingForm.name}
+                          type="OTHER_DOCUMENTS"
+                          mode="edit"
+                          showInstructions={true}
+                        />
+                      );
+                    } catch {
+                      // If not JSON, render as HTML/text
+                      return (
+                        <div className="whitespace-pre-wrap text-sm text-gray-700">
+                          {viewingForm.content}
+                        </div>
+                      );
+                    }
+                  })()
+                ) : (
+                  <div className="whitespace-pre-wrap text-sm text-gray-700">
+                    {getDefaultContent(viewingForm.name)}
+                  </div>
+                )}
               </div>
             </>
           )}
