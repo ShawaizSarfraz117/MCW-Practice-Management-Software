@@ -204,15 +204,14 @@ export default function ClientEdit({
         title: "Failed to create contact",
         variant: "destructive",
       });
+      return;
     }
     setIsContactDrawerOpen(false);
-    if (!err) {
-      fetchClientContactsData();
-      toast({
-        title: "Contact created successfully",
-        variant: "success",
-      });
-    }
+    fetchClientContactsData();
+    toast({
+      title: "Contact created successfully",
+      variant: "success",
+    });
   };
 
   if (isLoading) {
@@ -307,9 +306,9 @@ export default function ClientEdit({
         {activeTab === "contacts" && (
           <TabsContent value="contacts">
             <div className="mt-6">
-              {clientContact &&
-              clientContact?.ClientGroupMembership.length > 0 ? (
-                clientContact?.ClientGroupMembership.map((membership) => (
+              {clientContact?.ClientGroupMembership &&
+              clientContact.ClientGroupMembership.length > 0 ? (
+                clientContact.ClientGroupMembership.map((membership) => (
                   <ClientDetailsCard
                     key={membership.client_id}
                     client={membership}
