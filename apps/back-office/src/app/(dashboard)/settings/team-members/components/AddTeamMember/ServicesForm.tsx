@@ -9,7 +9,7 @@ import {
   Badge,
 } from "@mcw/ui";
 import { useForm } from "@tanstack/react-form";
-import { TeamMember } from "../../hooks/useRolePermissions";
+import { TeamMember } from "@/(dashboard)/settings/team-members/hooks/useRolePermissions";
 
 interface ServicesFormProps {
   initialData: Partial<TeamMember>;

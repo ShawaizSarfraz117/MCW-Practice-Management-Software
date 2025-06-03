@@ -2,7 +2,11 @@
   "extends": "@mcw/tsconfig-config/node",
   "compilerOptions": {
     "incremental": true,
-    "rootDir": "src"
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "prisma", "__tests__"]
 }

@@ -5,7 +5,7 @@ import { Button } from "@mcw/ui";
 import { MoveLeft } from "lucide-react";
 import successImage from "@/assets/images/mailSent.svg";
 import Image from "next/image";
-import { Footer } from "../../components/Footer";
+import { Footer } from "@/components/Footer";
 
 export default function VerifyRequestPage() {
   return (

@@ -18,7 +18,7 @@ import {
 } from "@/(dashboard)/clients/services/client.service";
 import { useToast } from "@mcw/ui";
 import { EditClientForm } from "../EditClientForm";
-import { ClientFormValues } from "../../types";
+import { ClientFormValues } from "@/(dashboard)/clients/[id]/edit/types";
 
 export function GroupInfo({
   clientGroup,

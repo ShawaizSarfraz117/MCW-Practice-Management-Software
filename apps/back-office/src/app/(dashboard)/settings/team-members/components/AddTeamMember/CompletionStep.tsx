@@ -2,7 +2,7 @@
 
 import { Button } from "@mcw/ui";
 import { CheckCircle2 } from "lucide-react";
-import { TeamMember } from "../../hooks/useRolePermissions";
+import { TeamMember } from "@/(dashboard)/settings/team-members/hooks/useRolePermissions";
 
 interface CompletionStepProps {
   teamMemberData: Partial<TeamMember>;
