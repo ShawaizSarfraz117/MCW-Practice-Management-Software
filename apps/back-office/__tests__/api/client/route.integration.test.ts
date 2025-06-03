@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { GET, POST, DELETE } from "../../../src/app/api/client/route";
+import { GET, POST, DELETE } from "@/api/client/route";
 import { prisma } from "@mcw/database";
 import { generateUUID } from "@mcw/utils";
 import { NextRequest } from "next/server";

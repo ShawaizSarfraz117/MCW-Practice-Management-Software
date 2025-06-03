@@ -1,0 +1,168 @@
+{
+  "title": "ARM-5",
+  "description": "Thinking about today’s or the most recent meeting, please indicate how strongly you agree or disagree with each statement.",
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "html",
+          "name": "question1",
+          "html": "<p>Thinking about <b>today’s or the most recent meeting</b>, please indicate how strongly you agree or disagree with each statement.</p>"
+        },
+        {
+          "type": "radiogroup",
+          "name": "question2",
+          "title": "My therapist is supportive.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Strongly Disagree"
+            },
+            {
+              "value": "Item 2",
+              "text": "Disagree"
+            },
+            {
+              "value": "Item 3",
+              "text": "Slightly Disagree"
+            },
+            {
+              "value": "Item 4",
+              "text": "Neutral"
+            },
+            {
+              "value": "Item 5",
+              "text": "Slightly Agree"
+            },
+            {
+              "value": "Item 6",
+              "text": "Agree"
+            },
+            {
+              "value": "Item 7",
+              "text": "Strongly Agree"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question3",
+          "title": "My therapist and I agree about how to work together.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Strongly Disagree"
+            },
+            {
+              "value": "Item 2",
+              "text": "Disagree"
+            },
+            {
+              "value": "Item 3",
+              "text": "Slightly Disagree"
+            },
+            {
+              "value": "Item 4",
+              "text": "Neutral"
+            },
+            {
+              "value": "Item 5",
+              "text": "Slightly Agree"
+            },
+            {
+              "value": "Item 6",
+              "text": "Agree"
+            },
+            {
+              "value": "Item 7",
+              "text": "Strongly Agree"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question4",
+          "title": "I have confidence in my therapist and their techniques.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Strongly Disagree"
+            },
+            {
+              "value": "Item 2",
+              "text": "Disagree"
+            },
+            {
+              "value": "Item 3",
+              "text": "Slightly Disagree"
+            },
+            {
+              "value": "Item 4",
+              "text": "Neutral"
+            },
+            {
+              "value": "Item 5",
+              "text": "Slightly Agree"
+            },
+            {
+              "value": "Item 6",
+              "text": "Agree"
+            },
+            {
+              "value": "Item 7",
+              "text": "Strongly Agree"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question5",
+          "title": "My therapist is confident in him/herself and his/her techniques.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Strongly Disagree"
+            },
+            {
+              "value": "Item 2",
+              "text": "Disagree"
+            },
+            {
+              "value": "Item 3",
+              "text": "Slightly Disagree"
+            },
+            {
+              "value": "Item 4",
+              "text": "Neutral"
+            },
+            {
+              "value": "Item 5",
+              "text": "Slightly Agree"
+            },
+            {
+              "value": "Item 6",
+              "text": "Agree"
+            },
+            {
+              "value": "Item 7",
+              "text": "Strongly Agree"
+            }
+          ]
+        },
+        {
+          "type": "html",
+          "name": "question6",
+          "html": "_________________________ <br>\nAgnew-Davies, R., Stiles, W. B., Hardy, G. E., Barkham, M., & Shapiro, D. A. (1998). Alliance structure assessed by the Agnew Relationship Measure (ARM). British Journal of Clinical Psychology, 37(2), 155–172. https://doi.org/10.1111/j.2044-8260.1998.tb01291.x"
+        }
+      ]
+    }
+  ],
+  "showTitle": false,
+  "widthMode": "responsive",
+  "headerView": "advanced"
+}

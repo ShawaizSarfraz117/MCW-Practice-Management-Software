@@ -1,0 +1,106 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "text",
+          "name": "name",
+          "title": "Client's name:",
+          "isRequired": true
+        },
+        {
+          "type": "checkbox",
+          "name": "authorixe",
+          "title": "I authorize [NAME OF PRACTICE or CLINICIAN'S NAME] to:",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Send"
+            },
+            {
+              "value": "Item 2",
+              "text": "Receive"
+            }
+          ]
+        },
+        {
+          "type": "checkbox",
+          "name": "information",
+          "title": "The following information:",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Medical history and evaluation(s)"
+            },
+            {
+              "value": "Item 2",
+              "text": "Mental health evaluations"
+            },
+            {
+              "value": "Item 3",
+              "text": "Developmental and/or social history"
+            },
+            {
+              "value": "Item 4",
+              "text": "Educational records"
+            },
+            {
+              "value": "Item 5",
+              "text": "Progress notes, and treatment or closing summary"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "text",
+          "name": "to_from",
+          "title": "To / From:"
+        },
+        {
+          "type": "text",
+          "name": "phone",
+          "title": "Phone:",
+          "inputType": "tel"
+        },
+        {
+          "type": "checkbox",
+          "name": "question1",
+          "title": "The above information will be used for the following purposes:",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Planning appropriate treatment or program"
+            },
+            {
+              "value": "Item 2",
+              "text": "Continuing appropriate treatment or program"
+            },
+            {
+              "value": "Item 3",
+              "text": "Determining eligibility for benefits or program"
+            },
+            {
+              "value": "Item 4",
+              "text": "Case review"
+            },
+            {
+              "value": "Item 5",
+              "text": "Updating files"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "html",
+          "name": "footer",
+          "html": "I understand that this information may be protected by Title 45 (Code of Federal Rules of Privacy of Individually Identifiable Health Information, Parts 160 and 164) and Title 42 (Federal Rules of Confidentiality of Alcohol and Drug Abuse Patient Records, Chapter 1, Part 2), plus applicable state laws. I further understand that the information disclosed to the recipient may not be protected under these guidelines if they are not a health care provider covered by state or federal rules. I understand that this authorization is voluntary, and not a condition for treatment, payment, enrollment or eligibility for benefits, and I may revoke this consent at any time by providing written notice, and after (some states vary, usually 1 year) this consent automatically expires. I have been informed what information will be given, its purpose, and who will receive the information. I understand that I have a right to receive a copy of this authorization. I understand that I have a right to refuse to sign this authorization. If you are the legal guardian or representative appointed by the court for the client, please attach a copy of this authorization to receive this protected health information."
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}
