@@ -4,7 +4,8 @@
     "incremental": true,
     "rootDir": "src",
     "skipLibCheck": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "prisma", "__tests__"]
