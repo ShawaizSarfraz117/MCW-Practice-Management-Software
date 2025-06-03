@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button, Badge } from "@mcw/ui";
-import { Copy, FileText } from "lucide-react";
+import { Copy } from "lucide-react";
 import { ViewTemplate } from "./components/ViewTemplate";
 import { DeleteTemplateDialog } from "./components/DeleteTemplateDialog";
 import {
@@ -93,7 +93,6 @@ export default function TemplateLibraryPage() {
             Organize the documentation templates used by your practice
           </p>
         </div>
-
 
         <div className="space-y-6">
           <div className="space-y-4">

@@ -229,7 +229,7 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
                   // Check if content is JSON (SurveyJS) or plain text/HTML
                   (() => {
                     try {
-                      const parsed = JSON.parse(viewingForm.content);
+                      JSON.parse(viewingForm.content);
                       // If it's valid JSON, assume it's a SurveyJS model
                       return (
                         <SurveyPreview

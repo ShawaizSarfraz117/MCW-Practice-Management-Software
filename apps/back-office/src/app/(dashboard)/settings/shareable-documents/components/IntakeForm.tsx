@@ -5,13 +5,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Sheet,
-  SheetContent,
   Button,
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@mcw/ui";
 import { Eye, Plus } from "lucide-react";
 import { useState } from "react";
@@ -31,15 +27,6 @@ interface IntakeFormProps {
   intakeForms: ShareableTemplate[];
   scoredMeasures: ShareableTemplate[];
 }
-
-// Mock Data for uploaded files only
-const MOCK_DATA = {
-  uploadedFiles: [
-    { name: "Authorization for Release of Information", type: "pdf" },
-    { name: "BAI", type: "pdf" },
-    { name: "BDI", type: "pdf" },
-  ],
-};
 
 export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
   const router = useRouter();
@@ -103,12 +90,14 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
-                        onClick={() => setViewingMeasure({
-                          id: measure.id,
-                          name: measure.name,
-                          default: measure.is_default,
-                          content: measure.content
-                        })}
+                        onClick={() =>
+                          setViewingMeasure({
+                            id: measure.id,
+                            name: measure.name,
+                            default: measure.is_default,
+                            content: measure.content,
+                          })
+                        }
                       >
                         <Eye className="h-4 w-4 text-gray-500" />
                       </Button>
@@ -158,12 +147,14 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
-                        onClick={() => setViewingIntake({
-                          id: form.id,
-                          name: form.name,
-                          default: form.is_default,
-                          content: form.content
-                        })}
+                        onClick={() =>
+                          setViewingIntake({
+                            id: form.id,
+                            name: form.name,
+                            default: form.is_default,
+                            content: form.content,
+                          })
+                        }
                       >
                         <Eye className="h-4 w-4 text-gray-500" />
                       </Button>
@@ -175,10 +166,10 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
           </Table>
         </div>
 
-        <Button 
-          className="border text-green-700" 
+        <Button
+          className="border text-green-700"
           variant="outline"
-          onClick={() => router.push('/settings/template-library')}
+          onClick={() => router.push("/settings/template-library")}
         >
           <span>Manage Forms</span>
         </Button>
@@ -342,7 +333,6 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
           )}
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
