@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@mcw/database";
 import { safeCleanupDatabase } from "@mcw/database/test-utils";
 import { generateUUID } from "@mcw/utils";
@@ -43,7 +43,7 @@ describe("Billing Documents API - Integration Tests", () => {
   };
 
   // Setup test data
-  beforeAll(async () => {
+  beforeEach(async () => {
     try {
       // Create a user for testing
       const user = await prisma.user.create({
