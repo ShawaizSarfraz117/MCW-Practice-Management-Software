@@ -77,31 +77,31 @@ const CustomDot = (props: {
         <circle
           cx={cx}
           cy={cy}
-          r={12}
           fill="#f59e0b"
+          r={12}
           stroke="white"
           strokeWidth={2}
         />
         <text
-          x={cx}
-          y={cy + 4}
-          textAnchor="middle"
           fill="white"
           fontSize="12"
           fontWeight="bold"
+          textAnchor="middle"
+          x={cx}
+          y={cy + 4}
         >
           {payload.score}
         </text>
       </g>
     );
   }
-  return <Dot cx={cx} cy={cy} r={4} fill="#f59e0b" />;
+  return <Dot cx={cx} cy={cy} fill="#f59e0b" r={4} />;
 };
 
 // Severity level background component
 const SeverityBackground = () => (
   <defs>
-    <linearGradient id="severityGradient" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="severityGradient" x1="0" x2="0" y1="0" y2="1">
       <stop offset="0%" stopColor="#ef4444" stopOpacity={0.1} />
       <stop offset="33%" stopColor="#f97316" stopOpacity={0.1} />
       <stop offset="66%" stopColor="#22c55e" stopOpacity={0.1} />
@@ -182,7 +182,6 @@ export default function MeasuresTab() {
           </div>
           <DateRangePicker
             isOpen={dateRangePickerOpen}
-            onClose={() => setDateRangePickerOpen(false)}
             onApply={(startDate, endDate, displayOption) => {
               setSelectedDateRangeDisplay(displayOption);
               if (displayOption === "Custom Range") {
@@ -196,6 +195,7 @@ export default function MeasuresTab() {
               setDateRangePickerOpen(false);
             }}
             onCancel={() => setDateRangePickerOpen(false)}
+            onClose={() => setDateRangePickerOpen(false)}
           />
         </div>
 
@@ -223,54 +223,54 @@ export default function MeasuresTab() {
           <div className="flex">
             {/* Main Chart */}
             <div className="flex-1 h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer height="100%" width="100%">
                 <LineChart
                   data={filteredGadData}
                   margin={{ top: 20, right: 100, left: 20, bottom: 40 }}
                 >
                   <SeverityBackground />
-                  <CartesianGrid strokeDasharray="1 1" stroke="#e5e7eb" />
+                  <CartesianGrid stroke="#e5e7eb" strokeDasharray="1 1" />
 
                   {/* Reference lines for severity levels */}
                   <ReferenceLine
-                    y={15}
                     stroke="#ef4444"
                     strokeDasharray="none"
                     strokeOpacity={0.3}
+                    y={15}
                   />
                   <ReferenceLine
-                    y={10}
                     stroke="#f97316"
                     strokeDasharray="none"
                     strokeOpacity={0.3}
+                    y={10}
                   />
                   <ReferenceLine
-                    y={5}
                     stroke="#22c55e"
                     strokeDasharray="none"
                     strokeOpacity={0.3}
+                    y={5}
                   />
 
                   <XAxis
-                    dataKey="displayDate"
                     axisLine={false}
-                    tickLine={false}
+                    dataKey="displayDate"
                     tick={{ fontSize: 12, fill: "#6b7280" }}
+                    tickLine={false}
                   />
                   <YAxis
-                    domain={[0, 21]}
-                    ticks={[0, 5, 10, 15, 21]}
                     axisLine={false}
-                    tickLine={false}
+                    domain={[0, 21]}
                     tick={{ fontSize: 12, fill: "#6b7280" }}
+                    tickLine={false}
+                    ticks={[0, 5, 10, 15, 21]}
                   />
 
                   <Line
-                    type="monotone"
                     dataKey="score"
+                    dot={<CustomDot />}
                     stroke="#f59e0b"
                     strokeWidth={2}
-                    dot={<CustomDot />}
+                    type="monotone"
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -279,19 +279,19 @@ export default function MeasuresTab() {
             {/* Severity Level Labels */}
             <div className="flex flex-col justify-between h-[280px] py-8 ml-4">
               <div className="flex items-center">
-                <div className="w-3 h-8 bg-red-500 mr-2"></div>
+                <div className="w-3 h-8 bg-red-500 mr-2" />
                 <span className="text-sm text-gray-500">Severe</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-8 bg-orange-500 mr-2"></div>
+                <div className="w-3 h-8 bg-orange-500 mr-2" />
                 <span className="text-sm text-gray-500">Moderate</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-8 bg-green-500 mr-2"></div>
+                <div className="w-3 h-8 bg-green-500 mr-2" />
                 <span className="text-sm text-gray-500">Mild</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-8 bg-teal-500 mr-2"></div>
+                <div className="w-3 h-8 bg-teal-500 mr-2" />
                 <span className="text-sm text-gray-500">None—minimal</span>
               </div>
             </div>

@@ -121,7 +121,7 @@ if (fs.existsSync(publicDir)) {
 
 // Handle native modules if they exist in node_modules
 const nativeModules = [
-  "bcrypt",
+  "bcryptjs",
   // Add other native modules if needed
 ];
 

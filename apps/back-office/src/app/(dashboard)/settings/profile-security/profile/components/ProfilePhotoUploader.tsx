@@ -84,23 +84,23 @@ const ProfilePhotoUploader = ({
                     src={previewUrl}
                   />
                   <button
-                    onClick={onRemovePhoto}
-                    className="absolute top-0 right-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center m-1 hover:bg-red-600 transition-colors"
                     aria-label="Remove photo"
+                    className="absolute top-0 right-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center m-1 hover:bg-red-600 transition-colors"
+                    onClick={onRemovePhoto}
                   >
                     <X className="w-4 h-4 text-white" />
                   </button>
                 </>
               ) : (
                 <svg
-                  width="36"
+                  className="text-gray-400"
+                  fill="none"
                   height="36"
                   viewBox="0 0 24 24"
-                  fill="none"
+                  width="36"
                   xmlns="http://www.w3.org/2000/svg"
-                  className="text-gray-400"
                 >
-                  <rect width="24" height="24" fill="none" />
+                  <rect fill="none" height="24" width="24" />
                   <path
                     d="M4 20H20V14H22V20C22 20.5304 21.7893 21.0391 21.4142 21.4142C21.0391 21.7893 20.5304 22 20 22H4C3.46957 22 2.96086 21.7893 2.58579 21.4142C2.21071 21.0391 2 20.5304 2 20V14H4V20Z"
                     fill="currentColor"

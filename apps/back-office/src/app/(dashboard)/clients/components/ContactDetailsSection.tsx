@@ -74,7 +74,7 @@ export function ContactDetailsSection({
           <div className="font-medium text-sm">Email</div>
           <div className="font-medium text-sm">Type</div>
           <div className="font-medium text-sm">Permission</div>
-          <div></div>
+          <div />
         </div>
         {emails.map((email, index) => (
           <div
@@ -152,7 +152,7 @@ export function ContactDetailsSection({
           <div className="font-medium text-sm">Phone</div>
           <div className="font-medium text-sm">Type</div>
           <div className="font-medium text-sm">Permission</div>
-          <div></div>
+          <div />
         </div>
         {phones.map((phone, index) => (
           <div

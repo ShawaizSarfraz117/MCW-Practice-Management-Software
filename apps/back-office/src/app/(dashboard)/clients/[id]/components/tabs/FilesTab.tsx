@@ -263,11 +263,11 @@ const FilesTab = forwardRef<FilesTabRef>((_props, ref) => {
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
-        type="file"
         multiple
-        className="hidden"
-        onChange={handleFileUpload}
         accept="*/*"
+        className="hidden"
+        type="file"
+        onChange={handleFileUpload}
       />
 
       <div className="border rounded-md overflow-x-auto">
@@ -276,32 +276,32 @@ const FilesTab = forwardRef<FilesTabRef>((_props, ref) => {
             <TableRow className="bg-gray-50">
               <TableHead className="font-medium">
                 <button
-                  onClick={() => handleSort("name")}
                   className="flex items-center hover:text-gray-900 transition-colors"
+                  onClick={() => handleSort("name")}
                 >
                   Name {getSortIcon("name")}
                 </button>
               </TableHead>
               <TableHead className="font-medium">
                 <button
-                  onClick={() => handleSort("type")}
                   className="flex items-center hover:text-gray-900 transition-colors"
+                  onClick={() => handleSort("type")}
                 >
                   Type {getSortIcon("type")}
                 </button>
               </TableHead>
               <TableHead className="font-medium">
                 <button
-                  onClick={() => handleSort("status")}
                   className="flex items-center hover:text-gray-900 transition-colors"
+                  onClick={() => handleSort("status")}
                 >
                   Status {getSortIcon("status")}
                 </button>
               </TableHead>
               <TableHead className="font-medium">
                 <button
-                  onClick={() => handleSort("updated")}
                   className="flex items-center hover:text-gray-900 transition-colors"
+                  onClick={() => handleSort("updated")}
                 >
                   Updated {getSortIcon("updated")}
                 </button>
@@ -334,29 +334,29 @@ const FilesTab = forwardRef<FilesTabRef>((_props, ref) => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem
-                        onClick={() => handleDownload(file)}
                         className="flex items-center gap-2"
+                        onClick={() => handleDownload(file)}
                       >
                         <Download className="h-4 w-4" />
                         Download
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleShareWithClient(file)}
                         className="flex items-center gap-2"
+                        onClick={() => handleShareWithClient(file)}
                       >
                         <Share className="h-4 w-4" />
                         Share with client
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleRename(file)}
                         className="flex items-center gap-2"
+                        onClick={() => handleRename(file)}
                       >
                         <Edit className="h-4 w-4" />
                         Rename
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleDelete(file)}
                         className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                        onClick={() => handleDelete(file)}
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete

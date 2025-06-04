@@ -26,9 +26,10 @@ import {
   registerScalarFieldValueGenerator,
   defineEmailTemplateFactory,
   defineBillingSettingsFactory,
+  defineClientGroupChartNoteFactory,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { faker } from "@faker-js/faker";
 import {
   Clinician,
@@ -52,6 +53,7 @@ import {
   EmailTemplate,
   Product,
   ClinicianLocation,
+  ClientGroupChartNote,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { BillingSettings } from "../types/billing.js";
@@ -438,6 +440,32 @@ export const ClientGroupMembershipPrismaFactory =
       Client: ClientPrismaFactory,
       ClientGroup: ClientGroupPrismaFactory,
     }),
+  });
+
+// ClientGroupChartNote factory for generating mock data
+export const ClientGroupChartNoteFactory = {
+  build: <T extends Partial<ClientGroupChartNote>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    text: faker.lorem.paragraph(),
+    note_date: faker.date.recent(),
+    // client_group_id is intentionally omitted here, will be handled by relation in Prisma factory
+    ...overrides,
+  }),
+};
+
+// ClientGroupChartNote Prisma factory
+export const ClientGroupChartNotePrismaFactory =
+  defineClientGroupChartNoteFactory({
+    defaultData: async (options) => {
+      const { client_group_id, ...baseData } =
+        ClientGroupChartNoteFactory.build(
+          options.overrides as Partial<ClientGroupChartNote>,
+        ); // Added type assertion
+      return {
+        ...baseData,
+        ClientGroup: options.ClientGroup ?? ClientGroupPrismaFactory,
+      };
+    },
   });
 
 // ClientReminderPreference Prisma factory

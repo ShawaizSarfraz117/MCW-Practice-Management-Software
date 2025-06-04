@@ -291,6 +291,33 @@ Integration tests use a separate SQL Server instance via Docker:
 - Mock boundaries at repository level for unit tests
 - Integration tests use real database interactions
 
+**Type Safety Rules**:
+
+- **ALWAYS use shared types from `@mcw/types` package** for all shared interfaces
+- **Use Prisma types from `@mcw/database`** only when creating new shared types in `@mcw/types`
+- **NEVER create duplicate type definitions** in individual components or pages
+- Import order:
+  1. First check `@mcw/types` for existing shared types
+  2. If not found, create in `@mcw/types` using Prisma types from `@mcw/database`
+  3. Never create local interfaces for data that comes from the database
+- Example:
+
+  ```typescript
+  // Good - use shared types
+  import { SafeUserWithRelations, TeamMembersResponse } from "@mcw/types";
+
+  // Good - creating new shared types in packages/types
+  import { User, Clinician } from "@mcw/database";
+  export type SafeUser = Omit<User, "password_hash">;
+
+  // Bad - creating local types in components
+  interface TeamMember {
+    id: string;
+    email: string;
+    // ... duplicating what's already in shared types
+  }
+  ```
+
 **Test Location and Naming Rules**:
 
 - **Test Co-location**: All tests must be placed parallel to the source file they test, mirroring the exact `src/` directory structure in the `__tests__/` directory

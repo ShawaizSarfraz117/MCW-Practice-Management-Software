@@ -174,45 +174,45 @@ export function IncomeChart() {
           <p className="text-2xl font-semibold">${total.toLocaleString()}</p>
         </div>
         <Link
-          href="/analytics/income"
-          className="text-blue-500 text-sm hover:underline"
           aria-label="View income report"
+          className="text-blue-500 text-sm hover:underline"
+          href="/analytics/income"
         >
           View report
         </Link>
       </div>
       <div className="mb-4">
         <TimeRangeFilter
+          customRange={customRange}
           selectedRange={selectedRange}
           onChange={setSelectedRange}
-          customRange={customRange}
           onCustomRangeChange={setCustomRange}
         />
       </div>
       <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer height="100%" width="100%">
           <BarChart
             data={chartData}
             margin={{ top: 5, right: 5, left: 35, bottom: 15 }}
           >
-            <CartesianGrid vertical={false} stroke="#f0f0f0" />
+            <CartesianGrid stroke="#f0f0f0" vertical={false} />
             <XAxis
-              dataKey="date"
               axisLine={false}
-              tickLine={false}
+              dataKey="date"
               tick={{ fill: "#6B7280", fontSize: 12 }}
+              tickLine={false}
             />
             <YAxis
               axisLine={false}
-              tickLine={false}
               tick={{ fill: "#6B7280", fontSize: 12 }}
               tickFormatter={(value) => `$${value}`}
+              tickLine={false}
             />
             <Bar
               dataKey="value"
               fill="#3B82F6"
-              radius={[4, 4, 0, 0]}
               maxBarSize={40}
+              radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -230,9 +230,9 @@ export function OutstandingBalancesChart() {
           <p className="text-2xl font-semibold">$300</p>
         </div>
         <Link
-          href="/analytics/outstanding-balances"
-          className="text-blue-500 text-sm hover:underline"
           aria-label="View outstanding balances report"
+          className="text-blue-500 text-sm hover:underline"
+          href="/analytics/outstanding-balances"
         >
           View report
         </Link>
@@ -280,25 +280,25 @@ export function AppointmentsChart() {
           <p className="text-2xl font-semibold">4</p>
         </div>
         <Link
-          href="/analytics/attendance"
-          className="text-blue-500 text-sm hover:underline"
           aria-label="View attendance report"
+          className="text-blue-500 text-sm hover:underline"
+          href="/analytics/attendance"
         >
           View report
         </Link>
       </div>
       <div className="flex items-center gap-6">
         <div className="relative w-32 h-32">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer height="100%" width="100%">
             <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie
                 data={appointmentData}
+                dataKey="value"
+                endAngle={450}
+                fill="#4F46E5"
                 innerRadius={35}
                 outerRadius={45}
-                fill="#4F46E5"
-                dataKey="value"
                 startAngle={90}
-                endAngle={450}
               >
                 <Cell fill="#4F46E5" />
               </Pie>
@@ -334,24 +334,24 @@ export function NotesChart() {
           <p className="text-2xl font-semibold">12</p>
         </div>
         <Link
-          href="/analytics/appointment-status"
-          className="text-blue-500 text-sm hover:underline"
           aria-label="View notes report"
+          className="text-blue-500 text-sm hover:underline"
+          href="/analytics/appointment-status"
         >
           View report
         </Link>
       </div>
       <div className="flex items-center gap-6">
         <div className="relative w-32 h-32">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer height="100%" width="100%">
             <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie
                 data={notesData}
+                dataKey="value"
+                endAngle={450}
                 innerRadius={35}
                 outerRadius={45}
-                dataKey="value"
                 startAngle={90}
-                endAngle={450}
               >
                 {notesData.map((entry, index) => (
                   <Cell

@@ -41,9 +41,9 @@ export default function EditTeamMemberSidebar({
           <h2 className="text-lg font-medium">{title}</h2>
           <Button
             className="p-2 hover:bg-gray-100 rounded-full"
+            disabled={isLoading}
             variant="ghost"
             onClick={onClose}
-            disabled={isLoading}
           >
             <X className="h-5 w-5 text-gray-500" />
           </Button>
@@ -59,26 +59,26 @@ export default function EditTeamMemberSidebar({
           <div className="flex gap-2 justify-end">
             <Button
               className="text-[#4B5563]"
+              disabled={isLoading}
               variant="ghost"
               onClick={onClose}
-              disabled={isLoading}
             >
               Cancel
             </Button>
             {onSave ? (
               <Button
                 className="bg-[#2D8467] text-white hover:bg-[#256b53]"
-                onClick={handleSave}
                 disabled={isLoading}
+                onClick={handleSave}
               >
                 {isLoading ? "Saving..." : "Save"}
               </Button>
             ) : (
               <Button
-                form={formId}
                 className="bg-[#2D8467] text-white hover:bg-[#256b53]"
-                type="submit"
                 disabled={isLoading}
+                form={formId}
+                type="submit"
               >
                 {isLoading ? "Saving..." : "Save"}
               </Button>

@@ -342,7 +342,6 @@ export function ClientForm({
       {/* Notification Preferences Section */}
       <NotificationPreferencesSection
         emails={value.emails || []}
-        phones={value.phones || []}
         notificationOptions={
           value.notificationOptions || {
             upcomingAppointments: {
@@ -365,6 +364,7 @@ export function ClientForm({
             },
           }
         }
+        phones={value.phones || []}
         onNotificationOptionsChange={(newOptions) =>
           field.setValue({
             ...value,
