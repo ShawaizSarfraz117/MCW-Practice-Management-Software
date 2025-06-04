@@ -22,17 +22,17 @@ export default function ContactFormWidgetSection() {
       </p>
       <div className="mb-4">
         <textarea
+          readOnly
           className="w-full font-mono text-xs bg-gray-100 border border-gray-300 rounded-md p-3 resize-none"
           rows={3}
           value={WIDGET_CODE}
-          readOnly
         />
       </div>
       <div className="flex gap-3">
-        <Button onClick={handleCopy} className="w-full md:w-auto">
+        <Button className="w-full md:w-auto" onClick={handleCopy}>
           {copied ? "Copied!" : "Copy Code"}
         </Button>
-        <Button variant="outline" className="w-full md:w-auto">
+        <Button className="w-full md:w-auto" variant="outline">
           Preview Widget
         </Button>
       </div>

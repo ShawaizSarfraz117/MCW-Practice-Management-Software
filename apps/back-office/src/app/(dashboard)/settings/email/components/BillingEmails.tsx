@@ -42,12 +42,12 @@ export function BillingEmails({
     <section className="bg-white border rounded-lg p-6">
       <div className="flex items-center gap-2 mb-2">
         <button
-          type="button"
           aria-label={
             isBillingSectionOpen ? "Collapse section" : "Expand section"
           }
-          onClick={() => setIsBillingSectionOpen(!isBillingSectionOpen)}
           className="transition-transform"
+          type="button"
+          onClick={() => setIsBillingSectionOpen(!isBillingSectionOpen)}
         >
           <ChevronDown
             className={`w-5 h-5 text-gray-900 transition-transform ${isBillingSectionOpen ? "" : "rotate-180"}`}
@@ -67,23 +67,23 @@ export function BillingEmails({
                   <span className="text-sm text-gray-800">{template.name}</span>
                   <div className="flex items-center gap-2">
                     <button
-                      type="button"
                       aria-label={
                         openBillingIndexes.has(template.id)
                           ? "Collapse"
                           : "Expand"
                       }
-                      onClick={() => toggleBillingOpen(template.id)}
                       className="transition-transform"
+                      type="button"
+                      onClick={() => toggleBillingOpen(template.id)}
                     >
                       <ChevronDown
                         className={`w-5 h-5 text-gray-900 transition-transform ${openBillingIndexes.has(template.id) ? "rotate-180" : ""}`}
                       />
                     </button>
                     <Button
+                      className="p-1"
                       size="icon"
                       variant="ghost"
-                      className="p-1"
                       onClick={() => onEdit(template)}
                     >
                       <Pencil className="w-5 h-5 text-gray-900" />

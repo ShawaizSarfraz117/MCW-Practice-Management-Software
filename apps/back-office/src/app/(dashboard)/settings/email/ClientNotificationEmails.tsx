@@ -112,7 +112,7 @@ export default function ClientNotificationEmails() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
       </div>
     );
   }
@@ -122,8 +122,8 @@ export default function ClientNotificationEmails() {
       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
         <p className="text-red-600">Error: {error.message}</p>
         <button
-          onClick={() => window.location.reload()}
           className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
+          onClick={() => window.location.reload()}
         >
           Try again
         </button>
@@ -137,12 +137,12 @@ export default function ClientNotificationEmails() {
       <section className="bg-white border rounded-lg p-6">
         <div className="flex items-center gap-2 mb-2">
           <button
-            type="button"
             aria-label={
               isAutoSectionOpen ? "Collapse section" : "Expand section"
             }
-            onClick={() => setIsAutoSectionOpen(!isAutoSectionOpen)}
             className="transition-transform"
+            type="button"
+            onClick={() => setIsAutoSectionOpen(!isAutoSectionOpen)}
           >
             <ChevronDown
               className={`w-5 h-5 text-gray-900 transition-transform ${isAutoSectionOpen ? "" : "rotate-180"}`}
@@ -154,20 +154,19 @@ export default function ClientNotificationEmails() {
           <>
             <p className="text-gray-600 text-sm mb-4">
               You can view and customize the content of these templates.{" "}
-              <a href="#" className="text-blue-600 hover:underline">
+              <a className="text-blue-600 hover:underline" href="#">
                 Learn more
               </a>
             </p>
             <Tabs
+              className="mb-4"
               value={form.getFieldValue("autoTab")}
               onValueChange={(value) => form.setFieldValue("autoTab", value)}
-              className="mb-4"
             >
               <TabsList className="border-b bg-white justify-start gap-8">
                 {automatedEmailTabs.map((tab) => (
                   <TabsTrigger
                     key={tab.value}
-                    value={tab.value}
                     className={`
                       pb-2 font-normal text-sm transition
                       data-[state=active]:!bg-transparent
@@ -179,6 +178,7 @@ export default function ClientNotificationEmails() {
                       border-b-4 border-transparent
                       focus:outline-none
                     `}
+                    value={tab.value}
                   >
                     {tab.label}
                   </TabsTrigger>
@@ -194,23 +194,23 @@ export default function ClientNotificationEmails() {
                         </span>
                         <div className="flex items-center gap-2">
                           <button
-                            type="button"
                             aria-label={
                               openIndexes.has(template.id)
                                 ? "Collapse"
                                 : "Expand"
                             }
-                            onClick={() => toggleOpen(template.id)}
                             className="transition-transform"
+                            type="button"
+                            onClick={() => toggleOpen(template.id)}
                           >
                             <ChevronDown
                               className={`w-5 h-5 text-gray-900 transition-transform ${openIndexes.has(template.id) ? "rotate-180" : ""}`}
                             />
                           </button>
                           <Button
+                            className="p-1"
                             size="icon"
                             variant="ghost"
-                            className="p-1"
                             onClick={() => handleEdit(template)}
                           >
                             <Pencil className="w-5 h-5 text-gray-900" />
@@ -270,26 +270,26 @@ export default function ClientNotificationEmails() {
 
       {/* Reminder emails */}
       <ReminderEmails
-        templates={templates}
         clientData={clientData}
         clinicianData={clinicianData}
+        templates={templates}
         onEdit={handleEdit}
       />
 
       {/* Billing document emails */}
       <BillingEmails
-        templates={templates}
         clientData={clientData}
         clinicianData={clinicianData}
+        templates={templates}
         onEdit={handleEdit}
       />
 
       <EmailTemplateEditSidebar
-        open={drawerOpen}
-        onClose={closeDrawer}
-        template={selectedTemplate}
-        onSave={handleSave}
         isUpdating={isUpdating}
+        open={drawerOpen}
+        template={selectedTemplate}
+        onClose={closeDrawer}
+        onSave={handleSave}
       />
     </div>
   );

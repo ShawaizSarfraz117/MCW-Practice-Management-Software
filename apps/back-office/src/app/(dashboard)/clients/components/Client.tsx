@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function */
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, ChevronDown, Filter } from "lucide-react";
 import { Button, Input, Card, Checkbox } from "@mcw/ui";
 import ClientTable from "./ClientTable";
@@ -12,21 +12,38 @@ import {
   ClientGroupWithMembership,
 } from "../services/client.service";
 import Loading from "@/components/Loading";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Clients() {
-  const [sortBy, setSortBy] = useState("legal_last_name");
+  const [sortBy, setSortBy] = useState("");
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [createClientOpen, setCreateClientOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string[]>(["all"]);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const [clients, setClients] = useState<{
-    data: ClientGroupWithMembership[];
-    pagination: { page: number; limit: number; total: number };
-  }>({ data: [], pagination: { page: 1, limit: 20, total: 0 } });
   const [searchQuery, setSearchQuery] = useState("");
 
   const router = useRouter();
+
+  const {
+    data: clients = { data: [], pagination: { page: 1, limit: 20, total: 0 } },
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["clientGroups", statusFilter.join(","), searchQuery, sortBy],
+    queryFn: async () => {
+      const [response, error] = await fetchClientGroups({
+        searchParams: {
+          status: statusFilter.join(","),
+          search: searchQuery,
+          sortBy,
+        },
+      });
+      if (error || !response) {
+        throw error || new Error("Failed to fetch client groups");
+      }
+      return response;
+    },
+  });
 
   const handleRedirect = (row: unknown) => {
     const clientGroup = row as ClientGroupWithMembership;
@@ -40,16 +57,7 @@ export default function Clients() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const [clients, error] = await fetchClientGroups({
-      searchParams: {
-        status: statusFilter.join(","),
-        search: searchQuery,
-        sortBy,
-      },
-    });
-    if (!error && clients) {
-      setClients(clients);
-    }
+    refetch();
   };
 
   const statusOptions = [
@@ -66,6 +74,7 @@ export default function Clients() {
   };
 
   const sortOptions = [
+    { id: "", label: "None" },
     { id: "first_name", label: "First Name" },
     { id: "last_name", label: "Last Name" },
   ];
@@ -73,33 +82,10 @@ export default function Clients() {
   const handleSort = async (field: string) => {
     setSortBy(field);
     setSortDropdownOpen(false);
-    await fetchClientData({ sortBy: field });
   };
-  const fetchClientData = useCallback(
-    async (params = {}) => {
-      setIsLoading(true);
-      const [clients, error] = await fetchClientGroups({
-        searchParams: {
-          status: statusFilter.join(","),
-          search: searchQuery,
-          sortBy,
-          ...params,
-        },
-      });
-      if (!error && clients) {
-        setClients(clients);
-      }
-      setIsLoading(false);
-    },
-    [statusFilter, searchQuery, sortBy],
-  );
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    fetchClientData();
-  }, [fetchClientData]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -126,7 +112,7 @@ export default function Clients() {
   return (
     <div className="p-6">
       <CreateClientDrawer
-        fetchClientData={fetchClientData}
+        fetchClientData={() => refetch()}
         open={createClientOpen}
         onOpenChange={setCreateClientOpen}
       />

@@ -20,12 +20,14 @@ interface EditClientFormProps {
   clientData?: ClientMembership | null;
   onSave: (values: ClientFormValues) => Promise<void>;
   className?: string;
+  type?: "client" | "contact";
 }
 
 export function EditClientForm({
   clientData,
   onSave,
   className,
+  type = "client",
 }: EditClientFormProps) {
   // Map client data to initial values or use defaults if clientData is null
   const mapClientDataToInitialValues = (): Partial<ClientFormValues> => {
@@ -34,12 +36,15 @@ export function EditClientForm({
     }
 
     return {
+      userType: type,
+      client_id: clientData.client_id,
+      client_group_id: clientData.client_group_id,
       legal_first_name: clientData.Client.legal_first_name,
       legal_last_name: clientData.Client.legal_last_name,
       middle_name: clientData.Client.ClientProfile?.middle_name || "",
       suffix: clientData.Client.suffix || "",
       preferred_name: clientData.Client.preferred_name || "",
-      relationship_type: "Family Member",
+      relationship_type: clientData.role || "Family Member",
       emails: clientData.Client.ClientContact.filter(
         (contact) => contact.contact_type === "EMAIL",
       ).map((contact) => ({
@@ -95,6 +100,7 @@ export function EditClientForm({
     addresses: mapClientDataToInitialValues().addresses || [],
     race_ethnicity: mapClientDataToInitialValues().race_ethnicity || [],
   });
+  console.log("🚀 ~ formData:", formData);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -348,50 +354,54 @@ export function EditClientForm({
           />
         </div>
 
-        {/* Relationship Type and Emergency Contact */}
-        {/* <div className="grid grid-cols-1 space-y-4">
-          <div className="space-y-1">
-            <Label 
-              className="text-sm font-medium" 
-              htmlFor="relationship_type"
-            >
-              *Relationship type
-            </Label>
-            <Select
-              value={formData.relationship_type}
-              onValueChange={(value) => handleChange('relationship_type', value)}
-            >
-              <SelectTrigger id="relationship_type">
-                <SelectValue placeholder="Select relationship type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Family Member">Family Member</SelectItem>
-                <SelectItem value="Spouse">Spouse</SelectItem>
-                <SelectItem value="Partner">Partner</SelectItem>
-                <SelectItem value="Parent">Parent</SelectItem>
-                <SelectItem value="Child">Child</SelectItem>
-                <SelectItem value="Friend">Friend</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Relationship Type and Emergency Contact - only show for contacts */}
+        {type === "contact" && (
+          <div className="grid grid-cols-1 space-y-4">
+            <div className="space-y-1">
+              <Label
+                className="text-sm font-medium"
+                htmlFor="relationship_type"
+              >
+                *Relationship type
+              </Label>
+              <Select
+                value={formData.relationship_type}
+                onValueChange={(value) =>
+                  handleChange("relationship_type", value)
+                }
+              >
+                <SelectTrigger id="relationship_type">
+                  <SelectValue placeholder="Select relationship type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Family Member">Family Member</SelectItem>
+                  <SelectItem value="Spouse">Spouse</SelectItem>
+                  <SelectItem value="Partner">Partner</SelectItem>
+                  <SelectItem value="Parent">Parent</SelectItem>
+                  <SelectItem value="Child">Child</SelectItem>
+                  <SelectItem value="Friend">Friend</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={formData.is_emergency_contact || false}
-              id="is_emergency_contact"
-              onCheckedChange={(checked) => 
-                handleChange('is_emergency_contact', checked === true)
-              }
-            />
-            <Label 
-              className="text-sm font-medium"
-              htmlFor="is_emergency_contact"
-            >
-              Emergency Contact
-            </Label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={formData.is_emergency_contact || false}
+                id="is_emergency_contact"
+                onCheckedChange={(checked) =>
+                  handleChange("is_emergency_contact", checked === true)
+                }
+              />
+              <Label
+                className="text-sm font-medium"
+                htmlFor="is_emergency_contact"
+              >
+                Emergency Contact
+              </Label>
+            </div>
           </div>
-        </div> */}
+        )}
 
         {/* Contact Details */}
         <div className="space-y-3">
@@ -702,286 +712,294 @@ export function EditClientForm({
         </div>
 
         {/* Client Details Section (New) */}
-        <div className="space-y-4 border-t pt-4">
-          <h3 className="text-sm font-medium">Client Details</h3>
+        {type !== "contact" && (
+          <div className="space-y-4 border-t pt-4">
+            <h3 className="text-sm font-medium">Client Details</h3>
 
-          {/* Date of Birth */}
-          <div className="grid grid-cols-2 gap-4">
+            {/* Date of Birth */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Date of Birth</Label>
+                <Input
+                  placeholder="YYYY-MM-DD"
+                  type="date"
+                  value={formData.date_of_birth || ""}
+                  onChange={(e) =>
+                    handleChange("date_of_birth", e.target.value)
+                  }
+                />
+                <div className="text-sm text-gray-500">
+                  {formData.date_of_birth
+                    ? `${new Date().getFullYear() - new Date(formData.date_of_birth).getFullYear()} years`
+                    : ""}
+                </div>
+              </div>
+
+              {/* Sex */}
+              <div className="space-y-2">
+                <Label className="text-sm">Sex</Label>
+                <Select
+                  value={formData.sex || "Prefer not to say"}
+                  onValueChange={(value) => handleChange("sex", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sex" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="other">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="text-xs text-gray-500">
+                  Sex is only required if you file insurance claims
+                </div>
+              </div>
+            </div>
+
+            {/* Gender Identity */}
             <div className="space-y-2">
-              <Label className="text-sm">Date of Birth</Label>
+              <div className="flex items-center space-x-1">
+                <Label className="text-sm">Gender Identity</Label>
+                <HelpCircle className="h-4 w-4 text-gray-400" />
+              </div>
               <Input
-                placeholder="YYYY-MM-DD"
-                type="date"
-                value={formData.date_of_birth || ""}
-                onChange={(e) => handleChange("date_of_birth", e.target.value)}
+                maxLength={140}
+                placeholder="Add client's gender identity, pronouns, etc."
+                value={formData.gender_identity || ""}
+                onChange={(e) =>
+                  handleChange("gender_identity", e.target.value)
+                }
               />
-              <div className="text-sm text-gray-500">
-                {formData.date_of_birth
-                  ? `${new Date().getFullYear() - new Date(formData.date_of_birth).getFullYear()} years`
-                  : ""}
-              </div>
-            </div>
-
-            {/* Sex */}
-            <div className="space-y-2">
-              <Label className="text-sm">Sex</Label>
-              <Select
-                value={formData.sex || "Prefer not to say"}
-                onValueChange={(value) => handleChange("sex", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select sex" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="other">Prefer not to say</SelectItem>
-                </SelectContent>
-              </Select>
               <div className="text-xs text-gray-500">
-                Sex is only required if you file insurance claims
+                Limited to 140 characters
               </div>
             </div>
-          </div>
 
-          {/* Gender Identity */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm">Gender Identity</Label>
-              <HelpCircle className="h-4 w-4 text-gray-400" />
-            </div>
-            <Input
-              maxLength={140}
-              placeholder="Add client's gender identity, pronouns, etc."
-              value={formData.gender_identity || ""}
-              onChange={(e) => handleChange("gender_identity", e.target.value)}
-            />
-            <div className="text-xs text-gray-500">
-              Limited to 140 characters
-            </div>
-          </div>
+            {/* Relationship and Employment Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Relationship Status</Label>
+                <Select
+                  value={formData.relationship_status || "No answer"}
+                  onValueChange={(value) =>
+                    handleChange("relationship_status", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Single">Single</SelectItem>
+                    <SelectItem value="Married">Married</SelectItem>
+                    <SelectItem value="Partnered">Partnered</SelectItem>
+                    <SelectItem value="Divorced">Divorced</SelectItem>
+                    <SelectItem value="Widowed">Widowed</SelectItem>
+                    <SelectItem value="No answer">No answer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Relationship and Employment Status */}
-          <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Employment Status</Label>
+                <Select
+                  value={formData.employment_status || "No answer"}
+                  onValueChange={(value) =>
+                    handleChange("employment_status", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Full-time">Full-time</SelectItem>
+                    <SelectItem value="Part-time">Part-time</SelectItem>
+                    <SelectItem value="Self-employed">Self-employed</SelectItem>
+                    <SelectItem value="Unemployed">Unemployed</SelectItem>
+                    <SelectItem value="Student">Student</SelectItem>
+                    <SelectItem value="Retired">Retired</SelectItem>
+                    <SelectItem value="No answer">No answer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Race & Ethnicity */}
             <div className="space-y-2">
-              <Label className="text-sm">Relationship Status</Label>
-              <Select
-                value={formData.relationship_status || "No answer"}
-                onValueChange={(value) =>
-                  handleChange("relationship_status", value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Single">Single</SelectItem>
-                  <SelectItem value="Married">Married</SelectItem>
-                  <SelectItem value="Partnered">Partnered</SelectItem>
-                  <SelectItem value="Divorced">Divorced</SelectItem>
-                  <SelectItem value="Widowed">Widowed</SelectItem>
-                  <SelectItem value="No answer">No answer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm">Employment Status</Label>
-              <Select
-                value={formData.employment_status || "No answer"}
-                onValueChange={(value) =>
-                  handleChange("employment_status", value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Full-time">Full-time</SelectItem>
-                  <SelectItem value="Part-time">Part-time</SelectItem>
-                  <SelectItem value="Self-employed">Self-employed</SelectItem>
-                  <SelectItem value="Unemployed">Unemployed</SelectItem>
-                  <SelectItem value="Student">Student</SelectItem>
-                  <SelectItem value="Retired">Retired</SelectItem>
-                  <SelectItem value="No answer">No answer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Race & Ethnicity */}
-          <div className="space-y-2">
-            <Label className="text-sm">Race & Ethnicity</Label>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={isRaceEthnicitySelected(
-                    "American Indian or Alaska Native",
-                  )}
-                  id="race-native-american"
-                  onCheckedChange={(checked) =>
-                    handleRaceEthnicityChange(
+              <Label className="text-sm">Race & Ethnicity</Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={isRaceEthnicitySelected(
                       "American Indian or Alaska Native",
-                      checked === true,
-                    )
-                  }
-                />
-                <Label htmlFor="race-native-american">
-                  American Indian or Alaska Native
-                </Label>
-              </div>
+                    )}
+                    id="race-native-american"
+                    onCheckedChange={(checked) =>
+                      handleRaceEthnicityChange(
+                        "American Indian or Alaska Native",
+                        checked === true,
+                      )
+                    }
+                  />
+                  <Label htmlFor="race-native-american">
+                    American Indian or Alaska Native
+                  </Label>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={isRaceEthnicitySelected("Asian")}
-                  id="race-asian"
-                  onCheckedChange={(checked) =>
-                    handleRaceEthnicityChange("Asian", checked === true)
-                  }
-                />
-                <Label htmlFor="race-asian">Asian</Label>
-              </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={isRaceEthnicitySelected("Asian")}
+                    id="race-asian"
+                    onCheckedChange={(checked) =>
+                      handleRaceEthnicityChange("Asian", checked === true)
+                    }
+                  />
+                  <Label htmlFor="race-asian">Asian</Label>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={isRaceEthnicitySelected("Black or African American")}
-                  id="race-black"
-                  onCheckedChange={(checked) =>
-                    handleRaceEthnicityChange(
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={isRaceEthnicitySelected(
                       "Black or African American",
-                      checked === true,
-                    )
-                  }
-                />
-                <Label htmlFor="race-black">Black or African American</Label>
-              </div>
+                    )}
+                    id="race-black"
+                    onCheckedChange={(checked) =>
+                      handleRaceEthnicityChange(
+                        "Black or African American",
+                        checked === true,
+                      )
+                    }
+                  />
+                  <Label htmlFor="race-black">Black or African American</Label>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={isRaceEthnicitySelected("Hispanic or Latinx")}
-                  id="race-hispanic"
-                  onCheckedChange={(checked) =>
-                    handleRaceEthnicityChange(
-                      "Hispanic or Latinx",
-                      checked === true,
-                    )
-                  }
-                />
-                <Label htmlFor="race-hispanic">Hispanic or Latinx</Label>
-              </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={isRaceEthnicitySelected("Hispanic or Latinx")}
+                    id="race-hispanic"
+                    onCheckedChange={(checked) =>
+                      handleRaceEthnicityChange(
+                        "Hispanic or Latinx",
+                        checked === true,
+                      )
+                    }
+                  />
+                  <Label htmlFor="race-hispanic">Hispanic or Latinx</Label>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={isRaceEthnicitySelected(
-                    "Middle Eastern or North African",
-                  )}
-                  id="race-middle-eastern"
-                  onCheckedChange={(checked) =>
-                    handleRaceEthnicityChange(
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={isRaceEthnicitySelected(
                       "Middle Eastern or North African",
-                      checked === true,
-                    )
-                  }
-                />
-                <Label htmlFor="race-middle-eastern">
-                  Middle Eastern or North African
-                </Label>
-              </div>
+                    )}
+                    id="race-middle-eastern"
+                    onCheckedChange={(checked) =>
+                      handleRaceEthnicityChange(
+                        "Middle Eastern or North African",
+                        checked === true,
+                      )
+                    }
+                  />
+                  <Label htmlFor="race-middle-eastern">
+                    Middle Eastern or North African
+                  </Label>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={isRaceEthnicitySelected(
-                    "Native Hawaiian or Other Pacific Islander",
-                  )}
-                  id="race-pacific"
-                  onCheckedChange={(checked) =>
-                    handleRaceEthnicityChange(
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={isRaceEthnicitySelected(
                       "Native Hawaiian or Other Pacific Islander",
-                      checked === true,
-                    )
-                  }
-                />
-                <Label htmlFor="race-pacific">
-                  Native Hawaiian or Other Pacific Islander
-                </Label>
-              </div>
+                    )}
+                    id="race-pacific"
+                    onCheckedChange={(checked) =>
+                      handleRaceEthnicityChange(
+                        "Native Hawaiian or Other Pacific Islander",
+                        checked === true,
+                      )
+                    }
+                  />
+                  <Label htmlFor="race-pacific">
+                    Native Hawaiian or Other Pacific Islander
+                  </Label>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={isRaceEthnicitySelected("White")}
-                  id="race-white"
-                  onCheckedChange={(checked) =>
-                    handleRaceEthnicityChange("White", checked === true)
-                  }
-                />
-                <Label htmlFor="race-white">White</Label>
-              </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={isRaceEthnicitySelected("White")}
+                    id="race-white"
+                    onCheckedChange={(checked) =>
+                      handleRaceEthnicityChange("White", checked === true)
+                    }
+                  />
+                  <Label htmlFor="race-white">White</Label>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={isRaceEthnicitySelected(
-                    "Race or ethnicity not listed",
-                  )}
-                  id="race-not-listed"
-                  onCheckedChange={(checked) =>
-                    handleRaceEthnicityChange(
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={isRaceEthnicitySelected(
                       "Race or ethnicity not listed",
-                      checked === true,
-                    )
-                  }
-                />
-                <Label htmlFor="race-not-listed">
-                  Race or ethnicity not listed
-                </Label>
+                    )}
+                    id="race-not-listed"
+                    onCheckedChange={(checked) =>
+                      handleRaceEthnicityChange(
+                        "Race or ethnicity not listed",
+                        checked === true,
+                      )
+                    }
+                  />
+                  <Label htmlFor="race-not-listed">
+                    Race or ethnicity not listed
+                  </Label>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Race & Ethnicity Details */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm">Race & Ethnicity Details</Label>
-              <HelpCircle className="h-4 w-4 text-gray-400" />
+            {/* Race & Ethnicity Details */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-1">
+                <Label className="text-sm">Race & Ethnicity Details</Label>
+                <HelpCircle className="h-4 w-4 text-gray-400" />
+              </div>
+              <Textarea
+                maxLength={140}
+                placeholder="Add any relevant details about the client's race, ethnicity, and origin."
+                rows={2}
+                value={formData.race_ethnicity_details || ""}
+                onChange={(e) =>
+                  handleChange("race_ethnicity_details", e.target.value)
+                }
+              />
+              <div className="text-xs text-gray-500">
+                Limited to 140 characters
+              </div>
             </div>
-            <Textarea
-              maxLength={140}
-              placeholder="Add any relevant details about the client's race, ethnicity, and origin."
-              rows={2}
-              value={formData.race_ethnicity_details || ""}
-              onChange={(e) =>
-                handleChange("race_ethnicity_details", e.target.value)
-              }
-            />
-            <div className="text-xs text-gray-500">
-              Limited to 140 characters
-            </div>
-          </div>
 
-          {/* Preferred Language */}
-          <div className="space-y-2">
-            <Label className="text-sm">Preferred Language</Label>
-            <Select
-              value={formData.preferred_language || "No answer"}
-              onValueChange={(value) =>
-                handleChange("preferred_language", value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="English">English</SelectItem>
-                <SelectItem value="Spanish">Spanish</SelectItem>
-                <SelectItem value="French">French</SelectItem>
-                <SelectItem value="Mandarin">Mandarin</SelectItem>
-                <SelectItem value="Arabic">Arabic</SelectItem>
-                <SelectItem value="Russian">Russian</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-                <SelectItem value="No answer">No answer</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Preferred Language */}
+            <div className="space-y-2">
+              <Label className="text-sm">Preferred Language</Label>
+              <Select
+                value={formData.preferred_language || "No answer"}
+                onValueChange={(value) =>
+                  handleChange("preferred_language", value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="English">English</SelectItem>
+                  <SelectItem value="Spanish">Spanish</SelectItem>
+                  <SelectItem value="French">French</SelectItem>
+                  <SelectItem value="Mandarin">Mandarin</SelectItem>
+                  <SelectItem value="Arabic">Arabic</SelectItem>
+                  <SelectItem value="Russian">Russian</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="No answer">No answer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </form>
   );

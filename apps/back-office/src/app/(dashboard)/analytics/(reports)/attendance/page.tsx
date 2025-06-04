@@ -118,7 +118,7 @@ export default function AttendancePage() {
       <div className="p-6 bg-gray-50 min-h-screen space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Link href="/analytics" className="hover:text-primary">
+          <Link className="hover:text-primary" href="/analytics">
             Analytics
           </Link>
           <ChevronRight className="w-4 h-4" />
@@ -131,14 +131,14 @@ export default function AttendancePage() {
             <h1 className="text-2xl font-semibold">Attendance</h1>
             <p className="text-sm text-gray-500">
               Broad view of past appointment statuses.{" "}
-              <Link href="#" className="text-primary hover:underline">
+              <Link className="text-primary hover:underline" href="#">
                 Learn More
               </Link>
             </p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button className="gap-2" variant="outline">
                 Export
                 <ChevronDown className="w-4 h-4" />
               </Button>
@@ -176,8 +176,8 @@ export default function AttendancePage() {
         <div className="flex flex-wrap gap-2">
           <div className="relative inline-block">
             <Button
-              variant="outline"
               className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
+              variant="outline"
               onClick={() =>
                 setFilters((prev) => ({ ...prev, showDatePicker: true }))
               }
@@ -188,33 +188,33 @@ export default function AttendancePage() {
             {filters.showDatePicker && (
               <div className="absolute z-50">
                 <DateRangePicker
-                  isOpen={filters.showDatePicker}
-                  onClose={handleDatePickerCancel}
-                  onApply={handleDatePickerApply}
-                  initialStartDate={filters.fromDate}
                   initialEndDate={filters.toDate}
+                  initialStartDate={filters.fromDate}
+                  isOpen={filters.showDatePicker}
+                  onApply={handleDatePickerApply}
+                  onClose={handleDatePickerCancel}
                 />
               </div>
             )}
           </div>
           <div className="w-[200px]">
             <SearchSelect
+              searchable
+              icon={<Users className="w-4 h-4" />}
               options={clientOptions.map((client) => ({
                 label: client,
                 value: client,
               }))}
+              placeholder="Select client"
               value={filters.selectedClient}
               onValueChange={(value) =>
                 setFilters((prev) => ({ ...prev, selectedClient: value }))
               }
-              placeholder="Select client"
-              searchable
-              icon={<Users className="w-4 h-4" />}
             />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button className="gap-2" variant="outline">
                 <Filter className="w-4 h-4" />
                 {filters.selectedStatus}
                 <ChevronDown className="w-4 h-4" />
@@ -224,10 +224,10 @@ export default function AttendancePage() {
               {statusOptions.map((status) => (
                 <DropdownMenuItem
                   key={status}
+                  className="cursor-pointer"
                   onClick={() =>
                     setFilters((prev) => ({ ...prev, selectedStatus: status }))
                   }
-                  className="cursor-pointer"
                 >
                   {status}
                 </DropdownMenuItem>
@@ -283,16 +283,16 @@ export default function AttendancePage() {
               <span className="text-sm text-gray-700">1-3 of 3</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" disabled>
+              <Button disabled size="icon" variant="ghost">
                 <ChevronFirst className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" disabled>
+              <Button disabled size="icon" variant="ghost">
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" disabled>
+              <Button disabled size="icon" variant="ghost">
                 <ChevronRight className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" disabled>
+              <Button disabled size="icon" variant="ghost">
                 <ChevronLast className="w-4 h-4" />
               </Button>
             </div>

@@ -7,6 +7,13 @@ export default mergeConfig(
     test: {
       name: "front-office/integration",
       include: ["**/*.integration.test.ts"],
+      // Run integration tests sequentially to avoid database conflicts
+      pool: "forks",
+      poolOptions: {
+        forks: {
+          singleFork: true,
+        },
+      },
     },
   }),
 );

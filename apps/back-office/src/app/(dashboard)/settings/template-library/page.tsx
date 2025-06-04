@@ -2,12 +2,13 @@
 
 import React from "react";
 import { Button, Badge } from "@mcw/ui";
-import { Copy, FileText } from "lucide-react";
+import { Copy } from "lucide-react";
 import { ViewTemplate } from "./components/ViewTemplate";
 import { DeleteTemplateDialog } from "./components/DeleteTemplateDialog";
 import {
   useTemplates,
   useDuplicateTemplate,
+  useUpdateTemplate,
   Template,
 } from "./hooks/useTemplates";
 import { TemplateType } from "@/types/templateTypes";
@@ -18,9 +19,17 @@ export default function TemplateLibraryPage() {
   });
 
   const duplicateTemplate = useDuplicateTemplate();
+  const updateTemplate = useUpdateTemplate();
 
   const handleDuplicateTemplate = (template: Template) => {
     duplicateTemplate.mutate(template);
+  };
+
+  const handleShareableChange = (template: Template, checked: boolean) => {
+    updateTemplate.mutate({
+      id: template.id,
+      is_shareable: checked,
+    });
   };
 
   const getScoredMeasures = () => {
@@ -85,32 +94,6 @@ export default function TemplateLibraryPage() {
           </p>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-100 p-6 mb-6">
-          <div className="flex items-start justify-between">
-            <div className="max-w-[75%]">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Expand your template library
-              </h2>
-              <p className="mt-1 text-sm text-gray-600">
-                Find customizable, pre-built templates designed for your
-                specialty or start with a blank canvas in the template builder
-              </p>
-              <div className="flex gap-3 mt-6">
-                <Button
-                  variant="default"
-                  className="bg-green-700 hover:bg-green-800"
-                >
-                  Browse pre-built templates
-                </Button>
-                <Button variant="outline">Build new template</Button>
-              </div>
-            </div>
-            <div className="w-24 h-24 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <FileText className="h-12 w-12 text-blue-500" />
-            </div>
-          </div>
-        </div>
-
         <div className="space-y-6">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -118,8 +101,8 @@ export default function TemplateLibraryPage() {
                 Scored measures
               </h2>
               <Badge
-                variant="secondary"
                 className="bg-orange-100 text-orange-700 hover:bg-orange-100"
+                variant="secondary"
               >
                 New
               </Badge>
@@ -138,19 +121,27 @@ export default function TemplateLibraryPage() {
                   >
                     <div className="flex items-center gap-3">
                       <input
-                        type="checkbox"
+                        checked={template.is_shareable}
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        disabled={template.is_default}
+                        type="checkbox"
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <ViewTemplate template={template} />
-                      <DeleteTemplateDialog
-                        id={template.id}
-                        title={template.name}
-                      />
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -167,8 +158,8 @@ export default function TemplateLibraryPage() {
                 Templates to gather information from clients via the Client
                 Portal in{" "}
                 <a
-                  href="/settings/shareable-documents"
                   className="text-blue-600 hover:text-blue-800"
+                  href="/settings/shareable-documents"
                 >
                   Shareable documents
                 </a>
@@ -184,30 +175,35 @@ export default function TemplateLibraryPage() {
                   >
                     <div className="flex items-center gap-3">
                       <input
-                        type="checkbox"
+                        checked={template.is_shareable}
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        disabled={template.is_default}
+                        type="checkbox"
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <ViewTemplate template={template} />
                       <Button
-                        variant="ghost"
-                        size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
+                        size="icon"
+                        variant="ghost"
                         onClick={() => handleDuplicateTemplate(template)}
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-gray-100"
-                      >
-                        <FileText className="h-4 w-4 text-gray-500" />
-                      </Button>
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -235,30 +231,35 @@ export default function TemplateLibraryPage() {
                   >
                     <div className="flex items-center gap-3">
                       <input
-                        type="checkbox"
+                        checked={template.is_shareable}
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        disabled={template.is_default}
+                        type="checkbox"
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <ViewTemplate template={template} />
                       <Button
-                        variant="ghost"
-                        size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
+                        size="icon"
+                        variant="ghost"
                         onClick={() => handleDuplicateTemplate(template)}
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-gray-100"
-                      >
-                        <FileText className="h-4 w-4 text-gray-500" />
-                      </Button>
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -284,30 +285,35 @@ export default function TemplateLibraryPage() {
                   >
                     <div className="flex items-center gap-3">
                       <input
-                        type="checkbox"
+                        checked={template.is_shareable}
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        disabled={template.is_default}
+                        type="checkbox"
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <ViewTemplate template={template} />
                       <Button
-                        variant="ghost"
-                        size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
+                        size="icon"
+                        variant="ghost"
                         onClick={() => handleDuplicateTemplate(template)}
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-gray-100"
-                      >
-                        <FileText className="h-4 w-4 text-gray-500" />
-                      </Button>
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -335,30 +341,35 @@ export default function TemplateLibraryPage() {
                   >
                     <div className="flex items-center gap-3">
                       <input
-                        type="checkbox"
+                        checked={template.is_shareable}
                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        disabled={template.is_default}
+                        type="checkbox"
+                        onChange={(e) =>
+                          handleShareableChange(template, e.target.checked)
+                        }
                       />
                       <span className="text-sm font-medium text-gray-900">
                         {template.name}
+                        {template.is_default && " (Default)"}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <ViewTemplate template={template} />
                       <Button
-                        variant="ghost"
-                        size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
+                        size="icon"
+                        variant="ghost"
                         onClick={() => handleDuplicateTemplate(template)}
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-gray-100"
-                      >
-                        <FileText className="h-4 w-4 text-gray-500" />
-                      </Button>
+                      {!template.is_default && (
+                        <DeleteTemplateDialog
+                          id={template.id}
+                          title={template.name}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -374,34 +385,34 @@ export default function TemplateLibraryPage() {
             <div className="space-y-5">
               <div className="flex items-center gap-2">
                 <input
-                  type="checkbox"
-                  id="include-logo"
                   className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  id="include-logo"
+                  type="checkbox"
                 />
-                <label htmlFor="include-logo" className="text-sm text-gray-900">
+                <label className="text-sm text-gray-900" htmlFor="include-logo">
                   Include practice logo
                 </label>
               </div>
 
               <div className="space-y-2.5">
                 <label
-                  htmlFor="footer-info"
                   className="block text-sm text-gray-900"
+                  htmlFor="footer-info"
                 >
                   Footer information
                 </label>
                 <textarea
-                  id="footer-info"
-                  rows={7}
                   className="block w-[600px] rounded-md border border-gray-200 text-sm p-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-green-500 focus:ring-green-500 resize-none"
+                  id="footer-info"
                   placeholder="Information that will show in the footer of your billing documents goes here. The character limit is 120 characters."
+                  rows={7}
                 />
               </div>
 
               <div className="pt-2">
                 <Button
-                  variant="default"
                   className="bg-green-700 hover:bg-green-800"
+                  variant="default"
                 >
                   Save format
                 </Button>

@@ -82,9 +82,9 @@ export default function ManageAvailabilityModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-2 py-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col">
         <button
+          aria-label="Close"
           className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 text-2xl"
           onClick={onClose}
-          aria-label="Close"
         >
           ×
         </button>
@@ -196,28 +196,28 @@ export default function ManageAvailabilityModal({
                       <span className="text-[#374151] text-base">5:00 PM</span>
                       <button className="text-[#9CA3AF] ml-2" title="Copy">
                         <svg
-                          width="18"
-                          height="18"
                           fill="none"
+                          height="18"
                           viewBox="0 0 24 24"
+                          width="18"
                         >
                           <rect
+                            height="13"
+                            rx="2"
+                            stroke="#9CA3AF"
+                            strokeWidth="2"
+                            width="13"
                             x="9"
                             y="9"
-                            width="13"
-                            height="13"
-                            rx="2"
-                            stroke="#9CA3AF"
-                            strokeWidth="2"
                           />
                           <rect
-                            x="3"
-                            y="3"
-                            width="13"
                             height="13"
                             rx="2"
                             stroke="#9CA3AF"
                             strokeWidth="2"
+                            width="13"
+                            x="3"
+                            y="3"
                           />
                         </svg>
                       </button>
@@ -233,10 +233,10 @@ export default function ManageAvailabilityModal({
                       Starts
                     </label>
                     <input
+                      className="w-full h-11 px-3 border border-[#D1D5DB] rounded-md text-base bg-white"
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full h-11 px-3 border border-[#D1D5DB] rounded-md text-base bg-white"
                     />
                   </div>
                   <div className="flex flex-row gap-2 items-center">
@@ -244,9 +244,9 @@ export default function ManageAvailabilityModal({
                       Ends
                     </label>
                     <select
+                      className="w-full h-11 px-3 border border-[#D1D5DB] rounded-md text-base bg-white"
                       value={endType}
                       onChange={(e) => setEndType(e.target.value)}
-                      className="w-full h-11 px-3 border border-[#D1D5DB] rounded-md text-base bg-white"
                     >
                       <option value="never">never</option>
                       <option value="on">on</option>
@@ -258,9 +258,9 @@ export default function ManageAvailabilityModal({
                     Location
                   </label>
                   <select
+                    className="w-full h-11 px-3 border border-[#D1D5DB] rounded-md text-base bg-white"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full h-11 px-3 border border-[#D1D5DB] rounded-md text-base bg-white"
                   >
                     <option>Video Office</option>
                     <option>In Person</option>
@@ -359,8 +359,8 @@ export default function ManageAvailabilityModal({
             </div>
             <div className="flex justify-between items-center px-8 pb-8 pt-2 bg-white rounded-b-2xl sticky bottom-0 z-10">
               <Button
-                variant="outline"
                 className="rounded-md px-8 h-11 text-base"
+                variant="outline"
                 onClick={() => setStep(1)}
               >
                 Back

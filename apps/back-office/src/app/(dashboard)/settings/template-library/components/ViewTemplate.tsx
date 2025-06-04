@@ -15,9 +15,9 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
   return (
     <>
       <Button
-        variant="ghost"
-        size="icon"
         className="h-8 w-8 hover:bg-gray-100"
+        size="icon"
+        variant="ghost"
         onClick={() => setOpen(true)}
       >
         <Eye className="h-4 w-4 text-gray-500" />
@@ -31,9 +31,9 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
               {template.name}
             </h2>
             <Button
-              variant="ghost"
-              size="icon"
               className="h-8 w-8"
+              size="icon"
+              variant="ghost"
               onClick={() => window.print()}
             >
               🖨️
@@ -44,10 +44,10 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
           <div className="mt-4 p-8 w-[50%] flex-1 overflow-y-auto bg-white rounded-md">
             <SurveyPreview
               content={template.content || ""}
-              title={template.name}
-              type={template.type}
               mode="edit"
               showInstructions={true}
+              title={template.name}
+              type={template.type}
             />
           </div>
         </DialogContent>

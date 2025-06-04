@@ -30,42 +30,42 @@ const TreatmentPlanTemplate: React.FC = () => {
         </h1>
         <div className="flex gap-2 mt-4 md:mt-0">
           <Button
-            variant="ghost"
             className="flex items-center bg-gray-100 gap-1 text-sm font-medium"
+            variant="ghost"
           >
             <Pencil className="h-2 w-2" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="ghost"
                 className="bg-gray-100 flex items-center gap-1 text-sm font-medium"
+                variant="ghost"
               >
                 More
                 <svg
-                  width="18"
-                  height="18"
                   fill="none"
-                  viewBox="0 0 24 24"
+                  height="18"
                   stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  width="18"
                 >
                   <path
                     d="M12 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
-                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    strokeWidth="2"
                   />
                   <path
                     d="M19 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
-                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    strokeWidth="2"
                   />
                   <path
                     d="M5 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
-                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    strokeWidth="2"
                   />
                 </svg>
               </Button>
@@ -116,12 +116,12 @@ const TreatmentPlanTemplate: React.FC = () => {
       </div>
 
       <SignAndLockModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        name={name}
-        setName={setName}
         credentials={credentials}
+        name={name}
+        open={modalOpen}
         setCredentials={setCredentials}
+        setName={setName}
+        onOpenChange={setModalOpen}
         onSign={() => {
           // handle sign and lock logic here
           setModalOpen(false);

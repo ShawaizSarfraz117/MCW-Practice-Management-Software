@@ -26,8 +26,8 @@ export default function ClinicalInfo() {
               Clinical Info
             </h1>
             <Link
-              href="#"
               className="text-blue-600 text-sm font-medium hover:text-blue-700"
+              href="#"
               onClick={(e) => {
                 e.preventDefault();
                 setIsEditSidebarOpen(true);
@@ -43,14 +43,14 @@ export default function ClinicalInfo() {
               viewBox="0 0 20 20"
             >
               <path
-                fillRule="evenodd"
-                d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 100 2 1 1 0 000-2zm2 8a1 1 0 10-2 0v-4a1 1 0 112 0v4z"
                 clipRule="evenodd"
+                d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-8-4a1 1 0 100 2 1 1 0 000-2zm2 8a1 1 0 10-2 0v-4a1 1 0 112 0v4z"
+                fillRule="evenodd"
               />
             </svg>
             <span>
               If you or someone in your practice is a pre-licensed clinician,{" "}
-              <a href="#" className="text-blue-600 hover:underline font-medium">
+              <a className="text-blue-600 hover:underline font-medium" href="#">
                 add a supervisor as a team member
               </a>
               .

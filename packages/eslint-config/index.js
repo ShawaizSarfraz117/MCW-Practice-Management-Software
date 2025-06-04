@@ -39,4 +39,18 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Prevent test files from being placed in src/ directories
+    files: ["**/src/**/*.{test,spec}.{js,jsx,ts,tsx}"],
+    rules: {
+      // Any test file in src/ directory will trigger this rule
+      "prefer-const": [
+        "error",
+        {
+          destructuring: "any",
+          ignoreReadBeforeAssign: false,
+        },
+      ],
+    },
+  },
 );

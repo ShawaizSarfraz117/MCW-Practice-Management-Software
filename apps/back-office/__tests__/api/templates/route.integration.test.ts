@@ -151,6 +151,67 @@ describe("Templates API Integration Tests", () => {
         name: "UniqueSearchableName",
       });
     });
+
+    it("should filter templates by sharable status", async () => {
+      // Create shareable and non-shareable templates
+      const shareableTemplate = await prisma.surveyTemplate.create({
+        data: {
+          name: "Shareable Template",
+          content: "Content",
+          type: "INTAKE_FORMS",
+          is_shareable: true,
+          is_active: true,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(shareableTemplate.id);
+
+      const nonShareableTemplate = await prisma.surveyTemplate.create({
+        data: {
+          name: "Non-Shareable Template",
+          content: "Content",
+          type: "PROGRESS_NOTES",
+          is_shareable: false,
+          is_active: true,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(nonShareableTemplate.id);
+
+      // Test filtering by shareable=true
+      const reqShareable = createRequest("/api/templates?sharable=true");
+      const responseShareable = await GET(reqShareable);
+      expect(responseShareable.status).toBe(200);
+      const shareableData = await responseShareable.json();
+
+      // All returned templates should be shareable
+      shareableData.data.forEach((template: SurveyTemplate) => {
+        expect(template.is_shareable).toBe(true);
+      });
+
+      // Should find our shareable template
+      const foundShareableTemplate = shareableData.data.find(
+        (template: SurveyTemplate) => template.id === shareableTemplate.id,
+      );
+      expect(foundShareableTemplate).toBeDefined();
+
+      // Test filtering by shareable=false
+      const reqNonShareable = createRequest("/api/templates?sharable=false");
+      const responseNonShareable = await GET(reqNonShareable);
+      expect(responseNonShareable.status).toBe(200);
+      const nonShareableData = await responseNonShareable.json();
+
+      // All returned templates should be non-shareable
+      nonShareableData.data.forEach((template: SurveyTemplate) => {
+        expect(template.is_shareable).toBe(false);
+      });
+
+      // Should find our non-shareable template
+      const foundNonShareableTemplate = nonShareableData.data.find(
+        (template: SurveyTemplate) => template.id === nonShareableTemplate.id,
+      );
+      expect(foundNonShareableTemplate).toBeDefined();
+    });
   });
 
   describe("POST /api/templates", () => {
