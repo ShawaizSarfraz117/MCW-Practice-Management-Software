@@ -12,23 +12,63 @@ const teamMemberSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   password: z.string().min(8).optional(),
-  roleIds: z.array(z.string()),
-  isClinician: z.boolean().default(false),
-  clinicianInfo: z
+  roles: z.array(z.string()), // Array of categories (temporarily used as roles)
+  roleCategories: z
+    .array(
+      z.object({
+        roleId: z.string(),
+        category: z.string(),
+        roleTitle: z.string(),
+      }),
+    )
+    .optional(),
+  clinicianLevel: z
+    .enum(["Basic", "Billing", "Full client list", "Entire practice"])
+    .optional(),
+  specialty: z.string().optional(),
+  npiNumber: z.string().optional(),
+  license: z
     .object({
-      address: z.string(),
-      percentageSplit: z.number().min(0).max(100),
+      type: z.string(),
+      number: z.string(),
+      expirationDate: z.string(),
+      state: z.string(),
     })
     .optional(),
+  services: z.array(z.string()).optional(), // Array of service IDs
 });
 
 // Schema for updating a team member
-const updateTeamMemberSchema = teamMemberSchema
-  .omit({ password: true })
-  .partial()
-  .extend({
-    id: z.string(),
-  });
+const updateTeamMemberSchema = z.object({
+  id: z.string(),
+  email: z.string().email().optional(),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  roles: z.array(z.string()).optional(),
+  roleCategories: z
+    .array(
+      z.object({
+        roleId: z.string(),
+        category: z.string(),
+        roleTitle: z.string(),
+      }),
+    )
+    .optional(),
+  clinicianLevel: z
+    .enum(["Basic", "Billing", "Full client list", "Entire practice"])
+    .optional(),
+  specialty: z.string().optional(),
+  npiNumber: z.string().optional(),
+  license: z
+    .object({
+      type: z.string(),
+      number: z.string(),
+      expirationDate: z.string(),
+      state: z.string(),
+    })
+    .optional(),
+  services: z.array(z.string()).optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -130,9 +170,12 @@ export async function POST(request: NextRequest) {
       firstName,
       lastName,
       password,
-      roleIds,
-      isClinician,
-      clinicianInfo,
+      roles,
+      roleCategories,
+      specialty,
+      npiNumber,
+      license,
+      services,
     } = validationResult.data;
 
     // Check if user already exists
@@ -147,52 +190,140 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Log the received data for debugging
+    console.log("Received roleCategories:", roleCategories);
+    console.log("Received mapped roles:", roles);
+
+    // Check if roles exist and get their IDs (roles should be ADMIN and/or CLINICIAN)
+    const roleRecords = await prisma.role.findMany({
+      where: { name: { in: roles } },
+    });
+
+    if (roleRecords.length !== roles.length) {
+      const foundRoleNames = roleRecords.map((role) => role.name);
+      const missingRoles = roles.filter(
+        (roleName) => !foundRoleNames.includes(roleName),
+      );
+      return NextResponse.json(
+        { error: "One or more roles not found", missingRoles },
+        { status: 404 },
+      );
+    }
+
+    // Determine if user has clinician role
+    const hasClinicianRole = roles.includes("CLINICIAN");
+
     // Hash password
     const passwordHash = password
       ? await hash(password, 10)
       : await hash(generateRandomPassword(), 10);
 
-    // Create user with roles in a transaction
-    const user = await prisma.$transaction(async (tx) => {
+    // Create user with all related data in a transaction
+    const result = await prisma.$transaction(async (tx) => {
       // Create user
       const newUser = await tx.user.create({
         data: {
           email,
           password_hash: passwordHash,
           UserRole: {
-            create: roleIds.map((roleId) => ({
-              role_id: roleId,
+            create: roleRecords.map((role) => ({
+              role_id: role.id,
             })),
           },
         },
       });
 
-      // Create clinician if needed
-      if (isClinician && clinicianInfo) {
-        await tx.clinician.create({
+      let clinician = null;
+      let clinicalInfo = null;
+
+      // Create clinician if user has clinician role
+      if (hasClinicianRole) {
+        const clinicianData = await tx.clinician.create({
           data: {
             user_id: newUser.id,
             first_name: firstName,
             last_name: lastName,
-            address: clinicianInfo.address,
-            percentage_split: clinicianInfo.percentageSplit,
+            address: "", // Default empty address - can be updated later
+            percentage_split: 100, // Default 100% - can be updated later
           },
         });
+        clinician = clinicianData;
+
+        // Create clinical info if specialty or NPI provided
+        if (specialty || npiNumber) {
+          const clinicalInfoData = await tx.clinicalInfo.create({
+            data: {
+              user_id: newUser.id,
+              speciality: specialty || "",
+              taxonomy_code: "", // Default empty - can be updated later
+              NPI_number: npiNumber ? parseFloat(npiNumber) : 0,
+            },
+          });
+          clinicalInfo = clinicalInfoData;
+
+          // Create license if provided
+          if (
+            license &&
+            license.type &&
+            license.number &&
+            license.expirationDate &&
+            license.state
+          ) {
+            await tx.license.create({
+              data: {
+                clinicalInfo: {
+                  connect: { id: clinicalInfoData.id },
+                },
+                license_type: license.type,
+                license_number: license.number,
+                expiration_date: new Date(license.expirationDate),
+                state: license.state,
+              },
+            });
+          }
+        }
+
+        // Assign services if provided
+        if (services && services.length > 0) {
+          // Verify services exist
+          const serviceRecords = await tx.practiceService.findMany({
+            where: { id: { in: services } },
+          });
+
+          if (serviceRecords.length > 0) {
+            await tx.clinicianServices.createMany({
+              data: serviceRecords.map((service) => ({
+                clinician_id: clinicianData.id,
+                service_id: service.id,
+                is_active: true,
+              })),
+            });
+          }
+        }
       }
 
-      return newUser;
+      return { newUser, clinician, clinicalInfo };
     });
 
-    // Fetch the created user with roles and clinician info
+    // Fetch the created user with all related data
     const createdUser = await prisma.user.findUnique({
-      where: { id: user.id },
+      where: { id: result.newUser.id },
       include: {
         UserRole: {
           include: {
             Role: true,
           },
         },
-        Clinician: true,
+        Clinician: {
+          include: {
+            ClinicianServices: {
+              include: {
+                PracticeService: true,
+              },
+            },
+          },
+        },
+        clinicalInfos: true,
       },
     });
 
@@ -233,9 +364,11 @@ export async function PUT(request: NextRequest) {
       email,
       firstName,
       lastName,
-      roleIds,
-      isClinician,
-      clinicianInfo,
+      roles,
+      specialty: _specialty,
+      npiNumber: _npiNumber,
+      license: _license,
+      services: _services,
     } = validationResult.data;
 
     // Check if user exists
@@ -276,7 +409,12 @@ export async function PUT(request: NextRequest) {
       }
 
       // Update roles if provided
-      if (roleIds) {
+      if (roles) {
+        // Get role records
+        const roleRecords = await tx.role.findMany({
+          where: { name: { in: roles } },
+        });
+
         // Remove existing roles
         await tx.userRole.deleteMany({
           where: { user_id: id },
@@ -284,54 +422,51 @@ export async function PUT(request: NextRequest) {
 
         // Add new roles
         await Promise.all(
-          roleIds.map((roleId) =>
+          roleRecords.map((role) =>
             tx.userRole.create({
               data: {
                 user_id: id,
-                role_id: roleId,
+                role_id: role.id,
               },
             }),
           ),
         );
       }
 
-      // Update or create clinician if needed
-      if (isClinician && (firstName || lastName || clinicianInfo)) {
-        if (existingUser.Clinician) {
-          // Update existing clinician
+      // Handle clinician updates if needed
+      const hasClinicianRole = roles
+        ? roles.includes("Clinician") || roles.includes("Supervisor")
+        : false;
+
+      if (hasClinicianRole && (firstName || lastName)) {
+        // Update clinician info if exists, create if doesn't
+        const existingClinician = await tx.clinician.findUnique({
+          where: { user_id: id },
+        });
+
+        if (existingClinician) {
           await tx.clinician.update({
-            where: { id: existingUser.Clinician.id },
+            where: { user_id: id },
             data: {
-              first_name: firstName || existingUser.Clinician.first_name,
-              last_name: lastName || existingUser.Clinician.last_name,
-              address: clinicianInfo?.address || existingUser.Clinician.address,
-              percentage_split:
-                clinicianInfo?.percentageSplit ||
-                existingUser.Clinician.percentage_split,
+              ...(firstName && { first_name: firstName }),
+              ...(lastName && { last_name: lastName }),
             },
           });
         } else {
-          // Create new clinician
           await tx.clinician.create({
             data: {
               user_id: id,
               first_name: firstName || "",
               last_name: lastName || "",
-              address: clinicianInfo?.address || "",
-              percentage_split: clinicianInfo?.percentageSplit || 0,
+              address: "",
+              percentage_split: 100,
             },
           });
         }
-      } else if (!isClinician && existingUser.Clinician) {
-        // If isClinician is explicitly false and user was a clinician, mark as inactive
-        await tx.clinician.update({
-          where: { id: existingUser.Clinician.id },
-          data: { is_active: false },
-        });
       }
     });
 
-    // Fetch the updated user
+    // Fetch updated user
     const updatedUser = await prisma.user.findUnique({
       where: { id },
       include: {
@@ -343,10 +478,6 @@ export async function PUT(request: NextRequest) {
         Clinician: true,
       },
     });
-
-    if (!updatedUser) {
-      throw new Error("Failed to retrieve updated user");
-    }
 
     return NextResponse.json(updatedUser);
   } catch (error) {
