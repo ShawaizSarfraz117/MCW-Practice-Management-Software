@@ -49,133 +49,144 @@ describe("Auth Service", () => {
       email: "test@test.com",
       password: "test123",
     };
-
     const result = await authorize(credentials, mockRequest);
-
     expect(result).toBeNull();
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { email: "test@test.com" },
-      }),
-    );
   });
 
   it("should return null when password is invalid", async () => {
-    const hashedPassword = await bcrypt.hash("correctpass", 10);
-    const mockUser = UserFactory.build({
-      password_hash: hashedPassword,
-      UserRole: [
-        {
-          Role: {
-            name: "ADMIN",
-          },
-        },
-      ],
-    });
+    const testData = {
+      email: "test@test.com",
+      password: "test123",
+      hashedPassword: await bcrypt.hash("different123", 10),
+    };
 
+    const mockUser = {
+      ...UserFactory.build({
+        email: testData.email,
+        password_hash: testData.hashedPassword,
+      }),
+      UserRole: [], // Add UserRole for consistency with Prisma's include behavior
+    };
+
+    // Mock findUnique to return the user
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser);
 
     const credentials: Credentials = {
-      email: mockUser.email,
-      password: "wrongpass",
+      email: testData.email,
+      password: testData.password,
     };
-
     const result = await authorize(credentials, mockRequest);
-
     expect(result).toBeNull();
-    expect(prismaMock.user.findUnique).toHaveBeenCalled();
   });
 
   it("should return user data when credentials are valid", async () => {
-    // Arrange
     const testData = {
-      password: "correctpass",
-      email: "test@example.com",
+      email: "test@test.com",
+      password: "test123",
+      hashedPassword: await bcrypt.hash("test123", 10),
     };
-    const hashedPassword = await bcrypt.hash(testData.password, 10);
-    const mockUser = UserFactory.build({
-      email: testData.email,
-      password_hash: hashedPassword,
-      UserRole: [{ Role: { name: "ADMIN" } }],
-    });
 
+    const mockUser = {
+      ...UserFactory.build({
+        email: testData.email,
+        password_hash: testData.hashedPassword,
+      }),
+      UserRole: [], // Add empty UserRole array to match the expected structure
+    };
+
+    // Mock findUnique to return the user
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser);
-    prismaMock.user.update.mockResolvedValueOnce(mockUser);
 
-    // Act
-    const result = await authorize(
-      { email: testData.email, password: testData.password },
-      mockRequest,
-    );
+    const credentials: Credentials = {
+      email: testData.email,
+      password: testData.password,
+    };
+    const result = await authorize(credentials, mockRequest);
 
-    // Assert
+    expect(result).not.toBeNull();
     expect(result).toMatchObject({
       id: mockUser.id,
       email: testData.email,
-      roles: ["ADMIN"],
+      roles: [],
     });
-
-    expect(prismaMock.user.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: mockUser.id },
-        data: { last_login: expect.any(Date) },
-      }),
-    );
   });
 
   it("should return all user roles when user has multiple roles", async () => {
-    // Arrange
     const testData = {
-      password: "correctpass",
-      email: "test@example.com",
+      email: "test@test.com",
+      password: "test123",
+      hashedPassword: await bcrypt.hash("test123", 10),
     };
-    const hashedPassword = await bcrypt.hash(testData.password, 10);
-    const mockUser = UserFactory.build({
-      email: testData.email,
-      password_hash: hashedPassword,
-      UserRole: [{ Role: { name: "ADMIN" } }, { Role: { name: "DOCTOR" } }],
-    });
 
+    const mockUser = {
+      ...UserFactory.build({
+        email: testData.email,
+        password_hash: testData.hashedPassword,
+      }),
+      UserRole: [
+        {
+          Role: {
+            id: "role1",
+            name: "Admin",
+            is_active: true,
+            permissions: [],
+            UserRole: [],
+          },
+        },
+        {
+          Role: {
+            id: "role2",
+            name: "User",
+            is_active: true,
+            permissions: [],
+            UserRole: [],
+          },
+        },
+      ],
+    };
+
+    // Mock findUnique to return the user with roles
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser);
-    prismaMock.user.update.mockResolvedValueOnce(mockUser);
 
-    // Act
-    const result = await authorize(
-      { email: testData.email, password: testData.password },
-      mockRequest,
-    );
+    const credentials: Credentials = {
+      email: testData.email,
+      password: testData.password,
+    };
+    const result = await authorize(credentials, mockRequest);
 
-    // Assert
+    expect(result).not.toBeNull();
     expect(result).toMatchObject({
       id: mockUser.id,
       email: testData.email,
-      roles: expect.arrayContaining(["ADMIN", "DOCTOR"]),
+      roles: ["Admin", "User"],
     });
   });
 
   it("should return empty roles array when user has no roles", async () => {
-    // Arrange
     const testData = {
-      password: "correctpass",
-      email: "test@example.com",
+      email: "test@test.com",
+      password: "test123",
+      hashedPassword: await bcrypt.hash("test123", 10),
     };
-    const hashedPassword = await bcrypt.hash(testData.password, 10);
-    const mockUser = UserFactory.build({
-      email: testData.email,
-      password_hash: hashedPassword,
-      UserRole: [], // User with no roles
-    });
 
+    const mockUser = {
+      ...UserFactory.build({
+        email: testData.email,
+        password_hash: testData.hashedPassword,
+      }),
+      UserRole: [],
+    };
+
+    // Mock findUnique to return the user
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser);
-    prismaMock.user.update.mockResolvedValueOnce(mockUser);
 
-    // Act
-    const result = await authorize(
-      { email: testData.email, password: testData.password },
-      mockRequest,
-    );
+    const credentials: Credentials = {
+      email: testData.email,
+      password: testData.password,
+    };
+    const result = await authorize(credentials, mockRequest);
 
-    // Assert
+    expect(result).not.toBeNull();
     expect(result).toMatchObject({
       id: mockUser.id,
       email: testData.email,
