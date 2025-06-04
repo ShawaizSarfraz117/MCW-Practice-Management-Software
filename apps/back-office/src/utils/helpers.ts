@@ -15,6 +15,7 @@ export async function getBackOfficeSession() {
  */
 export async function getClinicianInfo() {
   const session = await getBackOfficeSession();
+  console.log("🚀 ~ getClinicianInfo ~ session:", session);
   const isClinician = session?.user?.roles?.some(
     (role) => role === CLINICIAN_ROLE,
   );
