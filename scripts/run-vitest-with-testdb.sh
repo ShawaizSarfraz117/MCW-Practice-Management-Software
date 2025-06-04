@@ -35,7 +35,7 @@ echo "Running database migrations..."
 
 npm run db:deploy
 
-# forward the arguments to vitest
-vitest $@
+# forward the arguments to vitest with workspace config
+npx vitest --workspace vitest.workspace.ts $@
 
-# Cleanup is handled by the trap 
+# Cleanup is handled by the trap

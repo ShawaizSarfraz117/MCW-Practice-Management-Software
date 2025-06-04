@@ -50,6 +50,9 @@ export interface AddressEntry {
 }
 
 export interface ClientFormValues {
+  userType: "client" | "contact";
+  client_id?: string;
+  client_group_id?: string;
   id?: string;
   legal_first_name: string;
   legal_last_name: string;
@@ -74,6 +77,7 @@ export interface ClientFormValues {
 
 // Default empty form values for initialization
 export const defaultFormValues: ClientFormValues = {
+  userType: "client",
   legal_first_name: "",
   legal_last_name: "",
   middle_name: "",

@@ -19,7 +19,7 @@ export default function ClientPortalGreetingCard() {
           <div className="text-sm text-[#6B7280] mb-2">
             Customize the welcome greeting for clients when they first sign into
             the Client Portal to complete intake documents.{" "}
-            <a href="#" className="text-[#2563EB] hover:underline">
+            <a className="text-[#2563EB] hover:underline" href="#">
               Learn more
             </a>
           </div>
@@ -44,9 +44,9 @@ export default function ClientPortalGreetingCard() {
         </CardContent>
       </Card>
       <ClientPortalGreetingModal
+        greeting={greeting}
         open={isEditingGreeting}
         onClose={() => setIsEditingGreeting(false)}
-        greeting={greeting}
         onSave={setGreeting}
       />
     </>

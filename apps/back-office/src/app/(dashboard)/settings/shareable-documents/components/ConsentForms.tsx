@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogDescription,
   Button,
+  SurveyPreview,
 } from "@mcw/ui";
 import { Eye, Plus, X, ExternalLink } from "lucide-react";
 
@@ -30,6 +31,7 @@ const ReactQuill = dynamic(() => import("react-quill"), {
 });
 
 interface ConsentForm {
+  id?: string;
   name: string;
   default: boolean;
   content?: string;
@@ -126,8 +128,8 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
       <div className="flex items-center gap-2">
         <h2 className="text-base font-semibold text-gray-900">Consent forms</h2>
         <a
-          href="#"
           className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          href="#"
         >
           Learn more
           <ExternalLink className="h-3 w-3" />
@@ -151,7 +153,7 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
           </TableHeader>
           <TableBody>
             {forms.map((form) => (
-              <TableRow key={form.name}>
+              <TableRow key={form.id || form.name}>
                 <TableCell className="font-medium">{form.name}</TableCell>
                 <TableCell>
                   <div className="pl-4">
@@ -163,22 +165,22 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
                 <TableCell>
                   <div className="flex items-center gap-4">
                     <Button
-                      variant="ghost"
-                      size="icon"
                       className="h-8 w-8 hover:bg-gray-100"
+                      size="icon"
+                      variant="ghost"
                       onClick={() => setViewingForm(form)}
                     >
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
                     <button
-                      onClick={() => setEditingForm(form)}
                       className="text-green-600 hover:text-green-800 text-sm"
+                      onClick={() => setEditingForm(form)}
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => setDeletingForm(form)}
                       className="text-red-600 hover:text-red-800 text-sm"
+                      onClick={() => setDeletingForm(form)}
                     >
                       Delete
                     </button>
@@ -189,8 +191,8 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
             <TableRow>
               <TableCell colSpan={3}>
                 <button
-                  onClick={() => setIsCreating(true)}
                   className="flex items-center text-green-600 hover:text-green-800 gap-1 text-sm"
+                  onClick={() => setIsCreating(true)}
                 >
                   <Plus className="h-4 w-4" />
                   New consent form
@@ -203,19 +205,55 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
 
       {/* View Modal */}
       <Dialog open={!!viewingForm} onOpenChange={() => setViewingForm(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-full h-full w-full flex flex-col items-center p-0 bg-[#e9e9e9] rounded-md shadow-md">
           {viewingForm && (
             <>
-              <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-xl font-normal">{viewingForm.name}</h2>
-                </div>
+              {/* Header */}
+              <div className="flex w-full justify-between bg-white border-b p-6 border-gray-200 pb-4 flex-shrink-0">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {viewingForm.name}
+                </h2>
+                <Button
+                  className="h-8 w-8"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => window.print()}
+                >
+                  🖨️
+                </Button>
               </div>
 
-              <div className="space-y-6 py-4">
-                <div className="whitespace-pre-wrap text-sm text-gray-700">
-                  {viewingForm.content || getDefaultContent(viewingForm.name)}
-                </div>
+              {/* Content Preview */}
+              <div className="mt-4 p-8 w-[50%] flex-1 overflow-y-auto bg-white rounded-md">
+                {viewingForm.content ? (
+                  // Check if content is JSON (SurveyJS) or plain text/HTML
+                  (() => {
+                    try {
+                      JSON.parse(viewingForm.content);
+                      // If it's valid JSON, assume it's a SurveyJS model
+                      return (
+                        <SurveyPreview
+                          content={viewingForm.content}
+                          mode="edit"
+                          showInstructions={true}
+                          title={viewingForm.name}
+                          type="OTHER_DOCUMENTS"
+                        />
+                      );
+                    } catch {
+                      // If not JSON, render as HTML/text
+                      return (
+                        <div className="whitespace-pre-wrap text-sm text-gray-700">
+                          {viewingForm.content}
+                        </div>
+                      );
+                    }
+                  })()
+                ) : (
+                  <div className="whitespace-pre-wrap text-sm text-gray-700">
+                    {getDefaultContent(viewingForm.name)}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -249,8 +287,8 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
               </h2>
             </div>
             <Button
-              onClick={() => handleSave(!!editingForm)}
               className="bg-[#2d8467] hover:bg-[#236c53]"
+              onClick={() => handleSave(!!editingForm)}
             >
               {editingForm ? "Save Changes" : "Save"}
             </Button>
@@ -262,12 +300,12 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
                 Form Name
               </label>
               <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder="Enter form name"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
-                placeholder="Enter form name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
 
@@ -277,13 +315,13 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
               </label>
               <div className="border rounded-md">
                 <ReactQuill
+                  className="h-[calc(100vh-380px)]"
+                  modules={modules}
                   theme="snow"
                   value={formData.content}
                   onChange={(content) =>
                     setFormData((prev) => ({ ...prev, content }))
                   }
-                  modules={modules}
-                  className="h-[calc(100vh-380px)]"
                 />
               </div>
             </div>
@@ -306,9 +344,9 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
               Cancel
             </Button>
             <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
               variant="destructive"
               onClick={handleConfirmDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Delete
             </Button>

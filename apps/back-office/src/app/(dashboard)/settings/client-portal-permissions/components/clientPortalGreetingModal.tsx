@@ -40,9 +40,9 @@ export default function ClientPortalGreetingModal({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <button
+              aria-label="Close"
               className="top-4 right-4 text-gray-400 hover:text-gray-600 text-3xl"
               onClick={onClose}
-              aria-label="Close"
             >
               ×
             </button>
@@ -75,8 +75,8 @@ export default function ClientPortalGreetingModal({
               <DropdownMenu key={type}>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="outline"
                     className="min-w-[140px] justify-between"
+                    variant="outline"
                   >
                     {macros[type.toLowerCase() as keyof typeof macros]}
                   </Button>
@@ -99,21 +99,7 @@ export default function ClientPortalGreetingModal({
         <div className="mb-2 font-medium">Message</div>
         <div className="border rounded">
           <ReactQuill
-            theme="snow"
-            value={value}
-            onChange={setValue}
             className="min-h-[120px]"
-            modules={{
-              toolbar: [
-                [{ header: [1, 2, false] }],
-                ["bold", "italic", "underline", "strike"],
-                [{ list: "ordered" }, { list: "bullet" }],
-                ["link"],
-                ["undo", "redo"],
-                ["clean"],
-              ],
-              history: { delay: 500, maxStack: 100, userOnly: true },
-            }}
             formats={[
               "header",
               "bold",
@@ -125,6 +111,20 @@ export default function ClientPortalGreetingModal({
               "link",
               "clean",
             ]}
+            modules={{
+              toolbar: [
+                [{ header: [1, 2, false] }],
+                ["bold", "italic", "underline", "strike"],
+                [{ list: "ordered" }, { list: "bullet" }],
+                ["link"],
+                ["undo", "redo"],
+                ["clean"],
+              ],
+              history: { delay: 500, maxStack: 100, userOnly: true },
+            }}
+            theme="snow"
+            value={value}
+            onChange={setValue}
           />
         </div>
       </div>

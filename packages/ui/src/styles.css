@@ -74,3 +74,40 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* React Quill Widget Styles */
+.react-quill-widget .ql-container {
+  font-size: 14px;
+}
+
+.react-quill-widget.readonly .ql-toolbar {
+  display: none;
+}
+
+.react-quill-widget.readonly .ql-container {
+  border: none;
+}
+
+.react-quill-widget .ql-editor {
+  min-height: 120px;
+}
+
+.react-quill-widget .ql-editor.ql-blank::before {
+  font-style: italic;
+  color: #999;
+}
+
+/* Additional Quill theme overrides for better integration */
+.react-quill-widget .ql-toolbar.ql-snow {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px 6px 0 0;
+}
+
+.react-quill-widget .ql-container.ql-snow {
+  border: 1px solid #e5e7eb;
+  border-radius: 0 0 6px 6px;
+}
+
+.react-quill-widget.readonly .ql-container.ql-snow {
+  border-radius: 6px;
+}

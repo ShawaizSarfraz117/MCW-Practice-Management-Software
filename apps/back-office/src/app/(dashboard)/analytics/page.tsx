@@ -1,7 +1,6 @@
 "use client";
 
 import { AnalyticsHeader } from "./components/AnalyticsHeader";
-import { TimeRangeFilter } from "./components/TimeRangeFilter";
 import { WarningBanner } from "./components/WarningBanner";
 import { useState } from "react";
 import {
@@ -25,7 +24,6 @@ export default function AnalyticsPage() {
         {activeTab === "dashboard" ? (
           <div className="space-y-6">
             <WarningBanner />
-            <TimeRangeFilter />
             <div className="space-y-4">
               <IncomeChart />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -56,8 +54,8 @@ export default function AnalyticsPage() {
                     Reports related to your practice income
                   </p>
                   <Link
-                    href="/analytics/income"
                     className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    href="/analytics/income"
                   >
                     <span>Income</span>
                   </Link>
@@ -75,8 +73,8 @@ export default function AnalyticsPage() {
                     Reports related to client billing and payments
                   </p>
                   <Link
-                    href="/analytics/outstanding-balances"
                     className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    href="/analytics/outstanding-balances"
                   >
                     <span>Outstanding balances</span>
                   </Link>
@@ -96,14 +94,14 @@ export default function AnalyticsPage() {
                     Reports related to appointments and client communication
                   </p>
                   <Link
-                    href="/analytics/attendance"
                     className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    href="/analytics/attendance"
                   >
                     <span>Attendance</span>
                   </Link>
                   <Link
-                    href="/analytics/appointment-status"
                     className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    href="/analytics/appointment-status"
                   >
                     <span>Appointment status</span>
                   </Link>

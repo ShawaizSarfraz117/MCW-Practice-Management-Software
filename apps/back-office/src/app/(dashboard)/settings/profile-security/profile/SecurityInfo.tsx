@@ -109,9 +109,9 @@ const SecurityInfo = ({ form }: { form: ProfileFormType }) => {
                   children: (field: FieldProps) => (
                     <Input
                       className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-9"
+                      placeholder="Enter phone number"
                       type="tel"
                       value={(form.getFieldValue("phone") as string) || ""}
-                      placeholder="Enter phone number"
                       onChange={(e) =>
                         field.handleChange(e.target.value || null)
                       }

@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./mock": "./src/__mocks__/mockPrisma.ts",
     "./fabbrica": "./src/generated/fabbrica/index.ts",
-    "./mock-data": "./src/__mocks__/data.ts"
+    "./mock-data": "./src/__mocks__/data.ts",
+    "./test-utils": "./__tests__/utils/index.ts"
   },
   "prisma": {
     "seed": "node ./prisma/seed.mjs"
@@ -26,12 +27,14 @@
     "prettier:check": "prettier --check src"
   },
   "dependencies": {
-    "@prisma/client": "^6.6.0"
+    "@prisma/client": "^6.6.0",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.6.0",
     "@mcw/tsconfig-config": "*",
     "@quramy/prisma-fabbrica": "^2.2.2",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.11.17",
     "eslint": "^9.22.0",
     "prisma": "^6.6.0",

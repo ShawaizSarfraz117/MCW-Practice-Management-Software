@@ -10,18 +10,18 @@ export default function FileUploadCard() {
           </div>
           <div className="flex items-center gap-2 mb-1">
             <input
-              type="checkbox"
               className="accent-[#188153] w-4 h-4"
               id="fileUpload"
+              type="checkbox"
             />
             <label
-              htmlFor="fileUpload"
               className="text-base text-[#374151] font-normal"
+              htmlFor="fileUpload"
             >
               Allow clients to upload documents to Client Portal
             </label>
           </div>
-          <a href="#" className="text-[#2563EB] text-sm hover:underline ml-7">
+          <a className="text-[#2563EB] text-sm hover:underline ml-7" href="#">
             Learn about setting up your Client Portal
           </a>
         </div>

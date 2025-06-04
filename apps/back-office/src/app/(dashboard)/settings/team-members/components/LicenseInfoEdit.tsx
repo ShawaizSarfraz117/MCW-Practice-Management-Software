@@ -189,8 +189,8 @@ export default function LicenseInfoEdit({
         <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
           <AlertDialogTrigger asChild>
             <button
-              type="button"
               className="flex items-center text-red-600 hover:text-red-700 text-sm font-medium gap-1"
+              type="button"
               onClick={() => setShowDeleteModal(true)}
             >
               <Trash className="w-4 h-4 mr-1" /> Delete
@@ -198,9 +198,9 @@ export default function LicenseInfoEdit({
           </AlertDialogTrigger>
           <AlertDialogContent className="max-w-[400px] w-full p-6 rounded-xl">
             <button
-              type="button"
               aria-label="Close"
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"
+              type="button"
               onClick={() => setShowDeleteModal(false)}
             >
               <X className="w-5 h-5" />

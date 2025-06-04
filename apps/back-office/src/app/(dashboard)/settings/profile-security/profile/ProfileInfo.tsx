@@ -113,8 +113,8 @@ const ProfileInfo = ({ form }: { form: ProfileFormType }) => {
               Cancel
             </button>
             <button
-              onClick={handleSave}
               className="px-3 py-1.5 bg-blue-600 rounded-md text-sm text-white"
+              onClick={handleSave}
             >
               Save
             </button>

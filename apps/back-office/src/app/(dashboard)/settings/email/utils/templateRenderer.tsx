@@ -120,15 +120,15 @@ const createMacroMap = (
 // Special button components
 const SignInButton = () => (
   <button
-    className="ml-4 px-6 py-3 bg-[#059669] text-white rounded-md font-sm text-md"
     key="sign-in"
+    className="ml-4 px-6 py-3 bg-[#059669] text-white rounded-md font-sm text-md"
   >
     SIGN IN
   </button>
 );
 
 const CalendarButtons = () => (
-  <div className="inline-block align-middle" key="calendar-buttons">
+  <div key="calendar-buttons" className="inline-block align-middle">
     <div className="flex gap-4 mt-2">
       <button className="bg-[#faf9f6] px-4 py-2 rounded-md font-semibold text-lg">
         iCloud
@@ -144,7 +144,7 @@ const CalendarButtons = () => (
 );
 
 const VideoLink = () => (
-  <span className="text-[#059669] underline font-semibold" key="video-link">
+  <span key="video-link" className="text-[#059669] underline font-semibold">
     Join Your Video Appointment
   </span>
 );

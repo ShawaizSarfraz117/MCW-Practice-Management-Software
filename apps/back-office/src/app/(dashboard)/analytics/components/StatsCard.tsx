@@ -11,18 +11,33 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
+import Link from "next/link";
+import { useState } from "react";
+import { TimeRangeFilter } from "./TimeRangeFilter";
+import {
+  addDays,
+  format,
+  isAfter,
+  isBefore,
+  isSameMonth,
+  isSameYear,
+  parseISO,
+  subDays,
+  startOfMonth,
+  endOfWeek,
+  eachWeekOfInterval,
+  eachMonthOfInterval,
+  getMonth,
+  getYear,
+} from "date-fns";
 
-const incomeData = [
-  { date: "Feb 1", value: 250 },
-  { date: "Feb 2", value: 400 },
-  { date: "Feb 3", value: 600 },
-  { date: "Feb 4", value: 500 },
-  { date: "Feb 5", value: 1000 },
-  { date: "Feb 6", value: 450 },
-  { date: "Feb 7", value: 300 },
+const appointmentData = [
+  { name: "Show", value: 18 },
+  { name: "No Show", value: 2 },
+  { name: "Canceled", value: 1 },
+  { name: "Late Canceled", value: 1 },
+  { name: "Clinician Canceled", value: 0 },
 ];
-
-const appointmentData = [{ name: "Show", value: 4 }];
 const appointmentLegend = [
   { name: "Show", color: "#4F46E5" },
   { name: "No Show", color: "#F59E0B" },
@@ -32,49 +47,172 @@ const appointmentLegend = [
 ];
 
 const notesData = [
-  { name: "No Note", value: 1 },
-  { name: "Unlocked", value: 1 },
-  { name: "Supervision", value: 0 },
-  { name: "Locked", value: 0 },
+  { name: "No Note", value: 2 },
+  { name: "Unlocked", value: 8 },
+  { name: "Supervision", value: 3 },
+  { name: "Locked", value: 7 },
 ];
 const NOTES_COLORS = ["#22C55E", "#3B82F6", "#F59E0B", "#D1D5DB"];
 
+// Generate 90 days of mock income data
+const today = new Date();
+const allIncomeData = Array.from({ length: 90 }).map((_, i) => {
+  const date = addDays(today, -89 + i);
+  return {
+    date: format(date, "MMM d"),
+    iso: format(date, "yyyy-MM-dd"),
+    value: Math.floor(700 + Math.random() * 1000),
+  };
+});
+
+type IncomeDatum = { date: string; iso: string; value: number };
+
+function filterIncomeData(range: string) {
+  const now = new Date();
+  if (range === "This month") {
+    return allIncomeData.filter(
+      (d) =>
+        isSameMonth(parseISO(d.iso), now) && isSameYear(parseISO(d.iso), now),
+    );
+  }
+  if (range === "Last 30 days") {
+    const start = subDays(now, 29);
+    return allIncomeData.filter(
+      (d) =>
+        isAfter(parseISO(d.iso), subDays(start, 1)) &&
+        isBefore(parseISO(d.iso), addDays(now, 1)),
+    );
+  }
+  if (range === "Last month") {
+    const lastMonth = subDays(startOfMonth(now), 1);
+    return allIncomeData.filter(
+      (d) =>
+        isSameMonth(parseISO(d.iso), lastMonth) &&
+        isSameYear(parseISO(d.iso), lastMonth),
+    );
+  }
+  if (range === "This year") {
+    return allIncomeData.filter((d) => isSameYear(parseISO(d.iso), now));
+  }
+  // Custom or fallback: show all
+  return allIncomeData;
+}
+
+function getWeeklyData(data: IncomeDatum[]): { date: string; value: number }[] {
+  // Group by week
+  if (!data.length) return [];
+  const first = parseISO(data[0].iso);
+  const last = parseISO(data[data.length - 1].iso);
+  const weeks = eachWeekOfInterval({ start: first, end: last });
+  return weeks.map((weekStart) => {
+    const weekEnd = endOfWeek(weekStart);
+    const weekLabel = `${format(weekStart, "MMM d")}-${format(weekEnd, "MMM d")}`;
+    const value = data
+      .filter((d) => {
+        const date = parseISO(d.iso);
+        return date >= weekStart && date <= weekEnd;
+      })
+      .reduce((sum, d) => sum + d.value, 0);
+    return { date: weekLabel, value };
+  });
+}
+
+function getMonthlyData(
+  data: IncomeDatum[],
+): { date: string; value: number }[] {
+  // Group by month
+  if (!data.length) return [];
+  const first = parseISO(data[0].iso);
+  const last = parseISO(data[data.length - 1].iso);
+  const months = eachMonthOfInterval({ start: first, end: last });
+  return months.map((monthStart) => {
+    const monthLabel = format(monthStart, "MMM yyyy");
+    const value = data
+      .filter((d) => {
+        const date = parseISO(d.iso);
+        return (
+          getMonth(date) === getMonth(monthStart) &&
+          getYear(date) === getYear(monthStart)
+        );
+      })
+      .reduce((sum, d) => sum + d.value, 0);
+    return { date: monthLabel, value };
+  });
+}
+
 export function IncomeChart() {
+  const [selectedRange, setSelectedRange] = useState("This month");
+  const [customRange, setCustomRange] = useState<
+    { startDate: string; endDate: string } | undefined
+  >(undefined);
+
+  let filteredData: IncomeDatum[] = [];
+  if (selectedRange === "Custom" && customRange) {
+    const start = parseISO(
+      customRange.startDate.split("/").reverse().join("-"),
+    );
+    const end = parseISO(customRange.endDate.split("/").reverse().join("-"));
+    filteredData = allIncomeData.filter((d) => {
+      const date = parseISO(d.iso);
+      return date >= start && date <= end;
+    });
+  } else {
+    filteredData = filterIncomeData(selectedRange);
+  }
+  const total = filteredData.reduce((sum, d) => sum + d.value, 0);
+  let chartData = [];
+  if (["This month", "Last 30 days", "Last month"].includes(selectedRange)) {
+    chartData = getWeeklyData(filteredData);
+  } else {
+    chartData = getMonthlyData(filteredData);
+  }
   return (
     <div className="bg-white border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Income</h3>
-          <p className="text-2xl font-semibold">$100</p>
+          <p className="text-2xl font-semibold">${total.toLocaleString()}</p>
         </div>
-        <button className="text-blue-500 text-sm hover:underline">
+        <Link
+          aria-label="View income report"
+          className="text-blue-500 text-sm hover:underline"
+          href="/analytics/income"
+        >
           View report
-        </button>
+        </Link>
+      </div>
+      <div className="mb-4">
+        <TimeRangeFilter
+          customRange={customRange}
+          selectedRange={selectedRange}
+          onChange={setSelectedRange}
+          onCustomRangeChange={setCustomRange}
+        />
       </div>
       <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer height="100%" width="100%">
           <BarChart
-            data={incomeData}
+            data={chartData}
             margin={{ top: 5, right: 5, left: 35, bottom: 15 }}
           >
-            <CartesianGrid vertical={false} stroke="#f0f0f0" />
+            <CartesianGrid stroke="#f0f0f0" vertical={false} />
             <XAxis
-              dataKey="date"
               axisLine={false}
-              tickLine={false}
+              dataKey="date"
               tick={{ fill: "#6B7280", fontSize: 12 }}
+              tickLine={false}
             />
             <YAxis
               axisLine={false}
-              tickLine={false}
               tick={{ fill: "#6B7280", fontSize: 12 }}
               tickFormatter={(value) => `$${value}`}
+              tickLine={false}
             />
             <Bar
               dataKey="value"
               fill="#3B82F6"
-              radius={[4, 4, 0, 0]}
               maxBarSize={40}
+              radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -91,9 +229,13 @@ export function OutstandingBalancesChart() {
           <h3 className="text-gray-500">Outstanding balances</h3>
           <p className="text-2xl font-semibold">$300</p>
         </div>
-        <button className="text-blue-500 text-sm hover:underline">
+        <Link
+          aria-label="View outstanding balances report"
+          className="text-blue-500 text-sm hover:underline"
+          href="/analytics/outstanding-balances"
+        >
           View report
-        </button>
+        </Link>
       </div>
       <div className="space-y-3 mt-3">
         <div>
@@ -137,22 +279,26 @@ export function AppointmentsChart() {
           <h3 className="text-gray-500">Appointments</h3>
           <p className="text-2xl font-semibold">4</p>
         </div>
-        <button className="text-blue-500 text-sm hover:underline">
+        <Link
+          aria-label="View attendance report"
+          className="text-blue-500 text-sm hover:underline"
+          href="/analytics/attendance"
+        >
           View report
-        </button>
+        </Link>
       </div>
       <div className="flex items-center gap-6">
         <div className="relative w-32 h-32">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer height="100%" width="100%">
             <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie
                 data={appointmentData}
+                dataKey="value"
+                endAngle={450}
+                fill="#4F46E5"
                 innerRadius={35}
                 outerRadius={45}
-                fill="#4F46E5"
-                dataKey="value"
                 startAngle={90}
-                endAngle={450}
               >
                 <Cell fill="#4F46E5" />
               </Pie>
@@ -187,21 +333,25 @@ export function NotesChart() {
           <h3 className="text-gray-500">Notes</h3>
           <p className="text-2xl font-semibold">12</p>
         </div>
-        <button className="text-blue-500 text-sm hover:underline">
+        <Link
+          aria-label="View notes report"
+          className="text-blue-500 text-sm hover:underline"
+          href="/analytics/appointment-status"
+        >
           View report
-        </button>
+        </Link>
       </div>
       <div className="flex items-center gap-6">
         <div className="relative w-32 h-32">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer height="100%" width="100%">
             <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie
                 data={notesData}
+                dataKey="value"
+                endAngle={450}
                 innerRadius={35}
                 outerRadius={45}
-                dataKey="value"
                 startAngle={90}
-                endAngle={450}
               >
                 {notesData.map((entry, index) => (
                   <Cell

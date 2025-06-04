@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight, Download, ChevronDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -8,16 +8,63 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Button,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
 } from "@mcw/ui";
 import Link from "next/link";
+import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
+import { useState } from "react";
 
 export default function IncomePage() {
+  const today = new Date();
+  const formatDate = (date: Date) => {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  const todayStr = formatDate(today);
+
+  const [filters, setFilters] = useState({
+    showDatePicker: false,
+    fromDate: todayStr,
+    toDate: todayStr,
+    selectedTimeRange: todayStr,
+  });
+
+  const handleDatePickerApply = (
+    startDate: string,
+    endDate: string,
+    displayOption: string,
+  ) => {
+    setFilters((prev) => ({
+      ...prev,
+      fromDate: startDate,
+      toDate: endDate,
+      selectedTimeRange:
+        displayOption === "Custom Range"
+          ? `${startDate} - ${endDate}`
+          : displayOption,
+      showDatePicker: false,
+    }));
+  };
+
+  const handleDatePickerCancel = () => {
+    setFilters((prev) => ({
+      ...prev,
+      showDatePicker: false,
+    }));
+  };
+
   return (
     <div className="min-h-full bg-gray-50/50">
       <div className="p-6 space-y-6">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm">
-          <Link href="/analytics" className="text-gray-500 hover:text-primary">
+          <Link className="text-gray-500 hover:text-primary" href="/analytics">
             Analytics
           </Link>
           <ChevronRight className="w-4 h-4 text-gray-500" />
@@ -27,29 +74,50 @@ export default function IncomePage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Income</h1>
-          <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-            Export
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M2 5L8 11L14 5"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gap-2" variant="outline">
+                Export
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <Download className="w-4 h-4 mr-2" />
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Download className="w-4 h-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Date Range */}
-        <div className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-md">
-          <Calendar className="w-4 h-4 flex-shrink-0" />
-          <span className="text-sm font-medium">04/01/2025 - 04/21/2025</span>
+        <div className="relative inline-block">
+          <button
+            className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-md"
+            onClick={() =>
+              setFilters((prev) => ({ ...prev, showDatePicker: true }))
+            }
+          >
+            <Calendar className="w-4 h-4 flex-shrink-0" />
+            <span className="text-sm font-medium">
+              {filters.selectedTimeRange}
+            </span>
+          </button>
+          {filters.showDatePicker && (
+            <div className="absolute z-50">
+              <DateRangePicker
+                initialEndDate={filters.toDate}
+                initialStartDate={filters.fromDate}
+                isOpen={filters.showDatePicker}
+                onApply={handleDatePickerApply}
+                onClose={handleDatePickerCancel}
+              />
+            </div>
+          )}
         </div>
 
         {/* Table */}

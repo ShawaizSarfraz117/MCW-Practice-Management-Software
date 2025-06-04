@@ -24,3 +24,6 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+// Re-export team member types
+export * from "./team-members";

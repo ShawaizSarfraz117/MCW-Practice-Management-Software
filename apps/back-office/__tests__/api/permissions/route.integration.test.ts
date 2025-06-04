@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
-import { GET } from "../../../src/app/api/permissions/route";
+import { GET } from "@/api/permissions/route";
 import { createRequest } from "@mcw/utils";
 import { prisma } from "@mcw/database";
 import { Permission, RolePermission } from "@prisma/client";

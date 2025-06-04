@@ -2,6 +2,7 @@ import { FETCH } from "@mcw/utils";
 import {
   Appointment,
   Client,
+  ClientContact,
   ClientGroup,
   ClientGroupMembership,
   Invoice,
@@ -16,20 +17,19 @@ interface Location {
   is_active?: boolean;
 }
 
-interface ClientGroupWithMembership extends ClientGroup {
-  ClientGroupMembership: (ClientGroupMembership & { Client: Client })[];
+export interface ClientGroupWithMembership extends ClientGroup {
+  ClientGroupMembership: (ClientGroupMembership & {
+    Client: Client & { ClientContact: ClientContact[] };
+  })[];
 }
 
 interface PaginatedResponse<T> {
   data: T[];
-  pagination:
-    | {
-        page: number;
-        limit: number;
-        total: number;
-      }
-    | null
-    | ClientGroupWithMembership;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  };
 }
 
 export const fetchClients = async ({
@@ -132,6 +132,33 @@ export const createClient = async ({ body = {} }) => {
   }
 };
 
+export const createClientContact = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/client/contact",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const deleteClientContact = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.remove({
+      url: `/client/contact`,
+      body,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
 export const updateClient = async ({ body = {} }) => {
   try {
     const response: unknown = await FETCH.update({
@@ -161,13 +188,8 @@ export const updateClientGroup = async ({ body = {} }) => {
 };
 
 export const useUpdateClient = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: updateClient,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clientGroup"] });
-    },
   });
 };
 export const useUpdateClientGroup = () => {
@@ -181,16 +203,35 @@ export const useUpdateClientGroup = () => {
   });
 };
 
-export const fetchClientGroups = async ({
-  searchParams = {},
+export const fetchSingleClientGroup = async ({
+  id,
+  searchParams,
+}: {
+  id: string;
+  searchParams: Record<string, string | number | boolean>;
+}) => {
+  try {
+    const response = await FETCH.get({
+      url: `/client/group/${id}`,
+      searchParams,
+    });
+
+    return response;
+  } catch (_error) {
+    return null;
+  }
+};
+
+export const fetchClientGroups = async (params: {
+  searchParams?: Record<string, string | number | boolean>;
 }): Promise<
-  [PaginatedResponse<Client> | ClientGroupWithMembership | null, Error | null]
+  [PaginatedResponse<ClientGroupWithMembership> | null, Error | null]
 > => {
   try {
     const response = (await FETCH.get({
       url: "/client/group",
-      searchParams,
-    })) as PaginatedResponse<Client> | ClientGroupWithMembership;
+      searchParams: params.searchParams || {},
+    })) as PaginatedResponse<ClientGroupWithMembership>;
 
     return [response, null];
   } catch (error) {
@@ -286,6 +327,44 @@ export const updateClientReminderPref = async ({ body = {} }) => {
       url: "/client/contact",
       body,
       isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const fetchGoodFaithEstimate = async (id: string) => {
+  try {
+    const response = await FETCH.get({
+      url: `/good-faith-estimates/${id}`,
+    });
+
+    return response;
+  } catch (_error) {
+    return null;
+  }
+};
+
+export const createGoodFaithEstimate = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/good-faith-estimates",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const fetchDiagnosis = async () => {
+  try {
+    const response: unknown = await FETCH.get({
+      url: "/diagnosis",
     });
 
     return [response, null];

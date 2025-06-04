@@ -180,9 +180,9 @@ export function RoleInfoSection({ member }: RoleInfoSectionProps) {
         </div>
       </Card>
       <EditRoleModal
+        member={member}
         open={showEditRoleModal}
         onClose={() => setShowEditRoleModal(false)}
-        member={member}
       />
     </>
   );

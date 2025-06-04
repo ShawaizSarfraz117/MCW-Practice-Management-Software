@@ -4,7 +4,7 @@ import RefreshIcon from "@/assets/images/refresh-icon.svg";
 interface RecurringHeaderProps {
   isExpanded: boolean;
   onToggle: () => void;
-  recurringRule: string | null;
+  recurringRule: string | null | undefined;
 }
 
 function formatRecurringDays(rule: string) {

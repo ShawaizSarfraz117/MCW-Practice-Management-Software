@@ -21,6 +21,7 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
+  SearchSelect,
 } from "@mcw/ui";
 import {
   Calendar,
@@ -34,6 +35,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
 
 type Appointment = {
   id: string;
@@ -100,15 +102,63 @@ const mockData: Appointment[] = [
 ];
 
 export default function AppointmentStatusPage() {
-  const [dateRange, _setDateRange] = useState("04/01/2025 - 04/21/2025");
-  const [rowsPerPage, setRowsPerPage] = useState("10");
+  const today = new Date();
+  const formatDate = (date: Date) => {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  const todayStr = formatDate(today);
+
+  const [filters, setFilters] = useState({
+    showDatePicker: false,
+    fromDate: todayStr,
+    toDate: todayStr,
+    selectedTimeRange: todayStr,
+    selectedClient: "All clients",
+    selectedStatus: "All statuses",
+    selectedNote: "All notes",
+    rowsPerPage: "10",
+  });
+  const clientOptions = [
+    "All clients",
+    "Shawaiz Sarfraz",
+    "Shawaiz Sarfraz & Mrs Shawaiz",
+  ];
+  const statusOptions = ["All statuses", "Unpaid", "Paid", "Cancelled"];
+  const noteOptions = ["All notes", "No Note", "Signed", "Draft"];
+
+  const handleDatePickerApply = (
+    startDate: string,
+    endDate: string,
+    displayOption: string,
+  ) => {
+    setFilters((prev) => ({
+      ...prev,
+      fromDate: startDate,
+      toDate: endDate,
+      selectedTimeRange:
+        displayOption === "Custom Range"
+          ? `${startDate} - ${endDate}`
+          : displayOption,
+      showDatePicker: false,
+    }));
+  };
+
+  const handleDatePickerCancel = () => {
+    setFilters((prev) => ({
+      ...prev,
+      showDatePicker: false,
+    }));
+  };
 
   return (
     <div className="h-full">
       <div className="p-6 bg-gray-50 min-h-screen space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Link href="/analytics" className="hover:text-primary">
+          <Link className="hover:text-primary" href="/analytics">
             Analytics
           </Link>
           <ChevronRight className="w-4 h-4" />
@@ -121,14 +171,14 @@ export default function AppointmentStatusPage() {
             <h1 className="text-2xl font-semibold">Appointment Status</h1>
             <p className="text-sm text-gray-500">
               Brief view of past appointment statuses.{" "}
-              <Link href="#" className="text-primary hover:underline">
+              <Link className="text-primary hover:underline" href="#">
                 Learn More
               </Link>
             </p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button className="gap-2" variant="outline">
                 Export
                 <ChevronDown className="w-4 h-4" />
               </Button>
@@ -148,34 +198,80 @@ export default function AppointmentStatusPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            {dateRange}
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Users className="w-4 h-4" />
-            All clients
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" className="gap-2">
-            All
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" className="gap-2">
-            All Notes
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" className="gap-2">
+          <div className="relative inline-block">
+            <Button
+              className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
+              variant="outline"
+              onClick={() =>
+                setFilters((prev) => ({ ...prev, showDatePicker: true }))
+              }
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              {filters.selectedTimeRange}
+            </Button>
+            {filters.showDatePicker && (
+              <div className="absolute z-50">
+                <DateRangePicker
+                  initialEndDate={filters.toDate}
+                  initialStartDate={filters.fromDate}
+                  isOpen={filters.showDatePicker}
+                  onApply={handleDatePickerApply}
+                  onClose={handleDatePickerCancel}
+                />
+              </div>
+            )}
+          </div>
+          <div className="w-[200px]">
+            <SearchSelect
+              searchable
+              icon={<Users className="w-4 h-4" />}
+              options={clientOptions.map((client) => ({
+                label: client,
+                value: client,
+              }))}
+              placeholder="Select client"
+              value={filters.selectedClient}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedClient: value }))
+              }
+            />
+          </div>
+          <div className="w-[160px]">
+            <SearchSelect
+              searchable
+              options={statusOptions.map((status) => ({
+                label: status,
+                value: status,
+              }))}
+              placeholder="Select status"
+              value={filters.selectedStatus}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedStatus: value }))
+              }
+            />
+          </div>
+          <div className="w-[160px]">
+            <SearchSelect
+              searchable
+              options={noteOptions.map((note) => ({
+                label: note,
+                value: note,
+              }))}
+              placeholder="Select note"
+              value={filters.selectedNote}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, selectedNote: value }))
+              }
+            />
+          </div>
+          <Button className="gap-2" variant="outline">
             More: 1
             <ChevronDown className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Tabs and Table */}
-        <Tabs defaultValue="appointments" className="w-full">
+        <Tabs className="w-full" defaultValue="appointments">
           <TabsList className="mb-4">
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
             <TabsTrigger value="documentation">Documentation</TabsTrigger>
@@ -185,8 +281,8 @@ export default function AppointmentStatusPage() {
           </TabsList>
 
           <TabsContent
-            value="appointments"
             className="bg-white rounded-lg border border-gray-200"
+            value="appointments"
           >
             <Table>
               <TableHeader>
@@ -239,7 +335,12 @@ export default function AppointmentStatusPage() {
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-700">Rows per page</span>
-                <Select value={rowsPerPage} onValueChange={setRowsPerPage}>
+                <Select
+                  value={filters.rowsPerPage}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({ ...prev, rowsPerPage: value }))
+                  }
+                >
                   <SelectTrigger className="w-[70px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -252,16 +353,16 @@ export default function AppointmentStatusPage() {
                 <span className="text-sm text-gray-700">1-3 of 3</span>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" disabled>
+                <Button disabled size="icon" variant="ghost">
                   <ChevronFirst className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" disabled>
+                <Button disabled size="icon" variant="ghost">
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" disabled>
+                <Button disabled size="icon" variant="ghost">
                   <ChevronRight className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" disabled>
+                <Button disabled size="icon" variant="ghost">
                   <ChevronLast className="w-4 h-4" />
                 </Button>
               </div>

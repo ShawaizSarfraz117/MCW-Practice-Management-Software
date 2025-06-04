@@ -1,0 +1,312 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "panel",
+          "name": "observations",
+          "title": "Observations",
+          "elements": [
+            {
+              "type": "dropdown",
+              "name": "cognitive_functioning",
+              "title": "Cognitive Functioning",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Oriented / Alert"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Disorganized"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Tangential"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Preoccupied"
+                },
+                {
+                  "value": "Item 5",
+                  "text": "Circumstantial"
+                },
+                {
+                  "value": "Item 6",
+                  "text": "Not Assessed"
+                }
+              ],
+              "showOtherItem": true
+            },
+            {
+              "type": "dropdown",
+              "name": "affect",
+              "title": "Affect",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Appropriate"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Inappropriate"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Labile"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Constricted"
+                },
+                {
+                  "value": "Item 5",
+                  "text": "Blunted"
+                },
+                {
+                  "value": "Item 6",
+                  "text": "Flat"
+                },
+                {
+                  "value": "Item 7",
+                  "text": "Not Assessed"
+                }
+              ],
+              "showOtherItem": true
+            },
+            {
+              "type": "dropdown",
+              "name": "mood",
+              "title": "Mood",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Euthymic"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Depressed"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Dysphoric"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Anxious"
+                },
+                {
+                  "value": "Item 5",
+                  "text": "Angry"
+                },
+                {
+                  "value": "Item 6",
+                  "text": "Euphoric"
+                },
+                {
+                  "value": "Item 7",
+                  "text": "Not Assessed"
+                }
+              ],
+              "showOtherItem": true
+            },
+            {
+              "type": "dropdown",
+              "name": "interpersonal",
+              "title": "Interpersonal",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Interactive"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Intermittently Interactive"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Guarded"
+                },
+                {
+                  "value": "Item 4",
+                  "text": "Withdrawn"
+                },
+                {
+                  "value": "Item 7",
+                  "text": "Not Assessed"
+                }
+              ],
+              "showOtherItem": true
+            },
+            {
+              "type": "dropdown",
+              "name": "functional_status",
+              "title": "Functional Status",
+              "choices": [
+                {
+                  "value": "Item 1",
+                  "text": "Intact"
+                },
+                {
+                  "value": "Item 2",
+                  "text": "Impaired"
+                },
+                {
+                  "value": "Item 3",
+                  "text": "Variably Impaired"
+                },
+                {
+                  "value": "Item 7",
+                  "text": "Not Assessed"
+                }
+              ],
+              "showOtherItem": true
+            }
+          ]
+        },
+        {
+          "type": "checkbox",
+          "name": "risk_factors",
+          "title": "Risk Factors",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "None"
+            },
+            {
+              "value": "Item 2",
+              "text": "Suicidal Ideation"
+            },
+            {
+              "value": "Item 3",
+              "text": "Homicidal Ideation"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "checkbox",
+          "name": "interventions",
+          "title": "Interventions",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Acceptance and Commitment Therapy (ACT)"
+            },
+            {
+              "value": "Item 2",
+              "text": "Cognitive Behavioral Therapy (CBT)"
+            },
+            {
+              "value": "Item 3",
+              "text": "Cognitive Challenging"
+            },
+            {
+              "value": "Item 4",
+              "text": "Cognitive Refocusing"
+            },
+            {
+              "value": "Item 5",
+              "text": "Cognitive Reframing"
+            },
+            {
+              "value": "Item 6",
+              "text": "Communication Skills"
+            },
+            {
+              "value": "Item 7",
+              "text": "Dialectical Behavioral Therapy (DBT)"
+            },
+            {
+              "value": "Item 8",
+              "text": "Evaluation"
+            },
+            {
+              "value": "Item 9",
+              "text": "Exploration of Coping Patterns"
+            },
+            {
+              "value": "Item 10",
+              "text": "Exploration of Emotions"
+            },
+            {
+              "value": "Item 11",
+              "text": "Exploration of Relationship Patterns"
+            },
+            {
+              "value": "Item 12",
+              "text": "Exposure Therapy"
+            },
+            {
+              "value": "Item 13",
+              "text": "Guided Imagery"
+            },
+            {
+              "value": "Item 14",
+              "text": "Interactive Feedback"
+            },
+            {
+              "value": "Item 15",
+              "text": "Interpersonal Resolutions"
+            },
+            {
+              "value": "Item 16",
+              "text": "Mindfulness-Based Cognitive Therapy (MBCT)"
+            },
+            {
+              "value": "Item 17",
+              "text": "Mindfulness Training"
+            },
+            {
+              "value": "Item 18",
+              "text": "Preventative Services"
+            },
+            {
+              "value": "Item 19",
+              "text": "Problem Solving"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "panel",
+          "name": "treatment_progress",
+          "elements": [
+            {
+              "type": "text",
+              "name": "objective_1",
+              "title": "Objective 1"
+            },
+            {
+              "type": "text",
+              "name": "objective_2",
+              "title": "Objective 2\n"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "recommendation",
+          "title": "Recommendation",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Continue Current Therapeutic Focus"
+            },
+            {
+              "value": "Item 2",
+              "text": "Change Treatment Goals or Objectives"
+            },
+            {
+              "value": "Item 3",
+              "text": "Terminate Treatment"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}

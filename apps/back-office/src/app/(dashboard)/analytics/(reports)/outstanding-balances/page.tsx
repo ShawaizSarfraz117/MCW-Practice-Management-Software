@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
 
 type ClientBalance = {
   id: string;
@@ -72,9 +73,23 @@ const mockData: ClientBalance[] = [
 ];
 
 export default function OutstandingBalancesPage() {
-  const [dateRange, _setDateRange] = useState("04/01/2025 - 04/21/2025");
-  const [rowsPerPage, setRowsPerPage] = useState("10");
-  const [currentPage, setCurrentPage] = useState(1);
+  const today = new Date();
+  const formatDate = (date: Date) => {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  const todayStr = formatDate(today);
+
+  const [filters, setFilters] = useState({
+    showDatePicker: false,
+    fromDate: todayStr,
+    toDate: todayStr,
+    selectedTimeRange: todayStr,
+    rowsPerPage: "10",
+    currentPage: 1,
+  });
   const totalPages = 3;
 
   const formatCurrency = (amount: number) => {
@@ -86,12 +101,36 @@ export default function OutstandingBalancesPage() {
     }).format(amount);
   };
 
+  const handleDatePickerApply = (
+    startDate: string,
+    endDate: string,
+    displayOption: string,
+  ) => {
+    setFilters((prev) => ({
+      ...prev,
+      fromDate: startDate,
+      toDate: endDate,
+      selectedTimeRange:
+        displayOption === "Custom Range"
+          ? `${startDate} - ${endDate}`
+          : displayOption,
+      showDatePicker: false,
+    }));
+  };
+
+  const handleDatePickerCancel = () => {
+    setFilters((prev) => ({
+      ...prev,
+      showDatePicker: false,
+    }));
+  };
+
   return (
     <div className="h-full">
       <div className="p-6 bg-gray-50 min-h-screen space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Link href="/analytics" className="hover:text-primary">
+          <Link className="hover:text-primary" href="/analytics">
             Analytics
           </Link>
           <ChevronRight className="w-4 h-4" />
@@ -103,7 +142,7 @@ export default function OutstandingBalancesPage() {
           <h1 className="text-2xl font-semibold">Outstanding Balances</h1>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button className="gap-2" variant="outline">
                 Export
                 <ChevronDown className="w-4 h-4" />
               </Button>
@@ -123,16 +162,32 @@ export default function OutstandingBalancesPage() {
 
         {/* Date Filter */}
         <div className="flex items-center gap-2">
+          <div className="relative inline-block">
+            <Button
+              className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
+              variant="outline"
+              onClick={() =>
+                setFilters((prev) => ({ ...prev, showDatePicker: true }))
+              }
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              {filters.selectedTimeRange}
+            </Button>
+            {filters.showDatePicker && (
+              <div className="absolute z-50">
+                <DateRangePicker
+                  initialEndDate={filters.toDate}
+                  initialStartDate={filters.fromDate}
+                  isOpen={true}
+                  onApply={handleDatePickerApply}
+                  onClose={handleDatePickerCancel}
+                />
+              </div>
+            )}
+          </div>
           <Button
-            variant="outline"
             className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            {dateRange}
-          </Button>
-          <Button
             variant="outline"
-            className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
           >
             More: 1
           </Button>
@@ -185,7 +240,12 @@ export default function OutstandingBalancesPage() {
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-700">Rows per page</span>
-              <Select value={rowsPerPage} onValueChange={setRowsPerPage}>
+              <Select
+                value={filters.rowsPerPage}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, rowsPerPage: value }))
+                }
+              >
                 <SelectTrigger className="w-[70px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -199,36 +259,48 @@ export default function OutstandingBalancesPage() {
             </div>
             <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
+                disabled={filters.currentPage === 1}
                 size="icon"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(1)}
+                variant="ghost"
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, currentPage: 1 }))
+                }
               >
                 <ChevronFirst className="w-4 h-4" />
               </Button>
               <Button
-                variant="ghost"
+                disabled={filters.currentPage === 1}
                 size="icon"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                variant="ghost"
+                onClick={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    currentPage: Math.max(1, prev.currentPage - 1),
+                  }))
+                }
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <Button
-                variant="ghost"
+                disabled={filters.currentPage === totalPages}
                 size="icon"
-                disabled={currentPage === totalPages}
+                variant="ghost"
                 onClick={() =>
-                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  setFilters((prev) => ({
+                    ...prev,
+                    currentPage: Math.min(totalPages, prev.currentPage + 1),
+                  }))
                 }
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
               <Button
-                variant="ghost"
+                disabled={filters.currentPage === totalPages}
                 size="icon"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(totalPages)}
+                variant="ghost"
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, currentPage: totalPages }))
+                }
               >
                 <ChevronLast className="w-4 h-4" />
               </Button>

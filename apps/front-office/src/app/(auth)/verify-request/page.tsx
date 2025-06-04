@@ -5,7 +5,7 @@ import { Button } from "@mcw/ui";
 import { MoveLeft } from "lucide-react";
 import successImage from "@/assets/images/mailSent.svg";
 import Image from "next/image";
-import { Footer } from "../../components/Footer";
+import { Footer } from "@/components/Footer";
 
 export default function VerifyRequestPage() {
   return (
@@ -18,7 +18,7 @@ export default function VerifyRequestPage() {
           <div className="bg-white border rounded-lg sm:p-8 p-[5rem] space-y-6">
             {/* Success Icon */}
             <div className="flex justify-center">
-              <Image src={successImage} alt="Success" width={100} height={60} />
+              <Image alt="Success" height={60} src={successImage} width={100} />
             </div>
             <div className="text-center">
               <h2 className="text-xl text-gray-900">Your link is on the way</h2>
@@ -43,7 +43,7 @@ export default function VerifyRequestPage() {
 
         <div className="text-center mt-16 text-green-600">
           <Link href="/login">
-            <Button variant="link" className="inline-flex items-center">
+            <Button className="inline-flex items-center" variant="link">
               <MoveLeft className="mr-1 h-4 w-4" />
               Back to Sign in
             </Button>

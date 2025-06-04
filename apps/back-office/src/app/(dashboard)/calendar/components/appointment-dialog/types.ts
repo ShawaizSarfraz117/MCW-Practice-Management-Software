@@ -1,8 +1,15 @@
 import { RecurringInfo } from "../calendar/types";
+import type {
+  AppointmentWithRelations,
+  Service as BaseService,
+  Clinician as BaseClinician,
+  Location as BaseLocation,
+  Client as BaseClient,
+  ClientGroup as BaseClientGroup,
+} from "@/types/entities";
 
-export type Service = {
+export interface Service extends BaseService {
   is_default: boolean;
-  id: string;
   type: string;
   code: string;
   duration: number;
@@ -12,69 +19,31 @@ export type Service = {
   allow_new_clients: boolean;
   bill_in_units: boolean;
   description: string | null;
-  rate: number;
   require_call: boolean;
   color: string | null;
-};
+}
 
-export type Clinician = {
-  id: string;
-  first_name: string;
-  last_name: string;
+export interface Clinician extends BaseClinician {
   is_active: boolean;
-};
+}
 
-export type Location = {
-  id: string;
-  name: string;
-  address: string;
+export interface Location extends BaseLocation {
   is_active: boolean;
-};
+}
 
-export type Client = {
-  id: string;
+export interface Client extends BaseClient {
   legal_first_name?: string;
   legal_last_name?: string;
-  first_name?: string;
-  last_name?: string;
   firstName?: string;
   lastName?: string;
   is_active?: boolean;
-  [key: string]: unknown;
-};
-export type ClientGroup = {
-  id: string;
-  name: string;
-  type: string;
-  [key: string]: unknown;
-};
-
-export interface AppointmentData {
-  id?: string;
-  start_date?: string;
-  recurring_rule: string;
-  status?: string;
-  notes?: string;
-  end_date?: string;
-  title?: string;
-  type?: string;
-  client_id?: string;
-  PracticeService?: Service;
-  appointment_fee?: number;
-  Clinician?: Clinician;
-  clinician_id?: string;
-  Client?: Client;
-  ClientGroup?: ClientGroup;
-  location_id?: string;
-  is_recurring?: boolean;
-  is_all_day?: boolean;
-  services?: Array<{
-    id: string;
-    rate: number;
-    [key: string]: unknown;
-  }>;
-  [key: string]: unknown;
 }
+
+export interface ClientGroup extends BaseClientGroup {
+  type: string;
+}
+
+export type AppointmentData = AppointmentWithRelations;
 
 export interface AppointmentDialogProps {
   open: boolean;

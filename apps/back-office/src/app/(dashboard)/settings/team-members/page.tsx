@@ -13,9 +13,10 @@ import { Search } from "lucide-react";
 import { useState, FormEvent, useEffect } from "react";
 import { useTeamMembers } from "./services/member.service";
 import Loading from "@/components/Loading";
-import MemberTable, { TeamMember } from "./components/MemberTable";
+import MemberTable from "./components/MemberTable";
 import Link from "next/link";
 import ManageListOrderSidebar from "./components/ManageListOrderSidebar";
+import { SafeUserWithRelations } from "@mcw/types";
 
 export default function TeamMembersPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,7 +29,7 @@ export default function TeamMembersPage() {
 
   const { data, isLoading, refetch } = useTeamMembers(queryParams);
 
-  const teamMembers = (data?.data || []) as unknown as TeamMember[];
+  const teamMembers = data?.data || [];
   const _pagination = data?.pagination;
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function TeamMembersPage() {
   };
 
   const handleRowClick = (member: object) => {
-    const teamMember = member as TeamMember;
+    const teamMember = member as SafeUserWithRelations;
     window.location.href = `/settings/team-members/${teamMember.id}`;
   };
 
@@ -90,7 +91,7 @@ export default function TeamMembersPage() {
 
       {/* Search and Filter */}
       <div className="flex gap-4">
-        <form onSubmit={handleSearch} className="relative w-[230px]">
+        <form className="relative w-[230px]" onSubmit={handleSearch}>
           <Search
             aria-label="Search team members"
             className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer"

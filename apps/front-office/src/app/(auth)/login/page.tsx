@@ -94,11 +94,11 @@ export default function LoginPage() {
           <div className="bg-white border rounded-lg p-8 space-y-6">
             <div className="flex justify-center">
               <Image
-                src={emailIcon}
                 alt="Email Icon"
-                width={48}
-                height={48}
                 className="mb-2"
+                height={48}
+                src={emailIcon}
+                width={48}
               />
             </div>
             <div className="text-center">
@@ -108,21 +108,21 @@ export default function LoginPage() {
                 password-free link to sign in
               </p>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <Input
-                id="email"
-                type="email"
-                placeholder="Email address"
+                required
                 className="w-full p-2"
+                disabled={isLoading}
+                id="email"
+                placeholder="Email address"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
               />
               <Button
-                type="submit"
                 className="w-full text-white p-2 rounded-lg bg-green-700 hover:bg-green-800"
                 disabled={isLoading}
+                type="submit"
               >
                 {isLoading ? "SENDING..." : "SEND LINK"}
               </Button>
@@ -135,13 +135,13 @@ export default function LoginPage() {
                 </div>
               </div>
               <Button
+                disabled
+                className="w-full border border-gray-400 bg-slate-50 p-2"
                 type="button"
                 variant="outline"
-                className="w-full border border-gray-400 bg-slate-50 p-2"
-                disabled
               >
                 <span className="flex justify-start items-center text-gray-400 gap-4">
-                  <Image src={googleIcon} alt="Google" className="w-5 h-5" />
+                  <Image alt="Google" className="w-5 h-5" src={googleIcon} />
                   <span className="text-center">CONTINUE WITH GOOGLE</span>
                 </span>
               </Button>
@@ -150,8 +150,8 @@ export default function LoginPage() {
           <div className="text-center text-sm mt-12">
             <span className="text-gray-400">New client?</span>{" "}
             <Link
-              href="#"
               className="font-medium text-green-700 hover:text-green-500"
+              href="#"
             >
               Request appointment
             </Link>

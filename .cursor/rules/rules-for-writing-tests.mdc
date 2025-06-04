@@ -58,622 +58,484 @@ Follow testing guidelines from context:
 - Place tests in the `apps/<app-name>/__tests__` directory, mirroring the structure of the `src` directory.
 - Test filenames should match the file they are testing with a `.unit.test.ts` or `.integration.test.ts` suffix.
 - use `import { createRequestWithBody, createRequest } from "@mcw/utils"` to create request
-- import api routes as `@/api/**/route"`
-
-- For example:
-  - `src/app/api/product/route.ts` → `__tests__/api/product/route.unit.test.ts`
-  - `src/app/api/product/route.ts` → `__tests__/api/product/route.integration.test.ts`
 
 ## Test Setup and Teardown
 
-### Unit Tests
+### Basic Setup
 
 ```typescript
-import { vi } from "vitest";
-import { describe, it, expect, beforeEach } from "vitest";
-import prismaMock from "@mcw/database/mock";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-describe("Feature Name Unit Tests", () => {
+describe("Component Name", () => {
   beforeEach(() => {
-    // Reset all mocks before each test
-    vi.resetAllMocks();
+    vi.clearAllMocks();
   });
 
-  // Tests go here
+  // Your tests here
 });
 ```
 
-### Integration Tests
+### Database Setup for Integration Tests
 
 ```typescript
-import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { prisma } from "@mcw/database";
+import { cleanDatabase } from "@/vitest.setup";
 
-describe("Feature Name Integration Tests", () => {
-  // Store IDs of created entities for cleanup
-  let createdEntityIds: string[] = [];
-
-  // Clean up after each test to ensure isolation
-  afterEach(async () => {
-    // Clean up created entities
-    if (createdEntityIds.length > 0) {
-      await prisma.entity.deleteMany({
-        where: { id: { in: createdEntityIds } }
-      });
-      createdEntityIds = [];
-    }
-  });
-
-  // Optionally clean up all data before each test
+describe("Component Name", () => {
   beforeEach(async () => {
-    await prisma.entity.deleteMany({});
+    await cleanDatabase();
   });
 
-  // Tests go here
+  // Your tests here
 });
 ```
 
 ## Mock Data and Factories
 
-### Unit Tests
-
-Use factory functions or the `mock` methods directly:
+### Using Mock Data
 
 ```typescript
-// Simple mock factory function
-const mockEntity = (overrides = {}) => ({
-  id: "test-id",
-  name: "Test Entity",
-  is_active: true,
-  created_at: new Date(),
-  // Add all required fields
-  ...overrides,
-});
+import { mockUser, mockClient } from "@mcw/database";
 
-// Or use existing factories
-import { ProductFactory } from "@mcw/database/mock-data";
-const product = ProductFactory.build();
+const testUser = {
+  id: mockUser.id,
+  email: mockUser.email,
+  // ... other properties
+};
 ```
 
-### Integration Tests
-
-Use Prisma factories to create real entities in the database:
+### Creating Test Data
 
 ```typescript
-import { ProductPrismaFactory } from "@mcw/database/mock-data";
+// For unit tests - use mock data
+const mockData = {
+  id: "test-id",
+  name: "Test Name",
+  // ... other properties
+};
 
-// Create a real entity in the database
-const product = await ProductPrismaFactory.create();
-createdEntityIds.push(product.id); // Store ID for cleanup
+// For integration tests - use database factories or direct creation
+const realData = await prisma.model.create({
+  data: {
+    name: "Test Name",
+    // ... other properties
+  },
+});
 ```
 
 ## API Route Testing
 
-### Common Imports for API Tests
+### Unit Test Example
 
 ```typescript
-// Unit Tests
+// apps/back-office/__tests__/api/location/route.unit.test.ts
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { GET, POST, PUT, DELETE } from "@/app/api/location/route";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
-import { GET, POST, PUT, DELETE } from "@/api/your-feature/route";
-import prismaMock from "@mcw/database/mock";
+import { NextRequest } from "next/server";
 
-// Integration Tests
+// Mock the database
+vi.mock("@mcw/database", () => ({
+  prisma: {
+    location: {
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+  },
+}));
+
+describe("GET /api/location", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should return locations successfully", async () => {
+    const mockLocations = [{ id: "1", name: "Location 1" }];
+    prisma.location.findMany.mockResolvedValue(mockLocations);
+
+    const request = createRequest("http://localhost:3000/api/location");
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual(mockLocations);
+  });
+
+  it("should handle errors gracefully", async () => {
+    prisma.location.findMany.mockRejectedValue(new Error("Database error"));
+
+    const request = createRequest("http://localhost:3000/api/location");
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBeDefined();
+  });
+});
+
+describe("POST /api/location", () => {
+  it("should create a location successfully", async () => {
+    const newLocation = { name: "New Location", is_online: false };
+    const createdLocation = { id: "1", ...newLocation };
+    
+    prisma.location.create.mockResolvedValue(createdLocation);
+
+    const request = createRequestWithBody(
+      "http://localhost:3000/api/location",
+      newLocation
+    );
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data).toEqual(createdLocation);
+  });
+});
+```
+
+### Integration Test Example
+
+```typescript
+// apps/back-office/__tests__/api/location/route.integration.test.ts
+import { describe, it, expect, beforeEach } from "vitest";
+import { GET, POST, PUT, DELETE } from "@/app/api/location/route";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { prisma } from "@mcw/database";
-import { GET, POST, PUT, DELETE } from "@/api/your-feature/route";
-```
+import { cleanDatabase } from "@/vitest.setup";
 
-### Testing HTTP Methods
-
-#### GET Requests
-
-```typescript
-// Unit Test Example
-it("GET /api/entity should return all entities", async () => {
-  const entities = [mockEntity({ id: "1" }), mockEntity({ id: "2" })];
-  prismaMock.entity.findMany.mockResolvedValueOnce(entities);
-
-  const response = await GET();
-  
-  expect(response.status).toBe(200);
-  const json = await response.json();
-  expect(json).toHaveLength(entities.length);
-  expect(json[0]).toHaveProperty("id", entities[0].id);
-  
-  expect(prismaMock.entity.findMany).toHaveBeenCalledWith({});
-});
-
-// Integration Test Example
-it("GET /api/entity should return all entities", async () => {
-  // Create test entities in database
-  const entity1 = await EntityPrismaFactory.create();
-  const entity2 = await EntityPrismaFactory.create();
-  createdEntityIds.push(entity1.id, entity2.id);
-
-  const response = await GET();
-  
-  expect(response.status).toBe(200);
-  const json = await response.json();
-  expect(json.length).toBeGreaterThanOrEqual(2);
-  
-  // Verify entities are in response
-  const foundEntities = json.filter(e => 
-    e.id === entity1.id || e.id === entity2.id
-  );
-  expect(foundEntities).toHaveLength(2);
-});
-```
-
-#### POST Requests
-
-```typescript
-// Unit Test Example
-it("POST /api/entity should create a new entity", async () => {
-  const newEntity = mockEntity();
-  prismaMock.entity.create.mockResolvedValueOnce(newEntity);
-
-  const entityData = {
-    name: "Test Entity",
-    // Include required fields
-  };
-
-  const req = createRequestWithBody("/api/entity", entityData);
-  const response = await POST(req);
-
-  expect(response.status).toBe(201);
-  const json = await response.json();
-  expect(json).toHaveProperty("name", entityData.name);
-  
-  expect(prismaMock.entity.create).toHaveBeenCalledWith({
-    data: entityData
+describe("Location API Integration", () => {
+  beforeEach(async () => {
+    await cleanDatabase();
   });
-});
 
-// Integration Test Example
-it("POST /api/entity should create a new entity", async () => {
-  const entityData = {
-    name: "Test Entity",
-    // Include required fields
-  };
+  it("should create and retrieve a location", async () => {
+    // Create location
+    const newLocation = { name: "Test Location", is_online: false };
+    const createRequest = createRequestWithBody(
+      "http://localhost:3000/api/location",
+      newLocation
+    );
+    const createResponse = await POST(createRequest);
+    const createdLocation = await createResponse.json();
 
-  const req = createRequestWithBody("/api/entity", entityData);
-  const response = await POST(req);
+    expect(createResponse.status).toBe(201);
+    expect(createdLocation.name).toBe(newLocation.name);
 
-  expect(response.status).toBe(201);
-  const json = await response.json();
-  expect(json).toHaveProperty("name", entityData.name);
-  
-  // Store ID for cleanup
-  createdEntityIds.push(json.id);
-  
-  // Verify entity was created in database
-  const createdEntity = await prisma.entity.findUnique({
-    where: { id: json.id }
+    // Retrieve locations
+    const getRequest = createRequest("http://localhost:3000/api/location");
+    const getResponse = await GET(getRequest);
+    const locations = await getResponse.json();
+
+    expect(getResponse.status).toBe(200);
+    expect(locations).toHaveLength(1);
+    expect(locations[0].id).toBe(createdLocation.id);
   });
-  expect(createdEntity).not.toBeNull();
-  expect(createdEntity).toHaveProperty("name", entityData.name);
-});
-```
-
-#### PUT Requests
-
-```typescript
-// Unit Test Example
-it("PUT /api/entity should update an existing entity", async () => {
-  const existingEntity = mockEntity();
-  const updatedEntity = mockEntity({ name: "Updated Entity" });
-
-  prismaMock.entity.findUnique.mockResolvedValueOnce(existingEntity);
-  prismaMock.entity.update.mockResolvedValueOnce(updatedEntity);
-
-  const updateData = {
-    id: existingEntity.id,
-    name: "Updated Entity",
-    // Include required fields
-  };
-
-  const req = createRequestWithBody("/api/entity", updateData, { method: "PUT" });
-  const response = await PUT(req);
-
-  expect(response.status).toBe(200);
-  const json = await response.json();
-  expect(json).toHaveProperty("name", "Updated Entity");
-  
-  expect(prismaMock.entity.update).toHaveBeenCalledWith({
-    where: { id: existingEntity.id },
-    data: expect.objectContaining({ name: "Updated Entity" })
-  });
-});
-
-// Integration Test Example
-it("PUT /api/entity should update an existing entity", async () => {
-  // Create entity to update
-  const entity = await EntityPrismaFactory.create();
-  createdEntityIds.push(entity.id);
-
-  const updateData = {
-    id: entity.id,
-    name: "Updated Entity",
-    // Include required fields
-  };
-
-  const req = createRequestWithBody("/api/entity", updateData, { method: "PUT" });
-  const response = await PUT(req);
-
-  expect(response.status).toBe(200);
-  const json = await response.json();
-  expect(json).toHaveProperty("name", "Updated Entity");
-  
-  // Verify entity was updated in database
-  const updatedEntity = await prisma.entity.findUnique({
-    where: { id: entity.id }
-  });
-  expect(updatedEntity).toHaveProperty("name", "Updated Entity");
-});
-```
-
-#### DELETE Requests
-
-```typescript
-// Unit Test Example
-it("DELETE /api/entity/?id=<id> should delete an entity", async () => {
-  const entity = mockEntity();
-  
-  prismaMock.entity.findUnique.mockResolvedValueOnce(entity);
-  prismaMock.entity.delete.mockResolvedValueOnce(entity);
-  // Or for soft delete:
-  // prismaMock.entity.update.mockResolvedValueOnce({ ...entity, is_active: false });
-
-  const req = createRequest(`/api/entity/?id=${entity.id}`, { method: "DELETE" });
-  const response = await DELETE(req);
-
-  expect(response.status).toBe(200);
-  const json = await response.json();
-  expect(json).toHaveProperty("success", true);
-  // Or for soft delete:
-  // expect(json.entity).toHaveProperty("is_active", false);
-  
-  expect(prismaMock.entity.delete).toHaveBeenCalledWith({
-    where: { id: entity.id }
-  });
-  // Or for soft delete:
-  // expect(prismaMock.entity.update).toHaveBeenCalledWith({
-  //   where: { id: entity.id },
-  //   data: { is_active: false }
-  // });
-});
-
-// Integration Test Example
-it("DELETE /api/entity/?id=<id> should delete an entity", async () => {
-  // Create entity to delete
-  const entity = await EntityPrismaFactory.create();
-  
-  const req = createRequest(`/api/entity/?id=${entity.id}`, { method: "DELETE" });
-  const response = await DELETE(req);
-
-  expect(response.status).toBe(200);
-  const json = await response.json();
-  expect(json).toHaveProperty("success", true);
-  
-  // Verify entity was deleted from database
-  const deletedEntity = await prisma.entity.findUnique({
-    where: { id: entity.id }
-  });
-  expect(deletedEntity).toBeNull();
-  // Or for soft delete:
-  // expect(deletedEntity).toHaveProperty("is_active", false);
 });
 ```
 
 ## Utility Function Testing
 
+### Example for Helper Functions
+
 ```typescript
-import { describe, it, expect, beforeEach } from "vitest";
-import { prisma } from "@mcw/database";
-import { yourUtilityFunction } from "@/utils/index";
+// apps/back-office/__tests__/utils/helpers.test.ts
+import { describe, it, expect } from "vitest";
+import { formatDate, parseQueryParams } from "@/utils/helpers";
 
-describe("Utility Function Tests", () => {
-  beforeEach(async () => {
-    // Clean up any data created by previous tests
-    await prisma.relevantTable.deleteMany();
+describe("formatDate", () => {
+  it("should format date correctly", () => {
+    const date = new Date("2024-01-01");
+    expect(formatDate(date)).toBe("January 1, 2024");
   });
 
-  it("should perform expected action", async () => {
-    // Arrange: set up test data
-    const testData = { /* test data */ };
-    
-    // Act: call the function being tested
-    const result = await yourUtilityFunction(testData);
-    
-    // Assert: verify the function worked as expected
-    expect(result).toBeDefined();
-    expect(result).toHaveProperty("expectedProperty", "expectedValue");
-    
-    // Verify database changes if applicable
-    const dbRecord = await prisma.relevantTable.findFirst({
-      where: { /* query to find the record */ }
-    });
-    expect(dbRecord).toHaveProperty("expectedProperty", "expectedValue");
-  });
-
-  it("should handle errors appropriately", async () => {
-    // Test error handling
-    const invalidData = { /* invalid data */ };
-    
-    await expect(yourUtilityFunction(invalidData)).rejects.toThrow();
-    // Or for specific error messages:
-    // await expect(yourUtilityFunction(invalidData)).rejects.toThrow("Expected error message");
+  it("should handle invalid dates", () => {
+    expect(formatDate(null)).toBe("");
+    expect(formatDate(undefined)).toBe("");
   });
 });
 ```
 
 ## Error Handling Testing
 
-For all API endpoints, test common error cases:
+### Testing Error Responses
 
 ```typescript
-// Missing required fields
-it("should return 400 if required fields are missing", async () => {
-  const incompleteData = {
-    // Missing required fields
-  };
+describe("Error Handling", () => {
+  it("should return 400 for invalid input", async () => {
+    const invalidData = { name: "" }; // Missing required field
+    const request = createRequestWithBody(
+      "http://localhost:3000/api/location",
+      invalidData
+    );
+    const response = await POST(request);
+    const data = await response.json();
 
-  const req = createRequestWithBody("/api/entity", incompleteData);
-  const response = await POST(req);
+    expect(response.status).toBe(400);
+    expect(data.error).toBeDefined();
+  });
 
-  expect(response.status).toBe(400);
-  const json = await response.json();
-  expect(json).toHaveProperty("error");
-});
+  it("should return 404 for non-existent resource", async () => {
+    const request = createRequest(
+      "http://localhost:3000/api/location?id=non-existent"
+    );
+    const response = await GET(request);
+    const data = await response.json();
 
-// Entity not found
-it("should return 404 for non-existent entity", async () => {
-  const req = createRequest("/api/entity/?id=non-existent-id", { method: "DELETE" });
-  const response = await DELETE(req);
+    expect(response.status).toBe(404);
+    expect(data.error).toBe("Location not found");
+  });
 
-  expect(response.status).toBe(404);
-  const json = await response.json();
-  expect(json).toHaveProperty("error", "Entity not found");
-});
+  it("should handle database errors", async () => {
+    // For unit tests
+    prisma.location.findMany.mockRejectedValue(new Error("Connection failed"));
 
-// Invalid input validation
-it("should return 422 for invalid payload", async () => {
-  const invalidData = { 
-    name: "", // Invalid empty name
-    count: -1 // Invalid negative count
-  };
+    const request = createRequest("http://localhost:3000/api/location");
+    const response = await GET(request);
+    const data = await response.json();
 
-  const req = createRequestWithBody("/api/entity", invalidData);
-  const response = await POST(req);
-
-  expect(response.status).toBe(422);
-  const json = await response.json();
-  expect(json).toHaveProperty("error");
-  expect(json).toHaveProperty("details"); // Validation details
+    expect(response.status).toBe(500);
+    expect(data.error).toBeDefined();
+  });
 });
 ```
 
 ## Testing with Authentication
 
-When your routes require authentication, mock the auth session:
+### Mocking Authentication
 
 ```typescript
-import { vi } from "vitest";
-
-// Mock the authentication provider/function
-vi.mock("@/utils/helpers", () => ({
-  getBackOfficeSession: vi.fn(() =>
-    Promise.resolve({
-      user: {
-        id: "test-user-id",
-        // Add other user properties as needed
-      },
-    }),
-  ),
+// Mock getServerSession for unit tests
+vi.mock("next-auth/next", () => ({
+  getServerSession: vi.fn().mockResolvedValue({
+    user: {
+      id: "user-123",
+      email: "test@example.com",
+      role: "ADMIN",
+    },
+  }),
 }));
 
-// In your tests, you can now call authenticated endpoints normally
-// The mock will provide the authentication context
+// Mock getClinicianInfo
+vi.mock("@/utils/helpers", () => ({
+  getClinicianInfo: vi.fn().mockResolvedValue({
+    id: "clinician-123",
+    practice_id: "practice-123",
+  }),
+}));
+```
+
+### Testing Protected Routes
+
+```typescript
+describe("Protected Routes", () => {
+  it("should allow access for authenticated users", async () => {
+    // getServerSession is already mocked to return a user
+    const request = createRequest("http://localhost:3000/api/protected");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+  });
+
+  it("should deny access for unauthenticated users", async () => {
+    // Mock no session
+    getServerSession.mockResolvedValueOnce(null);
+
+    const request = createRequest("http://localhost:3000/api/protected");
+    const response = await GET(request);
+
+    expect(response.status).toBe(401);
+  });
+});
 ```
 
 ## Best Practices
 
-### Data Type Handling
-
-When testing API responses, remember that certain data types are serialized:
+### 1. Clear and Descriptive Test Names
 
 ```typescript
-// Dates are serialized to ISO strings
-expect(json.createdAt).toBe(entity.createdAt.toISOString());
+// Good
+it("should return 404 when location ID does not exist", async () => {});
 
-// Decimal values are serialized to strings
-expect(json.price).toBe(entity.price.toString());
+// Bad
+it("test location", async () => {});
+```
 
-// For a complete object, you can use a helper function
-const serializeForComparison = (obj) => ({
-  ...obj,
-  createdAt: obj.createdAt.toISOString(),
-  price: obj.price.toString(),
-  // Add other field transformations as needed
+### 2. Follow AAA Pattern
+
+```typescript
+it("should update location successfully", async () => {
+  // Arrange
+  const locationId = "123";
+  const updateData = { name: "Updated Name" };
+
+  // Act
+  const request = createRequestWithBody(
+    `http://localhost:3000/api/location?id=${locationId}`,
+    updateData
+  );
+  const response = await PUT(request);
+
+  // Assert
+  expect(response.status).toBe(200);
 });
-
-expect(json).toEqual(serializeForComparison(entity));
 ```
 
-### Test Isolation
-
-Ensure tests are isolated and don't affect each other:
-
-- Use `beforeEach` and `afterEach` hooks to set up and tear down test data
-- Clean up all created entities after each test
-- Reset all mocks before each test with `vi.resetAllMocks()`
-
-### Readable Test Names
-
-Write descriptive test names that clearly state what is being tested:
+### 3. Test Edge Cases
 
 ```typescript
-// Good: Clear HTTP method, endpoint, and expected behavior
-it("GET /api/entity should return all active entities", async () => {});
-it("POST /api/entity should create a new entity and return 201", async () => {});
-it("PUT /api/entity should return 404 when entity doesn't exist", async () => {});
-```
+describe("Edge Cases", () => {
+  it("should handle empty arrays", async () => {
+    prisma.location.findMany.mockResolvedValue([]);
+    // ... test implementation
+  });
 
-### Avoid Test Duplication
+  it("should handle maximum length strings", async () => {
+    const longName = "a".repeat(255);
+    // ... test implementation
+  });
 
-Reuse test data and setup code when possible:
-
-```typescript
-// Helper function for creating test data
-const createTestEntity = async () => {
-  const entity = await EntityPrismaFactory.create();
-  createdEntityIds.push(entity.id);
-  return entity;
-};
-
-// Helper function for asserting entity properties
-const assertEntityProperties = (entity, expected) => {
-  expect(entity).toHaveProperty("name", expected.name);
-  expect(entity).toHaveProperty("is_active", expected.is_active);
-  // Add other property assertions
-};
-```
-
-### Prisma Mock Usage
-
-When using `prismaMock`, be explicit about what you're testing:
-
-```typescript
-// Verify mock was called with correct parameters
-expect(prismaMock.entity.create).toHaveBeenCalledWith({
-  data: expect.objectContaining({
-    name: "Test Entity",
-    is_active: true,
-  }),
+  it("should handle special characters", async () => {
+    const specialName = "Location & Co. <Test>";
+    // ... test implementation
+  });
 });
-
-// Verify mock was not called when it shouldn't be
-expect(prismaMock.entity.delete).not.toHaveBeenCalled();
 ```
 
-### Type Safety in Tests
-
-Maintain type safety in your tests:
+### 4. Mock External Dependencies
 
 ```typescript
-// Import types
-import type { Entity } from "@mcw/database";
+// Mock external services
+vi.mock("@/services/email", () => ({
+  sendEmail: vi.fn().mockResolvedValue(true),
+}));
 
-// Use proper typing for mock data
-const mockEntity = (overrides: Partial<Entity> = {}): Entity => ({
-  id: "test-id",
-  name: "Test Entity",
-  is_active: true,
-  created_at: new Date(),
-  // Add all required fields
-  ...overrides,
-});
-
-// Type your test data
-const entityData: Pick<Entity, "name" | "is_active"> = {
-  name: "Test Entity",
-  is_active: true,
-};
+// Mock file system operations
+vi.mock("fs/promises", () => ({
+  readFile: vi.fn().mockResolvedValue("file content"),
+  writeFile: vi.fn().mockResolvedValue(undefined),
+}));
 ```
 
-### Database Mocking vs. Real Database
-
-- **Unit Tests**: Always use `prismaMock` from `@mcw/database/mock`
-- **Integration Tests**: Always use the real `prisma` client from `@mcw/database`
-
-### Handling Request Objects
-
-Use the helper functions for creating request objects:
+### 5. Clean Up After Tests
 
 ```typescript
-// For GET or DELETE requests with query parameters
-const req = createRequest(`/api/entity/?id=${id}`, { method: "DELETE" });
+describe("Test Suite", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
 
-// For POST or PUT requests with a body
-const req = createRequestWithBody("/api/entity", data, { method: "PUT" });
+  afterAll(async () => {
+    // Clean up any resources if needed
+    await prisma.$disconnect();
+  });
+});
 ```
 
-### Verifying Side Effects
-
-In integration tests, always verify that the database was updated correctly:
+### 6. Use Type-Safe Assertions
 
 ```typescript
-// After creating an entity
-const createdEntity = await prisma.entity.findUnique({
-  where: { id: responseJson.id }
-});
-expect(createdEntity).not.toBeNull();
-expect(createdEntity).toHaveProperty("name", entityData.name);
+import { Location } from "@prisma/client";
 
-// After updating an entity
-const updatedEntity = await prisma.entity.findUnique({
-  where: { id: entity.id }
-});
-expect(updatedEntity).toHaveProperty("name", "Updated Name");
+it("should return location with correct type", async () => {
+  const response = await GET(request);
+  const data: Location = await response.json();
 
-// After deleting an entity
-const deletedEntity = await prisma.entity.findUnique({
-  where: { id: entity.id }
+  // TypeScript will ensure data matches Location type
+  expect(data.id).toBeDefined();
+  expect(data.name).toBeDefined();
 });
-expect(deletedEntity).toBeNull();
 ```
 
-### Testing Response Structure
-
-Verify the structure of API responses:
+### 7. Group Related Tests
 
 ```typescript
-// For GET requests returning arrays
-expect(Array.isArray(json)).toBe(true);
-expect(json).toHaveLength(2);
-expect(json[0]).toHaveProperty("id");
-expect(json[0]).toHaveProperty("name");
+describe("Location API", () => {
+  describe("GET /api/location", () => {
+    describe("when fetching all locations", () => {
+      it("should return paginated results", async () => {});
+      it("should filter by is_online status", async () => {});
+    });
 
-// For POST/PUT requests returning objects
-expect(json).toHaveProperty("id");
-expect(json).toHaveProperty("name", entityData.name);
+    describe("when fetching a single location", () => {
+      it("should return location by ID", async () => {});
+      it("should return 404 for non-existent ID", async () => {});
+    });
+  });
 
-// For DELETE requests
-expect(json).toHaveProperty("success", true);
-// or
-expect(json).toHaveProperty("message", "Entity deleted successfully");
+  describe("POST /api/location", () => {
+    // ... POST tests
+  });
+});
 ```
 
-### Clean Code in Tests
+### 8. Test Pagination
 
-Tests should be clean and maintainable:
+```typescript
+describe("Pagination", () => {
+  it("should return correct page of results", async () => {
+    const request = createRequest(
+      "http://localhost:3000/api/location?page=2&limit=10"
+    );
+    const response = await GET(request);
+    const data = await response.json();
 
-- Use consistent formatting
-- Group related tests together with descriptive `describe` blocks
-- Split long tests into smaller, focused tests
-- Comment complex test setup or assertions
-- Use helper functions for repeated code
+    expect(data.pagination).toEqual({
+      page: 2,
+      limit: 10,
+      total: expect.any(Number),
+      totalPages: expect.any(Number),
+    });
+    expect(data.data.length).toBeLessThanOrEqual(10);
+  });
+});
+```
 
-### Unit and Integration Tests Additional Guidelines
+### 9. Test Data Validation
 
-- **Unit Tests (`.unit.test.ts`)**:
-  - Focus on testing the logic within a single file/module in isolation.
-  - **Mock Dependencies**: Use Vitest's mocking capabilities (`vi.mock`) to isolate the unit under test.
-  - **Database Mocking**: For database interactions, use the shared Prisma mock setup: `import prismaMock from "@mcw/database/mock";`. Use `prismaMock.<model>.<method>.mockResolvedValueOnce(...)` or `.mockRejectedValueOnce(...)` to simulate database responses.
-  - **Factory Usage**: Use mock factories defined in `@mcw/database/src/__mocks__/data.ts` for creating test data if needed, BUT prefer defining simple mock objects directly within the test file for clarity if the structure is simple, similar to the `location` unit test.
-  - **Path Aliases**: When importing the module under test (e.g., an API route handler), use the `@/` alias which maps to the application's `src` directory (e.g., `import { GET } from "@/app/api/products/route";` for a route located in `src/app/api/products/`).
-  - **Avoid explicitly mocking `@mcw/logger` or `next/server` (`NextResponse`)**. Rely on the `prismaMock` and use the actual `NextResponse` returned by the route handler.
-  - Use `vi.resetAllMocks()` in `beforeEach` hooks.
+```typescript
+describe("Input Validation", () => {
+  it("should validate required fields", async () => {
+    const invalidData = { is_online: true }; // Missing required 'name'
+    const request = createRequestWithBody(
+      "http://localhost:3000/api/location",
+      invalidData
+    );
+    const response = await POST(request);
 
-- **Integration Tests (`.integration.test.ts`)**:
-  - Test the interaction between multiple modules, including database interactions.
-  - **Database Interaction**: Use the real Prisma client (`import { prisma } from "@mcw/database";`).
-  - **Data Setup/Teardown**: Use `beforeEach` and `afterEach` hooks with the Prisma client to set up necessary data (`prisma.<model>.create()`) and clean up (`prisma.<model>.deleteMany({})`) to ensure tests are isolated.
-  - **Database State**: For integration tests that modify the database, use `beforeEach` and `afterEach` to clean up and ensure tests are isolated.
-  - **Factory Usage**: Generate mock data objects using the factories exported from `@mcw/database/mock-data` (e.g., `import { ProductFactory } from "@mcw/database/mock-data";`). Use the generated object with `prisma.<model>.create({ data: ... })` to insert it into the database. (Using the auto-generated Prisma factories from `@quramy/prisma-fabbrica` has proven difficult due to path resolution issues in tests).
-  - **Path Aliases**: Use the `@/` alias for importing application API route handlers. This alias maps to `src/app`, so the import path will look like `import { GET } from "@/api/your-feature/route";`. For importing database utilities, use the `@mcw/database` alias (e.g., `@mcw/database/mock-data`).
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.error).toContain("name");
+  });
 
-- **Test Structure**: Organize API route tests into separate describe blocks for each HTTP method (GET, POST, PUT, DELETE), with clear test cases covering successful operations and error conditions.
+  it("should validate field types", async () => {
+    const invalidData = { name: "Test", is_online: "not-a-boolean" };
+    // ... test implementation
+  });
+});
+```
+
+### 10. Performance Considerations
+
+```typescript
+describe("Performance", () => {
+  it("should handle large datasets efficiently", async () => {
+    const largeDataset = Array(1000).fill(null).map((_, i) => ({
+      id: `loc-${i}`,
+      name: `Location ${i}`,
+    }));
+    prisma.location.findMany.mockResolvedValue(largeDataset);
+
+    const start = Date.now();
+    const response = await GET(request);
+    const duration = Date.now() - start;
+
+    expect(response.status).toBe(200);
+    expect(duration).toBeLessThan(1000); // Should complete within 1 second
+  });
+});
+```
 
 ### Dealing with JSON Serialization
 
@@ -689,7 +551,5 @@ const expectedSerializedData = mockDataArray.map(item => ({
 }));
 expect(responseData).toEqual(expectedSerializedData);
 ```
-
-
 
 
