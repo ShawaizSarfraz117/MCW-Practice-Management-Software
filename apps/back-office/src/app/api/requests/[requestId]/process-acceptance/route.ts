@@ -59,7 +59,6 @@ export async function POST(
       const appointmentRequest = await tx.appointmentRequests.findUnique({
         where: { id: requestId },
         include: {
-          Client: true,
           RequestContactItems: true,
           PracticeService: true,
         },
@@ -82,9 +81,9 @@ export async function POST(
       let clientId: string;
 
       // 2. Handle client creation/retrieval
-      if (appointmentRequest.Client) {
+      if (appointmentRequest.client_id) {
         // Existing client
-        clientId = appointmentRequest.Client.id;
+        clientId = appointmentRequest.client_id;
       } else if (appointmentRequest.RequestContactItems.length > 0) {
         // New client - create from contact items
         const contactItem = appointmentRequest.RequestContactItems[0];
@@ -163,7 +162,7 @@ export async function POST(
         data: {
           id: appointmentId,
           type: "appointment",
-          title: `Appointment with ${appointmentRequest.PracticeService?.name || "Service"}`,
+          title: `Appointment with ${appointmentRequest.PracticeService?.description || "Service"}`,
           is_all_day: false,
           start_date: appointmentRequest.start_time,
           end_date: appointmentRequest.end_time,
@@ -171,7 +170,7 @@ export async function POST(
           status: "scheduled",
           clinician_id: clinicianId,
           service_id: appointmentRequest.service_id,
-          appointment_fee: appointmentRequest.PracticeService?.fee || 0,
+          appointment_fee: appointmentRequest.PracticeService?.rate || 0,
         },
       });
 

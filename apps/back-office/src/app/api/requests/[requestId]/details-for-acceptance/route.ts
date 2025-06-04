@@ -29,23 +29,6 @@ export async function GET(
     const appointmentRequest = await prisma.appointmentRequests.findUnique({
       where: { id: requestId },
       include: {
-        Client: {
-          select: {
-            id: true,
-            legal_first_name: true,
-            legal_last_name: true,
-            ClientContact: {
-              where: {
-                OR: [{ contact_type: "email" }, { contact_type: "phone" }],
-              },
-              select: {
-                contact_type: true,
-                value: true,
-                is_primary: true,
-              },
-            },
-          },
-        },
         RequestContactItems: {
           select: {
             id: true,
@@ -59,8 +42,9 @@ export async function GET(
         PracticeService: {
           select: {
             id: true,
-            name: true,
+            description: true,
             duration: true,
+            rate: true,
           },
         },
       },
@@ -98,32 +82,53 @@ export async function GET(
       },
     });
 
+    // Fetch client if client_id exists
+    let client = null;
+    if (appointmentRequest.client_id) {
+      client = await prisma.client.findUnique({
+        where: { id: appointmentRequest.client_id },
+        select: {
+          id: true,
+          legal_first_name: true,
+          legal_last_name: true,
+          ClientContact: {
+            where: {
+              OR: [{ contact_type: "email" }, { contact_type: "phone" }],
+            },
+            select: {
+              contact_type: true,
+              value: true,
+              is_primary: true,
+            },
+          },
+        },
+      });
+    }
+
     // Prepare client information
     let clientInfo;
-    if (appointmentRequest.Client) {
+    if (client) {
       // Existing client
       const primaryEmail =
-        appointmentRequest.Client.ClientContact.find(
+        client.ClientContact.find(
           (contact) => contact.contact_type === "email" && contact.is_primary,
         )?.value ||
-        appointmentRequest.Client.ClientContact.find(
-          (contact) => contact.contact_type === "email",
-        )?.value;
+        client.ClientContact.find((contact) => contact.contact_type === "email")
+          ?.value;
 
       const primaryPhone =
-        appointmentRequest.Client.ClientContact.find(
+        client.ClientContact.find(
           (contact) => contact.contact_type === "phone" && contact.is_primary,
         )?.value ||
-        appointmentRequest.Client.ClientContact.find(
-          (contact) => contact.contact_type === "phone",
-        )?.value;
+        client.ClientContact.find((contact) => contact.contact_type === "phone")
+          ?.value;
 
       clientInfo = {
-        name: `${appointmentRequest.Client.legal_first_name} ${appointmentRequest.Client.legal_last_name}`,
+        name: `${client.legal_first_name} ${client.legal_last_name}`,
         email: primaryEmail || "",
         phone: primaryPhone || "",
         isNewClient: false,
-        clientId: appointmentRequest.Client.id,
+        clientId: client.id,
       };
     } else if (appointmentRequest.RequestContactItems.length > 0) {
       // New client from contact items
@@ -149,7 +154,8 @@ export async function GET(
         appointmentDetails: {
           dateTime: appointmentRequest.start_time.toISOString(),
           serviceName:
-            appointmentRequest.PracticeService?.name || "Unknown Service",
+            appointmentRequest.PracticeService?.description ||
+            "Unknown Service",
           duration: appointmentRequest.PracticeService?.duration || 60,
         },
         status: appointmentRequest.status,
