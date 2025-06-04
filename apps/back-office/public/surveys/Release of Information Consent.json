@@ -1,0 +1,153 @@
+{
+  "title": "Release of Information Consent",
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "text",
+          "name": "name",
+          "title": "Client's name:",
+          "isRequired": true
+        },
+        {
+          "type": "checkbox",
+          "name": "authorize",
+          "title": "I authorize [NAME OF PRACTICE or CLINICIAN'S NAME] to:",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Send"
+            },
+            {
+              "value": "Item 2",
+              "text": "Receive"
+            },
+            "Item 3"
+          ]
+        },
+        {
+          "type": "checkbox",
+          "name": "information",
+          "title": "The following information:",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Medical history and evaluation(s)"
+            },
+            {
+              "value": "Item 2",
+              "text": "Mental health evaluations"
+            },
+            {
+              "value": "Item 3",
+              "text": "Developmental and/or social history"
+            },
+            {
+              "value": "Item 4",
+              "text": "Educational records"
+            },
+            {
+              "value": "Item 5",
+              "text": "Progress notes, and treatment or closing summary"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "text",
+          "name": "to_from",
+          "title": "To / From:"
+        },
+        {
+          "type": "text",
+          "name": "phone",
+          "title": "Phone",
+          "inputType": "tel"
+        },
+        {
+          "type": "radiogroup",
+          "name": "relationship",
+          "title": "Your relationship to client:",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Self"
+            },
+            {
+              "value": "Item 2",
+              "text": "Parent/legal guardian"
+            },
+            {
+              "value": "Item 3",
+              "text": "Personal representative"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "checkbox",
+          "name": "info_purpose",
+          "title": "The above information will be used for the following purposes:",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Planning appropriate treatment or program"
+            },
+            {
+              "value": "Item 2",
+              "text": "Continuing appropriate treatment or program"
+            },
+            {
+              "value": "Item 3",
+              "text": "Determining eligibility for benefits or program"
+            },
+            {
+              "value": "Item 4",
+              "text": "Case review"
+            },
+            {
+              "value": "Item 5",
+              "text": "Updating files"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "html",
+          "name": "footer",
+          "html": "<b>I understand that this information may be protected by Title 45 (Code of Federal Rules of Privacy of Individually Identifiable Health Information, Parts 160 and 164) and Title 42 (Federal Rules of Confidentiality of Alcohol and Drug Abuse Patient Records, Chapter 1, Part 2), plus applicable state laws. I further understand that the information disclosed to the recipient may not be protected under these guidelines if they are not a health care provider covered by state or federal rules. I understand that this authorization is voluntary, and I may revoke this consent at any time by providing written notice, and after (some states vary, usually 1 year) this consent automatically expires. I have been informed what information will be given, its purpose, and who will receive the information. I understand that I have a right to receive a copy of this authorization. I understand that I have a right to refuse to sign this authorization. If you are the legal guardian or representative appointed by the court for the client, please attach a copy of this authorization to receive this protected health information.</b>"
+        },
+        {
+          "type": "html",
+          "name": "signature",
+          "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Sign Here Form</title>\n    <style>\n        * {\n            margin: 0;\n            padding: 0;\n            box-sizing: border-box;\n        }\n        \n        body {\n            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n            background-color: #f5f5f5;\n            padding: 40px 20px;\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            min-height: 100vh;\n        }\n        \n        .sign-container {\n            background-color: #ffffff;\n            border: 2px solid #4a90e2;\n            border-radius: 8px;\n            padding: 40px 30px;\n            text-align: center;\n            max-width: 400px;\n            width: 100%;\n            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);\n        }\n        \n        .document-icon {\n            width: 60px;\n            height: 60px;\n            margin: 0 auto 20px;\n            position: relative;\n            background-color: #e8f2ff;\n            border-radius: 4px;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n        \n        .document-icon::before {\n            content: '';\n            width: 24px;\n            height: 30px;\n            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\n            border-radius: 2px;\n            position: relative;\n        }\n        \n        .document-icon::after {\n            content: '';\n            position: absolute;\n            bottom: 8px;\n            right: 8px;\n            width: 0;\n            height: 0;\n            border-left: 8px solid #ff4444;\n            border-top: 4px solid transparent;\n            border-bottom: 4px solid transparent;\n        }\n        \n        .sign-title {\n            color: #4a90e2;\n            font-size: 18px;\n            font-weight: 500;\n            margin-bottom: 15px;\n        }\n        \n        .sign-description {\n            color: #666666;\n            font-size: 14px;\n            line-height: 1.4;\n            margin-bottom: 0;\n        }\n        \n        .sign-container:hover {\n            transform: translateY(-1px);\n            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);\n            transition: all 0.2s ease;\n            cursor: pointer;\n        }\n        \n        @media (max-width: 480px) {\n            .sign-container {\n                padding: 30px 20px;\n            }\n            \n            .document-icon {\n                width: 50px;\n                height: 50px;\n            }\n            \n            .sign-title {\n                font-size: 16px;\n            }\n            \n            .sign-description {\n                font-size: 13px;\n            }\n        }\n    </style>\n</head>\n<body>\n    <div class=\"sign-container\" onclick=\"handleSignClick()\">\n        <div class=\"document-icon\"></div>\n        <h5 class=\"sign-title\">Sign here</h5>\n        <p class=\"sign-description\">By adding your signature you are<br>eSigning this form</p>\n    </div>\n\n    <script>\n        function handleSignClick() {\n            // Add your signature handling logic here\n            alert('Opening signature pad...');\n            \n            // Example: You could open a modal, navigate to a signature page, etc.\n            // For now, just showing an alert as placeholder\n        }\n        \n        // Add hover effect with JavaScript for better browser support\n        const container = document.querySelector('.sign-container');\n        \n        container.addEventListener('mouseenter', function() {\n            this.style.transform = 'translateY(-1px)';\n            this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';\n            this.style.transition = 'all 0.2s ease';\n        });\n        \n        container.addEventListener('mouseleave', function() {\n            this.style.transform = 'translateY(0)';\n            this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';\n        });\n    </script>\n</body>\n</html>"
+        },
+        {
+          "type": "text",
+          "name": "date",
+          "title": "Date",
+          "isRequired": true,
+          "inputType": "date"
+        },
+        {
+          "type": "text",
+          "name": "witness",
+          "title": "Witness signature (if client is unable to sign):"
+        },
+        {
+          "type": "text",
+          "name": "witness_date",
+          "title": "Witness Date:",
+          "inputType": "date"
+        }
+      ]
+    }
+  ],
+  "showTitle": false,
+  "headerView": "advanced"
+}

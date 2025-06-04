@@ -16,7 +16,7 @@ import {
   ChevronsLeftIcon,
 } from "lucide-react";
 import { cn } from "@mcw/utils";
-import { useSidebar } from "../../contexts/SidebarContext";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { Button, useIsMobile } from "@mcw/ui";
 
 interface SidebarProps {

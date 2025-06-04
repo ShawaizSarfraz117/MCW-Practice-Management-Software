@@ -1,7 +1,7 @@
 ---
 description: 
-globs: *test*
-alwaysApply: false
+globs: 
+alwaysApply: true
 ---
 # Testing Guidelines for MCW Practice Management Software
 
@@ -642,6 +642,14 @@ Tests should be clean and maintainable:
 - Split long tests into smaller, focused tests
 - Comment complex test setup or assertions
 - Use helper functions for repeated code
+
+### Test File Length
+
+- **Keep Test Files Concise**: Aim to keep test files under 600 lines of code. Large test files can become difficult to navigate and maintain.
+- **Strategies for Long Files**: If a test file is approaching or exceeding this limit, consider the following strategies:
+    - **Split by Feature Subset**: If a single route handler or module has many distinct features or sub-features, consider splitting the tests into multiple files, each focused on a subset of those features (e.g., `feature.validation.unit.test.ts`, `feature.core-logic.unit.test.ts`).
+    - **Separate Unit and Integration Aspects**: If a test file mixes very granular unit tests with more integrated tests (even if all are `.unit.test.ts` by convention due to mocking databases), consider if some of the more integrated scenarios could be grouped into a separate file.
+    - **Refactor Helper Utilities**: Complex setup or assertion logic can sometimes be extracted into shared helper functions, potentially reducing line count in the test file itself. However, ensure helpers don't obscure the test's intent.
 
 ### Unit and Integration Tests Additional Guidelines
 

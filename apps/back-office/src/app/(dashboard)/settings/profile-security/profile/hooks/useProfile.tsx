@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ProfileData } from "../../types";
+import { ProfileData } from "@/(dashboard)/settings/profile-security/types";
 
 export function useProfile() {
   return useQuery({
