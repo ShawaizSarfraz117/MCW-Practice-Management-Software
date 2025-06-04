@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { RequestInternal } from "next-auth";
 import { prisma } from "@mcw/database";
 

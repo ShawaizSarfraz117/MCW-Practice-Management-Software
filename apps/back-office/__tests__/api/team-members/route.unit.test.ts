@@ -69,8 +69,8 @@ vi.mock("@/utils/helpers", () => ({
   getBackOfficeSession: vi.fn(),
 }));
 
-// Mock bcrypt for password hashing
-vi.mock("bcrypt", () => ({
+// Mock bcryptjs for password hashing
+vi.mock("bcryptjs", () => ({
   hash: vi.fn(async () => "hashed_password"),
 }));
 

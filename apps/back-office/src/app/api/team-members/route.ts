@@ -3,7 +3,7 @@ import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { z } from "zod";
-import { hash } from "bcrypt";
+import { hash } from "bcryptjs";
 import { Prisma } from "@prisma/client";
 
 // Schema for creating a team member
