@@ -26,6 +26,7 @@ interface BillingSettingsRequest {
 
 async function getClinicianId(session: Session | null) {
   if (!session?.user) return null;
+  console.log("session.user", session.user);
   const clinician = await prisma.clinician.findUnique({
     where: { user_id: session.user.id },
     select: { id: true },
@@ -85,6 +86,8 @@ function validateBillingSettings(body: BillingSettingsRequest): string[] {
 export async function GET() {
   try {
     const session = await getServerSession(backofficeAuthOptions);
+    console.log("session", session);
+
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -171,6 +174,7 @@ export async function PUT(request: Request) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    console.log("session", session);
     const clinicianId = await getClinicianId(session);
     if (!clinicianId) {
       return NextResponse.json(
@@ -190,9 +194,29 @@ export async function PUT(request: Request) {
       );
     }
 
-    const billingSettings = await prisma.billingSettings.update({
+    const billingSettings = await prisma.billingSettings.upsert({
       where: { clinician_id: clinicianId },
-      data: {
+      update: {
+        autoInvoiceCreation: body.autoInvoiceCreation,
+        pastDueDays: body.pastDueDays,
+        emailClientPastDue: body.emailClientPastDue,
+        invoiceIncludePracticeLogo: body.invoiceIncludePracticeLogo,
+        invoiceFooterInfo: body.invoiceFooterInfo,
+        superbillDayOfMonth: body.superbillDayOfMonth,
+        superbillIncludePracticeLogo: body.superbillIncludePracticeLogo,
+        superbillIncludeSignatureLine: body.superbillIncludeSignatureLine,
+        superbillIncludeDiagnosisDescription:
+          body.superbillIncludeDiagnosisDescription,
+        superbillFooterInfo: body.superbillFooterInfo,
+        billingDocEmailDelayMinutes: body.billingDocEmailDelayMinutes,
+        createMonthlyStatementsForNewClients:
+          body.createMonthlyStatementsForNewClients,
+        createMonthlySuperbillsForNewClients:
+          body.createMonthlySuperbillsForNewClients,
+        defaultNotificationMethod: body.defaultNotificationMethod,
+      },
+      create: {
+        clinician_id: clinicianId,
         autoInvoiceCreation: body.autoInvoiceCreation,
         pastDueDays: body.pastDueDays,
         emailClientPastDue: body.emailClientPastDue,

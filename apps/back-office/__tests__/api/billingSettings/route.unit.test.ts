@@ -117,7 +117,7 @@ describe("Billing Settings API Unit Tests", () => {
     });
 
     prismaMock.clinician.findUnique.mockResolvedValueOnce(mockClinician);
-    prismaMock.billingSettings.update.mockResolvedValueOnce(mockSettings);
+    prismaMock.billingSettings.upsert.mockResolvedValueOnce(mockSettings);
 
     const request = createRequestWithBody("/api/billing-settings", {
       autoInvoiceCreation: "daily",

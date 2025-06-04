@@ -249,7 +249,7 @@ describe("Billing Settings API Integration Tests", () => {
     expect(dbSettings?.pastDueDays).toBe(updateData.pastDueDays);
   });
 
-  it("PUT /api/billing-settings should return 500 when settings don't exist", async () => {
+  it("PUT /api/billing-settings should upsert (insert if not exists)", async () => {
     const updateData = {
       autoInvoiceCreation: "daily",
       pastDueDays: 30,
@@ -271,6 +271,8 @@ describe("Billing Settings API Integration Tests", () => {
       method: "PUT",
     });
     const response = await PUT(req);
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json).toMatchObject(updateData);
   });
 });
