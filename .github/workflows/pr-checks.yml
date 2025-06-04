@@ -4,6 +4,13 @@ on:
   pull_request:
     branches: [main, master]
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to run checks on"
+        required: false
+        default: "current branch"
+        type: string
 
 jobs:
   validate:
