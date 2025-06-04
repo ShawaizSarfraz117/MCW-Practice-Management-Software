@@ -11,15 +11,6 @@ interface ReminderTextTemplate {
   content: string;
 }
 
-// Mock the logger
-vi.mock("@mcw/logger", () => ({
-  logger: {
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  },
-}));
-
 describe("GET /api/reminder-text-templates/[type] Unit Tests", () => {
   beforeEach(() => {
     vi.resetAllMocks();
