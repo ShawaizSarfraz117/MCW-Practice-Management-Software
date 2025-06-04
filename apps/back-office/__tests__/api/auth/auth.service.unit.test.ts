@@ -2,7 +2,7 @@ import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import { authorize } from "@/api/auth/[...nextauth]/auth.service";
 import prismaMock from "@mcw/database/mock";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { UserFactory } from "@mcw/database/mock-data";
 import type { RequestInternal } from "next-auth";
 
