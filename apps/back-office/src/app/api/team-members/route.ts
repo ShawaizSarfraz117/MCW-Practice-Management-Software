@@ -98,22 +98,30 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter by role if specified
-    if (role !== "undefined") {
+    if (role && role !== "all" && role !== "undefined") {
+      // Convert role to uppercase to match database convention
+      const normalizedRole = role.toUpperCase();
       where.UserRole = {
         some: {
           Role: {
-            name: role,
+            name: normalizedRole,
           },
         },
       };
     }
 
-    // Fetch users with roles and clinician info
+    // Fetch users with roles and clinician info, excluding sensitive fields
     const users = await prisma.user.findMany({
       where,
       skip,
       take: pageSize,
-      include: {
+      select: {
+        id: true,
+        email: true,
+        last_login: true,
+        date_of_birth: true,
+        phone: true,
+        profile_photo: true,
         UserRole: {
           include: {
             Role: true,
@@ -303,10 +311,16 @@ export async function POST(request: NextRequest) {
       return { newUser, clinician, clinicalInfo };
     });
 
-    // Fetch the created user with all related data
+    // Fetch the created user with all related data, excluding password_hash
     const createdUser = await prisma.user.findUnique({
       where: { id: result.newUser.id },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        last_login: true,
+        date_of_birth: true,
+        phone: true,
+        profile_photo: true,
         UserRole: {
           include: {
             Role: true,
@@ -464,10 +478,16 @@ export async function PUT(request: NextRequest) {
       }
     });
 
-    // Fetch updated user
+    // Fetch updated user, excluding password_hash
     const updatedUser = await prisma.user.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        last_login: true,
+        date_of_birth: true,
+        phone: true,
+        profile_photo: true,
         UserRole: {
           include: {
             Role: true,
