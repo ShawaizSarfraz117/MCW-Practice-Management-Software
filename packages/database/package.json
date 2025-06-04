@@ -32,6 +32,7 @@
     "@faker-js/faker": "^9.6.0",
     "@mcw/tsconfig-config": "*",
     "@quramy/prisma-fabbrica": "^2.2.2",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.11.17",
     "bcryptjs": "^2.4.3",
     "eslint": "^9.22.0",
