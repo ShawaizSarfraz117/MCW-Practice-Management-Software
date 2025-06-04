@@ -194,48 +194,56 @@ export async function PUT(request: Request) {
       );
     }
 
-    const billingSettings = await prisma.billingSettings.upsert({
+    let billingSettings = await prisma.billingSettings.findUnique({
       where: { clinician_id: clinicianId },
-      update: {
-        autoInvoiceCreation: body.autoInvoiceCreation,
-        pastDueDays: body.pastDueDays,
-        emailClientPastDue: body.emailClientPastDue,
-        invoiceIncludePracticeLogo: body.invoiceIncludePracticeLogo,
-        invoiceFooterInfo: body.invoiceFooterInfo,
-        superbillDayOfMonth: body.superbillDayOfMonth,
-        superbillIncludePracticeLogo: body.superbillIncludePracticeLogo,
-        superbillIncludeSignatureLine: body.superbillIncludeSignatureLine,
-        superbillIncludeDiagnosisDescription:
-          body.superbillIncludeDiagnosisDescription,
-        superbillFooterInfo: body.superbillFooterInfo,
-        billingDocEmailDelayMinutes: body.billingDocEmailDelayMinutes,
-        createMonthlyStatementsForNewClients:
-          body.createMonthlyStatementsForNewClients,
-        createMonthlySuperbillsForNewClients:
-          body.createMonthlySuperbillsForNewClients,
-        defaultNotificationMethod: body.defaultNotificationMethod,
-      },
-      create: {
-        clinician_id: clinicianId,
-        autoInvoiceCreation: body.autoInvoiceCreation,
-        pastDueDays: body.pastDueDays,
-        emailClientPastDue: body.emailClientPastDue,
-        invoiceIncludePracticeLogo: body.invoiceIncludePracticeLogo,
-        invoiceFooterInfo: body.invoiceFooterInfo,
-        superbillDayOfMonth: body.superbillDayOfMonth,
-        superbillIncludePracticeLogo: body.superbillIncludePracticeLogo,
-        superbillIncludeSignatureLine: body.superbillIncludeSignatureLine,
-        superbillIncludeDiagnosisDescription:
-          body.superbillIncludeDiagnosisDescription,
-        superbillFooterInfo: body.superbillFooterInfo,
-        billingDocEmailDelayMinutes: body.billingDocEmailDelayMinutes,
-        createMonthlyStatementsForNewClients:
-          body.createMonthlyStatementsForNewClients,
-        createMonthlySuperbillsForNewClients:
-          body.createMonthlySuperbillsForNewClients,
-        defaultNotificationMethod: body.defaultNotificationMethod,
-      },
     });
+    if (billingSettings) {
+      billingSettings = await prisma.billingSettings.update({
+        where: { clinician_id: clinicianId },
+        data: {
+          autoInvoiceCreation: body.autoInvoiceCreation,
+          pastDueDays: body.pastDueDays,
+          emailClientPastDue: body.emailClientPastDue,
+          invoiceIncludePracticeLogo: body.invoiceIncludePracticeLogo,
+          invoiceFooterInfo: body.invoiceFooterInfo,
+          superbillDayOfMonth: body.superbillDayOfMonth,
+          superbillIncludePracticeLogo: body.superbillIncludePracticeLogo,
+          superbillIncludeSignatureLine: body.superbillIncludeSignatureLine,
+          superbillIncludeDiagnosisDescription:
+            body.superbillIncludeDiagnosisDescription,
+          superbillFooterInfo: body.superbillFooterInfo,
+          billingDocEmailDelayMinutes: body.billingDocEmailDelayMinutes,
+          createMonthlyStatementsForNewClients:
+            body.createMonthlyStatementsForNewClients,
+          createMonthlySuperbillsForNewClients:
+            body.createMonthlySuperbillsForNewClients,
+          defaultNotificationMethod: body.defaultNotificationMethod,
+        },
+      });
+    } else {
+      billingSettings = await prisma.billingSettings.create({
+        data: {
+          clinician_id: clinicianId,
+          autoInvoiceCreation: body.autoInvoiceCreation,
+          pastDueDays: body.pastDueDays,
+          emailClientPastDue: body.emailClientPastDue,
+          invoiceIncludePracticeLogo: body.invoiceIncludePracticeLogo,
+          invoiceFooterInfo: body.invoiceFooterInfo,
+          superbillDayOfMonth: body.superbillDayOfMonth,
+          superbillIncludePracticeLogo: body.superbillIncludePracticeLogo,
+          superbillIncludeSignatureLine: body.superbillIncludeSignatureLine,
+          superbillIncludeDiagnosisDescription:
+            body.superbillIncludeDiagnosisDescription,
+          superbillFooterInfo: body.superbillFooterInfo,
+          billingDocEmailDelayMinutes: body.billingDocEmailDelayMinutes,
+          createMonthlyStatementsForNewClients:
+            body.createMonthlyStatementsForNewClients,
+          createMonthlySuperbillsForNewClients:
+            body.createMonthlySuperbillsForNewClients,
+          defaultNotificationMethod: body.defaultNotificationMethod,
+        },
+      });
+    }
     return NextResponse.json(billingSettings);
   } catch (error) {
     console.error("Error updating billing settings:", error);

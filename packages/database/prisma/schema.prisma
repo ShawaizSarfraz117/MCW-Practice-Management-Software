@@ -638,7 +638,7 @@ model BillingSettings {
   createMonthlySuperbillsForNewClients Boolean?
   defaultNotificationMethod            String?    @db.VarChar(50)
   created_at                           DateTime   @default(now())
-  updated_at                           DateTime   @updatedAt
+  updated_at                           DateTime   @default(now())
   Clinician                            Clinician? @relation(fields: [clinician_id], references: [id], onDelete: Cascade)
 
   @@index([clinician_id])

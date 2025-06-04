@@ -100,7 +100,7 @@ describe("Billing Settings API Unit Tests", () => {
     });
   });
 
-  it("PUT /api/billing-settings should update billing settings", async () => {
+  it("PUT /api/billing-settings should create billing settings if not exists", async () => {
     const mockClinician = ClinicianFactory.build({
       user_id: mockSession.user.id,
       speciality: null,
@@ -117,6 +117,56 @@ describe("Billing Settings API Unit Tests", () => {
     });
 
     prismaMock.clinician.findUnique.mockResolvedValueOnce(mockClinician);
+    prismaMock.billingSettings.findUnique.mockResolvedValueOnce(null); // Simulate not exists
+    prismaMock.billingSettings.create.mockResolvedValueOnce(mockSettings);
+
+    const request = createRequestWithBody("/api/billing-settings", {
+      autoInvoiceCreation: "daily",
+      pastDueDays: 30,
+      emailClientPastDue: true,
+      invoiceIncludePracticeLogo: true,
+      invoiceFooterInfo: "Test footer",
+      superbillDayOfMonth: 15,
+      superbillIncludePracticeLogo: true,
+      superbillIncludeSignatureLine: true,
+      superbillIncludeDiagnosisDescription: true,
+      superbillFooterInfo: "Test superbill footer",
+      billingDocEmailDelayMinutes: 60,
+      createMonthlyStatementsForNewClients: true,
+      createMonthlySuperbillsForNewClients: true,
+      defaultNotificationMethod: "email",
+    });
+
+    const response = await PUT(request);
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json).toMatchObject({
+      id: mockSettings.id,
+      clinician_id: mockClinician.id,
+      autoInvoiceCreation: mockSettings.autoInvoiceCreation,
+    });
+    expect(prismaMock.billingSettings.create).toHaveBeenCalled();
+    expect(prismaMock.billingSettings.update).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/billing-settings should update billing settings if exists", async () => {
+    const mockClinician = ClinicianFactory.build({
+      user_id: mockSession.user.id,
+      speciality: null,
+      NPI_number: null,
+      taxonomy_code: null,
+    });
+    const mockSettings = BillingSettingsFactory.build({
+      clinician_id: mockClinician.id,
+      autoInvoiceCreation: "daily",
+      pastDueDays: 30,
+      superbillDayOfMonth: 15,
+      billingDocEmailDelayMinutes: 60,
+      defaultNotificationMethod: "email",
+    });
+
+    prismaMock.clinician.findUnique.mockResolvedValueOnce(mockClinician);
+    prismaMock.billingSettings.findUnique.mockResolvedValueOnce(mockSettings); // Simulate exists
     prismaMock.billingSettings.update.mockResolvedValueOnce(mockSettings);
 
     const request = createRequestWithBody("/api/billing-settings", {
@@ -144,6 +194,8 @@ describe("Billing Settings API Unit Tests", () => {
       clinician_id: mockClinician.id,
       autoInvoiceCreation: mockSettings.autoInvoiceCreation,
     });
+    expect(prismaMock.billingSettings.update).toHaveBeenCalled();
+    expect(prismaMock.billingSettings.create).not.toHaveBeenCalled();
   });
 
   it("should return 401 if session is invalid for POST/PUT", async () => {
