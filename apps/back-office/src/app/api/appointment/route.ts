@@ -4,6 +4,63 @@ import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
 
+// Helper function to add default tags to an appointment
+async function addDefaultAppointmentTags(
+  appointmentId: string,
+  clientGroupId: string | null,
+) {
+  try {
+    // Get all tags
+    const tags = await prisma.tag.findMany();
+
+    // Find specific tags
+    const unpaidTag = tags.find((t) => t.name === "Appointment Unpaid");
+    const noNoteTag = tags.find((t) => t.name === "No Note");
+    const newClientTag = tags.find((t) => t.name === "New Client");
+
+    const tagsToAdd = [];
+
+    // All appointments start as unpaid
+    if (unpaidTag) {
+      tagsToAdd.push({ appointment_id: appointmentId, tag_id: unpaidTag.id });
+    }
+
+    // All appointments start with no note
+    if (noNoteTag) {
+      tagsToAdd.push({ appointment_id: appointmentId, tag_id: noNoteTag.id });
+    }
+
+    // Check if this is a new client (first appointment for this client group)
+    if (clientGroupId && newClientTag) {
+      const appointmentCount = await prisma.appointment.count({
+        where: {
+          client_group_id: clientGroupId,
+          id: { not: appointmentId },
+        },
+      });
+
+      if (appointmentCount === 0) {
+        tagsToAdd.push({
+          appointment_id: appointmentId,
+          tag_id: newClientTag.id,
+        });
+      }
+    }
+
+    // Create appointment tags
+    if (tagsToAdd.length > 0) {
+      await prisma.appointmentTag.createMany({
+        data: tagsToAdd,
+      });
+    }
+  } catch (error) {
+    logger.error(
+      `Failed to add default tags to appointment ${appointmentId}: ${error}`,
+    );
+    // Don't throw error to avoid failing the appointment creation
+  }
+}
+
 // GET - Retrieve all appointments or a specific appointment by ID
 export async function GET(request: NextRequest) {
   try {
@@ -34,6 +91,11 @@ export async function GET(request: NextRequest) {
           Location: true,
           User: true,
           PracticeService: true,
+          AppointmentTag: {
+            include: {
+              Tag: true,
+            },
+          },
         },
       });
 
@@ -122,6 +184,11 @@ export async function GET(request: NextRequest) {
               id: true,
               name: true,
               address: true,
+            },
+          },
+          AppointmentTag: {
+            include: {
+              Tag: true,
             },
           },
         },
@@ -232,7 +299,9 @@ export async function POST(request: NextRequest) {
     if (!data.start_date) missingFields.push("start date");
     if (!data.clinician_id) missingFields.push("clinician");
     if (!data.location_id) missingFields.push("location");
-    if (!data.created_by) missingFields.push("created by");
+    // If created_by is null, we'll use clinician_id, so only require one of them
+    if (!data.created_by && !data.clinician_id)
+      missingFields.push("created by or clinician");
 
     // Only validate client_group_id if this is a client appointment (not an event)
     if (!isEventType && !data.client_group_id) {
@@ -348,7 +417,7 @@ export async function POST(request: NextRequest) {
         start_date: startDate,
         end_date: endDate,
         location_id: data.location_id,
-        created_by: data.created_by,
+        created_by: data.created_by || data.clinician_id, // Use clinician_id if created_by is null
         status: data.status || "SCHEDULED",
         client_group_id: data.client_group_id,
         clinician_id: data.clinician_id,
@@ -406,6 +475,12 @@ export async function POST(request: NextRequest) {
               },
             },
           });
+
+          // Add default tags for the master appointment
+          await addDefaultAppointmentTags(
+            masterAppointment.id,
+            masterAppointment.client_group_id,
+          );
 
           // Create recurring instances
           const recurringAppointments = [masterAppointment];
@@ -512,6 +587,11 @@ export async function POST(request: NextRequest) {
 
                   recurringAppointments.push(recurringAppointment);
                   createdCount++;
+
+                  await addDefaultAppointmentTags(
+                    recurringAppointment.id,
+                    recurringAppointment.client_group_id,
+                  );
                 } catch (error) {
                   console.error(
                     `Failed to create recurring appointment for date ${appointmentDate.toISOString()}:`,
@@ -521,7 +601,45 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            return NextResponse.json(recurringAppointments, { status: 201 });
+            const appointmentIds = recurringAppointments.map((apt) => apt.id);
+            const appointmentsWithTags = await prisma.appointment.findMany({
+              where: { id: { in: appointmentIds } },
+              include: {
+                ClientGroup: {
+                  include: {
+                    ClientGroupMembership: {
+                      include: {
+                        Client: true,
+                      },
+                    },
+                  },
+                },
+                Clinician: {
+                  select: {
+                    id: true,
+                    first_name: true,
+                    last_name: true,
+                  },
+                },
+                Location: {
+                  select: {
+                    id: true,
+                    name: true,
+                    address: true,
+                  },
+                },
+                AppointmentTag: {
+                  include: {
+                    Tag: true,
+                  },
+                },
+              },
+              orderBy: {
+                start_date: "asc",
+              },
+            });
+
+            return NextResponse.json(appointmentsWithTags, { status: 201 });
           } else {
             // Handle standard recurrence (not using BYDAY with multiple days)
             // Calculate occurrences (max 10 for this implementation)
@@ -587,9 +705,54 @@ export async function POST(request: NextRequest) {
               });
 
               recurringAppointments.push(recurringAppointment);
+
+              // Add default tags for each recurring appointment
+              await addDefaultAppointmentTags(
+                recurringAppointment.id,
+                recurringAppointment.client_group_id,
+              );
             }
 
-            return NextResponse.json(recurringAppointments, { status: 201 });
+            // Fetch all created appointments with tags
+            const appointmentIds = recurringAppointments.map((apt) => apt.id);
+            const appointmentsWithTags = await prisma.appointment.findMany({
+              where: { id: { in: appointmentIds } },
+              include: {
+                ClientGroup: {
+                  include: {
+                    ClientGroupMembership: {
+                      include: {
+                        Client: true,
+                      },
+                    },
+                  },
+                },
+                Clinician: {
+                  select: {
+                    id: true,
+                    first_name: true,
+                    last_name: true,
+                  },
+                },
+                Location: {
+                  select: {
+                    id: true,
+                    name: true,
+                    address: true,
+                  },
+                },
+                AppointmentTag: {
+                  include: {
+                    Tag: true,
+                  },
+                },
+              },
+              orderBy: {
+                start_date: "asc",
+              },
+            });
+
+            return NextResponse.json(appointmentsWithTags, { status: 201 });
           }
         } catch (error) {
           console.error("Error processing recurring appointment:", error);
@@ -633,7 +796,46 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        return NextResponse.json(newAppointment, { status: 201 });
+        await addDefaultAppointmentTags(
+          newAppointment.id,
+          newAppointment.client_group_id,
+        );
+
+        const appointmentWithTags = await prisma.appointment.findUnique({
+          where: { id: newAppointment.id },
+          include: {
+            ClientGroup: {
+              include: {
+                ClientGroupMembership: {
+                  include: {
+                    Client: true,
+                  },
+                },
+              },
+            },
+            Clinician: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+              },
+            },
+            Location: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+              },
+            },
+            AppointmentTag: {
+              include: {
+                Tag: true,
+              },
+            },
+          },
+        });
+
+        return NextResponse.json(appointmentWithTags, { status: 201 });
       }
     } catch (dateError) {
       console.error("Date validation error:", dateError);
@@ -797,6 +999,11 @@ export async function PUT(request: NextRequest) {
                     address: true,
                   },
                 },
+                AppointmentTag: {
+                  include: {
+                    Tag: true,
+                  },
+                },
               },
             });
 
@@ -879,6 +1086,11 @@ export async function PUT(request: NextRequest) {
                   id: true,
                   name: true,
                   address: true,
+                },
+              },
+              AppointmentTag: {
+                include: {
+                  Tag: true,
                 },
               },
             },
@@ -1083,6 +1295,11 @@ export async function PUT(request: NextRequest) {
             id: true,
             name: true,
             address: true,
+          },
+        },
+        AppointmentTag: {
+          include: {
+            Tag: true,
           },
         },
       },

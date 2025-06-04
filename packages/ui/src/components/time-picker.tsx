@@ -123,7 +123,6 @@ export function TimePicker({
                       isSelected &&
                         "bg-[#16A34A]/10 text-[#16A34A] font-medium",
                     )}
-                    value={time}
                     disabled={isDisabled}
                     onSelect={() => {
                       if (!isDisabled) {
@@ -131,6 +130,7 @@ export function TimePicker({
                         setOpen(false);
                       }
                     }}
+                    value={time}
                   >
                     {time}
                   </CommandItem>

@@ -269,6 +269,9 @@ export function CalendarView({
           (
             appointment: AppointmentData & {
               isFirstAppointmentForGroup?: boolean;
+              AppointmentTag?: Array<{
+                Tag: { name: string };
+              }>;
             },
           ) => ({
             id: appointment.id,
@@ -278,9 +281,10 @@ export function CalendarView({
             end: appointment.end_date,
             location: appointment.location_id || "",
             extendedProps: {
-              type: "appointment",
+              type: "appointment" as const,
               isFirstAppointmentForGroup:
                 appointment.isFirstAppointmentForGroup,
+              appointmentTags: appointment.AppointmentTag || [],
             },
           }),
         );
@@ -303,6 +307,10 @@ export function CalendarView({
       "appointmentDeleted",
       handleAppointmentDelete as EventListener,
     );
+    window.addEventListener(
+      "appointmentTagsUpdated",
+      handleAppointmentDelete as EventListener,
+    );
 
     return () => {
       window.removeEventListener(
@@ -311,6 +319,10 @@ export function CalendarView({
       );
       window.removeEventListener(
         "appointmentDeleted",
+        handleAppointmentDelete as EventListener,
+      );
+      window.removeEventListener(
+        "appointmentTagsUpdated",
         handleAppointmentDelete as EventListener,
       );
     };
@@ -461,6 +473,10 @@ export function CalendarView({
         start: appointment.start_date,
         end: appointment.end_date,
         location: appointment.location_id || "",
+        extendedProps: {
+          type: "appointment" as const,
+          appointmentTags: appointment.AppointmentTag || [],
+        },
       }));
 
       return formattedEvents;
@@ -754,6 +770,9 @@ export function CalendarView({
         (
           appointment: AppointmentData & {
             isFirstAppointmentForGroup?: boolean;
+            AppointmentTag?: Array<{
+              Tag: { name: string };
+            }>;
           },
         ) => ({
           id: appointment.id,
@@ -763,8 +782,9 @@ export function CalendarView({
           end: appointment.end_date,
           location: appointment.location_id || "",
           extendedProps: {
-            type: "appointment",
+            type: "appointment" as const,
             isFirstAppointmentForGroup: appointment.isFirstAppointmentForGroup,
+            appointmentTags: appointment.AppointmentTag || [],
           },
         }),
       );
@@ -1264,8 +1284,12 @@ export function CalendarView({
           eventClick={handleEventClick}
           eventContent={(arg) => {
             const type = arg.event.extendedProps?.type;
-            const isFirstAppointment = arg.event.extendedProps
+            const _isFirstAppointment = arg.event.extendedProps
               ?.isFirstAppointmentForGroup as boolean | undefined;
+            const appointmentTags = (arg.event.extendedProps?.appointmentTags ||
+              []) as Array<{
+              Tag: { name: string };
+            }>;
 
             // Handle Availability events separately
             if (type === "availability") {
@@ -1282,33 +1306,94 @@ export function CalendarView({
 
             // Handle regular Appointment events
             const title = arg.event.title; // Or format as needed
-
-            // Add badge based on isFirstAppointmentForGroup
-            const badgeText =
-              isFirstAppointment === true
-                ? "New"
-                : isFirstAppointment === false
-                  ? ""
-                  : null;
-            const badgeColor =
-              isFirstAppointment === true
-                ? "bg-green-100 text-green-800"
-                : isFirstAppointment === false
-                  ? "bg-blue-100 text-blue-800"
-                  : "";
+            const startTime = arg.timeText; // This contains the formatted start time
 
             return (
               <div className="p-1 flex flex-col h-full relative">
-                <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis mb-1 flex-grow">
-                  {title}
+                {/* Start time above title */}
+                <div className="text-xs text-gray-600 mb-0.5">{startTime}</div>
+
+                <div className="flex h-full">
+                  {/* Title on the left */}
+                  <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis flex-grow pr-2">
+                    {title}
+                  </div>
+
+                  {/* Tags and icons on the right */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {appointmentTags.map((appointmentTag, index: number) => {
+                      const tag = appointmentTag.Tag;
+                      const tagName = tag.name;
+
+                      // Define tag styling based on tag name
+                      let tagStyle = "";
+                      let tagText = "";
+
+                      switch (tagName) {
+                        case "Appointment Paid":
+                          tagStyle = "bg-green-500 text-white";
+                          tagText = "✓ Paid";
+                          break;
+                        case "Appointment Unpaid":
+                          tagStyle = "bg-gray-500 text-white";
+                          tagText = "Unpaid";
+                          break;
+                        case "New Client":
+                          tagStyle =
+                            "bg-green-100 text-green-800 border border-green-300";
+                          tagText = "New";
+                          break;
+                        case "No Note":
+                          tagStyle = "bg-gray-200 text-gray-700";
+                          tagText = "No Note";
+                          break;
+                        case "Note Added":
+                          return null;
+                        default:
+                          tagStyle =
+                            "bg-gray-100 text-gray-800 border border-gray-200";
+                          tagText = tagName;
+                      }
+
+                      return (
+                        <span
+                          key={index}
+                          className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded-full ${tagStyle}`}
+                          style={{ fontSize: "9px" }}
+                        >
+                          {tagText}
+                        </span>
+                      );
+                    })}
+
+                    {/* Show document icon if there are notes */}
+                    {appointmentTags.some(
+                      (at) => at.Tag.name === "Note Added",
+                    ) && (
+                      <div className="flex items-center">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 16 16"
+                          fill="currentColor"
+                          className="text-gray-600"
+                        >
+                          <path d="M4 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+                          <path d="M5 5h6v1H5V5zm0 2h6v1H5V7zm0 2h4v1H5V9z" />
+                        </svg>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 16 16"
+                          fill="currentColor"
+                          className="text-green-600 ml-1"
+                        >
+                          <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {badgeText && (
-                  <span
-                    className={`absolute top-1.5 right-1.5 text-xs font-medium px-1.5 py-0.5 rounded-full ${badgeColor}`}
-                  >
-                    {badgeText}
-                  </span>
-                )}
               </div>
             );
           }}

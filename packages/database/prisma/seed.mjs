@@ -5,6 +5,7 @@ import process from "process";
 import { seedPermissions } from "./seed-permissions.mjs";
 import { seedUsers } from "./seed-users.mjs";
 import { seedSurveys } from "./seed-surveys.mjs";
+import { seedTags } from "./seed-tags.mjs";
 
 const prisma = new PrismaClient();
 
@@ -384,6 +385,116 @@ async function main() {
 
   // Seed survey templates
   await seedSurveys(prisma);
+  
+  // Seed tags
+  const { tags: createdTags } = await seedTags(prisma);
+  
+  // Create sample appointments with tags
+  console.log('Creating sample appointments with tags...');
+  
+  // Get some clients first
+  const sampleClients = await prisma.client.findMany({ take: 3 });
+  
+  if (sampleClients.length > 0) {
+    // Create client groups for the sample clients
+    const clientGroups = [];
+    for (const client of sampleClients) {
+      const groupId = uuidv4();
+      const group = await prisma.clientGroup.create({
+        data: {
+          id: groupId,
+          type: 'individual',
+          name: `${client.legal_first_name} ${client.legal_last_name}`,
+          clinician_id: clinicianRecord.id,
+          is_active: true,
+          ClientGroupMembership: {
+            create: {
+              client_id: client.id,
+              role: 'PRIMARY',
+              is_responsible_for_billing: true
+            }
+          }
+        }
+      });
+      clientGroups.push(group);
+    }
+    
+    // Create appointments with tags
+    const appointments = [
+      {
+        id: uuidv4(),
+        type: 'APPOINTMENT',
+        title: 'Individual Therapy Session',
+        start_date: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000 + 45 * 60 * 1000), // Tomorrow + 45 mins
+        location_id: mainLocation.id,
+        created_by: admin.id,
+        status: 'SHOW',
+        clinician_id: clinicianRecord.id,
+        appointment_fee: 150.00,
+        service_id: createdServices.find(s => s.type === 'Individual Therapy').id,
+        client_group_id: clientGroups[0].id,
+        is_new_client: false // Existing client
+      },
+      {
+        id: uuidv4(),
+        type: 'APPOINTMENT',
+        title: 'Initial Evaluation',
+        start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Day after tomorrow
+        end_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000), // Day after tomorrow + 60 mins
+        location_id: mainLocation.id,
+        created_by: admin.id,
+        status: 'SCHEDULED',
+        clinician_id: adminClinicianRecord.id,
+        appointment_fee: 200.00,
+        service_id: createdServices.find(s => s.type === 'Initial Evaluation').id,
+        client_group_id: clientGroups[1] ? clientGroups[1].id : clientGroups[0].id,
+        is_new_client: true // New client
+      }
+    ];
+    
+    // Find the tags we need
+    const unpaidTag = createdTags.find(t => t.name === 'Appointment Unpaid');
+    const newClientTag = createdTags.find(t => t.name === 'New Client');
+    const noNoteTag = createdTags.find(t => t.name === 'No Note');
+    
+    for (let i = 0; i < appointments.length; i++) {
+      const appointmentData = { ...appointments[i] };
+      const isNewClient = appointmentData.is_new_client;
+      delete appointmentData.is_new_client; // Remove this field as it's not in the schema
+      
+      const appointment = await prisma.appointment.create({
+        data: appointmentData
+      });
+      
+      // Add tags based on business logic
+      const tagsToAdd = [];
+      
+      // All appointments start as unpaid
+      tagsToAdd.push({ appointment_id: appointment.id, tag_id: unpaidTag.id });
+      
+      // All appointments start with no note
+      tagsToAdd.push({ appointment_id: appointment.id, tag_id: noNoteTag.id });
+      
+      // If it's a new client (first appointment), add the New Client tag
+      if (isNewClient) {
+        tagsToAdd.push({ appointment_id: appointment.id, tag_id: newClientTag.id });
+      }
+      
+      // Create appointment tags
+      for (const tagData of tagsToAdd) {
+        await prisma.appointmentTag.create({
+          data: tagData
+        });
+      }
+      
+      console.log(`Created appointment ${i + 1} with tags`);
+    }
+    
+    console.log("Successfully created sample appointments with tags");
+  } else {
+    console.log("No clients found to create appointments. Run seed-users first.");
+  }
 }
 
 main()

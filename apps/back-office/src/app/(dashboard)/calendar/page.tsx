@@ -46,6 +46,7 @@ type Appointment = {
   clinician_id?: string;
   status: string;
   is_recurring: boolean;
+  isFirstAppointmentForGroup?: boolean;
   Client?: {
     id: string;
     legal_first_name: string;
@@ -62,6 +63,16 @@ type Appointment = {
     name: string;
     address: string;
   };
+  AppointmentTag?: Array<{
+    id: string;
+    appointment_id: string;
+    tag_id: string;
+    Tag: {
+      id: string;
+      name: string;
+      color: string;
+    };
+  }>;
 };
 
 // Custom hook to get clinician data for the current user
@@ -316,6 +327,14 @@ const CalendarPage: React.FC = () => {
           location: appointment.location_id,
           allDay: appointment.is_all_day,
           status: appointment.status,
+          extendedProps: {
+            type:
+              appointment.type === "APPOINTMENT"
+                ? ("appointment" as const)
+                : ("availability" as const),
+            isFirstAppointmentForGroup: appointment.isFirstAppointmentForGroup,
+            appointmentTags: appointment.AppointmentTag || [],
+          },
         };
       })
     : [];
