@@ -190,7 +190,7 @@ export default function ClientProfile({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full mt-2">
       {/* Breadcrumb */}
       <AdministrativeNoteDrawer
         open={adminNoteModalOpen}

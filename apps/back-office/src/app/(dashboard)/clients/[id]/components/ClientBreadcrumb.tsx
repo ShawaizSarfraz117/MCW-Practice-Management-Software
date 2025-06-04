@@ -40,7 +40,7 @@ const ClientBreadcrumb = ({ clientId, clientName }: ClientBreadcrumbProps) => {
       {!isMainClientPage ? (
         <>
           <Link className="hover:text-gray-700" href={`/clients/${clientId}`}>
-            {clientName}
+            {clientName}&apos;s profile
           </Link>
           <span className="mx-1">/</span>
           <span>{finalBreadcrumb}</span>

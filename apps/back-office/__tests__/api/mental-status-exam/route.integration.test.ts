@@ -9,11 +9,7 @@ import {
 } from "vitest";
 import { prisma } from "@mcw/database";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
-import {
-  GET,
-  POST,
-  DELETE,
-} from "../../../src/app/api/mental-status-exam/route";
+import { GET, POST, DELETE } from "@/api/mental-status-exam/route";
 
 // Mock helper functions
 vi.mock("@/utils/helpers", () => ({
