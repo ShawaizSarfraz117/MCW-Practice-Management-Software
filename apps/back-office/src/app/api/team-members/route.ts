@@ -5,6 +5,7 @@ import { getBackOfficeSession } from "@/utils/helpers";
 import { z } from "zod";
 import { hash } from "bcryptjs";
 import { Prisma } from "@prisma/client";
+import { ROLE_NAME_MAP } from "@mcw/types";
 
 // Schema for creating a team member
 const teamMemberSchema = z.object({
@@ -99,12 +100,12 @@ export async function GET(request: NextRequest) {
 
     // Filter by role if specified
     if (role && role !== "all" && role !== "undefined") {
-      // Convert role to uppercase to match database convention
-      const normalizedRole = role.toUpperCase();
+      // Map frontend role name to database role name
+      const mappedRole = ROLE_NAME_MAP[role] || role;
       where.UserRole = {
         some: {
           Role: {
-            name: normalizedRole,
+            name: mappedRole,
           },
         },
       };
@@ -219,7 +220,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine if user has clinician role
-    const hasClinicianRole = roles.includes("CLINICIAN");
+    const hasClinicianRole = roles.some(
+      (role) => role.toUpperCase() === "CLINICIAN",
+    );
 
     // Hash password
     const passwordHash = password

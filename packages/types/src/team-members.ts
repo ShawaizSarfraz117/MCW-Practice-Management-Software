@@ -3,6 +3,24 @@
 
 import type { User, Role, UserRole, Clinician } from "@prisma/client";
 
+// Role enums matching database values
+export enum RoleType {
+  ADMIN = "Admin",
+  CLINICIAN = "Clinician",
+  STAFF = "Staff", // If this exists in your system
+}
+
+// Map frontend role names to database role names
+export const ROLE_NAME_MAP: Record<string, RoleType> = {
+  admin: RoleType.ADMIN,
+  clinician: RoleType.CLINICIAN,
+  staff: RoleType.STAFF,
+  // Add uppercase versions for flexibility
+  Admin: RoleType.ADMIN,
+  Clinician: RoleType.CLINICIAN,
+  Staff: RoleType.STAFF,
+};
+
 // User type without sensitive fields
 export type SafeUser = Omit<User, "password_hash">;
 
