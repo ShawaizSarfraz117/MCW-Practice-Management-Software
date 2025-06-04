@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { GET, PUT } from "@/api/practice-settings/route";
 import { prisma } from "@mcw/database";
-import { NextRequest } from "next/server";
+import { PracticeSettingsFactory } from "@mcw/database/mock-data";
 
 // Mock the authentication helper for integration tests
 vi.mock("@/utils/helpers", () => ({
@@ -37,25 +37,25 @@ describe("Practice Settings API Integration Tests", () => {
     it("should return all practice settings from database", async () => {
       // Create test settings in database
       const setting1 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "is-text-reminders-enabled",
           value: "true",
-        },
+        }),
       });
       const setting2 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "reminder-duration",
           value: "24h",
-        },
+        }),
       });
       const setting3 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "complex-setting",
           value: '{"nested": true, "count": 42}',
-        },
+        }),
       });
 
       createdSettingIds.push(setting1.id, setting2.id, setting3.id);
@@ -75,25 +75,25 @@ describe("Practice Settings API Integration Tests", () => {
     it("should return filtered practice settings when keys parameter provided", async () => {
       // Create test settings
       const setting1 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "is-text-reminders-enabled",
           value: "false",
-        },
+        }),
       });
       const setting2 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "reminder-duration",
           value: "30m",
-        },
+        }),
       });
       const setting3 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "other-setting",
           value: "should-not-appear",
-        },
+        }),
       });
 
       createdSettingIds.push(setting1.id, setting2.id, setting3.id);
@@ -125,18 +125,18 @@ describe("Practice Settings API Integration Tests", () => {
 
     it("should handle boolean string values correctly", async () => {
       const setting1 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "true-setting",
           value: "true",
-        },
+        }),
       });
       const setting2 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "false-setting",
           value: "false",
-        },
+        }),
       });
 
       createdSettingIds.push(setting1.id, setting2.id);
@@ -210,18 +210,18 @@ describe("Practice Settings API Integration Tests", () => {
     it("should update existing practice settings in database", async () => {
       // Create existing settings
       const existingSetting1 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "is-text-reminders-enabled",
           value: "false",
-        },
+        }),
       });
       const existingSetting2 = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "reminder-duration",
           value: "24h",
-        },
+        }),
       });
 
       createdSettingIds.push(existingSetting1.id, existingSetting2.id);
@@ -270,11 +270,11 @@ describe("Practice Settings API Integration Tests", () => {
     it("should handle mixed create and update operations", async () => {
       // Create one existing setting
       const existingSetting = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "existing-setting",
           value: "old-value",
-        },
+        }),
       });
 
       createdSettingIds.push(existingSetting.id);
@@ -353,20 +353,12 @@ describe("Practice Settings API Integration Tests", () => {
         "complex-setting": { nested: { deep: true }, array: [1, 2, 3] },
       };
 
-      // Create request manually with explicit headers
-      const complexRequest = new Request(
-        "http://localhost/api/practice-settings",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(complexData),
-        },
+      const complexRequest = createRequestWithBody(
+        "/api/practice-settings",
+        complexData,
+        { method: "PUT" },
       );
-
-      const nextRequest = new NextRequest(complexRequest);
-      const complexResponse = await PUT(nextRequest);
+      const complexResponse = await PUT(complexRequest);
 
       console.log("Complex response status:", complexResponse.status);
       const complexResponseJson = await complexResponse.json();
@@ -448,11 +440,11 @@ describe("Practice Settings API Integration Tests", () => {
     it("should preserve existing unrelated settings", async () => {
       // Create an unrelated setting
       const unrelatedSetting = await prisma.practiceSettings.create({
-        data: {
+        data: PracticeSettingsFactory.build({
           id: crypto.randomUUID(),
           key: "unrelated-setting",
           value: "should-remain",
-        },
+        }),
       });
 
       createdSettingIds.push(unrelatedSetting.id);

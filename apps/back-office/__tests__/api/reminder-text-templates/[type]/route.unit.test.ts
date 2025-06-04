@@ -18,7 +18,6 @@ vi.mock("@mcw/logger", () => ({
     error: vi.fn(),
     warn: vi.fn(),
   },
-  getDbLogger: vi.fn(),
 }));
 
 describe("GET /api/reminder-text-templates/[type] Unit Tests", () => {

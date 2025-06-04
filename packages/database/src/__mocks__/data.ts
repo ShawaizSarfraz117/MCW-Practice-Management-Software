@@ -658,3 +658,19 @@ export const BillingSettingsPrismaFactory = defineBillingSettingsFactory({
     };
   },
 });
+
+export const PracticeSettingsFactory = {
+  build: <T extends Partial<{ id: string; key: string; value: string }>>(
+    overrides: T = {} as T,
+  ) => ({
+    id: faker.string.uuid(),
+    key: faker.helpers.arrayElement([
+      "is-text-reminders-enabled",
+      "practice-name",
+      "timezone",
+      "default-language",
+    ]),
+    value: faker.lorem.word(),
+    ...overrides,
+  }),
+};
