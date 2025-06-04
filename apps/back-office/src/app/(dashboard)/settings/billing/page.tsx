@@ -29,8 +29,8 @@ export default function SettingsBillingPage() {
         </div>
         <Button
           className="bg-[#2D8467] hover:bg-[#256a53] text-white"
-          onClick={handleSubmit}
           type="button"
+          onClick={handleSubmit}
         >
           Save Changes
         </Button>

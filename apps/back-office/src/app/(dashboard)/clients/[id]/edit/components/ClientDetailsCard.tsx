@@ -304,8 +304,8 @@ function ManageButton({
         clientData={clientData}
         drawerType={drawerType}
         isOpen={isEditDrawerOpen}
-        type={type}
         title={`Edit ${clientData.Client.legal_first_name} ${clientData.Client.legal_last_name}`}
+        type={type}
         onClose={() => setIsEditDrawerOpen(false)}
         onSave={handleSaveClient}
       />

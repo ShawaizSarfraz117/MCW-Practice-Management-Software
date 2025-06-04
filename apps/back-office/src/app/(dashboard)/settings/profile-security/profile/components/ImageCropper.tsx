@@ -272,9 +272,9 @@ const ImageCropper = ({
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-medium text-gray-900">Edit image</h3>
           <button
-            onClick={onCancel}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
             aria-label="Close"
+            className="text-gray-500 hover:text-gray-700 transition-colors"
+            onClick={onCancel}
           >
             <X className="w-6 h-6" />
           </button>
@@ -291,16 +291,16 @@ const ImageCropper = ({
           >
             <img
               ref={imageRef}
-              src={imageUrl}
               alt="Edit preview"
               className="w-auto h-auto max-w-none"
+              draggable="false"
+              src={imageUrl}
               style={{
                 transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
                 transformOrigin: "center",
                 cursor: isDragging ? "grabbing" : "grab",
               }}
               onLoad={handleImageLoad}
-              draggable="false"
             />
           </div>
 
@@ -322,17 +322,17 @@ const ImageCropper = ({
                 maskComposite: "exclude",
                 WebkitMaskComposite: "xor",
               }}
-            ></div>
+             />
           </div>
         </div>
 
         {/* Zoom slider */}
         <div className="flex items-center gap-3 mb-6 px-4">
           <button
+            aria-label="Zoom out"
+            className="p-1 rounded hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             type="button"
             onClick={handleZoomOut}
-            className="p-1 rounded hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="Zoom out"
           >
             <Minus className="w-4 h-4 text-gray-500" />
           </button>
@@ -361,23 +361,23 @@ const ImageCropper = ({
                       }%`
                     : "0%",
               }}
-            ></div>
+             />
             <input
+              className="absolute top-1/2 -translate-y-1/2 w-full h-5 opacity-0 cursor-pointer"
               id="zoom-slider"
-              type="range"
-              min="0.2"
               max="3"
+              min="0.2"
               step="0.05"
+              type="range"
               value={scale}
               onChange={handleScaleChange}
-              className="absolute top-1/2 -translate-y-1/2 w-full h-5 opacity-0 cursor-pointer"
             />
           </div>
           <button
+            aria-label="Zoom in"
+            className="p-1 rounded hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             type="button"
             onClick={handleZoomIn}
-            className="p-1 rounded hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="Zoom in"
           >
             <Plus className="w-4 h-4 text-gray-500" />
           </button>
@@ -388,23 +388,23 @@ const ImageCropper = ({
             <span className="flex items-center gap-1">
               <svg
                 className="w-4 h-4"
-                viewBox="0 0 24 24"
                 fill="none"
+                viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
                   d="M12 8V16M8 12H16"
                   stroke="currentColor"
-                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  strokeWidth="1.5"
                 />
                 <path
                   d="M15 3.5H9C6.5 3.5 4.5 5.5 4.5 8V16C4.5 18.5 6.5 20.5 9 20.5H15C17.5 20.5 19.5 18.5 19.5 16V8C19.5 5.5 17.5 3.5 15 3.5Z"
                   stroke="currentColor"
-                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  strokeWidth="1.5"
                 />
               </svg>
               Drag to reposition
@@ -415,14 +415,14 @@ const ImageCropper = ({
         {/* Action buttons */}
         <div className="flex justify-end gap-3">
           <button
-            onClick={onCancel}
             className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+            onClick={onCancel}
           >
             Cancel
           </button>
           <button
-            onClick={handleApply}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            onClick={handleApply}
           >
             Apply
           </button>

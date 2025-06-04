@@ -248,10 +248,10 @@ export default function ClientEdit({
       </div>
 
       <Tabs
+        className="w-full"
         defaultValue="clients"
         value={activeTab}
         onValueChange={handleTabChange}
-        className="w-full"
       >
         <div className="border-b border-[#e5e7eb] overflow-x-auto">
           <TabsList className="h-[40px] bg-transparent p-0 w-auto">

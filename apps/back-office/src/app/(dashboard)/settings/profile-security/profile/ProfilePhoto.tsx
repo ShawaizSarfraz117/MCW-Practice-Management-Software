@@ -126,8 +126,8 @@ const ProfilePhoto = ({ form }: { form: ProfileFormType }) => {
           fileName={selectedFile.name}
           fileType={selectedFile.type}
           imageUrl={editImageUrl}
-          onCancel={handleCropCancel}
           onApply={handleCropApply}
+          onCancel={handleCropCancel}
         />
       )}
     </>

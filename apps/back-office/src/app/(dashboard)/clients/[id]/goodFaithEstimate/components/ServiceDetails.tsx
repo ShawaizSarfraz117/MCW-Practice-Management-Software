@@ -105,8 +105,8 @@ function ServicesTable({
               </td>
               <td className="py-2 px-2">
                 <Input
-                  type="number"
                   min={1}
+                  type="number"
                   value={service.quantity}
                   onChange={(e) =>
                     updateService(
@@ -126,9 +126,9 @@ function ServicesTable({
         </tbody>
       </table>
       <Button
+        className="text-green-700 flex items-center gap-1"
         type="button"
         variant="ghost"
-        className="text-green-700 flex items-center gap-1"
         onClick={addService}
       >
         <Plus className="h-4 w-4" /> Add service
@@ -200,10 +200,10 @@ function ServiceDetails({
                     Date provided
                   </label>
                   <Input
+                    className="h-10"
                     type="date"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="h-10"
                   />
                 </>
               )}
@@ -217,10 +217,10 @@ function ServiceDetails({
                     Time
                   </label>
                   <Input
+                    className="h-10"
                     type="time"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="h-10"
                   />
                 </>
               )}
@@ -234,10 +234,10 @@ function ServiceDetails({
                     Expiration date
                   </label>
                   <Input
+                    className="h-10"
                     type="date"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="h-10"
                   />
                 </>
               )}
@@ -251,9 +251,9 @@ function ServiceDetails({
                     Service dates
                   </label>
                   <Input
+                    className="h-10"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="h-10"
                   />
                 </>
               )}
@@ -267,9 +267,9 @@ function ServiceDetails({
                     Diagnosis codes
                   </label>
                   <Input
+                    className="h-10"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="h-10"
                   />
                 </>
               )}
@@ -279,9 +279,9 @@ function ServiceDetails({
         <form.Field name="services">
           {(field) => (
             <ServicesTable
+              addService={addService}
               services={field.state.value}
               updateService={updateService}
-              addService={addService}
             />
           )}
         </form.Field>
@@ -301,9 +301,9 @@ function ServiceDetails({
                   Notes
                 </label>
                 <Textarea
+                  rows={4}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  rows={4}
                 />
               </>
             )}

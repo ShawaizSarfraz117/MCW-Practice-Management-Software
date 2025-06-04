@@ -192,10 +192,10 @@ const RoleInfoForm = forwardRef<RoleInfoFormRef, RoleInfoFormProps>(
                             <div className="flex items-start gap-3 flex-1">
                               <Checkbox
                                 checked={isSelected}
+                                className="mt-1"
                                 onCheckedChange={() =>
                                   handleRoleToggle(role.id)
                                 }
-                                className="mt-1"
                                 onClick={(e) => e.stopPropagation()}
                               />
                               <div className="flex flex-col flex-1">
@@ -230,9 +230,9 @@ const RoleInfoForm = forwardRef<RoleInfoFormRef, RoleInfoFormProps>(
                             <div className="ml-8 mt-4">
                               <div className="space-y-3">
                                 <RadioGroup
+                                  className="space-y-3"
                                   value={selectedClinicianLevel}
                                   onValueChange={handleClinicianLevelChange}
-                                  className="space-y-3"
                                 >
                                   {role.subOptions?.map((subOption) => (
                                     <div
@@ -240,14 +240,14 @@ const RoleInfoForm = forwardRef<RoleInfoFormRef, RoleInfoFormProps>(
                                       className="flex items-start space-x-3"
                                     >
                                       <RadioGroupItem
-                                        value={subOption.id}
-                                        id={`level-${subOption.id}`}
                                         className="mt-1"
+                                        id={`level-${subOption.id}`}
+                                        value={subOption.id}
                                       />
                                       <div className="flex flex-col">
                                         <Label
-                                          htmlFor={`level-${subOption.id}`}
                                           className="font-medium text-sm cursor-pointer"
+                                          htmlFor={`level-${subOption.id}`}
                                         >
                                           {subOption.title}
                                         </Label>

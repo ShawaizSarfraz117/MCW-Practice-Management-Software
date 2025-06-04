@@ -64,7 +64,7 @@ export default function IncomePage() {
       <div className="p-6 space-y-6">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm">
-          <Link href="/analytics" className="text-gray-500 hover:text-primary">
+          <Link className="text-gray-500 hover:text-primary" href="/analytics">
             Analytics
           </Link>
           <ChevronRight className="w-4 h-4 text-gray-500" />
@@ -76,7 +76,7 @@ export default function IncomePage() {
           <h1 className="text-2xl font-semibold text-gray-900">Income</h1>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button className="gap-2" variant="outline">
                 Export
                 <ChevronDown className="w-4 h-4" />
               </Button>
@@ -110,11 +110,11 @@ export default function IncomePage() {
           {filters.showDatePicker && (
             <div className="absolute z-50">
               <DateRangePicker
-                isOpen={filters.showDatePicker}
-                onClose={handleDatePickerCancel}
-                onApply={handleDatePickerApply}
-                initialStartDate={filters.fromDate}
                 initialEndDate={filters.toDate}
+                initialStartDate={filters.fromDate}
+                isOpen={filters.showDatePicker}
+                onApply={handleDatePickerApply}
+                onClose={handleDatePickerCancel}
               />
             </div>
           )}

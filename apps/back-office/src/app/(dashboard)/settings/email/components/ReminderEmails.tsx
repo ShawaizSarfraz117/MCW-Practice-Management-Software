@@ -71,12 +71,12 @@ export function ReminderEmails({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <button
-            type="button"
             aria-label={
               isReminderSectionOpen ? "Collapse section" : "Expand section"
             }
-            onClick={() => setIsReminderSectionOpen(!isReminderSectionOpen)}
             className="transition-transform"
+            type="button"
+            onClick={() => setIsReminderSectionOpen(!isReminderSectionOpen)}
           >
             <ChevronDown
               className={`w-5 h-5 text-gray-900 transition-transform ${isReminderSectionOpen ? "" : "rotate-180"}`}
@@ -134,13 +134,14 @@ export function ReminderEmails({
             appointment.
           </div>
           <Tabs
+            className="mt-4"
             value={form.getFieldValue("reminderTab")}
             onValueChange={(value) => form.setFieldValue("reminderTab", value)}
-            className="mt-4"
           >
             <TabsList className="border-b bg-white justify-start gap-8">
               {reminderEmailTabs.map((tab) => (
                 <TabsTrigger
+                  key={tab.value}
                   className={`
                     pb-2 font-normal text-sm transition
                     data-[state=active]:!bg-transparent
@@ -152,7 +153,6 @@ export function ReminderEmails({
                     border-b-4 border-transparent
                     focus:outline-none
                   `}
-                  key={tab.value}
                   value={tab.value}
                 >
                   {tab.label}
@@ -169,23 +169,23 @@ export function ReminderEmails({
                       </span>
                       <div className="flex items-center gap-2">
                         <button
-                          type="button"
                           aria-label={
                             openReminderIndexes.has(template.id)
                               ? "Collapse"
                               : "Expand"
                           }
-                          onClick={() => toggleReminderOpen(template.id)}
                           className="transition-transform"
+                          type="button"
+                          onClick={() => toggleReminderOpen(template.id)}
                         >
                           <ChevronDown
                             className={`w-5 h-5 text-gray-900 transition-transform ${openReminderIndexes.has(template.id) ? "rotate-180" : ""}`}
                           />
                         </button>
                         <Button
+                          className="p-1"
                           size="icon"
                           variant="ghost"
-                          className="p-1"
                           onClick={() => onEdit(template)}
                         >
                           <Pencil className="w-5 h-5 text-gray-900" />

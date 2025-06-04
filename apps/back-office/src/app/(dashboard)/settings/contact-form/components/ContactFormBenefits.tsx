@@ -26,10 +26,10 @@ export default function ContactFormBenefits() {
             <Image
               alt="Widget Preview"
               className="max-w-full h-auto rounded-lg shadow-lg"
+              height={318}
               src={ContactFormWidget}
               style={{ maxWidth: 260 }}
               width={318}
-              height={318}
             />
           </div>
         </div>
@@ -40,7 +40,7 @@ export default function ContactFormBenefits() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="flex items-start gap-4">
           <div className="w-6 h-6 rounded-full flex items-center justify-center">
-            <Image src={CheckIcon} alt="Check" width={20} height={20} />
+            <Image alt="Check" height={20} src={CheckIcon} width={20} />
           </div>
           <div>
             <div className="font-semibold text-gray-900 mb-1">
@@ -54,7 +54,7 @@ export default function ContactFormBenefits() {
         </div>
         <div className="flex items-start gap-4">
           <div className="w-6 h-6 rounded-full flex items-center justify-center">
-            <Image src={CheckIcon} alt="Check" width={20} height={20} />
+            <Image alt="Check" height={20} src={CheckIcon} width={20} />
           </div>
           <div>
             <div className="font-semibold text-gray-900 mb-1">
@@ -68,7 +68,7 @@ export default function ContactFormBenefits() {
         </div>
         <div className="flex items-start gap-4">
           <div className="w-6 h-6 rounded-full flex items-center justify-center">
-            <Image src={CheckIcon} alt="Check" width={20} height={20} />
+            <Image alt="Check" height={20} src={CheckIcon} width={20} />
           </div>
           <div>
             <div className="font-semibold text-gray-900 mb-1">
@@ -81,7 +81,7 @@ export default function ContactFormBenefits() {
         </div>
         <div className="flex items-start gap-4">
           <div className="w-6 h-6 rounded-full flex items-center justify-center">
-            <Image src={CheckIcon} alt="Check" width={20} height={20} />
+            <Image alt="Check" height={20} src={CheckIcon} width={20} />
           </div>
           <div>
             <div className="font-semibold text-gray-900 mb-1">

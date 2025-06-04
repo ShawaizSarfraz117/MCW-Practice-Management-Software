@@ -32,9 +32,9 @@ export default function ProviderSection({
       <div className="flex items-center justify-between mb-2">
         <span className="font-semibold text-gray-700 text-lg">Provider</span>
         <Button
-          variant="ghost"
-          size="icon"
           className="ml-2 h-6 w-6"
+          size="icon"
+          variant="ghost"
           onClick={() => setEditProvider(true)}
         >
           <Pencil className="h-4 w-4" />
@@ -105,11 +105,11 @@ export default function ProviderSection({
               Name
             </label>
             <Input
+              className="h-10"
               value={provider.name}
               onChange={(e) =>
                 setProvider((p) => ({ ...p, name: e.target.value }))
               }
-              className="h-10"
             />
           </div>
           <div className="flex flex-row gap-2 mb-2">
@@ -118,11 +118,11 @@ export default function ProviderSection({
                 NPI
               </label>
               <Input
+                className="h-10"
                 value={provider.npi}
                 onChange={(e) =>
                   setProvider((p) => ({ ...p, npi: e.target.value }))
                 }
-                className="h-10"
               />
             </div>
             <div className="flex-1">
@@ -130,11 +130,11 @@ export default function ProviderSection({
                 TIN
               </label>
               <Input
+                className="h-10"
                 value={provider.tin}
                 onChange={(e) =>
                   setProvider((p) => ({ ...p, tin: e.target.value }))
                 }
-                className="h-10"
               />
             </div>
           </div>
@@ -143,11 +143,11 @@ export default function ProviderSection({
               Location
             </label>
             <Input
+              className="h-10"
               value={provider.location}
               onChange={(e) =>
                 setProvider((p) => ({ ...p, location: e.target.value }))
               }
-              className="h-10"
             />
           </div>
           <div className="mb-2">
@@ -155,11 +155,11 @@ export default function ProviderSection({
               Address
             </label>
             <Input
+              className="h-10"
               value={provider.address}
               onChange={(e) =>
                 setProvider((p) => ({ ...p, address: e.target.value }))
               }
-              className="h-10"
             />
           </div>
           <div className="mb-2">
@@ -167,11 +167,11 @@ export default function ProviderSection({
               Contact person
             </label>
             <Input
+              className="h-10"
               value={provider.contactPerson}
               onChange={(e) =>
                 setProvider((p) => ({ ...p, contactPerson: e.target.value }))
               }
-              className="h-10"
             />
           </div>
           <div className="flex flex-row gap-2 mb-2">
@@ -180,11 +180,11 @@ export default function ProviderSection({
                 Phone
               </label>
               <Input
+                className="h-10"
                 value={provider.phone}
                 onChange={(e) =>
                   setProvider((p) => ({ ...p, phone: e.target.value }))
                 }
-                className="h-10"
               />
             </div>
             <div className="flex-1">
@@ -192,11 +192,11 @@ export default function ProviderSection({
                 Email
               </label>
               <Input
+                className="h-10"
                 value={provider.email}
                 onChange={(e) =>
                   setProvider((p) => ({ ...p, email: e.target.value }))
                 }
-                className="h-10"
               />
             </div>
           </div>

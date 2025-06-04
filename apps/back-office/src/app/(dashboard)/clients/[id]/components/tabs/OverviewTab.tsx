@@ -50,10 +50,7 @@ function ChartNoteEditor() {
     <div className="mb-6 p-4 border border-[#e5e7eb] rounded-lg">
       <div className="mb-6">
         <ReactQuill
-          theme="snow"
-          value={editorContent}
-          onChange={setEditorContent}
-          placeholder="Add Chart Note: include notes from a call with a client or copy & paste the contents of a document"
+          formats={["bold", "italic", "underline", "list", "bullet", "link"]}
           modules={{
             toolbar: [
               ["bold", "italic", "underline"],
@@ -62,11 +59,14 @@ function ChartNoteEditor() {
               ["clean"],
             ],
           }}
-          formats={["bold", "italic", "underline", "list", "bullet", "link"]}
+          placeholder="Add Chart Note: include notes from a call with a client or copy & paste the contents of a document"
           style={{
             height: "120px",
             marginBottom: "50px",
           }}
+          theme="snow"
+          value={editorContent}
+          onChange={setEditorContent}
         />
       </div>
 
@@ -116,7 +116,6 @@ function DateRangeFilterControls({
       </div>
       <DateRangePicker
         isOpen={dateRangePickerOpen}
-        onClose={() => setDateRangePickerOpen(false)}
         onApply={(_startDate, _endDate, displayOption) => {
           setSelectedDateRangeDisplay(displayOption);
           if (displayOption === "Custom Range") {
@@ -125,6 +124,7 @@ function DateRangeFilterControls({
           setDateRangePickerOpen(false);
         }}
         onCancel={() => setDateRangePickerOpen(false)}
+        onClose={() => setDateRangePickerOpen(false)}
       />
       <Select defaultValue={filterType} onValueChange={setFilterType}>
         <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">

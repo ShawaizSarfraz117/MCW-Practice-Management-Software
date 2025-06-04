@@ -87,9 +87,9 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                   <TableCell>
                     <div className="flex items-center gap-4">
                       <Button
-                        variant="ghost"
-                        size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
+                        size="icon"
+                        variant="ghost"
                         onClick={() =>
                           setViewingMeasure({
                             id: measure.id,
@@ -144,9 +144,9 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                   <TableCell>
                     <div className="flex items-center gap-4">
                       <Button
-                        variant="ghost"
-                        size="icon"
                         className="h-8 w-8 hover:bg-gray-100"
+                        size="icon"
+                        variant="ghost"
                         onClick={() =>
                           setViewingIntake({
                             id: form.id,
@@ -183,7 +183,7 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
         <p className="text-sm text-gray-600">
           Select which items you'd like to include on your demographics form,
           and if you want to include a credit card form.{" "}
-          <a href="#" className="text-blue-600 hover:text-blue-800">
+          <a className="text-blue-600 hover:text-blue-800" href="#">
             Learn more
           </a>
         </p>
@@ -197,8 +197,8 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                   <div className="flex items-center gap-6">
                     <label className="flex items-center gap-2">
                       <input
-                        type="checkbox"
                         className="h-4 w-4 rounded border-gray-300"
+                        type="checkbox"
                       />
                       <span className="text-sm text-gray-600">
                         Name they go by
@@ -206,15 +206,15 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                     </label>
                     <label className="flex items-center gap-2">
                       <input
-                        type="checkbox"
                         className="h-4 w-4 rounded border-gray-300"
+                        type="checkbox"
                       />
                       <span className="text-sm text-gray-600">Insurance</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input
-                        type="checkbox"
                         className="h-4 w-4 rounded border-gray-300"
+                        type="checkbox"
                       />
                       <span className="text-sm text-gray-600">
                         Gender identity
@@ -223,7 +223,7 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                   </div>
                 </TableCell>
                 <TableCell className="w-[100px]">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Button className="h-8 w-8" size="icon" variant="ghost">
                     <Eye className="h-4 w-4 text-gray-500" />
                   </Button>
                 </TableCell>
@@ -234,8 +234,8 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                 </TableCell>
                 <TableCell colSpan={2}>
                   <a
-                    href="#"
                     className="text-blue-600 hover:text-blue-800 text-sm"
+                    href="#"
                   >
                     Enable Online Payments to accept credit cards
                   </a>
@@ -260,9 +260,9 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                   {viewingMeasure.name}
                 </h2>
                 <Button
-                  variant="ghost"
-                  size="icon"
                   className="h-8 w-8"
+                  size="icon"
+                  variant="ghost"
                   onClick={() => window.print()}
                 >
                   🖨️
@@ -274,10 +274,10 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                 {viewingMeasure.content ? (
                   <SurveyPreview
                     content={viewingMeasure.content}
-                    title={viewingMeasure.name}
-                    type="SCORED_MEASURES"
                     mode="edit"
                     showInstructions={true}
+                    title={viewingMeasure.name}
+                    type="SCORED_MEASURES"
                   />
                 ) : (
                   <p className="text-sm text-gray-600">
@@ -304,9 +304,9 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                   {viewingIntake.name}
                 </h2>
                 <Button
-                  variant="ghost"
-                  size="icon"
                   className="h-8 w-8"
+                  size="icon"
+                  variant="ghost"
                   onClick={() => window.print()}
                 >
                   🖨️
@@ -318,10 +318,10 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                 {viewingIntake.content ? (
                   <SurveyPreview
                     content={viewingIntake.content}
-                    title={viewingIntake.name}
-                    type="INTAKE_FORMS"
                     mode="edit"
                     showInstructions={true}
+                    title={viewingIntake.name}
+                    type="INTAKE_FORMS"
                   />
                 ) : (
                   <p className="text-sm text-gray-600">

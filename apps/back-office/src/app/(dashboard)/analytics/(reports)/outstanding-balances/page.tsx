@@ -130,7 +130,7 @@ export default function OutstandingBalancesPage() {
       <div className="p-6 bg-gray-50 min-h-screen space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Link href="/analytics" className="hover:text-primary">
+          <Link className="hover:text-primary" href="/analytics">
             Analytics
           </Link>
           <ChevronRight className="w-4 h-4" />
@@ -142,7 +142,7 @@ export default function OutstandingBalancesPage() {
           <h1 className="text-2xl font-semibold">Outstanding Balances</h1>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button className="gap-2" variant="outline">
                 Export
                 <ChevronDown className="w-4 h-4" />
               </Button>
@@ -164,8 +164,8 @@ export default function OutstandingBalancesPage() {
         <div className="flex items-center gap-2">
           <div className="relative inline-block">
             <Button
-              variant="outline"
               className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
+              variant="outline"
               onClick={() =>
                 setFilters((prev) => ({ ...prev, showDatePicker: true }))
               }
@@ -176,18 +176,18 @@ export default function OutstandingBalancesPage() {
             {filters.showDatePicker && (
               <div className="absolute z-50">
                 <DateRangePicker
-                  isOpen={true}
-                  onClose={handleDatePickerCancel}
-                  onApply={handleDatePickerApply}
-                  initialStartDate={filters.fromDate}
                   initialEndDate={filters.toDate}
+                  initialStartDate={filters.fromDate}
+                  isOpen={true}
+                  onApply={handleDatePickerApply}
+                  onClose={handleDatePickerCancel}
                 />
               </div>
             )}
           </div>
           <Button
-            variant="outline"
             className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
+            variant="outline"
           >
             More: 1
           </Button>
@@ -259,9 +259,9 @@ export default function OutstandingBalancesPage() {
             </div>
             <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
-                size="icon"
                 disabled={filters.currentPage === 1}
+                size="icon"
+                variant="ghost"
                 onClick={() =>
                   setFilters((prev) => ({ ...prev, currentPage: 1 }))
                 }
@@ -269,9 +269,9 @@ export default function OutstandingBalancesPage() {
                 <ChevronFirst className="w-4 h-4" />
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
                 disabled={filters.currentPage === 1}
+                size="icon"
+                variant="ghost"
                 onClick={() =>
                   setFilters((prev) => ({
                     ...prev,
@@ -282,9 +282,9 @@ export default function OutstandingBalancesPage() {
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
                 disabled={filters.currentPage === totalPages}
+                size="icon"
+                variant="ghost"
                 onClick={() =>
                   setFilters((prev) => ({
                     ...prev,
@@ -295,9 +295,9 @@ export default function OutstandingBalancesPage() {
                 <ChevronRight className="w-4 h-4" />
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
                 disabled={filters.currentPage === totalPages}
+                size="icon"
+                variant="ghost"
                 onClick={() =>
                   setFilters((prev) => ({ ...prev, currentPage: totalPages }))
                 }

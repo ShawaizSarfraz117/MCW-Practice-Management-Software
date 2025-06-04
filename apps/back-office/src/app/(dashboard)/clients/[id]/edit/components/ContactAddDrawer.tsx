@@ -232,8 +232,8 @@ export function ContactAddDrawer({
                 </div>
               </div>
               <Button
-                onClick={handleNewContact}
                 className="bg-[#2d8467] hover:bg-[#236c53]"
+                onClick={handleNewContact}
               >
                 + New Contact
               </Button>
@@ -257,9 +257,9 @@ export function ContactAddDrawer({
                 <h2 className="text-lg font-medium">Create New Contact</h2>
               </div>
               <Button
+                className="bg-[#2d8467] hover:bg-[#236c53]"
                 form="client-edit-form"
                 type="submit"
-                className="bg-[#2d8467] hover:bg-[#236c53]"
               >
                 Save
               </Button>
@@ -268,12 +268,12 @@ export function ContactAddDrawer({
             {/* Form */}
             <div className="flex-1 overflow-y-auto">
               <EditClientForm
+                className="border-0"
                 clientData={
                   selectedClient ? createClientMembership(selectedClient) : null
                 }
-                onSave={handleSaveContact}
                 type="contact"
-                className="border-0"
+                onSave={handleSaveContact}
               />
             </div>
           </div>

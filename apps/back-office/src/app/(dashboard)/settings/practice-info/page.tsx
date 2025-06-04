@@ -128,9 +128,9 @@ export default function PracticeDetailsForm() {
             </AlertDialogTrigger>
             <AlertDialogContent className="max-w-[400px] w-full p-6 rounded-xl">
               <button
-                type="button"
                 aria-label="Close"
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"
+                type="button"
                 onClick={() => setShowTelehealthModal(false)}
               >
                 <X className="w-5 h-5" />

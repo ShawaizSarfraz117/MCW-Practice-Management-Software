@@ -106,7 +106,7 @@ export default function TextSettingsPage() {
           <AlertDescription className="text-sm text-gray-700 mt-0">
             Customize the content for your text reminders. Note: Clients only
             receive reminders if they are also enabled at the client level.{" "}
-            <a href="#" className="text-blue-600 hover:underline">
+            <a className="text-blue-600 hover:underline" href="#">
               Learn more
             </a>
           </AlertDescription>
@@ -117,13 +117,13 @@ export default function TextSettingsPage() {
       </Alert>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+      <Tabs className="mb-6" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-transparent flex justify-start items-center gap-2 sm:gap-6 p-0 rounded-none h-auto min-h-0">
           {TABS.map((t) => (
             <TabsTrigger
               key={t.value}
-              value={t.value}
               className={`pb-2 font-normal h-full border data-[state=active]:border-b-2 data-[state=active]:rounded-md text-sm transition data-[state=active]:!shadow-none data-[state=active]:text-[#2D8467] data-[state=active]:bg-[#2D8467]/20 border-b-4 border-transparent focus:outline-none`}
+              value={t.value}
             >
               {t.label}
             </TabsTrigger>
@@ -132,7 +132,7 @@ export default function TextSettingsPage() {
 
         {/* Tab Content */}
         {TABS.map((t) => (
-          <TabsContent key={t.value} value={t.value} className="pt-6 px-0">
+          <TabsContent key={t.value} className="pt-6 px-0" value={t.value}>
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Left: Form */}
               <Card className="flex-1 bg-white border border-gray-200 shadow-sm rounded-xl p-0">
@@ -140,8 +140,8 @@ export default function TextSettingsPage() {
                   {/* Reminder time select */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <Label
-                      htmlFor={`reminder-time-${t.value}`}
                       className="text-sm text-gray-700 font-medium mr-2 mb-0"
+                      htmlFor={`reminder-time-${t.value}`}
                     >
                       Send text reminder
                     </Label>
@@ -153,8 +153,8 @@ export default function TextSettingsPage() {
                         }
                       >
                         <SelectTrigger
-                          id={`reminder-time-${t.value}`}
                           className="h-9 text-sm bg-white border-gray-300"
+                          id={`reminder-time-${t.value}`}
                         >
                           <SelectValue />
                         </SelectTrigger>
@@ -162,8 +162,8 @@ export default function TextSettingsPage() {
                           {REMINDER_TIMES.map((rt) => (
                             <SelectItem
                               key={rt.value}
-                              value={rt.value}
                               className="text-sm"
+                              value={rt.value}
                             >
                               {rt.label}
                             </SelectItem>
@@ -186,25 +186,25 @@ export default function TextSettingsPage() {
                     <div className="flex flex-col w-2/3 mr-20 justify-start items-start mb-2">
                       <div className="w-full border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
                         <Textarea
+                          className="resize-none text-sm bg-white border-gray-300 focus-visible:ring-1 focus-visible:ring-[#2D8467]"
+                          maxLength={500}
+                          rows={5}
                           value={tabSettings[t.value].text}
                           onChange={(e) =>
                             handleTextChange(t.value, e.target.value)
                           }
-                          rows={5}
-                          maxLength={500}
-                          className="resize-none text-sm bg-white border-gray-300 focus-visible:ring-1 focus-visible:ring-[#2D8467]"
                         />
                         <div className="flex justify-between items-center mt-1">
                           <div className="flex gap-2">
                             <Button
-                              variant="link"
                               className="text-[#2D8467] px-0 h-auto text-[16px] font-medium"
+                              variant="link"
                             >
                               Add information
                             </Button>
                             <Button
-                              variant="link"
                               className="text-[#2D8467] px-0 h-auto text-[16px] font-medium"
+                              variant="link"
                             >
                               Add confirm / cancel link
                             </Button>
@@ -216,7 +216,7 @@ export default function TextSettingsPage() {
                       </div>
                     </div>
                     <div className="flex flex-col border-l-[10px] border-r-[10px] border-t-[10px] rounded-t-3xl p-5 bg-[#F4F4F4] border-[#DADADA] w-[350px] h-[500px] justify-start items-center gap-4">
-                      <div className="w-[60px] h-[20px] bg-[#DADADA] rounded-3xl"></div>
+                      <div className="w-[60px] h-[20px] bg-[#DADADA] rounded-3xl" />
                       <div className="w-full max-w-xs shadow-lg">
                         <div className="flex flex-col items-center">
                           <div className="relative w-[295px] h-[110px] border border-gray-200 bg-white rounded-lg shadow-sm flex items-center justify-center">

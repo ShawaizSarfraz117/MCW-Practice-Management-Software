@@ -347,8 +347,8 @@ export function EditClientDrawer({
             <div className="overflow-y-auto flex-1 h-full">
               <EditClientForm
                 clientData={clientData}
-                onSave={handleSave}
                 type={type}
+                onSave={handleSave}
               />
             </div>
           )}

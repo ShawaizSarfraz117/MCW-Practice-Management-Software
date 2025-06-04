@@ -149,15 +149,15 @@ export default function EmailTemplateEditSidebar({
       >
         <div className="flex sticky top-0 bg-white items-center justify-between p-4 border-b z-10">
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="p-2 rounded hover:bg-gray-100">
+            <button className="p-2 rounded hover:bg-gray-100" onClick={onClose}>
               <X className="w-6 h-6" />
             </button>
             <span className="text-xl font-semibold">Edit Message Content</span>
           </div>
           <Button
             className="bg-green-600 text-white px-6 rounded-md"
-            onClick={() => form.handleSubmit()}
             disabled={isUpdating || !template?.id}
+            onClick={() => form.handleSubmit()}
           >
             {isUpdating ? "Saving..." : "Save"}
           </Button>
@@ -354,11 +354,11 @@ export default function EmailTemplateEditSidebar({
             </label>
             <Input
               ref={subjectInputRef}
-              value={formData.subject}
-              onFocus={() => setFocusedInput("subject")}
-              onChange={(e) => handleInputChange("subject", e.target.value)}
-              placeholder="Enter email subject"
               required
+              placeholder="Enter email subject"
+              value={formData.subject}
+              onChange={(e) => handleInputChange("subject", e.target.value)}
+              onFocus={() => setFocusedInput("subject")}
             />
           </div>
           <div>
@@ -367,12 +367,12 @@ export default function EmailTemplateEditSidebar({
             </label>
             <Textarea
               ref={messageInputRef}
-              value={formData.content}
-              onFocus={() => setFocusedInput("message")}
-              onChange={(e) => handleInputChange("content", e.target.value)}
-              placeholder="Enter email content"
-              className="min-h-[200px]"
               required
+              className="min-h-[200px]"
+              placeholder="Enter email content"
+              value={formData.content}
+              onChange={(e) => handleInputChange("content", e.target.value)}
+              onFocus={() => setFocusedInput("message")}
             />
           </div>
         </div>
