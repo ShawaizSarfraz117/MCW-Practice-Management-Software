@@ -96,6 +96,11 @@ export async function GET(request: NextRequest) {
               Tag: true,
             },
           },
+          Invoice: {
+            include: {
+              Payment: true,
+            },
+          },
         },
       });
 
@@ -1384,6 +1389,11 @@ export async function DELETE(request: NextRequest) {
             });
           }
 
+          // Delete appointment tags for the original parent first
+          await prisma.appointmentTag.deleteMany({
+            where: { appointment_id: id },
+          });
+
           // Now delete the original parent
           await prisma.appointment.delete({
             where: { id },
@@ -1397,6 +1407,12 @@ export async function DELETE(request: NextRequest) {
       }
 
       // Either not a parent or has no children, delete normally
+      // First delete related appointment tags
+      await prisma.appointmentTag.deleteMany({
+        where: { appointment_id: id },
+      });
+
+      // Then delete the appointment
       await prisma.appointment.delete({
         where: { id },
       });
@@ -1413,10 +1429,27 @@ export async function DELETE(request: NextRequest) {
     const currentDate = new Date(existingAppointment.start_date);
 
     if (deleteOption === "all") {
-      // Delete all appointments in the series
-      await prisma.appointment.deleteMany({
+      // Get all appointment IDs in the series
+      const appointmentsToDelete = await prisma.appointment.findMany({
         where: {
           OR: [{ recurring_appointment_id: masterId }, { id: masterId }],
+        },
+        select: { id: true },
+      });
+
+      const appointmentIds = appointmentsToDelete.map((apt) => apt.id);
+
+      // First delete all related appointment tags
+      await prisma.appointmentTag.deleteMany({
+        where: {
+          appointment_id: { in: appointmentIds },
+        },
+      });
+
+      // Then delete all appointments in the series
+      await prisma.appointment.deleteMany({
+        where: {
+          id: { in: appointmentIds },
         },
       });
 
@@ -1460,37 +1493,86 @@ export async function DELETE(request: NextRequest) {
             });
           }
 
-          // Delete this appointment and all future appointments
-          await prisma.appointment.deleteMany({
+          // Get all future appointments to delete
+          const futureAppointments = await prisma.appointment.findMany({
             where: {
               AND: [
                 { recurring_appointment_id: id },
                 { start_date: { gte: currentDate } },
               ],
             },
+            select: { id: true },
           });
 
-          // Delete the parent appointment
-          await prisma.appointment.delete({
-            where: { id },
+          const appointmentIdsToDelete = [
+            ...futureAppointments.map((apt) => apt.id),
+            id,
+          ];
+
+          // Delete appointment tags for all appointments to be deleted
+          await prisma.appointmentTag.deleteMany({
+            where: {
+              appointment_id: { in: appointmentIdsToDelete },
+            },
+          });
+
+          // Delete the appointments
+          await prisma.appointment.deleteMany({
+            where: {
+              id: { in: appointmentIdsToDelete },
+            },
           });
         } else {
           // No past appointments, delete the entire series
-          await prisma.appointment.deleteMany({
+          const allAppointments = await prisma.appointment.findMany({
             where: {
               OR: [{ recurring_appointment_id: id }, { id }],
+            },
+            select: { id: true },
+          });
+
+          const allAppointmentIds = allAppointments.map((apt) => apt.id);
+
+          // Delete appointment tags first
+          await prisma.appointmentTag.deleteMany({
+            where: {
+              appointment_id: { in: allAppointmentIds },
+            },
+          });
+
+          // Then delete all appointments
+          await prisma.appointment.deleteMany({
+            where: {
+              id: { in: allAppointmentIds },
             },
           });
         }
       } else {
         // This is a child appointment
-        // Delete this appointment and future ones in the series
-        await prisma.appointment.deleteMany({
+        // Get this appointment and future ones in the series
+        const futureAppointments = await prisma.appointment.findMany({
           where: {
             AND: [
               { recurring_appointment_id: masterId },
               { start_date: { gte: currentDate } },
             ],
+          },
+          select: { id: true },
+        });
+
+        const appointmentIdsToDelete = futureAppointments.map((apt) => apt.id);
+
+        // Delete appointment tags first
+        await prisma.appointmentTag.deleteMany({
+          where: {
+            appointment_id: { in: appointmentIdsToDelete },
+          },
+        });
+
+        // Then delete the appointments
+        await prisma.appointment.deleteMany({
+          where: {
+            id: { in: appointmentIdsToDelete },
           },
         });
 
@@ -1535,7 +1617,12 @@ export async function DELETE(request: NextRequest) {
             }
           }
 
-          // Delete the parent
+          // Delete appointment tags for the parent first
+          await prisma.appointmentTag.deleteMany({
+            where: { appointment_id: masterId },
+          });
+
+          // Then delete the parent
           await prisma.appointment.delete({
             where: { id: masterId },
           });
