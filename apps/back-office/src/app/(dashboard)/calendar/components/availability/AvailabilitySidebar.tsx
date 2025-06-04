@@ -27,6 +27,7 @@ import { useFormTabs } from "./hooks/useFormTabs";
 import { format } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@mcw/utils";
+import { calculateDuration } from "../appointment-dialog/utils/CalculateDuration";
 import {
   AvailabilitySidebarProps,
   Service,
@@ -103,6 +104,7 @@ export function AvailabilitySidebar({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [duration, setDuration] = useState<string>("0 mins");
 
   // Fetch availability services if we have an availability ID
   const {
@@ -235,11 +237,23 @@ export function AvailabilitySidebar({
           ? new Date(availabilityData.end_date)
           : prev.endDate,
         startTime: availabilityData.start_date
-          ? format(new Date(availabilityData.start_date), "hh:mm a")
-          : prev.startTime,
+          ? (() => {
+              const date = new Date(availabilityData.start_date);
+              // Adjust for timezone offset to get the original local time
+              const tzOffset = date.getTimezoneOffset() * 60000;
+              const localDate = new Date(date.getTime() + tzOffset);
+              return format(localDate, "HH:mm");
+            })()
+          : "09:00",
         endTime: availabilityData.end_date
-          ? format(new Date(availabilityData.end_date), "hh:mm a")
-          : prev.endTime,
+          ? (() => {
+              const date = new Date(availabilityData.end_date);
+              // Adjust for timezone offset to get the original local time
+              const tzOffset = date.getTimezoneOffset() * 60000;
+              const localDate = new Date(date.getTime() + tzOffset);
+              return format(localDate, "HH:mm");
+            })()
+          : "17:00",
         type: "availability",
         clinician: availabilityData.clinician_id || "",
         location: availabilityData.location || "video",
@@ -281,6 +295,25 @@ export function AvailabilitySidebar({
     };
   }, [showServiceDropdown]);
 
+  // Calculate duration dynamically based on form values
+  useEffect(() => {
+    const startDate = availabilityFormValues.startDate;
+    const endDate = availabilityFormValues.endDate;
+    const startTime = availabilityFormValues.startTime;
+    const endTime = availabilityFormValues.endTime;
+    const allDay = availabilityFormValues.allDay;
+
+    setDuration(
+      calculateDuration(startDate, endDate, startTime, endTime, allDay),
+    );
+  }, [
+    availabilityFormValues.startDate,
+    availabilityFormValues.endDate,
+    availabilityFormValues.startTime,
+    availabilityFormValues.endTime,
+    availabilityFormValues.allDay,
+  ]);
+
   // Helper function to create recurring rule in RFC5545 format
   const createRecurringRule = () => {
     if (!isRecurring) return null;
@@ -313,12 +346,20 @@ export function AvailabilitySidebar({
     const newDate = new Date(date);
     if (timeStr) {
       try {
-        const [timeValue, period] = timeStr.split(" ");
-        const [hours, minutes] = timeValue.split(":").map(Number);
-        let hours24 = hours;
-        if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
-        if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
-        newDate.setHours(hours24, minutes, 0, 0);
+        // Handle both 12-hour format (1:00 PM) and 24-hour format (13:00)
+        if (timeStr.includes(" ")) {
+          // 12-hour format with AM/PM
+          const [timeValue, period] = timeStr.split(" ");
+          const [hours, minutes] = timeValue.split(":").map(Number);
+          let hours24 = hours;
+          if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
+          if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+          newDate.setHours(hours24, minutes, 0, 0);
+        } else {
+          // 24-hour format
+          const [hours, minutes] = timeStr.split(":").map(Number);
+          newDate.setHours(hours, minutes, 0, 0);
+        }
       } catch (error) {
         console.error("Error converting date/time:", error);
       }
@@ -601,7 +642,7 @@ export function AvailabilitySidebar({
         </div>
       ) : (
         <AvailabilityFormProvider
-          duration={"1 hour"}
+          duration={duration}
           forceUpdate={forceUpdate}
           form={{
             ...availabilityFormValues,

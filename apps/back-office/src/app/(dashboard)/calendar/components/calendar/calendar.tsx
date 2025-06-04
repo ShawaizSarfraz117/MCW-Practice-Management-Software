@@ -490,22 +490,35 @@ export function CalendarView({
         return date.toISOString();
       }
 
-      // Validate time string format
-      const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
-      if (!timeRegex.test(timeStr)) {
+      // Validate time string format - handle both 12-hour and 24-hour formats
+      const time12Regex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
+      const time24Regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+      if (!time12Regex.test(timeStr) && !time24Regex.test(timeStr)) {
         console.error("Invalid time string format:", timeStr);
         throw new Error(
-          `Invalid time format. Expected "HH:MM AM/PM", got "${timeStr}"`,
+          `Invalid time format. Expected "HH:MM" or "HH:MM AM/PM", got "${timeStr}"`,
         );
       }
 
-      const [timeValue, period] = timeStr.split(" ");
-      const [hours, minutes] = timeValue.split(":").map(Number);
+      let hours24: number, minutes: number;
 
-      // Convert 12-hour format to 24-hour
-      let hours24 = hours;
-      if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
-      if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+      if (time12Regex.test(timeStr)) {
+        // 12-hour format
+        const [timeValue, period] = timeStr.split(" ");
+        const [hours, mins] = timeValue.split(":").map(Number);
+        hours24 = hours;
+        minutes = mins;
+
+        // Convert 12-hour format to 24-hour
+        if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
+        if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+      } else {
+        // 24-hour format
+        const [hours, mins] = timeStr.split(":").map(Number);
+        hours24 = hours;
+        minutes = mins;
+      }
 
       // Create a new date with the correct local time
       const newDate = new Date(date);
@@ -996,8 +1009,8 @@ export function CalendarView({
       }
 
       const eventData = {
-        startTime: format(new Date(appointmentData.start_date), "h:mm a"),
-        endTime: format(new Date(appointmentData.end_date), "h:mm a"),
+        startTime: format(new Date(appointmentData.start_date), "HH:mm"),
+        endTime: format(new Date(appointmentData.end_date), "HH:mm"),
       };
 
       window.sessionStorage.setItem(
@@ -1031,8 +1044,8 @@ export function CalendarView({
     const localEnd = adjustForTimezone(selectInfo.end);
 
     // Format the times in local timezone
-    const startTime = format(localStart, "h:mm a");
-    const endTime = format(localEnd, "h:mm a");
+    const startTime = format(localStart, "HH:mm"); // 24-hour format
+    const endTime = format(localEnd, "HH:mm"); // 24-hour format
 
     // Save the selected time info for the appointment dialog
     const eventData = {
@@ -1127,6 +1140,11 @@ export function CalendarView({
           ref={calendarRef}
           allDaySlot={true}
           allDayText="All day"
+          eventTimeFormat={{
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }}
           dayHeaderContent={
             isScheduledPage
               ? (args: DayHeaderContentArg) => {
@@ -1235,31 +1253,20 @@ export function CalendarView({
 
             // Handle Availability events separately
             if (type === "availability") {
-              const start = arg.event.start;
-              const startTime = start
-                ? new Date(start).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })
-                : "";
               const title = arg.event.title || "Available";
 
               return (
                 <div className="p-1">
-                  <div className="text-xs font-medium text-gray-600 mb-0.5">
-                    {startTime}
-                  </div>
                   <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
                     {title}
                   </div>
-                  {/* Availability events don't get New/Old badges */}
                 </div>
               );
             }
 
             // Handle regular Appointment events
             const title = arg.event.title; // Or format as needed
+
             // Add badge based on isFirstAppointmentForGroup
             const badgeText =
               isFirstAppointment === true
@@ -1276,7 +1283,6 @@ export function CalendarView({
 
             return (
               <div className="p-1 flex flex-col h-full relative">
-                {/* You might want to add time or other info here */}
                 <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis mb-1 flex-grow">
                   {title}
                 </div>
@@ -1293,6 +1299,10 @@ export function CalendarView({
           eventDidMount={(info) => {
             const event = info.event;
             const type = event.extendedProps?.type;
+
+            // Add cursor pointer for all events
+            info.el.classList.add("cursor-pointer");
+
             if (type === "availability") {
               const allowRequests = event.extendedProps?.allow_online_requests;
               const isRecurring = event.extendedProps?.is_recurring;
@@ -1302,7 +1312,6 @@ export function CalendarView({
                 "bg-[#2d84671a]",
                 "border-0",
                 "opacity-85",
-                "cursor-pointer",
                 "pointer-events-auto",
                 "z-10",
                 "relative",
@@ -1378,9 +1387,9 @@ export function CalendarView({
               duration: { days: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "numeric",
+                hour: "2-digit",
                 minute: "2-digit",
-                meridiem: "short",
+                hour12: false,
               },
             },
             timeGridDay: {
@@ -1388,9 +1397,9 @@ export function CalendarView({
               duration: { days: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "numeric",
+                hour: "2-digit",
                 minute: "2-digit",
-                meridiem: "short",
+                hour12: false,
               },
             },
             resourceTimeGridWeek: {
@@ -1398,9 +1407,9 @@ export function CalendarView({
               duration: { weeks: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "numeric",
+                hour: "2-digit",
                 minute: "2-digit",
-                meridiem: "short",
+                hour12: false,
               },
             },
             timeGridWeek: {
@@ -1408,9 +1417,9 @@ export function CalendarView({
               duration: { weeks: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "numeric",
+                hour: "2-digit",
                 minute: "2-digit",
-                meridiem: "short",
+                hour12: false,
               },
             },
             dayGridMonth: {

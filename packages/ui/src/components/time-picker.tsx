@@ -21,6 +21,7 @@ interface TimePickerProps {
   onInteractiveClick?: (e: React.MouseEvent) => void;
   disabledOptions?: (time: string) => boolean;
   disablePastTimes?: boolean;
+  format?: "12h" | "24h";
 }
 
 export function TimePicker({
@@ -29,6 +30,7 @@ export function TimePicker({
   className,
   onInteractiveClick,
   disabledOptions,
+  format = "12h",
   // disablePastTimes = false,
 }: TimePickerProps) {
   const [open, setOpen] = React.useState(false);
@@ -37,13 +39,21 @@ export function TimePicker({
     const items: string[] = [];
     for (let i = 0; i < 24; i++) {
       for (let j = 0; j < 60; j += 30) {
-        const hour = i % 12 || 12;
-        const period = i < 12 ? "AM" : "PM";
-        items.push(`${hour}:${j.toString().padStart(2, "0")} ${period}`);
+        if (format === "24h") {
+          // 24-hour format (00:00, 00:30, 01:00, etc.)
+          items.push(
+            `${i.toString().padStart(2, "0")}:${j.toString().padStart(2, "0")}`,
+          );
+        } else {
+          // 12-hour format (12:00 AM, 12:30 AM, 1:00 AM, etc.)
+          const hour = i % 12 || 12;
+          const period = i < 12 ? "AM" : "PM";
+          items.push(`${hour}:${j.toString().padStart(2, "0")} ${period}`);
+        }
       }
     }
     return items;
-  }, []);
+  }, [format]);
 
   // Function to check if a time is before current time
   // const isTimeBeforeNow = (time: string) => {

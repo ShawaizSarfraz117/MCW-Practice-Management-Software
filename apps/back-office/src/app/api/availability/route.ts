@@ -5,6 +5,13 @@ import { z } from "zod";
 import { getServerSession } from "next-auth/next";
 import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 
+/**
+ * Availability API Route
+ *
+ * Note: This API uses only start_date and end_date fields which contain both date and time information.
+ * The database schema has been updated to remove the redundant start_time/end_time fields.
+ */
+
 // Validation schema for availability
 const availabilitySchema = z.object({
   title: z.string().optional(),
@@ -144,6 +151,19 @@ export async function POST(request: NextRequest) {
       // Create the availability
       const availability = await tx.availability.create({
         data,
+        select: {
+          id: true,
+          clinician_id: true,
+          title: true,
+          start_date: true,
+          end_date: true,
+          location_id: true,
+          allow_online_requests: true,
+          is_recurring: true,
+          recurring_rule: true,
+          created_at: true,
+          updated_at: true,
+        },
       });
 
       // Check if custom services are provided
@@ -253,6 +273,19 @@ export async function GET(request: NextRequest) {
     if (id && services === "true") {
       const availability = await prisma.availability.findUnique({
         where: { id },
+        select: {
+          id: true,
+          clinician_id: true,
+          title: true,
+          start_date: true,
+          end_date: true,
+          location_id: true,
+          allow_online_requests: true,
+          is_recurring: true,
+          recurring_rule: true,
+          created_at: true,
+          updated_at: true,
+        },
       });
 
       if (!availability) {
@@ -304,6 +337,19 @@ export async function GET(request: NextRequest) {
     if (id) {
       const availability = await prisma.availability.findUnique({
         where: { id },
+        select: {
+          id: true,
+          clinician_id: true,
+          title: true,
+          start_date: true,
+          end_date: true,
+          location_id: true,
+          allow_online_requests: true,
+          is_recurring: true,
+          recurring_rule: true,
+          created_at: true,
+          updated_at: true,
+        },
       });
 
       if (!availability) {
@@ -338,6 +384,19 @@ export async function GET(request: NextRequest) {
     const availabilities = await prisma.availability.findMany({
       where,
       orderBy: { start_date: "asc" },
+      select: {
+        id: true,
+        clinician_id: true,
+        title: true,
+        start_date: true,
+        end_date: true,
+        location_id: true,
+        allow_online_requests: true,
+        is_recurring: true,
+        recurring_rule: true,
+        created_at: true,
+        updated_at: true,
+      },
     });
 
     return NextResponse.json(availabilities);
@@ -372,16 +431,37 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const validatedData = availabilitySchema.partial().parse(body);
 
-    // Convert date strings to Date objects if they exist
-    const data = {
+    // Convert date strings to Date objects if they exist and prepare data
+    const data: Partial<Prisma.AvailabilityUncheckedUpdateInput> = {
       ...validatedData,
       updated_at: new Date(),
       recurring_rule: validatedData.recurring_rule || null,
     };
 
+    // Convert date strings to Date objects if they exist
+    if (validatedData.start_date) {
+      data.start_date = new Date(validatedData.start_date);
+    }
+    if (validatedData.end_date) {
+      data.end_date = new Date(validatedData.end_date);
+    }
+
     const availability = await prisma.availability.update({
       where: { id },
       data,
+      select: {
+        id: true,
+        clinician_id: true,
+        title: true,
+        start_date: true,
+        end_date: true,
+        location_id: true,
+        allow_online_requests: true,
+        is_recurring: true,
+        recurring_rule: true,
+        created_at: true,
+        updated_at: true,
+      },
     });
 
     return NextResponse.json(availability);

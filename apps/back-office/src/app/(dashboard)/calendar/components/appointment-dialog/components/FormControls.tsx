@@ -43,28 +43,17 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
   const isTimeAfterStart = (time: string) => {
     if (!startTime) return true;
 
-    const [startHour, startMinute, startPeriod] =
-      startTime.match(/(\d+):(\d+) (AM|PM)/)?.slice(1) || [];
-    const [endHour, endMinute, endPeriod] =
-      time.match(/(\d+):(\d+) (AM|PM)/)?.slice(1) || [];
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = time.split(":").map(Number);
 
     if (!startHour || !endHour) return true;
 
-    let start24 = parseInt(startHour);
-    let end24 = parseInt(endHour);
-
-    // Convert to 24-hour format
-    if (startPeriod === "PM" && start24 !== 12) start24 += 12;
-    if (startPeriod === "AM" && start24 === 12) start24 = 0;
-    if (endPeriod === "PM" && end24 !== 12) end24 += 12;
-    if (endPeriod === "AM" && end24 === 12) end24 = 0;
-
-    // Compare times
-    if (start24 !== end24) {
-      return end24 > start24;
+    // Compare times in 24-hour format
+    if (startHour !== endHour) {
+      return endHour > startHour;
     }
 
-    return parseInt(endMinute) > parseInt(startMinute);
+    return endMinute > startMinute;
   };
 
   if (allDay) {
@@ -115,6 +104,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
+            format="24h"
             value={form.getFieldValue<string>("startTime")}
             onChange={(time) => {
               handleTimeChange("startTime", time);
@@ -131,6 +121,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
+            format="24h"
             value={form.getFieldValue<string>("endTime")}
             onChange={(time) => {
               if (isTimeAfterStart(time)) {

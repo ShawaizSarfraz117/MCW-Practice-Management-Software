@@ -115,8 +115,8 @@ export function useAppointmentData({
         : new Date();
 
       // Format times
-      const startTime = format(startDate, "h:mm a");
-      const endTime = format(endDate, "h:mm a");
+      const startTime = format(startDate, "HH:mm");
+      const endTime = format(endDate, "HH:mm");
 
       // Determine appointment type
       const rawType = appointmentData.type?.toLowerCase() || "appointment";

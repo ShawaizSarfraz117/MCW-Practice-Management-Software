@@ -43,28 +43,46 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
   const isTimeAfterStart = (time: string) => {
     if (!startTime) return true;
 
-    const [startHour, startMinute, startPeriod] =
-      startTime.match(/(\d+):(\d+) (AM|PM)/)?.slice(1) || [];
-    const [endHour, endMinute, endPeriod] =
-      time.match(/(\d+):(\d+) (AM|PM)/)?.slice(1) || [];
+    // Handle both 12-hour format (1:00 PM) and 24-hour format (13:00)
+    let startHour24: number, startMinute: number;
+    let endHour24: number, endMinute: number;
 
-    if (!startHour || !endHour) return true;
-
-    let start24 = parseInt(startHour);
-    let end24 = parseInt(endHour);
-
-    // Convert to 24-hour format
-    if (startPeriod === "PM" && start24 !== 12) start24 += 12;
-    if (startPeriod === "AM" && start24 === 12) start24 = 0;
-    if (endPeriod === "PM" && end24 !== 12) end24 += 12;
-    if (endPeriod === "AM" && end24 === 12) end24 = 0;
-
-    // Compare times
-    if (start24 !== end24) {
-      return end24 > start24;
+    if (startTime.includes(" ")) {
+      // 12-hour format
+      const [startHour, startMin, startPeriod] =
+        startTime.match(/(\d+):(\d+) (AM|PM)/)?.slice(1) || [];
+      startHour24 = parseInt(startHour);
+      startMinute = parseInt(startMin);
+      if (startPeriod === "PM" && startHour24 !== 12) startHour24 += 12;
+      if (startPeriod === "AM" && startHour24 === 12) startHour24 = 0;
+    } else {
+      // 24-hour format
+      const [startHour, startMin] = startTime.split(":").map(Number);
+      startHour24 = startHour;
+      startMinute = startMin;
     }
 
-    return parseInt(endMinute) > parseInt(startMinute);
+    if (time.includes(" ")) {
+      // 12-hour format
+      const [endHour, endMin, endPeriod] =
+        time.match(/(\d+):(\d+) (AM|PM)/)?.slice(1) || [];
+      endHour24 = parseInt(endHour);
+      endMinute = parseInt(endMin);
+      if (endPeriod === "PM" && endHour24 !== 12) endHour24 += 12;
+      if (endPeriod === "AM" && endHour24 === 12) endHour24 = 0;
+    } else {
+      // 24-hour format
+      const [endHour, endMin] = time.split(":").map(Number);
+      endHour24 = endHour;
+      endMinute = endMin;
+    }
+
+    // Compare times
+    if (startHour24 !== endHour24) {
+      return endHour24 > startHour24;
+    }
+
+    return endMinute > startMinute;
   };
 
   if (allDay) {
@@ -75,7 +93,6 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           value={startDate as Date}
           onChange={(date) => {
             handleDateChange("startDate", date);
-            forceUpdate(); // Ensure UI updates
           }}
         />
         <span className="text-sm text-gray-500">to</span>
@@ -85,7 +102,6 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             value={endDate as Date}
             onChange={(date) => {
               handleDateChange("endDate", date);
-              forceUpdate(); // Ensure UI updates
             }}
           />
           <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -107,7 +123,6 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
         value={startDate as Date}
         onChange={(date) => {
           handleDateChange("startDate", date);
-          forceUpdate(); // Ensure UI updates
         }}
       />
       <div className="flex items-center gap-2">
@@ -116,6 +131,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             data-timepicker
             className="border-gray-200"
             value={form.getFieldValue<string>("startTime")}
+            format="24h"
             onChange={(time) => {
               handleTimeChange("startTime", time);
               // Reset end time if it's before the new start time
@@ -123,7 +139,6 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
               if (currentEndTime && !isTimeAfterStart(currentEndTime)) {
                 form.setFieldValue("endTime", "");
               }
-              forceUpdate(); // Ensure UI updates
             }}
             disablePastTimes={true}
           />
@@ -132,11 +147,11 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             data-timepicker
             className="border-gray-200"
             value={form.getFieldValue<string>("endTime")}
+            format="24h"
             onChange={(time) => {
               if (isTimeAfterStart(time)) {
                 handleTimeChange("endTime", time);
               }
-              forceUpdate(); // Ensure UI updates
             }}
             disabledOptions={(time) => !isTimeAfterStart(time)}
             disablePastTimes={true}

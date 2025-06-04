@@ -292,19 +292,36 @@ const Scheduled = () => {
     setSelectedDate(selectInfo.start);
     setSelectedResource(selectInfo.resource?.id || null);
 
-    // Save the selected time info for the availability sidebar
-    const eventData = {
-      startTime: new Date(selectInfo.start).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }),
-      endTime: new Date(selectInfo.end).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }),
+    // Get the local time by adjusting for timezone (same logic as main calendar)
+    const adjustForTimezone = (date: Date) => {
+      const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() + userTimezoneOffset);
     };
+
+    const localStart = adjustForTimezone(selectInfo.start);
+    const localEnd = adjustForTimezone(selectInfo.end);
+
+    // Extract the local time directly from the adjusted Date objects
+    const startHours = localStart.getHours().toString().padStart(2, "0");
+    const startMinutes = localStart.getMinutes().toString().padStart(2, "0");
+    const endHours = localEnd.getHours().toString().padStart(2, "0");
+    const endMinutes = localEnd.getMinutes().toString().padStart(2, "0");
+
+    // Save the selected time info for the availability sidebar using 24-hour format
+    const eventData = {
+      startTime: `${startHours}:${startMinutes}`,
+      endTime: `${endHours}:${endMinutes}`,
+    };
+
+    console.log("Original selectInfo times:", {
+      start: selectInfo.start.toISOString(),
+      end: selectInfo.end.toISOString(),
+    });
+    console.log("Adjusted local times:", {
+      localStart: localStart.toISOString(),
+      localEnd: localEnd.toISOString(),
+    });
+    console.log("Storing time slot in session storage:", eventData);
 
     // Store this data to be accessed by the form
     window.sessionStorage.setItem(

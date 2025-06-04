@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Button,
   Checkbox,
@@ -27,12 +27,29 @@ import {
   AvailabilityService,
 } from "./types";
 
+// Utility function to extract time from a DateTime field
+const extractTimeFromDateTime = (dateTime: Date | string): string => {
+  const date = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
+
+// Utility function to extract date from a DateTime field
+const extractDateFromDateTime = (dateTime: Date | string): Date => {
+  return typeof dateTime === "string" ? new Date(dateTime) : dateTime;
+};
+
 export function AppointmentSidebar({
   open,
   onOpenChange,
   selectedDate = new Date(),
   selectedResource,
   onDone,
+  availabilityData,
+  isEditMode = false,
 }: AppointmentSidebarProps) {
   const { data: session } = useSession();
   const [allowOnlineRequests, setAllowOnlineRequests] = useState(false);
@@ -60,39 +77,136 @@ export function AppointmentSidebar({
   const [preSelectedServices, setPreSelectedServices] = useState<string[]>([]);
   const [removedAutoServices, setRemovedAutoServices] = useState<string[]>([]);
 
-  const timeSlot =
-    typeof window !== "undefined"
-      ? JSON.parse(window.sessionStorage.getItem("selectedTimeSlot") || "{}")
-      : {};
-
   const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
     useFormTabs(selectedResource, selectedDate);
 
-  useEffect(() => {
-    if (timeSlot.startTime) {
-      setAvailabilityFormValues((prev) => ({
-        ...prev,
-        startTime: timeSlot.startTime,
-        endTime: timeSlot.endTime || timeSlot.startTime,
-      }));
-      forceUpdate();
-    }
-  }, [timeSlot.startTime, timeSlot.endTime, open]);
+  // Stable function to read session storage and update form values
+  const updateFormWithSessionStorage = useCallback(() => {
+    if (typeof window !== "undefined") {
+      const timeSlot = JSON.parse(
+        window.sessionStorage.getItem("selectedTimeSlot") || "{}",
+      );
 
+      if (timeSlot.startTime && timeSlot.endTime) {
+        setAvailabilityFormValues((prev) => ({
+          ...prev,
+          startTime: timeSlot.startTime,
+          endTime: timeSlot.endTime,
+          startDate: selectedDate,
+          endDate: selectedDate,
+        }));
+        return true; // Indicate that values were updated
+      }
+    }
+    return false; // Indicate that no values were updated
+  }, [selectedDate, setAvailabilityFormValues]);
+
+  // Handle time slot from session storage - ensure this runs when sidebar opens
+  useEffect(() => {
+    if (open && !isEditMode) {
+      updateFormWithSessionStorage();
+    }
+  }, [open, isEditMode, updateFormWithSessionStorage]);
+
+  // Clean up session storage when sidebar closes
   useEffect(() => {
     if (!open) {
       window.sessionStorage.removeItem("selectedTimeSlot");
     }
   }, [open]);
 
-  useEffect(() => {
-    if (selectedResource && open) {
+  // Stable function to update clinician
+  const updateClinicianInForm = useCallback(() => {
+    if (selectedResource) {
       setAvailabilityFormValues((prev) => ({
         ...prev,
         clinician: selectedResource,
       }));
     }
-  }, [selectedResource, open, setAvailabilityFormValues]);
+  }, [selectedResource, setAvailabilityFormValues]);
+
+  // Handle selected resource (clinician) when sidebar opens or resource changes
+  useEffect(() => {
+    if (selectedResource && open) {
+      updateClinicianInForm();
+    }
+  }, [selectedResource, open, updateClinicianInForm]);
+
+  // Handle loading availability data for editing
+  useEffect(() => {
+    if (open && availabilityData && isEditMode) {
+      setAllowOnlineRequests(availabilityData.allow_online_requests || false);
+      setIsRecurring(availabilityData.is_recurring || false);
+      setTitle(availabilityData.title || "");
+
+      // Handle recurring rule parsing if available
+      if (availabilityData.recurring_rule && availabilityData.is_recurring) {
+        // Parse BYDAY
+        const byDayMatch =
+          availabilityData.recurring_rule.match(/BYDAY=([^;]+)/);
+        if (byDayMatch) {
+          setSelectedDays(byDayMatch[1].split(","));
+        }
+
+        // Parse INTERVAL
+        const intervalMatch =
+          availabilityData.recurring_rule.match(/INTERVAL=(\d+)/);
+        if (intervalMatch) {
+          setFrequency(intervalMatch[1]);
+        }
+
+        // Parse FREQ
+        const freqMatch = availabilityData.recurring_rule.match(/FREQ=(\w+)/);
+        if (freqMatch) {
+          setPeriod(freqMatch[1].toLowerCase());
+        }
+
+        // Parse end rule
+        if (availabilityData.recurring_rule.includes("COUNT=")) {
+          setEndType("occurrences");
+          const countMatch =
+            availabilityData.recurring_rule.match(/COUNT=(\d+)/);
+          if (countMatch) {
+            setEndValue(countMatch[1]);
+          }
+        } else if (availabilityData.recurring_rule.includes("UNTIL=")) {
+          setEndType("date");
+          const untilMatch =
+            availabilityData.recurring_rule.match(/UNTIL=(\d{8})/);
+          if (untilMatch) {
+            const year = untilMatch[1].slice(0, 4);
+            const month = untilMatch[1].slice(4, 6);
+            const day = untilMatch[1].slice(6, 8);
+            setEndValue(`${year}-${month}-${day}`);
+          }
+        } else {
+          setEndType("never");
+          setEndValue("");
+        }
+      }
+
+      // Update form values with availability data, extracting time from start_date and end_date
+      setAvailabilityFormValues((prev) => ({
+        ...prev,
+        title: availabilityData.title || "",
+        startDate: availabilityData.start_date
+          ? extractDateFromDateTime(availabilityData.start_date)
+          : prev.startDate,
+        endDate: availabilityData.end_date
+          ? extractDateFromDateTime(availabilityData.end_date)
+          : prev.endDate,
+        startTime: availabilityData.start_date
+          ? extractTimeFromDateTime(availabilityData.start_date)
+          : prev.startTime,
+        endTime: availabilityData.end_date
+          ? extractTimeFromDateTime(availabilityData.end_date)
+          : prev.endTime,
+        clinician: availabilityData.clinician_id || "",
+        allowOnlineRequests: availabilityData.allow_online_requests || false,
+        isRecurring: availabilityData.is_recurring || false,
+      }));
+    }
+  }, [open, availabilityData, isEditMode]);
 
   const { data: services = [], isLoading: isLoadingServices } = useQuery<
     DetailedService[]
@@ -210,27 +324,44 @@ export function AppointmentSidebar({
     return parts.join(";");
   };
 
-  // Helper function to convert date and time to local ISO string
+  // Helper function to convert date and time to ISO string while preserving local time
   const getDateTimeUTC = (date: Date, timeStr?: string) => {
     const newDate = new Date(date);
     if (timeStr) {
       try {
-        const [timeValue, period] = timeStr.split(" ");
-        const [hours, minutes] = timeValue.split(":").map(Number);
-        let hours24 = hours;
-        if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
-        if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
-        newDate.setHours(hours24, minutes, 0, 0);
+        // Handle both 12-hour format (1:00 PM) and 24-hour format (13:00)
+        if (timeStr.includes(" ")) {
+          // 12-hour format with AM/PM
+          const [timeValue, period] = timeStr.split(" ");
+          const [hours, minutes] = timeValue.split(":").map(Number);
+          let hours24 = hours;
+          if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
+          if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+          newDate.setHours(hours24, minutes, 0, 0);
+        } else {
+          // 24-hour format
+          const [hours, minutes] = timeStr.split(":").map(Number);
+          newDate.setHours(hours, minutes, 0, 0);
+        }
       } catch (error) {
         console.error("Error converting date/time:", error);
       }
     }
 
-    const tzOffset = newDate.getTimezoneOffset() * 60000;
+    // Create ISO string manually to preserve local time interpretation
+    const year = newDate.getFullYear();
+    const month = String(newDate.getMonth() + 1).padStart(2, "0");
+    const day = String(newDate.getDate()).padStart(2, "0");
+    const hours = String(newDate.getHours()).padStart(2, "0");
+    const minutes = String(newDate.getMinutes()).padStart(2, "0");
+    const seconds = String(newDate.getSeconds()).padStart(2, "0");
 
-    const localDate = new Date(newDate.getTime() - tzOffset);
+    const localISOTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
 
-    return localDate.toISOString();
+    console.log("getDateTimeUTC input:", { date, timeStr });
+    console.log("getDateTimeUTC output:", localISOTime);
+
+    return localISOTime;
   };
 
   const handleSave = async () => {
@@ -439,7 +570,9 @@ export function AppointmentSidebar({
             <button onClick={() => onOpenChange(false)}>
               <X className="h-5 w-5" />
             </button>
-            <h2 className="text-lg">New availability</h2>
+            <h2 className="text-lg">
+              {isEditMode ? "Edit availability" : "New availability"}
+            </h2>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>

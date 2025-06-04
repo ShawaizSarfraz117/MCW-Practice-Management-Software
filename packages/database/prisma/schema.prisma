@@ -33,8 +33,8 @@ model Appointment {
   recurring_appointment_id String?            @db.UniqueIdentifier
   client_group_id          String?            @db.UniqueIdentifier
   adjustable_amount        Decimal?
-  superbill_id             String?            @db.UniqueIdentifier
   write_off                Decimal?
+  superbill_id             String?            @db.UniqueIdentifier
   ClientGroup              ClientGroup?       @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_ClientGroup")
   Clinician                Clinician?         @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Clinician")
   Location                 Location?          @relation(fields: [location_id], references: [id], map: "FK_Appointment_Location")
@@ -80,8 +80,6 @@ model Availability {
   updated_at            DateTime               @updatedAt
   is_recurring          Boolean                @default(false, map: "DF_Availability_IsRecurring")
   recurring_rule        String?                @db.Text
-  end_time              DateTime               @default(now(), map: "DF_Availability_EndTime")
-  start_time            DateTime               @default(now(), map: "DF_Availability_StartTime")
   end_date              DateTime               @default(now(), map: "DF_Availability_EndDate")
   start_date            DateTime               @default(now(), map: "DF_Availability_StartDate")
   title                 String                 @db.Text
@@ -92,7 +90,7 @@ model Availability {
   AvailabilityServices  AvailabilityServices[]
 
   @@index([clinician_id], map: "IX_Availability_clinician_id")
-  @@index([start_time, end_time], map: "IX_Availability_time_range")
+  @@index([start_date, end_date], map: "IX_Availability_date_range")
 }
 
 model Client {
@@ -106,10 +104,10 @@ model Client {
   is_active                Boolean                    @default(true, map: "DF_Client_IsActive")
   preferred_name           String?                    @db.VarChar(100)
   date_of_birth            DateTime?                  @db.Date
-  allow_online_appointment Boolean                    @default(false, map: "DF_Client_allow_online_appointment")
-  access_billing_documents Boolean                    @default(false, map: "DF_Client_access_billing_documents")
-  use_secure_messaging     Boolean                    @default(false, map: "DF_Client_use_secure_messaging")
   referred_by              String?                    @db.VarChar(200)
+  access_billing_documents Boolean                    @default(false, map: "DF_Client_access_billing_documents")
+  allow_online_appointment Boolean                    @default(false, map: "DF_Client_allow_online_appointment")
+  use_secure_messaging     Boolean                    @default(false, map: "DF_Client_use_secure_messaging")
   Audit                    Audit[]
   Clinician                Clinician?                 @relation(fields: [primary_clinician_id], references: [id], onUpdate: NoAction, map: "FK_Client_Clinician")
   Location                 Location?                  @relation(fields: [primary_location_id], references: [id], onUpdate: NoAction, map: "FK_Client_Location")
@@ -174,10 +172,10 @@ model ClientGroup {
   is_active                      Boolean                    @default(true, map: "DF_ClientGroup_IsActive")
   available_credit               Decimal                    @default(0)
   created_at                     DateTime?                  @default(now(), map: "ClientGroup_created_at")
-  auto_monthly_statement_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_statement_enabled")
-  auto_monthly_superbill_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_superbill_enabled")
   first_seen_at                  DateTime?                  @default(now(), map: "ClientGroup_first_seen_at")
   notes                          String?                    @db.Text
+  auto_monthly_statement_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_statement_enabled")
+  auto_monthly_superbill_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_superbill_enabled")
   Appointment                    Appointment[]
   ClientBillingPreferences       ClientBillingPreferences[]
   Clinician                      Clinician?                 @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
@@ -239,8 +237,8 @@ model Clinician {
   is_active           Boolean               @default(true, map: "DF_Clinician_IsActive")
   first_name          String                @db.VarChar(100)
   last_name           String                @db.VarChar(100)
-  speciality          String?               @db.VarChar(250)
   NPI_number          String?               @db.VarChar(250)
+  speciality          String?               @db.VarChar(250)
   taxonomy_code       String?               @db.VarChar(250)
   Appointment         Appointment[]
   appointmentLimits   AppointmentLimit[]
@@ -362,26 +360,26 @@ model Payment {
 }
 
 model PracticeService {
-  id                  String                @id @default(dbgenerated("newid()"), map: "PK_PracticeService_ID") @db.UniqueIdentifier
-  type                String                @db.VarChar(255)
-  rate                Decimal               @db.Decimal(10, 2)
-  code                String                @db.VarChar(50)
-  description         String?               @db.Text
-  duration            Int
-  color               String?               @db.VarChar(7)
-  allow_new_clients   Boolean               @default(false)
-  available_online    Boolean               @default(false)
-  bill_in_units       Boolean               @default(false)
-  block_after         Int                   @default(0)
-  block_before        Int                   @default(0)
-  is_default          Boolean               @default(false)
-  require_call        Boolean               @default(false)
-  Appointment         Appointment[]
-  AppointmentRequests AppointmentRequests[]
+  id                   String                 @id @default(dbgenerated("newid()"), map: "PK_PracticeService_ID") @db.UniqueIdentifier
+  type                 String                 @db.VarChar(255)
+  rate                 Decimal                @db.Decimal(10, 2)
+  code                 String                 @db.VarChar(50)
+  description          String?                @db.Text
+  duration             Int
+  color                String?                @db.VarChar(7)
+  allow_new_clients    Boolean                @default(false)
+  available_online     Boolean                @default(false)
+  bill_in_units        Boolean                @default(false)
+  block_after          Int                    @default(0)
+  block_before         Int                    @default(0)
+  is_default           Boolean                @default(false)
+  require_call         Boolean                @default(false)
+  Appointment          Appointment[]
+  AppointmentRequests  AppointmentRequests[]
   AvailabilityServices AvailabilityServices[]
-  ClientGroupServices ClientGroupServices[]
-  ClinicianServices   ClinicianServices[]
-  GoodFaithServices   GoodFaithServices[]
+  ClientGroupServices  ClientGroupServices[]
+  ClinicianServices    ClinicianServices[]
+  GoodFaithServices    GoodFaithServices[]
 }
 
 model Role {
@@ -401,11 +399,11 @@ model SurveyAnswers {
   completed_at           DateTime?
   assigned_at            DateTime                 @default(now(), map: "DF__ClientDoc__assig__4D8A65FA")
   expiry_date            DateTime?
-  is_intake              Boolean                  @default(false, map: "DF_SurveyAnswers_is_intake")
   status                 String                   @db.VarChar(100)
   appointment_id         String?                  @db.UniqueIdentifier
   is_signed              Boolean?
   is_locked              Boolean?
+  is_intake              Boolean                  @default(false, map: "DF_SurveyAnswers_is_intake")
   AppointmentNotes       AppointmentNotes[]
   ClientFiles            ClientFiles[]
   DiagnosisTreatmentPlan DiagnosisTreatmentPlan[]
@@ -424,8 +422,8 @@ model SurveyTemplate {
   description        String?         @db.Text
   updated_at         DateTime
   type               String          @db.VarChar(100)
-  is_default         Boolean         @default(false, map: "DF_SurveyTemplate_is_default")
   requires_signature Boolean         @default(false, map: "DF_SurveyTemplate_RequiresSignature")
+  is_default         Boolean         @default(false, map: "DF_SurveyTemplate_is_default")
   is_shareable       Boolean         @default(false, map: "DF_SurveyTemplate_is_shareable")
   SurveyAnswers      SurveyAnswers[]
 }
@@ -495,13 +493,13 @@ model License {
 
 model PracticeInformation {
   id             String     @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  clinician_id   String?    @db.UniqueIdentifier
   practice_name  String
   practice_email String
   time_zone      String
   practice_logo  String
   phone_numbers  String
   tele_health    Boolean
+  clinician_id   String?    @db.UniqueIdentifier
   Clinician      Clinician? @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PracticeInformation_Clinician")
 }
 
@@ -523,10 +521,10 @@ model EmailTemplate {
   subject    String   @db.VarChar(255)
   content    String   @db.Text
   type       String   @db.VarChar(50)
-  email_type String?  @db.VarChar(250)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   created_by String   @db.UniqueIdentifier
+  email_type String?  @db.VarChar(250)
 
   @@index([type])
   @@index([created_by])
@@ -558,7 +556,6 @@ model RolePermission {
 
 model ClientGroupFile {
   id                 String        @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  survey_template_id String?       @db.UniqueIdentifier
   title              String        @db.VarChar(255)
   type               String        @default("PRACTICE_UPLOAD") @db.VarChar(50)
   url                String?       @db.Text
@@ -566,6 +563,7 @@ model ClientGroupFile {
   uploaded_by_id     String?       @db.UniqueIdentifier
   created_at         DateTime      @default(now())
   updated_at         DateTime      @updatedAt
+  survey_template_id String?       @db.UniqueIdentifier
   ClientFiles        ClientFiles[]
   ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupFile_ClientGroup")
   User               User?         @relation(fields: [uploaded_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientGroupFile_User")
@@ -580,7 +578,6 @@ model Statement {
   client_group_id   String          @db.UniqueIdentifier
   start_date        DateTime?
   end_date          DateTime?
-  issued_date       DateTime?
   beginning_balance Decimal         @db.Decimal(10, 2)
   invoices_total    Decimal         @db.Decimal(10, 2)
   payments_total    Decimal         @db.Decimal(10, 2)
@@ -594,6 +591,7 @@ model Statement {
   created_at        DateTime        @default(now())
   created_by        String?         @db.UniqueIdentifier
   is_exported       Boolean         @default(false, map: "DF_Statement_is_exported")
+  issued_date       DateTime?
   ClientGroup       ClientGroup     @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_Statement_ClientGroup")
   User              User?           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Statement_User")
   StatementItem     StatementItem[]

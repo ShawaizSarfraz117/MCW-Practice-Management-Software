@@ -104,6 +104,19 @@ export interface AppointmentSidebarProps {
     duration: string;
   };
   onClose: () => void;
+  availabilityData?: {
+    id: string;
+    title: string;
+    start_date: string;
+    end_date: string;
+    location: string;
+    clinician_id: string;
+    allow_online_requests: boolean;
+    is_recurring: boolean;
+    recurring_rule: string | null;
+    service_id?: string;
+  };
+  isEditMode?: boolean;
 }
 
 export interface Location {
