@@ -39,7 +39,232 @@ async function main() {
   console.log("Roles created or found:", { admin: adminRole.name, clinician: backOfficeRole.name });
 
   // Seed users
-  const { admin, clinician } = await seedUsers(prisma, { adminRole, backOfficeRole });
+  const { admin, clinician, clinicianRecord, adminClinicianRecord } = await seedUsers(prisma, { adminRole, backOfficeRole });
+
+  // Create locations
+  console.log('Seeding locations...');
+  const mainLocationId = uuidv4();
+  const satelliteLocationId = uuidv4();
+  
+  const mainLocation = await prisma.location.upsert({
+    where: { id: mainLocationId },
+    update: {},
+    create: {
+      id: mainLocationId,
+      name: "Main Clinic",
+      address: "123 Medical Center Drive, Suite 200, Boston, MA 02115",
+      street: "123 Medical Center Drive",
+      city: "Boston",
+      state: "MA",
+      zip: "02115",
+      is_active: true,
+      color: "#2d8467"
+    }
+  });
+
+  const satelliteLocation = await prisma.location.upsert({
+    where: { id: satelliteLocationId },
+    update: {},
+    create: {
+      id: satelliteLocationId,
+      name: "Satellite Office",
+      address: "456 Healthcare Plaza, Floor 3, Boston, MA 02116",
+      street: "456 Healthcare Plaza",
+      city: "Boston", 
+      state: "MA",
+      zip: "02116",
+      is_active: true,
+      color: "#4f46e5"
+    }
+  });
+  console.log("Locations created");
+
+  // Create practice services
+  console.log('Seeding practice services...');
+  const services = [
+    {
+      id: uuidv4(),
+      type: "Individual Therapy",
+      rate: 150.00,
+      code: "90834",
+      description: "Individual psychotherapy, 45 minutes",
+      duration: 45,
+      color: "#10b981",
+      allow_new_clients: true,
+      available_online: true,
+      bill_in_units: false,
+      is_default: true
+    },
+    {
+      id: uuidv4(),
+      type: "Initial Evaluation",
+      rate: 200.00,
+      code: "90791",
+      description: "Psychiatric diagnostic evaluation",
+      duration: 60,
+      color: "#f59e0b",
+      allow_new_clients: true,
+      available_online: true,
+      bill_in_units: false,
+      is_default: false
+    },
+    {
+      id: uuidv4(),
+      type: "Group Therapy",
+      rate: 75.00,
+      code: "90853",
+      description: "Group psychotherapy",
+      duration: 90,
+      color: "#8b5cf6",
+      allow_new_clients: false,
+      available_online: false,
+      bill_in_units: false,
+      is_default: false
+    },
+    {
+      id: uuidv4(),
+      type: "Family Therapy",
+      rate: 175.00,
+      code: "90847",
+      description: "Family psychotherapy with patient present",
+      duration: 50,
+      color: "#ef4444",
+      allow_new_clients: true,
+      available_online: true,
+      bill_in_units: false,
+      is_default: false
+    }
+  ];
+
+  const createdServices = [];
+  for (const service of services) {
+    const created = await prisma.practiceService.upsert({
+      where: { id: service.id },
+      update: {},
+      create: service
+    });
+    createdServices.push(created);
+  }
+  console.log("Practice services created");
+
+  // Link clinicians to locations
+  console.log('Linking clinicians to locations...');
+  await prisma.clinicianLocation.upsert({
+    where: {
+      clinician_id_location_id: {
+        clinician_id: clinicianRecord.id,
+        location_id: mainLocation.id
+      }
+    },
+    update: {},
+    create: {
+      clinician_id: clinicianRecord.id,
+      location_id: mainLocation.id,
+      is_primary: true
+    }
+  });
+
+  await prisma.clinicianLocation.upsert({
+    where: {
+      clinician_id_location_id: {
+        clinician_id: adminClinicianRecord.id,
+        location_id: mainLocation.id
+      }
+    },
+    update: {},
+    create: {
+      clinician_id: adminClinicianRecord.id,
+      location_id: mainLocation.id,
+      is_primary: true
+    }
+  });
+
+  await prisma.clinicianLocation.upsert({
+    where: {
+      clinician_id_location_id: {
+        clinician_id: adminClinicianRecord.id,
+        location_id: satelliteLocation.id
+      }
+    },
+    update: {},
+    create: {
+      clinician_id: adminClinicianRecord.id,
+      location_id: satelliteLocation.id,
+      is_primary: false
+    }
+  });
+  console.log("Clinician locations linked");
+
+  // Link clinicians to services
+  console.log('Linking clinicians to services...');
+  for (const service of createdServices) {
+    // Clinician offers all services
+    await prisma.clinicianServices.upsert({
+      where: {
+        clinician_id_service_id: {
+          clinician_id: clinicianRecord.id,
+          service_id: service.id
+        }
+      },
+      update: {},
+      create: {
+        clinician_id: clinicianRecord.id,
+        service_id: service.id,
+        is_active: true
+      }
+    });
+
+    // Admin offers only individual and evaluation services
+    if (service.type === "Individual Therapy" || service.type === "Initial Evaluation") {
+      await prisma.clinicianServices.upsert({
+        where: {
+          clinician_id_service_id: {
+            clinician_id: adminClinicianRecord.id,
+            service_id: service.id
+          }
+        },
+        update: {},
+        create: {
+          clinician_id: adminClinicianRecord.id,
+          service_id: service.id,
+          is_active: true
+        }
+      });
+    }
+  }
+  console.log("Clinician services linked");
+
+  // Create licenses for clinicians
+  console.log('Creating licenses for clinicians...');
+  const clinicianLicenseId = uuidv4();
+  const adminLicenseId = uuidv4();
+  
+  await prisma.license.upsert({
+    where: { id: clinicianLicenseId },
+    update: {},
+    create: {
+      id: clinicianLicenseId,
+      clinician_id: clinicianRecord.id,
+      license_type: "LCSW",
+      license_number: "LCSW-123456",
+      expiration_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+      state: "MA"
+    }
+  });
+
+  await prisma.license.upsert({
+    where: { id: adminLicenseId },
+    update: {},
+    create: {
+      id: adminLicenseId,
+      clinician_id: adminClinicianRecord.id,
+      license_type: "PSYCHOLOGIST",
+      license_number: "PSY-789012",
+      expiration_date: new Date(Date.now() + 730 * 24 * 60 * 60 * 1000), // 2 years from now
+      state: "MA"
+    }
+  });
+  console.log("Licenses created");
 
   // Create sample audit entries
   const auditEntries = [

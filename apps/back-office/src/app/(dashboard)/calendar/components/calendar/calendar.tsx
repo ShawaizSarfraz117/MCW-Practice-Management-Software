@@ -346,9 +346,16 @@ export function CalendarView({
 
       // Handle appointments with client group
       if (values.clientGroup) {
-        const response = await fetch(
-          `/api/client/group?id=${values.clientGroup}`,
-        );
+        if (typeof values.clientGroup === "object" && values.clientGroup.name) {
+          return createAppointmentWithAPI(values, values.clientGroup.name);
+        }
+
+        const clientGroupId =
+          typeof values.clientGroup === "object"
+            ? values.clientGroup.id
+            : values.clientGroup;
+
+        const response = await fetch(`/api/client/group?id=${clientGroupId}`);
         if (response.ok) {
           const clientGroupData = await response.json();
           const clientName = clientGroupData.name || "Client Group";
@@ -637,6 +644,11 @@ export function CalendarView({
       recurringRule = parts.join(";");
     }
 
+    // Ensure we have a valid user ID for created_by
+    if (!session?.user?.id) {
+      throw new Error("User session not found. Please log in again.");
+    }
+
     const payload = {
       type: values.type || "APPOINTMENT",
       title:
@@ -649,9 +661,13 @@ export function CalendarView({
       start_date: startDateTime,
       end_date: endDateTime,
       location_id: values.location || "",
-      client_group_id: values.clientGroup ? values.clientGroup : null,
+      client_group_id: values.clientGroup
+        ? typeof values.clientGroup === "object"
+          ? values.clientGroup.id
+          : values.clientGroup
+        : null,
       clinician_id: values.clinician || selectedResource || "",
-      created_by: session?.user?.id || "",
+      created_by: session.user.id,
       status: "SCHEDULED",
       is_recurring: values.recurring || false,
       recurring_rule: recurringRule,
