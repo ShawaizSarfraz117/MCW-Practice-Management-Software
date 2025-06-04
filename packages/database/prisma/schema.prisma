@@ -986,7 +986,7 @@ model PracticeSettings {
 
 /// SMS/text reminder templates.
 model ReminderTextTemplates {
-  id      String @id(map: "PK_ReminderTextTemplates") @db.UniqueIdentifier
+  id      String @id @default(dbgenerated("newid()"), map: "PK_ReminderTextTemplates") @db.UniqueIdentifier
   type    String @db.VarChar(250)
   content String @db.Text
 }
