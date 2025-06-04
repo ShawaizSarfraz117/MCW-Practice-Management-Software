@@ -92,6 +92,7 @@ const mockUser = (overrides = {}): MockUser => ({
 const mockRole = (overrides = {}): MockRole => ({
   id: "mock-role-id",
   name: "Admin",
+  description: null,
   ...overrides,
 });
 
