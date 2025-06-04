@@ -7,7 +7,7 @@ import {
   Button,
   toast,
 } from "@mcw/ui";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BillingInvoicesSection from "./BillingInvoicesSection";
 import BillingSuperbillsSection from "./BillingSuperbillsSection";
 
@@ -54,24 +54,28 @@ export default function BillingSettingsForm() {
     queryFn: fetchBillingSettings,
   });
 
-  const [formData, setFormData] = useState<BillingSettingsFormData>(
-    initialData || {
-      autoInvoiceCreation: "daily",
-      pastDueDays: 30,
-      emailClientPastDue: true,
-      invoiceIncludePracticeLogo: true,
-      invoiceFooterInfo: "",
-      superbillDayOfMonth: 1,
-      superbillIncludePracticeLogo: true,
-      superbillIncludeSignatureLine: true,
-      superbillIncludeDiagnosisDescription: true,
-      superbillFooterInfo: "",
-      billingDocEmailDelayMinutes: 0,
-      createMonthlyStatementsForNewClients: true,
-      createMonthlySuperbillsForNewClients: true,
-      defaultNotificationMethod: "email",
-    },
-  );
+  const [formData, setFormData] = useState<BillingSettingsFormData>({
+    autoInvoiceCreation: "daily",
+    pastDueDays: 30,
+    emailClientPastDue: true,
+    invoiceIncludePracticeLogo: true,
+    invoiceFooterInfo: "",
+    superbillDayOfMonth: 1,
+    superbillIncludePracticeLogo: true,
+    superbillIncludeSignatureLine: true,
+    superbillIncludeDiagnosisDescription: true,
+    superbillFooterInfo: "",
+    billingDocEmailDelayMinutes: 0,
+    createMonthlyStatementsForNewClients: true,
+    createMonthlySuperbillsForNewClients: true,
+    defaultNotificationMethod: "email",
+  });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   const queryClient = useQueryClient();
   const mutation = useMutation({

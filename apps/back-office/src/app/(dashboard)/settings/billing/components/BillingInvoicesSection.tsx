@@ -1,5 +1,5 @@
-import { Checkbox } from "@mcw/ui";
-import { CheckedState } from "@radix-ui/react-checkbox";
+// import { Checkbox } from "@mcw/ui";
+// import { CheckedState } from "@radix-ui/react-checkbox";
 import type { BillingSettingsFormData } from "./BillingSettingsForm";
 
 interface BillingInvoicesSectionProps {
@@ -24,19 +24,20 @@ export default function BillingInvoicesSection({
         <div className="space-y-4">
           {["daily", "weekly", "monthly"].map((option) => (
             <div key={option} className="flex items-start gap-3">
-              <Checkbox
-                checked={formData.autoInvoiceCreation === option}
-                className="mt-0.5 data-[state=checked]:bg-[#2D8467] data-[state=checked]:border-[#2D8467]"
+              <input
+                type="radio"
+                name="autoInvoiceCreation"
                 id={`invoice-${option}`}
-                onCheckedChange={(checked: CheckedState) => {
-                  if (checked) {
-                    setFormData({
-                      ...formData,
-                      autoInvoiceCreation:
-                        option as BillingSettingsFormData["autoInvoiceCreation"],
-                    });
-                  }
-                }}
+                value={option}
+                checked={formData.autoInvoiceCreation === option}
+                onChange={() =>
+                  setFormData({
+                    ...formData,
+                    autoInvoiceCreation:
+                      option as BillingSettingsFormData["autoInvoiceCreation"],
+                  })
+                }
+                className="mt-0.5 accent-[#2D8467]"
               />
               <label className="cursor-pointer" htmlFor={`invoice-${option}`}>
                 <span className="font-normal text-gray-900 capitalize">
@@ -73,26 +74,31 @@ export default function BillingInvoicesSection({
               min={0}
               type="number"
               value={formData.pastDueDays}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  pastDueDays: parseInt(e.target.value),
-                })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+                const parsed = parseInt(value, 10);
+                if (!isNaN(parsed) && parsed >= 0 && Number.isInteger(parsed)) {
+                  setFormData({
+                    ...formData,
+                    pastDueDays: parsed,
+                  });
+                }
+              }}
             />
             <span className="text-sm text-gray-700">days</span>
           </div>
 
           <label className="flex items-center gap-2">
-            <Checkbox
+            <input
+              type="checkbox"
               checked={formData.emailClientPastDue}
-              className="data-[state=checked]:bg-[#2D8467] data-[state=checked]:border-[#2D8467]"
-              onCheckedChange={(checked: CheckedState) =>
+              onChange={(e) =>
                 setFormData({
                   ...formData,
-                  emailClientPastDue: !!checked,
+                  emailClientPastDue: e.target.checked,
                 })
               }
+              className="data-[state=checked]:bg-[#2D8467] data-[state=checked]:border-[#2D8467]"
             />
             <span className="text-[#111827]">
               Email clients about past due invoices
