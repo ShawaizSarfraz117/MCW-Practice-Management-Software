@@ -12,7 +12,12 @@
       "Bash(git merge:*)",
       "Bash(gh pr view:*)",
       "Bash(grep:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(sed:*)",
+      "Bash(cp:*)",
+      "Bash(git reset:*)",
+      "Bash(rm:*)",
+      "Bash(npx prisma generate:*)"
     ],
     "deny": []
   }
