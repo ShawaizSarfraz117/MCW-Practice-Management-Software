@@ -322,7 +322,7 @@ const ImageCropper = ({
                 maskComposite: "exclude",
                 WebkitMaskComposite: "xor",
               }}
-             />
+            />
           </div>
         </div>
 
@@ -361,7 +361,7 @@ const ImageCropper = ({
                       }%`
                     : "0%",
               }}
-             />
+            />
             <input
               className="absolute top-1/2 -translate-y-1/2 w-full h-5 opacity-0 cursor-pointer"
               id="zoom-slider"
