@@ -271,9 +271,7 @@ export async function POST(request: NextRequest) {
           ) {
             await tx.license.create({
               data: {
-                clinicalInfo: {
-                  connect: { id: clinicalInfoData.id },
-                },
+                clinician_id: clinicianData.id,
                 license_type: license.type,
                 license_number: license.number,
                 expiration_date: new Date(license.expirationDate),
