@@ -2,30 +2,15 @@
 
 import DataTable from "@/components/table/DataTable";
 import { Avatar, AvatarFallback, AvatarImage, Badge } from "@mcw/ui";
+import { SafeUserWithRelations } from "@mcw/types";
 
 interface MemberTableProps {
-  rows: TeamMember[];
+  rows: SafeUserWithRelations[];
   onRowClick: (row: object) => void;
 }
 
-// Define the expected shape of team member data from the API
-export interface TeamMember {
-  id: string;
-  email: string;
-  password_hash: string;
-  last_login?: string | Date | null;
-  UserRole: {
-    Role: {
-      id: string;
-      name: string;
-    };
-  }[];
-  Clinician: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  } | null;
-}
+// Use the shared type from @mcw/types instead of creating a local interface
+export type TeamMember = SafeUserWithRelations;
 
 const MemberTable = ({ rows, onRowClick }: MemberTableProps) => {
   const getInitials = (member: TeamMember) => {

@@ -1,60 +1,66 @@
 "use client";
 
-import { Input, FormControl, FormItem, FormLabel } from "@mcw/ui";
+import { Input, FormControl, FormItem, FormLabel, FormMessage } from "@mcw/ui";
 import { useForm } from "@tanstack/react-form";
-import type { TeamMemberFormData } from "@/types/entities";
-import {
-  FormWrapper,
-  FormHeader,
-  FormField,
-  getFieldStyles,
-} from "../shared/FormWrapper";
-import { validators } from "../shared/validators";
+import { forwardRef, useImperativeHandle } from "react";
+import { TeamMember } from "../../hooks/useRolePermissions";
 
 interface PersonalInfoFormProps {
-  initialData: Partial<TeamMemberFormData>;
-  onSubmit: (data: Partial<TeamMemberFormData>) => void;
+  initialData: Partial<TeamMember>;
+  onSubmit: (data: Partial<TeamMember>) => void;
+  onChange?: (data: Partial<TeamMember>) => void;
 }
 
-export default function PersonalInfoForm({
-  initialData,
-  onSubmit,
-}: PersonalInfoFormProps) {
-  const form = useForm({
-    defaultValues: {
-      email: initialData.email || "",
-      firstName: initialData.firstName || "",
-      lastName: initialData.lastName || "",
-    },
-    onSubmit: ({ value }) => {
-      onSubmit(value);
-    },
-  });
+export interface PersonalInfoFormRef {
+  submitForm: () => void;
+}
 
-  return (
-    <FormWrapper onSubmit={() => form.handleSubmit()}>
-      <FormHeader
-        title="Personal Information"
-        description="Enter the team member's basic information"
-      />
+const PersonalInfoForm = forwardRef<PersonalInfoFormRef, PersonalInfoFormProps>(
+  ({ initialData, onSubmit, onChange: _onChange }, ref) => {
+    const form = useForm({
+      defaultValues: {
+        email: initialData.email || "",
+        firstName: initialData.firstName || "",
+        lastName: initialData.lastName || "",
+      },
+      onSubmit: ({ value }) => {
+        onSubmit(value);
+      },
+    });
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <form.Field
-          name="firstName"
-          validators={{
-            onBlur: ({ value }) =>
-              validators.required("First name is required")(value),
-          }}
-        >
-          {(field) => (
-            <FormField errors={field.state.meta.errors.map(String)}>
+    useImperativeHandle(ref, () => ({
+      submitForm: () => {
+        form.handleSubmit();
+      },
+    }));
+
+    return (
+      <form
+        className="space-y-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
+        }}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form.Field
+            name="firstName"
+            validators={{
+              onBlur: ({ value }) => {
+                if (!value) return "First name is required";
+                return undefined;
+              },
+            }}
+          >
+            {(field) => (
               <FormItem className="space-y-2">
                 <FormLabel htmlFor={field.name}>First Name</FormLabel>
                 <FormControl>
                   <Input
-                    className={getFieldStyles(
-                      field.state.meta.errors.length > 0,
-                    )}
+                    className={
+                      field.state.meta.errors.length ? "border-red-500" : ""
+                    }
                     id={field.name}
                     name={field.name}
                     onBlur={field.handleBlur}
@@ -63,27 +69,30 @@ export default function PersonalInfoForm({
                     value={field.state.value}
                   />
                 </FormControl>
+                {field.state.meta.errors.length > 0 && (
+                  <FormMessage>{field.state.meta.errors[0]}</FormMessage>
+                )}
               </FormItem>
-            </FormField>
-          )}
-        </form.Field>
+            )}
+          </form.Field>
 
-        <form.Field
-          name="lastName"
-          validators={{
-            onBlur: ({ value }) =>
-              validators.required("Last name is required")(value),
-          }}
-        >
-          {(field) => (
-            <FormField errors={field.state.meta.errors.map(String)}>
+          <form.Field
+            name="lastName"
+            validators={{
+              onBlur: ({ value }) => {
+                if (!value) return "Last name is required";
+                return undefined;
+              },
+            }}
+          >
+            {(field) => (
               <FormItem className="space-y-2">
                 <FormLabel htmlFor={field.name}>Last Name</FormLabel>
                 <FormControl>
                   <Input
-                    className={getFieldStyles(
-                      field.state.meta.errors.length > 0,
-                    )}
+                    className={
+                      field.state.meta.errors.length ? "border-red-500" : ""
+                    }
                     id={field.name}
                     name={field.name}
                     onBlur={field.handleBlur}
@@ -92,27 +101,35 @@ export default function PersonalInfoForm({
                     value={field.state.value}
                   />
                 </FormControl>
+                {field.state.meta.errors.length > 0 && (
+                  <FormMessage>{field.state.meta.errors[0]}</FormMessage>
+                )}
               </FormItem>
-            </FormField>
-          )}
-        </form.Field>
-      </div>
+            )}
+          </form.Field>
+        </div>
 
-      <form.Field
-        name="email"
-        validators={{
-          onBlur: (field) =>
-            validators.required("Email is required")(field.value) ||
-            validators.email(field.value),
-        }}
-      >
-        {(field) => (
-          <FormField errors={field.state.meta.errors.map(String)}>
+        <form.Field
+          name="email"
+          validators={{
+            onBlur: ({ value }) => {
+              if (!value) return "Email is required";
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (!emailRegex.test(value)) {
+                return "Please enter a valid email address";
+              }
+              return undefined;
+            },
+          }}
+        >
+          {(field) => (
             <FormItem className="space-y-2">
               <FormLabel htmlFor={field.name}>Email</FormLabel>
               <FormControl>
                 <Input
-                  className={getFieldStyles(field.state.meta.errors.length > 0)}
+                  className={
+                    field.state.meta.errors.length ? "border-red-500" : ""
+                  }
                   id={field.name}
                   name={field.name}
                   onBlur={field.handleBlur}
@@ -122,10 +139,17 @@ export default function PersonalInfoForm({
                   value={field.state.value}
                 />
               </FormControl>
+              {field.state.meta.errors.length > 0 && (
+                <FormMessage>{field.state.meta.errors[0]}</FormMessage>
+              )}
             </FormItem>
-          </FormField>
-        )}
-      </form.Field>
-    </FormWrapper>
-  );
-}
+          )}
+        </form.Field>
+      </form>
+    );
+  },
+);
+
+PersonalInfoForm.displayName = "PersonalInfoForm";
+
+export default PersonalInfoForm;

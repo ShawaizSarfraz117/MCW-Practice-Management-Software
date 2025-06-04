@@ -49,10 +49,7 @@ describe("Team Member Components UI", () => {
     );
     expect(licenseInfoModule.default).toBeDefined();
 
-    const servicesModule = await import(
-      "@/(dashboard)/settings/team-members/components/AddTeamMember/ServicesForm"
-    );
-    expect(servicesModule.default).toBeDefined();
+    // ServicesForm has been removed in the add-team-member-functionality branch
 
     const roleInfoModule = await import(
       "@/(dashboard)/settings/team-members/components/AddTeamMember/RoleInfoForm"
