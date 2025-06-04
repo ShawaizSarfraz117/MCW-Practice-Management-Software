@@ -35,16 +35,15 @@ describe("Service API Integration Tests", () => {
 
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json).toEqual([
-      expect.objectContaining({
-        id: service.id,
-        type: service.type,
-        code: service.code,
-        description: service.description,
-        rate: service.rate.toString(),
-        duration: service.duration,
-      }),
-    ]);
+    expect(json).toHaveLength(1);
+    expect(json[0]).toMatchObject({
+      id: service.id,
+      type: service.type,
+      code: service.code,
+      description: service.description,
+      rate: service.rate.toString(),
+      duration: service.duration,
+    });
   });
 
   it("POST /api/service should create services", async () => {

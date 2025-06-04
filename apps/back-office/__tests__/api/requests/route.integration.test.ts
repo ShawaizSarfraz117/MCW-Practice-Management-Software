@@ -52,11 +52,11 @@ describe("Requests API Integration Tests", () => {
     await prisma.appointmentRequests.deleteMany({});
     await prisma.requestContactItems.deleteMany({});
     await prisma.clinicianClient.deleteMany({});
+    await prisma.audit.deleteMany({}); // Delete audits before clients
     await prisma.client.deleteMany({});
     await prisma.practiceService.deleteMany({});
     await prisma.clinician.deleteMany({});
     await prisma.userRole.deleteMany({});
-    await prisma.audit.deleteMany({});
     await prisma.user.deleteMany({});
   });
 
