@@ -4,6 +4,8 @@ We are developing a HIPAA-compliant application to store medical records. **Safe
 
 ## Our Approach
 
+<!-- CI Build Trigger -->
+
 We leverage AI to generate high-quality production code with maximum efficiency. Our goal is for **95% of the code** to be AI-generated while maintaining strict quality standards. To achieve this, we:
 
 - Enforce a strong testing culture with comprehensive integration tests

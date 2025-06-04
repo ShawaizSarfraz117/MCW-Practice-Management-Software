@@ -1,0 +1,214 @@
+{
+  "title": "GAD-7",
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "html",
+          "name": "question1",
+          "html": "<p>Over the <b>last 2 weeks</b>, how often have you been bothered by the following problems?</p>"
+        },
+        {
+          "type": "radiogroup",
+          "name": "question2",
+          "title": "Feeling nervous, anxious, or on edge.",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "Over half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question3",
+          "title": " Not being able to stop or control worrying.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "Over half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question4",
+          "title": " Worrying too much about different things.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "Over half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question5",
+          "title": "Trouble relaxing.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "Over half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question6",
+          "title": "Being so restless that it's hard to sit still.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "Over half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question7",
+          "title": "Becoming easily annoyed or irritable.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "Over half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question8",
+          "title": "Feeling afraid as if something awful might happen.\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Several days"
+            },
+            {
+              "value": "Item 3",
+              "text": "Over half the days"
+            },
+            {
+              "value": "Item 4",
+              "text": "Nearly every day"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "question9",
+          "title": "If you checked off any problems, how difficult have these made it for you to do your work, take care of things at home, or get along with other people?\n",
+          "isRequired": true,
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Not difficult at all"
+            },
+            {
+              "value": "Item 2",
+              "text": "Somewhat difficult"
+            },
+            {
+              "value": "Item 3",
+              "text": "Very difficult"
+            },
+            {
+              "value": "Item 4",
+              "text": "Extremely difficult"
+            }
+          ]
+        },
+        {
+          "type": "html",
+          "name": "question10",
+          "html": "_________________________<br>\nDeveloped by Drs. Robert L. Spitzer, Janet B.W. Williams, Kurt Kroenke and colleagues."
+        }
+      ]
+    }
+  ],
+  "showTitle": false,
+  "headerView": "advanced"
+}

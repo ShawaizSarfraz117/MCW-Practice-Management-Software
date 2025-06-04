@@ -10,8 +10,10 @@ import { IntakeForm } from "./components/intake/IntakeForm";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { CreateClientDrawer } from "../clients/components/CreateClientDrawer";
-import { fetchClientGroups } from "../clients/services/client.service";
-import { Client } from "@prisma/client";
+import {
+  fetchClientGroups,
+  ClientGroupWithMembership,
+} from "../clients/services/client.service";
 
 // Types for API responses
 type Clinician = {
@@ -260,7 +262,7 @@ const CalendarPage: React.FC = () => {
   const [statusFilter, _setStatusFilter] = useState<string[]>(["all"]);
   const [searchQuery, _setSearchQuery] = useState("");
   const [_clients, setClients] = useState<{
-    data: Client[];
+    data: ClientGroupWithMembership[];
     pagination: { page: number; limit: number; total: number };
   }>({ data: [], pagination: { page: 1, limit: 20, total: 0 } });
 
@@ -269,19 +271,14 @@ const CalendarPage: React.FC = () => {
       setIsLoading(true);
       const [clients, error] = await fetchClientGroups({
         searchParams: {
-          status: statusFilter,
+          status: statusFilter.join(","),
           search: searchQuery,
           sortBy,
           ...params,
         },
       });
-      if (!error) {
-        setClients(
-          clients as {
-            data: Client[];
-            pagination: { page: number; limit: number; total: number };
-          },
-        );
+      if (!error && clients) {
+        setClients(clients);
       }
       setIsLoading(false);
     },
