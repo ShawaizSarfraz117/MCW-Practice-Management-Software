@@ -32,7 +32,9 @@ export function EditTeamMember({ member }: EditTeamMemberProps) {
           <h1 className="text-2xl font-semibold text-[#1F2937]">
             {`${member.firstName} ${member.lastName}`}
           </h1>
-          <p className="text-base text-[#4B5563]">{member.role}</p>
+          <p className="text-base text-[#4B5563]">
+            {member.roles?.join(", ") || ""}
+          </p>
           <button className="text-[#2D8467] text-sm mt-2">
             Watch a quick video about Team members
           </button>

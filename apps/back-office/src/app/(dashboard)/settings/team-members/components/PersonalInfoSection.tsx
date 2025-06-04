@@ -25,7 +25,7 @@ export function PersonalInfoSection({
 
   const handlePersonalInfoSubmit = (data: { name: string; email: string }) => {
     // Extract first and last name
-    const nameParts = data.name.trim().split(" ");
+    const nameParts = (data.name || "").trim().split(" ");
     const first_name = nameParts[0] || "";
     const last_name = nameParts.slice(1).join(" ") || "";
 

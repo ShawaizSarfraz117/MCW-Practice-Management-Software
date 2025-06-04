@@ -14,31 +14,8 @@ import Link from "next/link";
 import { useClinicianDetails } from "../services/member.service";
 import Loading from "@/components/Loading";
 
-// Define the type that matches the one expected by EditTeamMember
-interface TeamMember {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-  specialty?: string;
-  npiNumber?: string;
-  license?: {
-    type: string;
-    number: string;
-    expirationDate: string;
-    state: string;
-  };
-  clinicianId?: string | null;
-  licenses?: Array<{
-    id?: number;
-    license_type: string;
-    license_number: string;
-    expiration_date: string;
-    state: string;
-  }>;
-  services?: string[];
-}
+// Import the TeamMember type from useRolePermissions instead of defining our own
+import { TeamMember } from "../hooks/useRolePermissions";
 
 export default function TeamMemberEditPage() {
   const params = useParams();
@@ -56,6 +33,7 @@ export default function TeamMemberEditPage() {
 
     const formattedMember: TeamMember & {
       clinicalInfoId?: number;
+      clinicianId?: string | null;
       licenses?: Array<{
         id?: number;
         license_type: string;
@@ -71,7 +49,7 @@ export default function TeamMemberEditPage() {
         clinicianDetails.email.split("@")[0],
       lastName: clinicianDetails.Clinician?.last_name || "",
       email: clinicianDetails.email,
-      role: "Clinician",
+      roles: ["Clinician"],
     };
 
     // Set the clinical info ID if available

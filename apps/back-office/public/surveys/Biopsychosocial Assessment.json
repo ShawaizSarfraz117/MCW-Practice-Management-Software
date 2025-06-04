@@ -1,0 +1,302 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "panel",
+          "name": "panel1",
+          "elements": [
+            {
+              "type": "html",
+              "name": "panel1_heading",
+              "html": "<b>4. Current Family and Significant Relationships</b>"
+            },
+            {
+              "type": "text",
+              "name": "strengths",
+              "title": "Strengths/support:"
+            },
+            {
+              "type": "text",
+              "name": "stressors",
+              "title": "Stressors/problems:"
+            },
+            {
+              "type": "text",
+              "name": "changes",
+              "title": "Recent changes:"
+            },
+            {
+              "type": "text",
+              "name": "question1",
+              "title": "Changes desired:"
+            },
+            {
+              "type": "text",
+              "name": "comments",
+              "title": "Comment on family circumstances:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel2",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question2",
+              "html": "<b>6. Social Relationships</b>"
+            },
+            {
+              "type": "text",
+              "name": "question3",
+              "title": "Strengths/support:\n"
+            },
+            {
+              "type": "text",
+              "name": "question4",
+              "title": "Stressors/problems:"
+            },
+            {
+              "type": "text",
+              "name": "question5",
+              "title": "Recent changes:"
+            },
+            {
+              "type": "text",
+              "name": "question6",
+              "title": "Changes desired:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel3",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question7",
+              "html": "<b>7. Cultural/Ethnic</b>"
+            },
+            {
+              "type": "text",
+              "name": "question8",
+              "title": "Strengths/support:\n"
+            },
+            {
+              "type": "text",
+              "name": "question9",
+              "title": "Stressors/problems:"
+            },
+            {
+              "type": "text",
+              "name": "question10",
+              "title": "Beliefs/practices to incorporate into therapy:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel4",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question11",
+              "html": "<b>8. Spiritual/Religious</b>"
+            },
+            {
+              "type": "text",
+              "name": "question12",
+              "title": "Strengths/support:\n"
+            },
+            {
+              "type": "text",
+              "name": "question13",
+              "title": "Stressors/problems:"
+            },
+            {
+              "type": "text",
+              "name": "question14",
+              "title": "Beliefs/practices to incorporate into therapy:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel5",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question15",
+              "html": "<b>9. Legal</b>"
+            },
+            {
+              "type": "text",
+              "name": "question16",
+              "title": "History:"
+            },
+            {
+              "type": "text",
+              "name": "question17",
+              "title": "Status/impact/stressors:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel6",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question18",
+              "html": "<b>10. Education</b>"
+            },
+            {
+              "type": "text",
+              "name": "question19",
+              "title": "Strengths:"
+            },
+            {
+              "type": "text",
+              "name": "question20",
+              "title": "Weaknesses:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel7",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question21",
+              "html": "<b>11. Employment/Vocational</b>"
+            },
+            {
+              "type": "text",
+              "name": "question22",
+              "title": "Strengths/support:"
+            },
+            {
+              "type": "text",
+              "name": "question23",
+              "title": "Stressors/problems:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel8",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question24",
+              "html": "<b>12. Military</b>"
+            },
+            {
+              "type": "text",
+              "name": "question25",
+              "title": "Current impact:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel9",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question26",
+              "html": "<b>13. Leisure/Recreational</b>"
+            },
+            {
+              "type": "text",
+              "name": "question27",
+              "title": "Strengths/support:\r\n"
+            },
+            {
+              "type": "text",
+              "name": "question28",
+              "title": "Recent changes:"
+            },
+            {
+              "type": "text",
+              "name": "question29",
+              "title": "Changes desired:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel10",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question30",
+              "html": "<b>14. Physical Health</b>"
+            },
+            {
+              "type": "text",
+              "name": "question31",
+              "title": "Summary of health:"
+            },
+            {
+              "type": "text",
+              "name": "question32",
+              "title": "Physical factors affecting mental condition:"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel11",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question33",
+              "html": "<b>15. Chemical Use History</b>"
+            },
+            {
+              "type": "text",
+              "name": "question34",
+              "title": "Summary of use:"
+            },
+            {
+              "type": "text",
+              "name": "question35",
+              "title": "Patient’s perception of problem:\r\n"
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "name": "panel12",
+          "elements": [
+            {
+              "type": "html",
+              "name": "question36",
+              "html": "<b>16. Counseling/Prior Treatment History</b>"
+            },
+            {
+              "type": "text",
+              "name": "question37",
+              "title": "Summary of prior treatment:\n"
+            },
+            {
+              "type": "text",
+              "name": "question38",
+              "title": "Benefits of previous treatment:\r\n"
+            },
+            {
+              "type": "text",
+              "name": "question39",
+              "title": "Setbacks of previous treatment:"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}

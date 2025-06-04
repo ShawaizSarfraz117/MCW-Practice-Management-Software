@@ -29,7 +29,7 @@ import {
   defineClientGroupChartNoteFactory,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { faker } from "@faker-js/faker";
 import {
   Clinician,

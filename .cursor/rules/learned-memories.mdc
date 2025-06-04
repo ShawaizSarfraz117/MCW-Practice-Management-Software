@@ -1,0 +1,42 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Memory
+
+This file stores project-specific knowledge, conventions, and user preferences learned by the AI assistant.
+
+## User Preferences
+
+- Prefers integration tests over unit tests when raw SQL is involved to ensure SQL Server behavior is accurately tested.
+- Workflow: Implement route/method -> Implement first test -> (If test passes: Document in memory -> Update task list -> Propose commit message -> AI states code ready for commit) -> Next test.
+
+## Technical Decisions
+
+- **Billing Calculations (Simplified)**: Financial figures (service amount, paid amount, outstanding balance) are calculated directly from the `Appointment` table fields: `appointment_fee`, `write_off`, `adjustable_amount`. `Invoice` and `Payment` tables are ignored for these specific calculations. `COALESCE` is used for nullable financial fields, treating them as 0.
+- **Client Group Billing Responsibility**: For appointments linked to a `ClientGroup`, a single responsible client is identified from `ClientGroupMembership` by ordering `is_responsible_for_billing DESC`, then by a tie-breaker (`Client.created_at ASC`). This handles cases with one responsible, multiple responsible (picks earliest created), or no explicitly responsible members (picks earliest created among all members).
+- **`/api/billing/outstanding-balance` GET:** 
+    - Handles single clients (represented via a dedicated ClientGroup and Membership).
+    - Handles client groups with one or more members marked `is_responsible_for_billing = true`, consistently picking one.
+    - Handles client groups where no member is marked `is_responsible_for_billing = true`, consistently picking one member based on `created_at`.
+    - Correctly aggregates balances for a client who is responsible for their own individual appointments and is also the biller for other group appointments.
+    - Implements pagination using raw SQL (`OFFSET FETCH NEXT`) and provides correct pagination metadata.
+    - Accurately filters appointments based on the provided `startDate` and `endDate` query parameters.
+    - Returns an empty data array and correct pagination (total 0, totalPages 0) when no appointments match the criteria.
+    - Uses raw SQL with a Common Table Expression (CTE) `ResponsibleClient` to identify the billing contact using `ROW_NUMBER()`.
+    - Filters appointments by `status = 'completed'`.
+    - Includes date and pagination parameter validation.
+    - Numeric results from SQL (SUMs) are converted to JavaScript `Number` type for JSON response.
+
+## Project Conventions
+
+- [Convention 1]
+- [Convention 2]
+-   **Granular Testing Subtask Structure:**
+    -   When planning tests, break down main testing tasks into individual subtasks for *each distinct logical test scenario*.
+    -   Each scenario-specific testing subtask must detail the 4-step cycle:
+        1.  Implement the specific test.
+        2.  Execute (single-run, e.g., `vitest run`), remediate (fix code/test until pass, respecting integration test exceptions).
+        3.  Learn & Record: Reflect on the implementation, identify key learnings, and propose updates to `learned-memories.mdc`.
+        4.  Commit changes for that scenario.

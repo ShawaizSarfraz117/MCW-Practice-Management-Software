@@ -1,0 +1,135 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "checkbox",
+          "name": "session_types",
+          "title": "Type of sessions:",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Individual"
+            },
+            {
+              "value": "Item 2",
+              "text": "Group"
+            },
+            {
+              "value": "Item 3",
+              "text": "Family"
+            },
+            {
+              "value": "Item 4",
+              "text": "Couple"
+            }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "sessions_frequency",
+          "title": "Frequency of sessions:",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Weekly"
+            },
+            {
+              "value": "Item 2",
+              "text": "Bi-weekly"
+            },
+            {
+              "value": "Item 3",
+              "text": "Monthly"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "radiogroup",
+          "name": "mood_changes",
+          "title": "Mood / Affect — significant changes reported?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "None"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Notable"
+        },
+        {
+          "type": "radiogroup",
+          "name": "orientation_changes",
+          "title": "Thought process / Orientation — significant changes reported?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "None"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Notable"
+        },
+        {
+          "type": "radiogroup",
+          "name": "functional_changes",
+          "title": "Behavior / Functioning — significant changes reported?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "None"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Notable"
+        },
+        {
+          "type": "radiogroup",
+          "name": "medical_changes",
+          "title": "Medical condition — significant changes reported?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "None"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Notable"
+        },
+        {
+          "type": "radiogroup",
+          "name": "substance_changes",
+          "title": "Substance use — significant changes reported?",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "N/A"
+            },
+            {
+              "value": "Item 2",
+              "text": "None"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Notable"
+        },
+        {
+          "type": "radiogroup",
+          "name": "risk_assessment",
+          "title": "Risk assessment",
+          "choices": [
+            {
+              "value": "Item 2",
+              "text": "None"
+            }
+          ],
+          "showOtherItem": true,
+          "otherText": "Notable"
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}
