@@ -242,18 +242,18 @@ export function AvailabilitySidebar({
               // Adjust for timezone offset to get the original local time
               const tzOffset = date.getTimezoneOffset() * 60000;
               const localDate = new Date(date.getTime() + tzOffset);
-              return format(localDate, "HH:mm");
+              return format(localDate, "h:mm a");
             })()
-          : "09:00",
+          : "9:00 AM",
         endTime: availabilityData.end_date
           ? (() => {
               const date = new Date(availabilityData.end_date);
               // Adjust for timezone offset to get the original local time
               const tzOffset = date.getTimezoneOffset() * 60000;
               const localDate = new Date(date.getTime() + tzOffset);
-              return format(localDate, "HH:mm");
+              return format(localDate, "h:mm a");
             })()
-          : "17:00",
+          : "5:00 PM",
         type: "availability",
         clinician: availabilityData.clinician_id || "",
         location: availabilityData.location || "video",

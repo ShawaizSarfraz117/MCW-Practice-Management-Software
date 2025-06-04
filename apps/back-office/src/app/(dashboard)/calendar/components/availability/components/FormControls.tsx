@@ -131,7 +131,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             data-timepicker
             className="border-gray-200"
             value={form.getFieldValue<string>("startTime")}
-            format="24h"
+            format="12h"
             onChange={(time) => {
               handleTimeChange("startTime", time);
               // Reset end time if it's before the new start time

@@ -1025,8 +1025,8 @@ export function CalendarView({
       }
 
       const eventData = {
-        startTime: format(new Date(appointmentData.start_date), "HH:mm"),
-        endTime: format(new Date(appointmentData.end_date), "HH:mm"),
+        startTime: format(new Date(appointmentData.start_date), "h:mm a"),
+        endTime: format(new Date(appointmentData.end_date), "h:mm a"),
       };
 
       window.sessionStorage.setItem(
@@ -1060,8 +1060,8 @@ export function CalendarView({
     const localEnd = adjustForTimezone(selectInfo.end);
 
     // Format the times in local timezone
-    const startTime = format(localStart, "HH:mm"); // 24-hour format
-    const endTime = format(localEnd, "HH:mm"); // 24-hour format
+    const startTime = format(localStart, "h:mm a"); // 12-hour format
+    const endTime = format(localEnd, "h:mm a"); // 12-hour format
 
     // Save the selected time info for the appointment dialog
     const eventData = {
@@ -1157,9 +1157,9 @@ export function CalendarView({
           allDaySlot={true}
           allDayText="All day"
           eventTimeFormat={{
-            hour: "2-digit",
+            hour: "numeric",
             minute: "2-digit",
-            hour12: false,
+            hour12: true,
           }}
           dayHeaderContent={
             isScheduledPage
@@ -1403,9 +1403,9 @@ export function CalendarView({
               duration: { days: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "2-digit",
+                hour: "numeric",
                 minute: "2-digit",
-                hour12: false,
+                hour12: true,
               },
             },
             timeGridDay: {

@@ -54,9 +54,9 @@ export function useAppointmentData({
     } else {
       // Set default values for new appointment
       const defaultAppointmentValues = {
-        type: "appointment",
+        type: "appointment" as const,
         eventName: "",
-        clientType: "individual",
+        clientType: "individual" as "individual" | "group",
         clientGroup: "",
         clinician: effectiveClinicianId || "",
         selectedServices: [{ serviceId: "", fee: 0 }],
@@ -72,9 +72,9 @@ export function useAppointmentData({
       };
 
       const defaultEventValues = {
-        type: "event",
+        type: "event" as const,
         eventName: "",
-        clientType: "individual",
+        clientType: "individual" as "individual" | "group",
         clientGroup: "",
         clinician: effectiveClinicianId || "",
         selectedServices: [],
@@ -115,8 +115,8 @@ export function useAppointmentData({
         : new Date();
 
       // Format times
-      const startTime = format(startDate, "HH:mm");
-      const endTime = format(endDate, "HH:mm");
+      const startTime = format(startDate, "h:mm a");
+      const endTime = format(endDate, "h:mm a");
 
       // Determine appointment type
       const rawType = appointmentData.type?.toLowerCase() || "appointment";

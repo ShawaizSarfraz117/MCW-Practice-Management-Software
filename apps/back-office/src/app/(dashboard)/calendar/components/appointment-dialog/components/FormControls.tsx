@@ -43,17 +43,34 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
   const isTimeAfterStart = (time: string) => {
     if (!startTime) return true;
 
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const [endHour, endMinute] = time.split(":").map(Number);
+    const timeToMinutes = (timeStr: string): number => {
+      const time12Regex = /^(\d{1,2}):([0-5][0-9])\s*(AM|PM)$/i;
+      const time24Regex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
 
-    if (!startHour || !endHour) return true;
+      if (time12Regex.test(timeStr)) {
+        const match = timeStr.match(time12Regex);
+        if (!match) return 0;
 
-    // Compare times in 24-hour format
-    if (startHour !== endHour) {
-      return endHour > startHour;
-    }
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const period = match[3].toUpperCase();
 
-    return endMinute > startMinute;
+        if (period === "PM" && hours !== 12) hours += 12;
+        if (period === "AM" && hours === 12) hours = 0;
+
+        return hours * 60 + minutes;
+      } else if (time24Regex.test(timeStr)) {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes;
+      }
+
+      return 0;
+    };
+
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(time);
+
+    return endMinutes > startMinutes;
   };
 
   if (allDay) {
@@ -104,7 +121,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
-            format="24h"
+            format="12h"
             value={form.getFieldValue<string>("startTime")}
             onChange={(time) => {
               handleTimeChange("startTime", time);
@@ -121,7 +138,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
-            format="24h"
+            format="12h"
             value={form.getFieldValue<string>("endTime")}
             onChange={(time) => {
               if (isTimeAfterStart(time)) {
