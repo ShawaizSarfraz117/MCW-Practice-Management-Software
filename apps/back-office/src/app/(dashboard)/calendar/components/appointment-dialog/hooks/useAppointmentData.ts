@@ -1,50 +1,67 @@
 "use client";
 
 import { useEffect } from "react";
-import { format, addMinutes } from "date-fns";
+import { format } from "date-fns";
 import { UseAppointmentDataProps } from "../types";
 
 export function useAppointmentData({
   open,
   selectedDate,
   effectiveClinicianId,
+  isViewMode,
   appointmentData,
   setAppointmentFormValues,
   setEventFormValues,
   setActiveTab,
   form,
 }: UseAppointmentDataProps) {
-  // Set initial form values when dialog opens
   useEffect(() => {
-    if (open && !appointmentData) {
-      // Check if there's a selected time slot in session storage
-      const selectedTimeSlotData =
-        window.sessionStorage.getItem("selectedTimeSlot");
-      let startTime, endTime;
+    if (!open) return;
 
-      if (selectedTimeSlotData) {
-        const { startTime: selectedStart, endTime: selectedEnd } =
-          JSON.parse(selectedTimeSlotData);
-        startTime = selectedStart;
-        endTime = selectedEnd;
-        // Clear the session storage after use
-        window.sessionStorage.removeItem("selectedTimeSlot");
-      } else {
-        // Default times if no selection was made
-        startTime = format(new Date(), "h:mm a");
-        endTime = format(addMinutes(new Date(), 30), "h:mm a");
+    // Get the selected time from session storage
+    const selectedTimeSlot = window.sessionStorage.getItem("selectedTimeSlot");
+    let startTime = "12:00 PM";
+    let endTime = "12:50 PM";
+    let startDate = selectedDate || new Date();
+    let endDate = selectedDate || new Date();
+
+    if (selectedTimeSlot) {
+      try {
+        const timeData = JSON.parse(selectedTimeSlot);
+
+        // Use the stored times directly since they're already in local timezone
+        startTime = timeData.startTime;
+        endTime = timeData.endTime;
+
+        // Convert stored ISO strings back to local dates
+        if (timeData.startDate) {
+          const date = new Date(timeData.startDate);
+          const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+          startDate = new Date(date.getTime() + userTimezoneOffset);
+        }
+        if (timeData.endDate) {
+          const date = new Date(timeData.endDate);
+          const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+          endDate = new Date(date.getTime() + userTimezoneOffset);
+        }
+      } catch (error) {
+        console.error("Error parsing selected time slot:", error);
       }
+    }
 
-      // Initialize appointment form values
-      setAppointmentFormValues({
+    if (isViewMode && appointmentData) {
+      // ... existing view mode code ...
+    } else {
+      // Set default values for new appointment
+      const defaultAppointmentValues = {
         type: "appointment",
         eventName: "",
         clientType: "individual",
-        client: "",
+        clientGroup: "",
         clinician: effectiveClinicianId || "",
         selectedServices: [{ serviceId: "", fee: 0 }],
-        startDate: selectedDate ? selectedDate : new Date(),
-        endDate: selectedDate ? selectedDate : new Date(),
+        startDate: startDate,
+        endDate: endDate,
         startTime: startTime,
         endTime: endTime,
         location: "sp",
@@ -52,18 +69,17 @@ export function useAppointmentData({
         allDay: false,
         cancelAppointments: true,
         notifyClients: true,
-      });
+      };
 
-      // Initialize event form values
-      setEventFormValues({
+      const defaultEventValues = {
         type: "event",
         eventName: "",
         clientType: "individual",
-        client: "",
+        clientGroup: "",
         clinician: effectiveClinicianId || "",
         selectedServices: [],
-        startDate: selectedDate ? selectedDate : new Date(),
-        endDate: selectedDate ? selectedDate : new Date(),
+        startDate: startDate,
+        endDate: endDate,
         startTime: startTime,
         endTime: endTime,
         location: "sp",
@@ -71,16 +87,13 @@ export function useAppointmentData({
         allDay: false,
         cancelAppointments: false,
         notifyClients: false,
-      });
+      };
+
+      setAppointmentFormValues(defaultAppointmentValues);
+      setEventFormValues(defaultEventValues);
+      form.reset(defaultAppointmentValues);
     }
-  }, [
-    open,
-    selectedDate,
-    effectiveClinicianId,
-    setAppointmentFormValues,
-    setEventFormValues,
-    appointmentData,
-  ]);
+  }, [open, selectedDate, effectiveClinicianId, isViewMode, appointmentData]);
 
   // Handle viewing/editing existing appointment data
   useEffect(() => {
@@ -102,8 +115,8 @@ export function useAppointmentData({
         : new Date();
 
       // Format times
-      const startTime = format(startDate, "h:mm a");
-      const endTime = format(endDate, "h:mm a");
+      const startTime = format(startDate, "HH:mm");
+      const endTime = format(endDate, "HH:mm");
 
       // Determine appointment type
       const rawType = appointmentData.type?.toLowerCase() || "appointment";
