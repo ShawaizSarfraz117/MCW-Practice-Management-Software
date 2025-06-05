@@ -124,12 +124,11 @@ describe("Good Faith Estimates [estimateId] API Unit Tests", () => {
           },
           goodFaithClients: {
             deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-            update: vi.fn().mockResolvedValue({}),
+            updateMany: vi.fn().mockResolvedValue({ count: 0 }),
             create: vi.fn().mockResolvedValue({}),
           },
           goodFaithServices: {
             deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-            update: vi.fn().mockResolvedValue({}),
             create: vi.fn().mockResolvedValue({}),
           },
         });
@@ -206,11 +205,12 @@ describe("Good Faith Estimates [estimateId] API Unit Tests", () => {
           },
           goodFaithClients: {
             deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-            update: vi.fn().mockResolvedValue({}),
+            updateMany: vi.fn().mockResolvedValue({ count: 1 }),
             create: vi.fn().mockResolvedValue({}),
           },
           goodFaithServices: {
             deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+            create: vi.fn().mockResolvedValue({}),
           },
         });
       });
