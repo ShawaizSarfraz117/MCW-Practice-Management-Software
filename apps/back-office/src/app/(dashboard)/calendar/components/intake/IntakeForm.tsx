@@ -1,17 +1,31 @@
 import type React from "react";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@mcw/ui";
 import { ProgressSteps } from "./ProgressSteps";
 import { DocumentSection } from "./DocumentSection";
 import { RemindersDialog } from "./RemindersDialog";
 import { ComposeEmail } from "./ComposeEmail";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { ReviewAndSend } from "./ReviewAndSend";
+import {
+  useShareableTemplates,
+  getConsentForms,
+  getScoredMeasures,
+  getIntakeForms,
+  filterTemplatesByType,
+} from "@/(dashboard)/settings/shareable-documents/hooks/useShareableTemplates";
+import { TemplateType } from "@/types/templateTypes";
 
 interface IntakeFormProps {
   clientName: string;
   clientEmail: string;
   onClose: () => void;
+}
+
+interface SelectedDocument {
+  id: string;
+  checked: boolean;
+  frequency?: string;
 }
 
 export const IntakeForm: React.FC<IntakeFormProps> = ({
@@ -23,18 +37,119 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
   const [currentStep, setCurrentStep] = useState<
     "documents" | "email" | "review"
   >("documents");
+  const [selectedDocuments, setSelectedDocuments] = useState<
+    Record<string, SelectedDocument>
+  >({});
+
+  const { data: templates, isLoading, error } = useShareableTemplates();
 
   const steps = [
-    { number: 1, label: "Almir K.", isActive: currentStep === "documents" },
+    { number: 1, label: clientName, isActive: currentStep === "documents" },
     { number: 2, label: "Compose Email", isActive: currentStep === "email" },
     { number: 3, label: "Review & Send", isActive: currentStep === "review" },
   ];
+
+  // Process the templates into categories
+  const documentCategories = useMemo(() => {
+    if (!templates?.data) return null;
+
+    const consentDocs = getConsentForms(templates.data).map((template) => ({
+      id: template.id,
+      label: template.name,
+      checked: template.is_default,
+      frequency: false,
+    }));
+
+    const scoredMeasures = getScoredMeasures(templates.data).map(
+      (template) => ({
+        id: template.id,
+        label: template.name,
+        checked: template.is_default,
+        frequency: template.frequency_options !== null,
+      }),
+    );
+
+    const intakeForms = getIntakeForms(templates.data).map((template) => ({
+      id: template.id,
+      label: template.name,
+      checked: template.is_default,
+      frequency: false,
+    }));
+
+    const otherDocuments = filterTemplatesByType(
+      templates.data,
+      TemplateType.OTHER_DOCUMENTS,
+    )
+      .filter((template) => !template.name.toLowerCase().includes("consent"))
+      .map((template) => ({
+        id: template.id,
+        label: template.name,
+        checked: template.is_default,
+        frequency: false,
+      }));
+
+    return {
+      consentDocuments: consentDocs,
+      scoredMeasures,
+      questionnaires: intakeForms,
+      demographicsForms: otherDocuments,
+    };
+  }, [templates]);
+
+  // Initialize selected documents when templates load
+  useEffect(() => {
+    if (documentCategories) {
+      const initialSelected: Record<string, SelectedDocument> = {};
+
+      // Combine all documents
+      const allDocs = [
+        ...documentCategories.consentDocuments,
+        ...documentCategories.scoredMeasures,
+        ...documentCategories.questionnaires,
+        ...documentCategories.demographicsForms,
+      ];
+
+      // Initialize with default checked state
+      allDocs.forEach((doc) => {
+        initialSelected[doc.id] = {
+          id: doc.id,
+          checked: doc.checked,
+          frequency: doc.frequency ? "once" : undefined,
+        };
+      });
+
+      setSelectedDocuments(initialSelected);
+    }
+  }, [documentCategories]);
+
+  // Handle checkbox change
+  const handleDocumentToggle = (docId: string) => {
+    setSelectedDocuments((prev) => ({
+      ...prev,
+      [docId]: {
+        ...prev[docId],
+        checked: !prev[docId]?.checked,
+      },
+    }));
+  };
+
+  // Handle frequency change
+  const handleFrequencyChange = (docId: string, frequency: string) => {
+    setSelectedDocuments((prev) => ({
+      ...prev,
+      [docId]: {
+        ...prev[docId],
+        frequency,
+      },
+    }));
+  };
 
   if (currentStep === "review") {
     return (
       <div className="fixed inset-0 bg-white z-50 overflow-auto">
         <ReviewAndSend
           clientName={clientName}
+          selectedDocuments={selectedDocuments}
           onBack={() => setCurrentStep("email")}
           onComplete={onClose}
         />
@@ -47,6 +162,7 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
       <div className="fixed inset-0 bg-white z-50 overflow-auto">
         <ComposeEmail
           clientName={clientName}
+          selectedDocuments={selectedDocuments}
           onBack={() => setCurrentStep("documents")}
           onContinue={() => setCurrentStep("review")}
         />
@@ -54,62 +170,32 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
     );
   }
 
-  const consentDocuments = [
-    { id: "auth", label: "(NICOLE) AUTHORIZATION FOR USE OR DISCLOSURE" },
-    {
-      id: "adult-consent",
-      label: "Adult Informed Consent for Psychiatric Services",
-    },
-    { id: "telehealth", label: "Consent for Telehealth Consultation" },
-    { id: "credit-card", label: "Credit Card Authorization", checked: true },
-    { id: "group-therapy", label: "Group Therapy Consent" },
-    { id: "life-coaching", label: "Informed Consent for Life Coaching" },
-    {
-      id: "psychotherapy",
-      label: "Informed Consent for Psychotherapy",
-      checked: true,
-    },
-    {
-      id: "minor-consent",
-      label: "Minor Informed Consent for Psychiatric Services",
-    },
-    { id: "privacy", label: "Notice of Privacy Practices", checked: true },
-    { id: "policies", label: "Practice Policies", checked: true },
-    { id: "termination", label: "Termination of Treatment" },
-  ];
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-600" />
+          <p className="mt-4 text-gray-600">Loading documents...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const scoredMeasures = [
-    { id: "gad-7", label: "GAD-7", checked: true, frequency: true },
-    { id: "phq-9", label: "PHQ-9", checked: true },
-  ];
-
-  const questionnaires = [
-    {
-      id: "adult-eval",
-      label: "Adult Psychiatric Evaluation Intake Form (18+)",
-    },
-    { id: "couples", label: "Couples Counseling Initial Intake Form" },
-    { id: "dissociative", label: "Dissociative Experiences Scale (DES-II)" },
-    {
-      id: "adult-intake",
-      label: "MCW Adult Intake Questionnaire (18+)",
-      checked: true,
-    },
-    { id: "minor-intake", label: "MCW Minor Intake Questionnaire (0 - 17)" },
-    { id: "release", label: "Release of Information - Short" },
-    { id: "standard-es", label: "Standard Intake Questionnaire - En Español" },
-  ];
-
-  const demographicsForms = [
-    { id: "credit-info", label: "Credit card information", checked: true },
-    { id: "demographics", label: "Demographics form", checked: true },
-  ];
-
-  const uploadedFiles = [
-    { id: "release-auth", label: "Authorization for Release of Information" },
-    { id: "bai", label: "BAI" },
-    { id: "bdi", label: "BDI" },
-  ];
+  // Handle error state
+  if (error || !documentCategories) {
+    return (
+      <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-red-500 mx-auto" />
+          <p className="mt-4 text-red-600">Failed to load documents</p>
+          <Button variant="outline" onClick={onClose} className="mt-4">
+            Close
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-white z-50 overflow-auto">
@@ -133,16 +219,44 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
 
           <div className="space-y-8">
             <DocumentSection
-              items={consentDocuments}
+              items={documentCategories.consentDocuments}
               title="Consent Documents"
+              selectedDocuments={selectedDocuments}
+              onToggle={handleDocumentToggle}
+              onFrequencyChange={handleFrequencyChange}
             />
-            <DocumentSection items={scoredMeasures} title="Scored measures" />
-            <DocumentSection items={questionnaires} title="Questionnaires" />
             <DocumentSection
-              items={demographicsForms}
-              title="Demographics and Credit Card Forms"
+              items={documentCategories.scoredMeasures}
+              title="Scored measures"
+              selectedDocuments={selectedDocuments}
+              onToggle={handleDocumentToggle}
+              onFrequencyChange={handleFrequencyChange}
             />
-            <DocumentSection items={uploadedFiles} title="Uploaded Files" />
+            <DocumentSection
+              items={documentCategories.questionnaires}
+              title="Questionnaires"
+              selectedDocuments={selectedDocuments}
+              onToggle={handleDocumentToggle}
+              onFrequencyChange={handleFrequencyChange}
+            />
+            <DocumentSection
+              items={documentCategories.demographicsForms}
+              title="Other Documents"
+              selectedDocuments={selectedDocuments}
+              onToggle={handleDocumentToggle}
+              onFrequencyChange={handleFrequencyChange}
+            />
+
+            {/* Show message if no documents available */}
+            {documentCategories.consentDocuments.length === 0 &&
+              documentCategories.scoredMeasures.length === 0 &&
+              documentCategories.questionnaires.length === 0 &&
+              documentCategories.demographicsForms.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No shareable documents available. Please add documents in
+                  Settings → Shareable Documents.
+                </div>
+              )}
           </div>
         </div>
 

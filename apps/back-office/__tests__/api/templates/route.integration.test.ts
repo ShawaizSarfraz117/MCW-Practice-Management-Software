@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { DELETE, GET, POST } from "@/api/templates/route";
 import { GET as GETById, PUT } from "@/api/templates/[id]/route";
+import { TemplateType } from "@/types/templateTypes";
 
 describe("Templates API Integration Tests", () => {
   let testTemplate: SurveyTemplate;
@@ -521,6 +522,188 @@ describe("Templates API Integration Tests", () => {
       const responseData = await response.json();
       expect(responseData).toHaveProperty("error");
       expect(responseData.error).toBe("Template ID is required");
+    });
+  });
+
+  describe("Shareable Documents Feature", () => {
+    it("should return only shareable and active templates for intake form", async () => {
+      // Create multiple templates with different configurations
+      const shareableActiveConsent = await prisma.surveyTemplate.create({
+        data: {
+          name: "Consent Form - Shareable Active",
+          content: "Content",
+          type: TemplateType.OTHER_DOCUMENTS,
+          is_shareable: true,
+          is_active: true,
+          is_default: true,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(shareableActiveConsent.id);
+
+      const shareableInactiveConsent = await prisma.surveyTemplate.create({
+        data: {
+          name: "Consent Form - Shareable Inactive",
+          content: "Content",
+          type: TemplateType.OTHER_DOCUMENTS,
+          is_shareable: true,
+          is_active: false,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(shareableInactiveConsent.id);
+
+      const nonShareableActive = await prisma.surveyTemplate.create({
+        data: {
+          name: "Internal Form - Not Shareable",
+          content: "Content",
+          type: TemplateType.OTHER_DOCUMENTS,
+          is_shareable: false,
+          is_active: true,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(nonShareableActive.id);
+
+      const shareableScoredMeasure = await prisma.surveyTemplate.create({
+        data: {
+          name: "PHQ-9 - Shareable Active",
+          content: "Content",
+          type: TemplateType.SCORED_MEASURES,
+          is_shareable: true,
+          is_active: true,
+          frequency_options: "{}",
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(shareableScoredMeasure.id);
+
+      // Query for shareable and active templates (as intake form does)
+      const req = createRequest("/api/templates?sharable=true&is_active=true");
+      const response = await GET(req);
+
+      expect(response.status).toBe(200);
+      const responseData = await response.json();
+
+      // Should include only shareable and active templates
+      const templateIds = responseData.data.map((t: SurveyTemplate) => t.id);
+      expect(templateIds).toContain(shareableActiveConsent.id);
+      expect(templateIds).toContain(shareableScoredMeasure.id);
+      expect(templateIds).not.toContain(shareableInactiveConsent.id); // inactive
+      expect(templateIds).not.toContain(nonShareableActive.id); // not shareable
+    });
+
+    it("should categorize templates correctly by type", async () => {
+      // Create templates of different types
+      const consentTemplate = await prisma.surveyTemplate.create({
+        data: {
+          name: "Informed Consent Form",
+          content: "Content",
+          type: TemplateType.OTHER_DOCUMENTS,
+          is_shareable: true,
+          is_active: true,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(consentTemplate.id);
+
+      const scoredMeasure = await prisma.surveyTemplate.create({
+        data: {
+          name: "GAD-7",
+          content: "Content",
+          type: TemplateType.SCORED_MEASURES,
+          is_shareable: true,
+          is_active: true,
+          frequency_options: "{}",
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(scoredMeasure.id);
+
+      const intakeForm = await prisma.surveyTemplate.create({
+        data: {
+          name: "Adult Intake Questionnaire",
+          content: "Content",
+          type: TemplateType.INTAKE_FORMS,
+          is_shareable: true,
+          is_active: true,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(intakeForm.id);
+
+      // Query for shareable templates
+      const req = createRequest("/api/templates?sharable=true&is_active=true");
+      const response = await GET(req);
+
+      expect(response.status).toBe(200);
+      const responseData = await response.json();
+
+      // Verify templates are returned with correct types
+      const consentDoc = responseData.data.find(
+        (t: SurveyTemplate) => t.id === consentTemplate.id,
+      );
+      expect(consentDoc).toBeDefined();
+      expect(consentDoc.type).toBe(TemplateType.OTHER_DOCUMENTS);
+
+      const scored = responseData.data.find(
+        (t: SurveyTemplate) => t.id === scoredMeasure.id,
+      );
+      expect(scored).toBeDefined();
+      expect(scored.type).toBe(TemplateType.SCORED_MEASURES);
+      expect(scored.frequency_options).toBeDefined();
+
+      const intake = responseData.data.find(
+        (t: SurveyTemplate) => t.id === intakeForm.id,
+      );
+      expect(intake).toBeDefined();
+      expect(intake.type).toBe(TemplateType.INTAKE_FORMS);
+    });
+
+    it("should return templates with default checked status", async () => {
+      const defaultTemplate = await prisma.surveyTemplate.create({
+        data: {
+          name: "Default Consent Form",
+          content: "Content",
+          type: TemplateType.OTHER_DOCUMENTS,
+          is_shareable: true,
+          is_active: true,
+          is_default: true,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(defaultTemplate.id);
+
+      const nonDefaultTemplate = await prisma.surveyTemplate.create({
+        data: {
+          name: "Optional Form",
+          content: "Content",
+          type: TemplateType.OTHER_DOCUMENTS,
+          is_shareable: true,
+          is_active: true,
+          is_default: false,
+          updated_at: new Date(),
+        },
+      });
+      createdTemplateIds.push(nonDefaultTemplate.id);
+
+      const req = createRequest("/api/templates?sharable=true&is_active=true");
+      const response = await GET(req);
+
+      expect(response.status).toBe(200);
+      const responseData = await response.json();
+
+      const defaultDoc = responseData.data.find(
+        (t: SurveyTemplate) => t.id === defaultTemplate.id,
+      );
+      expect(defaultDoc).toBeDefined();
+      expect(defaultDoc.is_default).toBe(true);
+
+      const nonDefaultDoc = responseData.data.find(
+        (t: SurveyTemplate) => t.id === nonDefaultTemplate.id,
+      );
+      expect(nonDefaultDoc).toBeDefined();
+      expect(nonDefaultDoc.is_default).toBe(false);
     });
   });
 });

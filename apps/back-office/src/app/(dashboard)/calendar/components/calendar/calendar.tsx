@@ -27,6 +27,8 @@ import {
 import { EditAppointmentDialog } from "../EditAppointmentDialog";
 import { AvailabilitySidebar } from "../availability/AvailabilitySidebar";
 import { ClientGroup } from "../appointment-dialog/types";
+import { IntakeForm } from "../intake/IntakeForm";
+import { AppointmentTagName } from "@/types/entities/appointment";
 import {
   Button,
   Card,
@@ -147,6 +149,13 @@ export function CalendarView({
   const [selectedLocations, setSelectedLocations] = useState<string[]>(
     initialLocations.map((loc: Location) => loc.value),
   );
+
+  // Intake form state
+  const [showIntakeForm, setShowIntakeForm] = useState(false);
+  const [intakeClientData, setIntakeClientData] = useState<{
+    clientName: string;
+    clientEmail: string;
+  } | null>(null);
 
   const calendarRef = useRef<FullCalendar>(null);
 
@@ -388,6 +397,24 @@ export function CalendarView({
     }
   };
 
+  // Helper function to get client email
+  const getClientEmail = async (clientId: string): Promise<string | null> => {
+    try {
+      const response = await fetch(`/api/client/contact?clientId=${clientId}`);
+      if (response.ok) {
+        const contacts = await response.json();
+        const emailContact = contacts.find(
+          (c: { contact_type: string; is_primary: boolean; value: string }) =>
+            c.contact_type === "EMAIL" && c.is_primary,
+        );
+        return emailContact?.value || null;
+      }
+    } catch (error) {
+      console.error("Error fetching client email:", error);
+    }
+    return null;
+  };
+
   // Function to create appointment via API
   const createAppointmentWithAPI = async (
     values: FormValues,
@@ -464,6 +491,60 @@ export function CalendarView({
       const appointments = Array.isArray(responseData)
         ? responseData
         : [responseData];
+
+      console.log("Created appointments:", appointments);
+      console.log("First appointment tags:", appointments[0]?.AppointmentTag);
+
+      // Log the actual structure to debug
+      if (appointments[0]?.AppointmentTag?.length > 0) {
+        console.log(
+          "Tag structure:",
+          JSON.stringify(appointments[0].AppointmentTag[0], null, 2),
+        );
+      }
+
+      // Check the first appointment (main appointment for recurring) for "New Client" tag
+      const firstAppointment = appointments[0];
+      const hasNewClientTag = firstAppointment?.AppointmentTag?.some(
+        (tag: { Tag?: { name?: string } }) => {
+          console.log("Checking tag:", tag);
+          console.log("Tag name:", tag.Tag?.name);
+          console.log("Expected name:", AppointmentTagName.NEW_CLIENT);
+          return tag.Tag?.name === AppointmentTagName.NEW_CLIENT;
+        },
+      );
+
+      console.log("Has new client tag:", hasNewClientTag);
+      console.log("First appointment full data:", firstAppointment);
+
+      // If it's a new client appointment, show the intake form
+      if (hasNewClientTag && firstAppointment) {
+        const clientGroup = firstAppointment.ClientGroup;
+        console.log("Client group:", clientGroup);
+
+        if (clientGroup && clientGroup.ClientGroupMembership?.length > 0) {
+          const firstMember = clientGroup.ClientGroupMembership[0];
+          const client = firstMember.Client;
+          console.log("Client data:", client);
+
+          if (client) {
+            // Get client email from contacts
+            const clientEmail = await getClientEmail(client.id);
+
+            setIntakeClientData({
+              clientName: `${client.legal_first_name} ${client.legal_last_name}`,
+              clientEmail: clientEmail || "",
+            });
+            console.log("Setting intake form to show with data:", {
+              clientName: `${client.legal_first_name} ${client.legal_last_name}`,
+              clientEmail: clientEmail || "",
+            });
+            setShowIntakeForm(true);
+          }
+        } else {
+          console.log("No client group or membership found");
+        }
+      }
 
       // Format events for calendar
       const formattedEvents = appointments.map((appointment) => ({
@@ -1570,6 +1651,17 @@ export function CalendarView({
         onClose={() => setShowAvailabilitySidebar(false)}
         onOpenChange={setShowAvailabilitySidebar}
       />
+
+      {showIntakeForm && intakeClientData && (
+        <IntakeForm
+          clientName={intakeClientData.clientName}
+          clientEmail={intakeClientData.clientEmail}
+          onClose={() => {
+            setShowIntakeForm(false);
+            setIntakeClientData(null);
+          }}
+        />
+      )}
     </div>
   );
 }

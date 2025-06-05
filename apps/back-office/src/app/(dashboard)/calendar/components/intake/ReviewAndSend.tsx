@@ -16,12 +16,21 @@ import { SuccessDialog } from "./SuccessDialog";
 
 interface ReviewAndSendProps {
   clientName: string;
+  selectedDocuments: Record<
+    string,
+    {
+      id: string;
+      checked: boolean;
+      frequency?: string;
+    }
+  >;
   onBack: () => void;
   onComplete: () => void;
 }
 
 export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
   clientName,
+  selectedDocuments: _selectedDocuments,
   onBack,
   onComplete,
 }) => {

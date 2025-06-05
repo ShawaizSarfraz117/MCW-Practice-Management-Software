@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { Prisma } from "@prisma/client";
+import { AppointmentTagName } from "@/types/entities/appointment";
 
 // Helper function to add default tags to an appointment
 async function addDefaultAppointmentTags(
@@ -14,9 +15,13 @@ async function addDefaultAppointmentTags(
     const tags = await prisma.tag.findMany();
 
     // Find specific tags
-    const unpaidTag = tags.find((t) => t.name === "Appointment Unpaid");
-    const noNoteTag = tags.find((t) => t.name === "No Note");
-    const newClientTag = tags.find((t) => t.name === "New Client");
+    const unpaidTag = tags.find(
+      (t) => t.name === AppointmentTagName.APPOINTMENT_UNPAID,
+    );
+    const noNoteTag = tags.find((t) => t.name === AppointmentTagName.NO_NOTE);
+    const newClientTag = tags.find(
+      (t) => t.name === AppointmentTagName.NEW_CLIENT,
+    );
 
     const tagsToAdd = [];
 

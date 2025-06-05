@@ -195,8 +195,9 @@ export function EditAppointmentTab({
           clinician_id: appointmentData.clinician_id || null,
           amount: appointmentData.appointment_fee || 0,
           invoice_type:
-            (appointmentData as AppointmentData & { Invoice?: unknown[] })
-              ?.Invoice?.length > 0
+            appointmentData.Invoice &&
+            Array.isArray(appointmentData.Invoice) &&
+            appointmentData.Invoice.length > 0
               ? "adjustment"
               : "invoice",
         },

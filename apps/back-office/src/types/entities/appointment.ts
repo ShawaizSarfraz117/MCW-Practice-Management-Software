@@ -1,3 +1,9 @@
+export enum AppointmentTagName {
+  NEW_CLIENT = "New Client",
+  APPOINTMENT_UNPAID = "Appointment Unpaid",
+  NO_NOTE = "No Note",
+}
+
 export interface BaseAppointment {
   id: string;
   title: string;

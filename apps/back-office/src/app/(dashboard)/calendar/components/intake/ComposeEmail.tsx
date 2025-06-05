@@ -7,12 +7,21 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 interface ComposeEmailProps {
   clientName: string;
+  selectedDocuments: Record<
+    string,
+    {
+      id: string;
+      checked: boolean;
+      frequency?: string;
+    }
+  >;
   onBack: () => void;
   onContinue: () => void;
 }
 
 export const ComposeEmail: React.FC<ComposeEmailProps> = ({
   clientName,
+  selectedDocuments: _selectedDocuments,
   onBack,
   onContinue,
 }) => {

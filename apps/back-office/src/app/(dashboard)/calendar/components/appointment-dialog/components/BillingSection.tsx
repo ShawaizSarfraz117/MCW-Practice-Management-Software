@@ -10,12 +10,12 @@ interface Invoice {
 }
 
 interface BillingSectionProps {
-  appointmentData: {
+  appointmentData?: {
     id?: string;
     client_group_id?: string;
     ClientGroup?: { id: string };
     Invoice?: Invoice[];
-  };
+  } | null;
   appointmentFee?: number;
   clientBalance: number;
   isCreatingInvoice: boolean;
@@ -32,6 +32,10 @@ export function BillingSection({
   onAddPayment,
 }: BillingSectionProps) {
   const router = useRouter();
+
+  if (!appointmentData) {
+    return null;
+  }
 
   const invoices = appointmentData?.Invoice;
   const hasInvoices =
