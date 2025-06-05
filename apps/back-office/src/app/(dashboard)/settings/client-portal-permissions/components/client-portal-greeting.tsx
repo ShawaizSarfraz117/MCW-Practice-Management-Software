@@ -2,12 +2,39 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@mcw/ui";
 import ClientPortalGreetingModal from "./clientPortalGreetingModal";
+import { useClientPortalSettings } from "../hooks/useClientPortalSettings";
 
 export default function ClientPortalGreetingCard() {
+  const { settings, loading, updateSettings } = useClientPortalSettings();
   const [isEditingGreeting, setIsEditingGreeting] = useState(false);
-  const [greeting, setGreeting] = useState(
-    `Hi Karen,\n\nThis Client Portal will help us get started by making it easy for you to review our practice policies and provide some basic information before our first session.\nIf you leave the portal before completing everything, you can use the link we emailed to come back and start over. It should take between 5–20 minutes to finish.`,
-  );
+
+  const welcomeMessage =
+    settings?.welcome_message ||
+    `Hi Karen,
+
+This Client Portal will help us get started by making it easy for you to review our practice policies and provide some basic information before our first session.
+If you leave the portal before completing everything, you can use the link we emailed to come back and start over. It should take between 5–20 minutes to finish.`;
+
+  const handleSaveGreeting = async (newGreeting: string) => {
+    try {
+      await updateSettings({ welcome_message: newGreeting });
+    } catch (error) {
+      console.error("Failed to update welcome message:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card className="rounded-xl shadow-sm border border-[#E5E7EB]">
+        <CardHeader className="pb-0">
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-48 mb-2" />
+            <div className="h-4 bg-gray-200 rounded w-64 mb-2" />
+          </div>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -38,16 +65,16 @@ export default function ClientPortalGreetingCard() {
               </button>
             </div>
             <div className="px-4 py-3 text-[#374151] text-sm whitespace-pre-line">
-              {greeting}
+              {welcomeMessage}
             </div>
           </div>
         </CardContent>
       </Card>
       <ClientPortalGreetingModal
-        greeting={greeting}
+        greeting={welcomeMessage}
         open={isEditingGreeting}
         onClose={() => setIsEditingGreeting(false)}
-        onSave={setGreeting}
+        onSave={handleSaveGreeting}
       />
     </>
   );

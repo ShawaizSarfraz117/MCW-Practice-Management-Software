@@ -1,6 +1,33 @@
+"use client";
 import { Card, CardHeader } from "@mcw/ui";
+import { useClientPortalSettings } from "../hooks/useClientPortalSettings";
 
 export default function FileUploadCard() {
+  const { settings, loading, updateSettings } = useClientPortalSettings();
+
+  const isUploadAllowed = settings?.is_upload_documents_allowed ?? false;
+
+  const handleUploadToggle = async (enabled: boolean) => {
+    try {
+      await updateSettings({ is_upload_documents_allowed: enabled });
+    } catch (error) {
+      console.error("Failed to update file upload settings:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card className="rounded-xl shadow-sm border border-[#E5E7EB]">
+        <CardHeader>
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-32 mb-2" />
+            <div className="h-4 bg-gray-200 rounded w-64 mb-1" />
+          </div>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   return (
     <Card className="rounded-xl shadow-sm border border-[#E5E7EB]">
       <CardHeader>
@@ -10,9 +37,11 @@ export default function FileUploadCard() {
           </div>
           <div className="flex items-center gap-2 mb-1">
             <input
+              checked={isUploadAllowed}
               className="accent-[#188153] w-4 h-4"
               id="fileUpload"
               type="checkbox"
+              onChange={(e) => handleUploadToggle(e.target.checked)}
             />
             <label
               className="text-base text-[#374151] font-normal"
