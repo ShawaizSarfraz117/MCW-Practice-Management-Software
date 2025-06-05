@@ -361,6 +361,26 @@ export const createGoodFaithEstimate = async ({ body = {} }) => {
   }
 };
 
+export const updateGoodFaithEstimate = async ({
+  body = {},
+  id,
+}: {
+  body: object;
+  id: string;
+}) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: `/good-faith-estimates/${id}`,
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
 export const fetchDiagnosis = async () => {
   try {
     const response: unknown = await FETCH.get({
