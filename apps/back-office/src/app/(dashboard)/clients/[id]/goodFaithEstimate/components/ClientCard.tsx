@@ -39,6 +39,8 @@ interface ClientData {
   city: string;
   state: string;
   zipCode: string;
+  phone: string;
+  email: string;
   voicePermission: boolean;
   textPermission: boolean;
   emailPermission: boolean;
@@ -51,6 +53,7 @@ interface ClientCardProps {
   index: number;
   isFirstClient?: boolean;
   onDataChange?: (data: ClientData) => void;
+  initialData?: Omit<ClientData, "clientId" | "hasErrors">;
 }
 
 const ClientCard = ({
@@ -58,17 +61,23 @@ const ClientCard = ({
   index,
   isFirstClient = false,
   onDataChange,
+  initialData,
 }: ClientCardProps) => {
+  console.log("🚀 ~ initialData:", initialData);
   const [clientData, setClientData] = useState({
-    name: `${client.legal_first_name} ${client.legal_last_name}`,
-    dateOfBirth: client.date_of_birth.split("T")[0], // Format to YYYY-MM-DD
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    voicePermission: false,
-    textPermission: false,
-    emailPermission: false,
+    name:
+      initialData?.name ||
+      `${client.legal_first_name} ${client.legal_last_name}`,
+    dateOfBirth: initialData?.dateOfBirth || client.date_of_birth.split("T")[0], // Format to YYYY-MM-DD
+    address: initialData?.address || "",
+    city: initialData?.city || "",
+    state: initialData?.state || "",
+    zipCode: initialData?.zipCode || "",
+    phone: initialData?.phone || getPhoneContact(client.ClientContact),
+    email: initialData?.email || getEmailContact(client.ClientContact),
+    voicePermission: initialData?.voicePermission || false,
+    textPermission: initialData?.textPermission || false,
+    emailPermission: initialData?.emailPermission || false,
   });
 
   const [errors, setErrors] = useState({
@@ -134,17 +143,17 @@ const ClientCard = ({
     setErrors((prev) => ({ ...prev, dateOfBirth: dobError }));
   };
 
-  const getPhoneContact = (contacts: Client["ClientContact"]) => {
+  function getPhoneContact(contacts: Client["ClientContact"]) {
     return (
       contacts?.find((contact) => contact.contact_type === "PHONE")?.value || ""
     );
-  };
+  }
 
-  const getEmailContact = (contacts: Client["ClientContact"]) => {
+  function getEmailContact(contacts: Client["ClientContact"]) {
     return (
       contacts?.find((contact) => contact.contact_type === "EMAIL")?.value || ""
     );
-  };
+  }
 
   const cardClassName = isFirstClient ? "w-full" : "w-full";
   const contentClassName = isFirstClient ? "space-y-4" : "space-y-4";
@@ -375,11 +384,21 @@ const ClientCard = ({
         >
           <div>
             <label className="block text-sm font-medium mb-1">Phone</label>
-            <Input value={getPhoneContact(client.ClientContact)} readOnly />
+            <Input
+              value={clientData.phone}
+              onChange={(e) =>
+                setClientData((prev) => ({ ...prev, phone: e.target.value }))
+              }
+            />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
-            <Input value={getEmailContact(client.ClientContact)} readOnly />
+            <Input
+              value={clientData.email}
+              onChange={(e) =>
+                setClientData((prev) => ({ ...prev, email: e.target.value }))
+              }
+            />
           </div>
         </div>
       </CardContent>

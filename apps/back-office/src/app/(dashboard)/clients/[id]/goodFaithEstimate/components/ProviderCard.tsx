@@ -43,22 +43,24 @@ interface ProviderCardProps {
   clinician: Clinician;
   locations: Location[];
   onDataChange?: (data: ProviderData) => void;
+  initialData?: Omit<ProviderData, "hasErrors">;
 }
 
 const ProviderCard = ({
   clinician,
   locations,
   onDataChange,
+  initialData,
 }: ProviderCardProps) => {
   const [providerData, setProviderData] = useState({
-    name: `${clinician.first_name} ${clinician.last_name}`,
-    npi: clinician.NPI_number || "",
-    tin: "",
-    location: "",
-    address: clinician.address || "",
-    contactPerson: "",
-    phone: "",
-    email: "",
+    name: initialData?.name || `${clinician.first_name} ${clinician.last_name}`,
+    npi: initialData?.npi || clinician.NPI_number || "",
+    tin: initialData?.tin || "",
+    location: initialData?.location || "",
+    address: initialData?.address || clinician.address || "",
+    contactPerson: initialData?.contactPerson || "",
+    phone: initialData?.phone || "",
+    email: initialData?.email || "",
   });
 
   const [errors, setErrors] = useState({
@@ -72,14 +74,14 @@ const ProviderCard = ({
 
   // Validate NPI and TIN on component mount
   useEffect(() => {
-    const initialNPIError = validateNPI(clinician.NPI_number || "");
-    const initialTINError = validateTIN("");
+    const initialNPIError = validateNPI(providerData.npi);
+    const initialTINError = validateTIN(providerData.tin);
 
     setErrors({
       npi: initialNPIError,
       tin: initialTINError,
     });
-  }, []);
+  }, []); // Run only once on mount
 
   // Pass data back to parent when provider data changes (excluding callback from dependencies)
   useEffect(() => {
@@ -94,26 +96,12 @@ const ProviderCard = ({
       return "NPI is required";
     }
 
-    // Remove spaces for validation
-    const cleanNPI = npi.replace(/\s/g, "");
-
-    if (!/^\d{10}$/.test(cleanNPI)) {
-      return "NPI must be exactly 10 digits";
-    }
-
     return "";
   };
 
   const validateTIN = (tin: string) => {
     if (!tin.trim()) {
       return "TIN is required";
-    }
-
-    // Remove hyphens for validation
-    const cleanTIN = tin.replace(/-/g, "");
-
-    if (!/^\d{9}$/.test(cleanTIN)) {
-      return "TIN must be exactly 9 digits";
     }
 
     return "";
@@ -236,10 +224,9 @@ const ProviderCard = ({
                 <SelectValue placeholder="Select contact" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="secretary">Secretary</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="receptionist">Receptionist</SelectItem>
+                <SelectItem value={clinician.id}>
+                  {clinician.first_name} {clinician.last_name}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
