@@ -194,6 +194,123 @@ export const dateFilterSchema = z
 - Only create validation for user-facing forms
 - Validation uses camelCase (UI convention)
 
+## Boundary Conversion Strategy
+
+### Core Principles
+
+1. **Use Prisma types directly** - Don't recreate database types
+2. **Convert at API boundaries** - Keep snake_case in API, camelCase in UI
+3. **Type-safe conversions** - No `unknown` types in conversion functions
+4. **Single validation schema** - Only for UI/form validation needs
+
+### Implementation Pattern
+
+```typescript
+// @mcw/types/entities/user.ts
+import { User } from "@mcw/database"; // Use Prisma type directly
+import { z } from "zod";
+
+// 1. Create safe type by removing sensitive fields
+export type SafeUser = Omit<User, "password_hash">;
+
+// 2. Define UI type (camelCase)
+export interface UserUI {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 3. Create validation schema for forms (optional)
+export const userFormSchema = z.object({
+  firstName: z.string().min(1, "First name required"),
+  lastName: z.string().min(1, "Last name required"),
+  email: z.string().email("Invalid email"),
+});
+
+// 4. Type-safe conversion functions
+export function toUserUI(user: SafeUser): UserUI {
+  return {
+    id: user.id,
+    firstName: user.first_name,
+    lastName: user.last_name,
+    email: user.email,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  };
+}
+
+export function toUserUpdate(data: Partial<UserUI>): Partial<User> {
+  const update: Partial<User> = {};
+
+  if (data.firstName !== undefined) update.first_name = data.firstName;
+  if (data.lastName !== undefined) update.last_name = data.lastName;
+  if (data.email !== undefined) update.email = data.email;
+
+  return update;
+}
+```
+
+### API Route Pattern
+
+```typescript
+// API route - handles conversion at boundary
+export async function GET() {
+  const users = await prisma.user.findMany({
+    // Prisma returns snake_case
+  });
+
+  // Convert to camelCase for frontend
+  return NextResponse.json(users.map(toUserUI));
+}
+
+export async function PUT(request: NextRequest) {
+  const body = await request.json(); // camelCase from frontend
+
+  // Optional: validate if needed
+  const validated = userFormSchema.parse(body);
+
+  // Convert to snake_case for database
+  const dbData = toUserUpdate(validated);
+
+  const updated = await prisma.user.update({
+    where: { id: body.id },
+    data: dbData,
+  });
+
+  // Return camelCase to frontend
+  return NextResponse.json(toUserUI(updated));
+}
+```
+
+### Component Pattern
+
+```typescript
+// Components only see camelCase
+interface Props {
+  user: UserUI;  // Always camelCase in components
+}
+
+export function UserProfile({ user }: Props) {
+  return (
+    <div>
+      <p>{user.firstName} {user.lastName}</p>
+      <p>Joined: {user.createdAt.toLocaleDateString()}</p>
+    </div>
+  );
+}
+```
+
+### Benefits
+
+1. **No type duplication** - Reuse Prisma's generated types
+2. **Clear boundaries** - API layer handles all conversion
+3. **Type safety** - No `unknown` types, full IntelliSense
+4. **Validation only where needed** - Forms, not database operations
+5. **Consistent conventions** - snake_case for DB/API, camelCase for UI
+
 ## Identified Issues
 
 ### 1. Type Duplication
