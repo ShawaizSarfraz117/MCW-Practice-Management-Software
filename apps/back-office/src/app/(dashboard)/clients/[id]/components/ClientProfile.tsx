@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
-import ShareModal from "./ShareModal";
+import ShareDocumentsModal from "./ShareDocumentsModal";
 
 import { Button } from "@mcw/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
@@ -26,6 +26,7 @@ import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
 import { useQuery } from "@tanstack/react-query";
 import { ClientInfoCard } from "./ClientInfoCard";
+import { ContactType } from "@mcw/types";
 
 export function getClientGroupInfo(client: unknown) {
   const name = (
@@ -79,6 +80,8 @@ export default function ClientProfile({
   const [creditAmount, setCredit] = useState<number>(0);
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
   const [clientName, setClientName] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientId, setClientId] = useState("");
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -113,6 +116,29 @@ export default function ClientProfile({
         if (clientGroupData.ClientGroupMembership?.length) {
           const name = getClientGroupInfo(clientGroupData);
           setClientName(name || "");
+
+          // Extract email and ID from the first client's contacts
+          const firstMember = clientGroupData.ClientGroupMembership[0];
+          if (firstMember?.Client) {
+            setClientId(firstMember.Client.id);
+
+            if (
+              firstMember.Client.ClientContact &&
+              firstMember.Client.ClientContact.length > 0
+            ) {
+              // Check for email contact - handle different case variations
+              const emailContact = firstMember.Client.ClientContact.find(
+                (contact) =>
+                  contact.contact_type === ContactType.EMAIL ||
+                  contact.contact_type === "EMAIL" ||
+                  contact.contact_type?.toLowerCase() === "email",
+              );
+
+              if (emailContact && emailContact.value) {
+                setClientEmail(emailContact.value);
+              }
+            }
+          }
         }
         return clientGroupData;
       }
@@ -174,12 +200,6 @@ export default function ClientProfile({
     });
   };
 
-  const handleShare = (
-    selectedUsers: { id: string; name: string; initials: string }[],
-  ) => {
-    console.log("Sharing with users:", selectedUsers);
-  };
-
   const handleUpload = () => {
     setActiveTab("files");
     // Small delay to ensure tab is switched before triggering upload
@@ -203,10 +223,13 @@ export default function ClientProfile({
           onOpenChange={setAddPaymentModalOpen}
         />
       )}
-      <ShareModal
+      <ShareDocumentsModal
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
-        onShare={handleShare}
+        clientName={clientName}
+        clientEmail={clientEmail || ""}
+        clientId={clientId}
+        clientGroupId={Array.isArray(id) ? id[0] : id}
       />
       <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
         <Link className="hover:text-gray-700" href="/clients">
@@ -331,7 +354,13 @@ export default function ClientProfile({
             </TabsContent>
 
             <TabsContent value="files">
-              <FilesTab ref={filesTabRef} />
+              <FilesTab
+                ref={filesTabRef}
+                onShareFile={(file) => {
+                  console.log("Sharing file:", file);
+                  setShareModalOpen(true);
+                }}
+              />
             </TabsContent>
           </Tabs>
         </div>

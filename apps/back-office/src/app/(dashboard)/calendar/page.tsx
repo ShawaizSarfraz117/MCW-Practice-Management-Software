@@ -6,7 +6,6 @@ import type React from "react";
 import { CalendarView } from "./components/calendar/calendar";
 
 import { useState, useEffect, useCallback } from "react";
-import { IntakeForm } from "./components/intake/IntakeForm";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { CreateClientDrawer } from "../clients/components/CreateClientDrawer";
@@ -153,7 +152,6 @@ function determineLocationType(
 const CalendarPage: React.FC = () => {
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [_appointmentDate, setAppointmentDate] = useState("");
-  const [showIntakeForm, setShowIntakeForm] = useState(false);
 
   // Use the custom hook to get clinician data
   const {
@@ -346,7 +344,6 @@ const CalendarPage: React.FC = () => {
 
   const handleAppointmentDone = () => {
     setShowCreateClient(false);
-    // setShowIntakeForm(true);
   };
 
   // Show loading state if waiting for clinician data or API data
@@ -386,14 +383,6 @@ const CalendarPage: React.FC = () => {
           open={showCreateClient}
           onOpenChange={setShowCreateClient}
         />
-
-        {showIntakeForm && (
-          <IntakeForm
-            clientEmail="almir@example.com"
-            clientName="Almir Kazacic"
-            onClose={() => setShowIntakeForm(false)}
-          />
-        )}
       </div>
     </div>
   );

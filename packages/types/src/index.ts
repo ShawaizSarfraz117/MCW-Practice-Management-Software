@@ -27,3 +27,9 @@ export interface ApiResponse<T> {
 
 // Re-export team member types
 export * from "./team-members";
+
+// Re-export file sharing types
+export * from "./fileSharing";
+
+// Re-export client types
+export * from "./client";

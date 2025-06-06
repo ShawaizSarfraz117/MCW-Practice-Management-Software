@@ -6,11 +6,13 @@ import type React from "react";
 interface SuccessDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  clientName?: string;
 }
 
 export const SuccessDialog: React.FC<SuccessDialogProps> = ({
   isOpen,
   onClose,
+  clientName,
 }) => {
   return (
     <Dialog modal open={isOpen} onOpenChange={onClose}>
@@ -22,7 +24,10 @@ export const SuccessDialog: React.FC<SuccessDialogProps> = ({
           The work you do makes a difference and we're grateful to be a part of
           it.
         </h2>
-        <p className="text-sm mb-4">Your items have been sent successfully!</p>
+        <p className="text-sm mb-4">
+          Your items have been sent successfully
+          {clientName ? ` to ${clientName}` : ""}!
+        </p>
         <DialogFooter>
           <Button
             className="bg-white text-green-600 hover:bg-gray-200"

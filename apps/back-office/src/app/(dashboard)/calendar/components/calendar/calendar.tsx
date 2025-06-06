@@ -155,6 +155,8 @@ export function CalendarView({
   const [intakeClientData, setIntakeClientData] = useState<{
     clientName: string;
     clientEmail: string;
+    clientId: string;
+    clientGroupId: string;
   } | null>(null);
 
   const calendarRef = useRef<FullCalendar>(null);
@@ -402,11 +404,21 @@ export function CalendarView({
     try {
       const response = await fetch(`/api/client/contact?clientId=${clientId}`);
       if (response.ok) {
-        const contacts = await response.json();
-        const emailContact = contacts.find(
-          (c: { contact_type: string; is_primary: boolean; value: string }) =>
-            c.contact_type === "EMAIL" && c.is_primary,
-        );
+        const result = await response.json();
+        const contacts = result.data || []; // Extract the data array
+
+        // Find email contact - try primary first, then any email
+        const emailContact =
+          contacts.find(
+            (c: { contact_type: string; is_primary: boolean; value: string }) =>
+              (c.contact_type === "EMAIL" || c.contact_type === "email") &&
+              c.is_primary,
+          ) ||
+          contacts.find(
+            (c: { contact_type: string; value: string }) =>
+              c.contact_type === "EMAIL" || c.contact_type === "email",
+          );
+
         return emailContact?.value || null;
       }
     } catch (error) {
@@ -534,6 +546,8 @@ export function CalendarView({
             setIntakeClientData({
               clientName: `${client.legal_first_name} ${client.legal_last_name}`,
               clientEmail: clientEmail || "",
+              clientId: client.id,
+              clientGroupId: clientGroup.id,
             });
             console.log("Setting intake form to show with data:", {
               clientName: `${client.legal_first_name} ${client.legal_last_name}`,
@@ -1656,6 +1670,8 @@ export function CalendarView({
         <IntakeForm
           clientName={intakeClientData.clientName}
           clientEmail={intakeClientData.clientEmail}
+          clientId={intakeClientData.clientId}
+          clientGroupId={intakeClientData.clientGroupId}
           onClose={() => {
             setShowIntakeForm(false);
             setIntakeClientData(null);
