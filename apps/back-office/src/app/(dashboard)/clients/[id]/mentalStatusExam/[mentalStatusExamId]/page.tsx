@@ -6,37 +6,105 @@ import { Button, Input, toast } from "@mcw/ui";
 import Link from "next/link";
 import "react-quill/dist/quill.snow.css";
 import dynamic from "next/dynamic";
-import { AutocompleteInput } from "./components/AutocompleteInput";
+import { AutocompleteInput } from "../components/AutocompleteInput";
 import { useParams, useRouter } from "next/navigation";
-import { createMentalStatusExamAnswer } from "./services/surveyAnswer.service";
-import { fetchSingleClientGroup } from "@/(dashboard)/clients/services/client.service";
-import { fetchSurveyTemplateByType } from "@/(dashboard)/clients/services/surveyTemplate.service";
-import { ClientGroupFromAPI } from "../edit/components/ClientEdit";
-import { getClientGroupInfo } from "../components/ClientProfile";
+import {
+  fetchSurveyAnswer,
+  updateSurveyAnswer,
+} from "../services/surveyAnswer.service";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
-interface FieldOption {
-  value: string;
-  text: string;
-}
-
-interface SurveyElement {
-  type: string;
-  name: string;
-  title: string;
-  choices?: FieldOption[];
-  showOtherItem?: boolean;
-  inputType?: string;
-}
-
-interface SurveyContent {
-  pages: Array<{
-    name: string;
-    elements: SurveyElement[];
-  }>;
-  headerView?: string;
-}
+const fieldOptions = {
+  appearance: ["Normal", "Disheveled", "Emaciated", "Poor Hygiene"],
+  dress: ["Appropriate", "Eccentric", "Provocative", "Bizarre"],
+  motorActivity: [
+    "Normal",
+    "Agitation",
+    "Retardation",
+    "Posturing",
+    "Repetitive Actions",
+    "Tics",
+    "Tremor",
+    "Unusual gait",
+  ],
+  insight: ["Good", "Fair", "Poor"],
+  judgement: ["Good", "Fair", "Poor"],
+  affect: [
+    "Appropriate",
+    "Inappropriate",
+    "Constricted",
+    "Labile",
+    "Blunted",
+    "Flat",
+    "Intact",
+  ],
+  mood: ["Euthymic", "Depressed", "Anxious", "Angry", "Euphoric", "Good"],
+  orientation: [
+    "X3: Oriented to person, place and time",
+    "X2: Oriented to person, place, impaired to time",
+    "X2: Oriented to person, time, impaired to place",
+    "X2: Oriented to time, place, impaired to person",
+    "X1: Impaired to person, place and time",
+    "X1: Impaired to person, time",
+    "X1: Impaired to place, time",
+    "X0: Impaired to person, place and time",
+  ],
+  memory: ["Intact", "Poor remote", "Poor recent"],
+  attention: ["Good", "Distractible", "Variable"],
+  thoughtContent: [
+    "Normal",
+    "Preoccupied",
+    "Obsessions",
+    "Delusions: Grandeur",
+    "Delusions: Bizarre",
+    "Delusions: Guilt",
+    "Delusions: Ideas of reference",
+    "Delusions: Persecutory",
+    "Delusions: Somatic",
+    "Delusions: Thought broadcasting",
+    "Delusions: Thought control",
+  ],
+  thoughtProcess: [
+    "Normal",
+    "Blocking",
+    "Circumstantial",
+    "Flight of ideas",
+    "Loose associations",
+    "Perseveration",
+    "Tangential",
+  ],
+  perception: [
+    "Normal",
+    "Auditory hallucinations",
+    "Olfactory hallucinations",
+    "Tactile hallucinations",
+    "Visual hallucinations",
+  ],
+  interviewBehavior: [
+    "Appropriate",
+    "Angry",
+    "Apathetic",
+    "Argumentative",
+    "Demanding",
+    "Evasive",
+    "Hostile",
+    "Insolent",
+    "Manipulative",
+    "Withdrawn",
+    "Uncooperative",
+  ],
+  speech: [
+    "Normal",
+    "Haitant",
+    "Pressured",
+    "Slurred",
+    "Soft",
+    "Stuttering",
+    "Mute",
+    "Verbose",
+  ],
+};
 
 const normalValues = {
   appearance: "Normal",
@@ -59,37 +127,21 @@ const normalValues = {
   time: "",
 };
 
-// Map survey field names to state field names
-const fieldNameMapping: Record<string, string> = {
-  appearance: "appearance",
-  Dress: "dress",
-  motor_activity: "motorActivity",
-  insight: "insight",
-  judgement: "judgement",
-  affect: "affect",
-  mood: "mood",
-  orientation: "orientation",
-  memory: "memory",
-  attention: "attention",
-  thought_content: "thoughtContent",
-  question3: "thoughtProcess", // Based on the JSON, question3 is Thought Process
-  perception: "perception",
-  interview_behavior: "interviewBehavior",
-  speech: "speech",
-};
-
-export default function MentalStatusExam() {
+export default function EditMentalStatusExam() {
   const params = useParams();
   const router = useRouter();
-  const clientGroupId = params.id as string;
+  const clientId = params.id as string;
+  const mentalStatusExamId = params.mentalStatusExamId as string;
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [fieldOptions, setFieldOptions] = useState<Record<string, string[]>>(
-    {},
-  );
-  const [clientInfo, setClientInfo] = useState<ClientGroupFromAPI | null>(null);
-  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [surveyAnswerId, setSurveyAnswerId] = useState<string | null>(null);
+  const [clientInfo, setClientInfo] = useState<{
+    legal_first_name: string;
+    legal_last_name: string;
+    preferred_first_name: string | null;
+    date_of_birth: Date | null;
+  } | null>(null);
 
-  // Example state for all fields
   const [fields, setFields] = useState({
     appearance: "",
     dress: "",
@@ -114,54 +166,72 @@ export default function MentalStatusExam() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch client info
-        const data = (await fetchSingleClientGroup({
-          id: clientGroupId,
-          searchParams: {
-            includeProfile: "true",
-            includeAdress: "true",
-          },
-        })) as { data: ClientGroupFromAPI } | null;
-        if (data?.data) {
-          setClientInfo(data?.data);
+        const [data, error] = await fetchSurveyAnswer({
+          id: mentalStatusExamId,
+        });
+
+        if (error || !data) {
+          throw new Error(
+            error?.message || "Failed to fetch mental status exam",
+          );
         }
-        // Fetch survey template for mental status exam
-        const [surveyTemplate, error] =
-          await fetchSurveyTemplateByType("mental_status_exam");
 
-        if (surveyTemplate && !error) {
-          // Parse the content if it's a string
-          const content: SurveyContent =
-            typeof surveyTemplate.content === "string"
-              ? JSON.parse(surveyTemplate.content)
-              : surveyTemplate.content;
+        // Set survey answer ID for update
+        setSurveyAnswerId(data.id);
 
-          // Extract field options from the survey template
-          const options: Record<string, string[]> = {};
+        // Set client info
+        setClientInfo({
+          legal_first_name: data.Client.legal_first_name,
+          legal_last_name: data.Client.legal_last_name,
+          preferred_first_name: data.Client.preferred_name,
+          date_of_birth: data.Client.date_of_birth || null,
+        });
 
-          if (content.pages && content.pages.length > 0) {
-            content.pages[0].elements.forEach((element) => {
-              if (element.type === "dropdown" && element.choices) {
-                const stateFieldName =
-                  fieldNameMapping[element.name] || element.name;
-                options[stateFieldName] = element.choices.map(
-                  (choice) => choice.text,
-                );
-              }
-            });
-          }
-
-          setFieldOptions(options);
-          // Store the template ID for later use
-          setTemplateId(surveyTemplate.id);
+        // Populate fields from fetched data
+        if (data.content) {
+          setFields({
+            appearance: data.content.appearance || "",
+            dress: data.content.dress || "",
+            motorActivity: data.content.motor_activity || "",
+            insight: data.content.insight || "",
+            judgement: data.content.judgement || "",
+            affect: data.content.affect || "",
+            mood: data.content.mood || "",
+            orientation: data.content.orientation || "",
+            memory: data.content.memory || "",
+            attention: data.content.attention || "",
+            thoughtContent: data.content.thought_content || "",
+            thoughtProcess: data.content.thought_process || "",
+            perception: data.content.perception || "",
+            interviewBehavior: data.content.interview_behavior || "",
+            speech: data.content.speech || "",
+            recommendations: data.content.recommendations || "",
+            // Extract date and time from completed_at or current date
+            date: data.completed_at
+              ? new Date(data.completed_at).toISOString().split("T")[0]
+              : new Date().toISOString().split("T")[0],
+            time: data.completed_at
+              ? new Date(data.completed_at).toTimeString().slice(0, 5)
+              : new Date().toTimeString().slice(0, 5),
+          });
         }
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to load mental status exam";
+        toast({
+          title: errorMessage,
+          variant: "destructive",
+        });
+        router.push(`/clients/${clientId}/mentalStatusExam`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [clientGroupId]);
+  }, [clientId, mentalStatusExamId, router]);
 
   function handleChange(field: string, value: string) {
     setFields((f) => ({ ...f, [field]: value }));
@@ -173,6 +243,14 @@ export default function MentalStatusExam() {
     if (!fields.date || !fields.time) {
       toast({
         title: "Please fill in date and time",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!surveyAnswerId) {
+      toast({
+        title: "Survey answer ID not found",
         variant: "destructive",
       });
       return;
@@ -204,39 +282,28 @@ export default function MentalStatusExam() {
       // Create a timestamp from date and time
       // const examDateTime = new Date(`${fields.date}T${fields.time}`);
 
-      // Check if we have the template ID from the initial load
-      if (!templateId) {
-        throw new Error("Mental Status Exam template not found");
-      }
-      if (!clientInfo?.ClientGroupMembership[0]?.Client?.id) {
-        toast({
-          title: "Client not found",
-          variant: "destructive",
-        });
-        return;
-      }
-      const [response, error] = await createMentalStatusExamAnswer({
-        client_id: clientInfo?.ClientGroupMembership[0]?.Client?.id || "",
-        template_id: templateId,
+      const [response, error] = await updateSurveyAnswer({
+        id: surveyAnswerId,
         content,
         status: "COMPLETED",
       });
 
       if (error || !response) {
-        throw new Error(error?.message || "Failed to save mental status exam");
+        throw new Error(
+          error?.message || "Failed to update mental status exam",
+        );
       }
 
       toast({
-        title: "Mental Status Exam saved successfully",
+        title: "Mental Status Exam updated successfully",
         variant: "success",
       });
-
-      router.push(`/clients/${clientGroupId}`);
+      router.push(`/clients/${clientId}`);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "Failed to save mental status exam";
+          : "Failed to update mental status exam";
       toast({
         title: errorMessage,
         variant: "destructive",
@@ -247,40 +314,54 @@ export default function MentalStatusExam() {
   };
 
   const handleCancel = () => {
-    router.push(`/clients/${clientGroupId}`);
+    router.push(`/clients/${clientId}/mentalStatusExam`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="px-4 w-full max-w-6xl mx-auto">
+        <div className="flex justify-center items-center h-64">
+          <p>Loading mental status exam...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 w-full max-w-6xl mx-auto">
       {/* Client Info */}
       <h1 className="text-2xl font-semibold mt-4 mb-1">
-        {clientInfo ? getClientGroupInfo(clientInfo) : "Loading..."}
+        {clientInfo
+          ? `${clientInfo.preferred_first_name || clientInfo.legal_first_name} ${clientInfo.legal_last_name}`
+          : "Loading..."}
       </h1>
       <div className="text-sm text-gray-500 mb-4 flex flex-wrap gap-2 items-center">
-        {clientInfo?.ClientGroupMembership[0]?.Client?.date_of_birth && (
+        {clientInfo?.date_of_birth && (
           <>
-            {clientInfo.type}
+            {new Date().getFullYear() -
+              new Date(clientInfo.date_of_birth).getFullYear() >=
+            18
+              ? "Adult"
+              : "Minor"}
             <span className="text-gray-300">|</span>
           </>
         )}
-        {clientInfo?.ClientGroupMembership[0]?.Client?.date_of_birth && (
+        {clientInfo?.date_of_birth && (
           <>
-            {new Date(
-              clientInfo.ClientGroupMembership[0]?.Client?.date_of_birth,
-            ).toLocaleDateString()}
+            {new Date(clientInfo.date_of_birth).toLocaleDateString()}
             <span className="text-gray-300">|</span>
           </>
         )}
         <Link
           className="text-[#2d8467] hover:underline"
-          href={`/scheduled?client_id=${clientGroupId}`}
+          href={`/scheduled?client_id=${clientId}`}
         >
           Schedule appointment
         </Link>
         <span className="text-gray-300">|</span>
         <Link
           className="text-[#2d8467] hover:underline"
-          href={`/clients/${clientGroupId}/edit`}
+          href={`/clients/${clientId}/edit`}
         >
           Edit
         </Link>
@@ -288,7 +369,7 @@ export default function MentalStatusExam() {
 
       {/* Section Title and All Normal */}
       <div className="flex items-center justify-between mt-8 mb-2 max-w-2xl">
-        <h2 className="text-xl font-semibold">Current Mental Status</h2>
+        <h2 className="text-xl font-semibold">Edit Mental Status</h2>
         <button
           className="text-green-700 font-medium hover:underline text-sm"
           type="button"
@@ -325,7 +406,7 @@ export default function MentalStatusExam() {
               {label}
             </label>
             <AutocompleteInput
-              options={fieldOptions[key] || []}
+              options={fieldOptions[key as keyof typeof fieldOptions] || []}
               value={fields[key as keyof typeof fields]}
               onChange={(value) => handleChange(key, value)}
               placeholder={`Select or type ${label.toLowerCase()}`}
@@ -381,7 +462,7 @@ export default function MentalStatusExam() {
             type="submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Saving..." : "Save Mental Status Exam"}
+            {isSubmitting ? "Updating..." : "Update Mental Status Exam"}
           </Button>
         </div>
       </form>
