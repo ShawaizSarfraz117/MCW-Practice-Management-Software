@@ -92,6 +92,7 @@ describe("Appointment Client Group Name Tests", () => {
     };
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);
+    prismaMock.clientGroup.findUnique.mockResolvedValueOnce(mockClientGroup);
 
     // Create request
     const appointmentData = {
