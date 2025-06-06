@@ -13,6 +13,7 @@ import { getBackOfficeSession } from "@/utils/helpers";
 interface MockRole {
   id: string;
   name: string;
+  description: string | null;
   [key: string]: any;
 }
 
