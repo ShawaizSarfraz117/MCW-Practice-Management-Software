@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, PUT } from "@/api/clinicalInfo/route";
 import { getServerSession } from "next-auth";
-import { createRequestWithBody } from "@mcw/utils";
+import { createRequest, createRequestWithBody } from "@mcw/utils";
 import * as helpers from "@/utils/helpers";
 
 // Mock Prisma
@@ -61,7 +61,7 @@ describe("GET /api/clinicalInfo", () => {
   it("should return clinical information", async () => {
     vi.mocked(prisma.clinician.findUnique).mockResolvedValueOnce(mockClinician);
 
-    const response = await GET();
+    const response = await GET(createRequest("/api/clinicalInfo"));
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json).toMatchObject({
@@ -76,14 +76,14 @@ describe("GET /api/clinicalInfo", () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
     vi.mocked(helpers.getBackOfficeSession).mockResolvedValueOnce(null);
 
-    const response = await GET();
+    const response = await GET(createRequest("/api/clinicalInfo"));
     expect(response.status).toBe(401);
   });
 
   it("should return 404 if clinician is not found", async () => {
     vi.mocked(prisma.clinician.findUnique).mockResolvedValueOnce(null);
 
-    const response = await GET();
+    const response = await GET(createRequest("/api/clinicalInfo"));
     expect(response.status).toBe(404);
     const json = await response.json();
     expect(json).toEqual({ error: "Clinical information not found" });
@@ -96,7 +96,7 @@ describe("GET /api/clinicalInfo", () => {
       clinician: null,
     });
 
-    const response = await GET();
+    const response = await GET(createRequest("/api/clinicalInfo"));
     expect(response.status).toBe(404);
     const json = await response.json();
     expect(json).toEqual({ error: "Clinician not found for user" });
@@ -107,7 +107,7 @@ describe("GET /api/clinicalInfo", () => {
       new Error("DB error"),
     );
 
-    const response = await GET();
+    const response = await GET(createRequest("/api/clinicalInfo"));
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({
       error: "Failed to fetch clinical information",

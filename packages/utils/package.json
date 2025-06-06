@@ -4,7 +4,8 @@
   "private": true,
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts"
   },
   "scripts": {
     "clean": "if exist dist rd /s /q dist",
@@ -16,6 +17,7 @@
   "dependencies": {
     "@mcw/tsconfig-config": "*",
     "bcryptjs": "^2.4.3",
+    "react": "^18.2.0",
     "survey-core": "^2.1.0",
     "survey-react-ui": "^2.1.0",
     "uuid": "^9.0.1",
