@@ -1,4 +1,9 @@
 // Client related types
+/**
+ * @deprecated Use Contact type from parent directory or @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Duplicate of ../types.ts Contact
+ * TODO: [TYPE-MIGRATION] Consolidate with parent directory type
+ */
 export interface Contact {
   id?: string;
   value: string;
@@ -8,6 +13,12 @@ export interface Contact {
   is_primary?: boolean;
 }
 
+/**
+ * @deprecated Different structure from parent ClientData
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Conflicts with ../types.ts ClientData
+ * TODO: [TYPE-MIGRATION] This seems to be a form-specific variant
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create ClientFormDataUI type
+ */
 export interface ClientData {
   id?: string;
   legal_first_name: string;
@@ -27,6 +38,11 @@ export interface ClientData {
   contacts: Contact[];
 }
 
+/**
+ * @deprecated Duplicate of parent directory type
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Same as ../types.ts EmailEntry
+ * TODO: [TYPE-MIGRATION] Import from parent directory instead
+ */
 export interface EmailEntry {
   id?: string;
   value: string;
@@ -34,6 +50,11 @@ export interface EmailEntry {
   permission: string;
 }
 
+/**
+ * @deprecated Duplicate of parent directory type
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Same as ../types.ts PhoneEntry
+ * TODO: [TYPE-MIGRATION] Import from parent directory instead
+ */
 export interface PhoneEntry {
   id?: string;
   value: string;

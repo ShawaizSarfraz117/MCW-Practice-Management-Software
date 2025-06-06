@@ -1,4 +1,9 @@
 // Client related types
+/**
+ * @deprecated Move to @mcw/types/entities/contact
+ * TODO: [TYPE-MIGRATION] Shared contact type
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create ContactUI type for components
+ */
 export interface Contact {
   id: string;
   value: string;
@@ -8,6 +13,11 @@ export interface Contact {
   is_primary?: boolean;
 }
 
+/**
+ * @deprecated Move to @mcw/types/entities/client
+ * TODO: [TYPE-MIGRATION] Create SafeClient type in shared types
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create ClientUI type for components
+ */
 export interface ClientData {
   id: string;
   legal_first_name: string;
@@ -29,6 +39,11 @@ export interface ClientData {
   ClientContact: Contact[];
 }
 
+/**
+ * @deprecated Move to @mcw/types/entities/client-membership
+ * TODO: [TYPE-MIGRATION] Shared junction type
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create ClientMembershipUI type
+ */
 export interface ClientMembership {
   client_id: string;
   client_group_id: string;

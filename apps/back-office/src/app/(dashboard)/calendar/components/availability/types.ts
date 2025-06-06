@@ -69,6 +69,12 @@ export interface AvailabilitySidebarProps {
   isEditMode?: boolean;
 }
 
+/**
+ * @deprecated Use centralized Service type from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] 2 of 6+ Service definitions
+ * TODO: [TYPE-MIGRATION] Import ServiceUI from @mcw/types instead
+ * TODO: [TYPE-MIGRATION-CASING] This should use camelCase - it's a UI component type
+ */
 export interface Service {
   id: string;
   type: string;
@@ -119,6 +125,12 @@ export interface AppointmentSidebarProps {
   isEditMode?: boolean;
 }
 
+/**
+ * @deprecated Use centralized Location type from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] 2 of 5+ Location definitions
+ * TODO: [TYPE-MIGRATION] Move to @mcw/types/entities/location
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create LocationUI type for components
+ */
 export interface Location {
   id: string;
   name: string;
@@ -126,6 +138,11 @@ export interface Location {
   is_active: boolean;
 }
 
+/**
+ * @deprecated Consolidate with Service type
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Variant of Service type
+ * TODO: [TYPE-MIGRATION] Merge into single Service type in @mcw/types
+ */
 export interface DetailedService {
   id: string;
   type: string;
@@ -147,6 +164,11 @@ export interface DetailedService {
   blockAfter?: number;
 }
 
+/**
+ * @deprecated Consolidate with Service type
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Another variant of Service type
+ * TODO: [TYPE-MIGRATION] Merge into single Service type in @mcw/types
+ */
 export interface AvailabilityService {
   id: string;
   type: string;

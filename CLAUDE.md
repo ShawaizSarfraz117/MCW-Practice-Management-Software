@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL INSTRUCTIONS - MUST NEVER BE IGNORED
+
+**DISCUSSION AND COLLABORATION REQUIREMENTS**:
+
+- When the user says "let's discuss", "let's talk", or "let's brainstorm" - STOP and have a conversation
+- NEVER implement or create documents when discussion is requested
+- ALWAYS present options and wait for user input
+- When user says "after we agree" - explicit agreement is required before proceeding
+- Ask clarifying questions instead of making assumptions
+- Present ideas for feedback, don't just execute
+
 ## Project Overview
 
 MCW Practice Management Software is a HIPAA-compliant healthcare practice management system built as a Turborepo-based monorepo with two main applications:
@@ -293,9 +304,22 @@ Integration tests use a separate SQL Server instance via Docker:
 
 **Type Safety Rules**:
 
+We follow a strict three-layer type hierarchy. Types flow DOWN, never UP:
+
+1. **Prisma types** (`@mcw/database`) → API routes only
+2. **Shared types** (`@mcw/types`) → All shared business types
+3. **App types** (`apps/*/src/types/`) → UI-specific only
+
+See [Type System Architecture](./Docs/TYPE_SYSTEM_ARCHITECTURE.md) for detailed rules and examples.
+
+**Validation**: Co-locate validation schemas with type definitions (see Architecture doc)
+
+**Key Rules**:
+
 - **ALWAYS use shared types from `@mcw/types` package** for all shared interfaces
 - **Use Prisma types from `@mcw/database`** only when creating new shared types in `@mcw/types`
 - **NEVER create duplicate type definitions** in individual components or pages
+- **Follow naming conventions**: snake_case for API/DB, camelCase for UI
 - Import order:
   1. First check `@mcw/types` for existing shared types
   2. If not found, create in `@mcw/types` using Prisma types from `@mcw/database`
@@ -317,6 +341,12 @@ Integration tests use a separate SQL Server instance via Docker:
     // ... duplicating what's already in shared types
   }
   ```
+
+**Type Conversion**:
+
+- Use utilities from `@mcw/utils` for case conversion between snake_case and camelCase
+- Keep database/API layer in snake_case
+- Keep UI/form layer in camelCase
 
 **Test Location and Naming Rules**:
 
