@@ -94,6 +94,15 @@ describe("Appointment Client Group Name Tests", () => {
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);
     prismaMock.clientGroup.findUnique.mockResolvedValueOnce(mockClientGroup);
 
+    // Mock the re-query that happens after creation
+    prismaMock.appointment.findUnique.mockResolvedValueOnce({
+      ...expectedAppointment,
+      AppointmentTag: [],
+      ClientGroup: mockClientGroup,
+      Clinician: mockClinician,
+      Location: mockLocation,
+    });
+
     // Create request
     const appointmentData = {
       type: "APPOINTMENT",
@@ -156,6 +165,15 @@ describe("Appointment Client Group Name Tests", () => {
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedEvent);
 
+    // Mock the re-query that happens after creation
+    prismaMock.appointment.findUnique.mockResolvedValueOnce({
+      ...expectedEvent,
+      AppointmentTag: [],
+      ClientGroup: null,
+      Clinician: mockClinician,
+      Location: mockLocation,
+    });
+
     const eventData = {
       type: "event",
       title: "Team Meeting",
@@ -209,6 +227,15 @@ describe("Appointment Client Group Name Tests", () => {
     };
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);
+
+    // Mock the re-query that happens after creation
+    prismaMock.appointment.findUnique.mockResolvedValueOnce({
+      ...expectedAppointment,
+      AppointmentTag: [],
+      ClientGroup: mockClientGroup,
+      Clinician: mockClinician,
+      Location: mockLocation,
+    });
 
     const appointmentData = {
       type: "APPOINTMENT",
