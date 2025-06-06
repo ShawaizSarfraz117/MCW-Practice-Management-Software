@@ -40,6 +40,7 @@ import {
   Audit,
   ClientContact,
   ClientGroup,
+  ClientGroupMembership,
   ClientReminderPreference,
   ClinicianClient,
   PracticeService,
@@ -52,7 +53,6 @@ import {
   EmailTemplate,
   Product,
   ClinicianLocation,
-  Prisma,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { BillingSettings } from "../types/billing.js";
@@ -665,6 +665,32 @@ export const BillingSettingsPrismaFactory = defineBillingSettingsFactory({
  * This creates the exact shape returned by prisma.appointment.findUnique with includes
  * Used in unit tests to mock the response from re-querying after creation
  */
+type AppointmentWithRelations = Appointment & {
+  AppointmentTag?: Array<{
+    id: string;
+    appointment_id: string;
+    tag_id: string;
+    Tag: { id: string; name: string; color: string | null };
+  }>;
+  ClientGroup?:
+    | (ClientGroup & {
+        ClientGroupMembership: Array<
+          ClientGroupMembership & { Client?: Client }
+        >;
+      })
+    | null;
+  Clinician?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+  Location?: {
+    id: string;
+    name: string;
+    address: string;
+  } | null;
+};
+
 export function createAppointmentWithRelations(
   appointment: Partial<Appointment>,
   relations: {
@@ -673,16 +699,7 @@ export function createAppointmentWithRelations(
     location?: Partial<Location>;
     tags?: Array<{ id: string; name: string; color: string | null }>;
   } = {},
-): Prisma.AppointmentGetPayload<{
-  include: {
-    AppointmentTag: { include: { Tag: true } };
-    ClientGroup: {
-      include: { ClientGroupMembership: { include: { Client: true } } };
-    };
-    Clinician: { select: { id: true; first_name: true; last_name: true } };
-    Location: { select: { id: true; name: true; address: true } };
-  };
-}> {
+): AppointmentWithRelations {
   const { clientGroup, clinician, location, tags = [] } = relations;
 
   return {
@@ -727,16 +744,7 @@ export function createAppointmentWithRelations(
           address: location.address as string,
         }
       : null,
-  } as Prisma.AppointmentGetPayload<{
-    include: {
-      AppointmentTag: { include: { Tag: true } };
-      ClientGroup: {
-        include: { ClientGroupMembership: { include: { Client: true } } };
-      };
-      Clinician: { select: { id: true; first_name: true; last_name: true } };
-      Location: { select: { id: true; name: true; address: true } };
-    };
-  }>;
+  } as AppointmentWithRelations;
 }
 
 /**
@@ -748,7 +756,7 @@ export function createEventWithRelations(
     clinician?: Partial<Clinician>;
     location?: Partial<Location>;
   } = {},
-): ReturnType<typeof createAppointmentWithRelations> {
+) {
   return createAppointmentWithRelations(
     {
       ...event,
