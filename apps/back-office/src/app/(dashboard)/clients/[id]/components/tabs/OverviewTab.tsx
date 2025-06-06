@@ -1,3 +1,4 @@
+"use client";
 import { Button } from "@mcw/ui";
 import {
   Select,
@@ -197,6 +198,7 @@ export default function OverviewTab() {
     new Date(2025, 0, 8), // Jan 8, 2025
   );
   const params = useParams();
+  const router = useRouter();
   const [filterType, setFilterType] = useState("all");
 
   const { data, isLoading } = useQuery({
@@ -213,6 +215,15 @@ export default function OverviewTab() {
 
   // Type assertion
   const appointments = data as Appointment[] | undefined;
+
+  const handleProgressNoteClick = (appointmentId?: string) => {
+    const appointmentQuery = appointmentId
+      ? `?appointmentId=${appointmentId}`
+      : "";
+    router.push(
+      `/clients/${params.id}/components/progressNote${appointmentQuery}`,
+    );
+  };
 
   return (
     <div className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
@@ -249,7 +260,10 @@ export default function OverviewTab() {
                   <div className="text-sm text-gray-500">
                     {appointment.type}
                   </div>
-                  <button className="text-blue-500 hover:underline text-sm mt-1">
+                  <button
+                    onClick={() => handleProgressNoteClick(appointment.id)}
+                    className="text-blue-500 hover:underline text-sm mt-1"
+                  >
                     + Progress Note
                   </button>
                 </div>
