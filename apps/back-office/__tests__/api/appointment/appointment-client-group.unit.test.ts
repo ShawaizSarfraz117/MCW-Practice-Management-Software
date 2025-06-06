@@ -4,6 +4,7 @@ import { createRequestWithBody } from "@mcw/utils";
 import { POST } from "@/api/appointment/route";
 import prismaMock from "@mcw/database/mock";
 import { Decimal } from "@prisma/client/runtime/library";
+import type { Prisma } from "@mcw/database";
 
 // Mock data
 const mockUser = {
@@ -95,13 +96,34 @@ describe("Appointment Client Group Name Tests", () => {
     prismaMock.clientGroup.findUnique.mockResolvedValueOnce(mockClientGroup);
 
     // Mock the re-query that happens after creation
-    prismaMock.appointment.findUnique.mockResolvedValueOnce({
+    // Type for appointment with all relations as returned by the API
+    const appointmentWithRelations: Prisma.AppointmentGetPayload<{
+      include: {
+        AppointmentTag: { include: { Tag: true } };
+        ClientGroup: {
+          include: { ClientGroupMembership: { include: { Client: true } } };
+        };
+        Clinician: { select: { id: true; first_name: true; last_name: true } };
+        Location: { select: { id: true; name: true; address: true } };
+      };
+    }> = {
       ...expectedAppointment,
       AppointmentTag: [],
-      ClientGroup: mockClientGroup,
-      Clinician: mockClinician,
+      ClientGroup: {
+        ...mockClientGroup,
+        ClientGroupMembership: [],
+      },
+      Clinician: {
+        id: mockClinician.id,
+        first_name: mockClinician.first_name,
+        last_name: mockClinician.last_name,
+      },
       Location: mockLocation,
-    });
+    };
+
+    prismaMock.appointment.findUnique.mockResolvedValueOnce(
+      appointmentWithRelations,
+    );
 
     // Create request
     const appointmentData = {
@@ -166,13 +188,28 @@ describe("Appointment Client Group Name Tests", () => {
     prismaMock.appointment.create.mockResolvedValueOnce(expectedEvent);
 
     // Mock the re-query that happens after creation
-    prismaMock.appointment.findUnique.mockResolvedValueOnce({
+    const eventWithRelations: Prisma.AppointmentGetPayload<{
+      include: {
+        AppointmentTag: { include: { Tag: true } };
+        ClientGroup: {
+          include: { ClientGroupMembership: { include: { Client: true } } };
+        };
+        Clinician: { select: { id: true; first_name: true; last_name: true } };
+        Location: { select: { id: true; name: true; address: true } };
+      };
+    }> = {
       ...expectedEvent,
       AppointmentTag: [],
       ClientGroup: null,
-      Clinician: mockClinician,
+      Clinician: {
+        id: mockClinician.id,
+        first_name: mockClinician.first_name,
+        last_name: mockClinician.last_name,
+      },
       Location: mockLocation,
-    });
+    };
+
+    prismaMock.appointment.findUnique.mockResolvedValueOnce(eventWithRelations);
 
     const eventData = {
       type: "event",
@@ -229,13 +266,33 @@ describe("Appointment Client Group Name Tests", () => {
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);
 
     // Mock the re-query that happens after creation
-    prismaMock.appointment.findUnique.mockResolvedValueOnce({
+    const appointmentWithRelations2: Prisma.AppointmentGetPayload<{
+      include: {
+        AppointmentTag: { include: { Tag: true } };
+        ClientGroup: {
+          include: { ClientGroupMembership: { include: { Client: true } } };
+        };
+        Clinician: { select: { id: true; first_name: true; last_name: true } };
+        Location: { select: { id: true; name: true; address: true } };
+      };
+    }> = {
       ...expectedAppointment,
       AppointmentTag: [],
-      ClientGroup: mockClientGroup,
-      Clinician: mockClinician,
+      ClientGroup: {
+        ...mockClientGroup,
+        ClientGroupMembership: [],
+      },
+      Clinician: {
+        id: mockClinician.id,
+        first_name: mockClinician.first_name,
+        last_name: mockClinician.last_name,
+      },
       Location: mockLocation,
-    });
+    };
+
+    prismaMock.appointment.findUnique.mockResolvedValueOnce(
+      appointmentWithRelations2,
+    );
 
     const appointmentData = {
       type: "APPOINTMENT",
