@@ -1,0 +1,288 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "dropdown",
+          "name": "appearance",
+          "title": "Appearance",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Normal"
+            },
+            {
+              "value": "Item 2",
+              "text": "Disheveled"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "Dress",
+          "title": "Dress",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Appropriate"
+            },
+            {
+              "value": "Item 2",
+              "text": "Eccentric"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "motor_activity",
+          "title": "Motor Activity",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Normal"
+            },
+            {
+              "value": "Item 2",
+              "text": "Agitation"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "insight",
+          "title": "Insight",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Good"
+            },
+            {
+              "value": "Item 2",
+              "text": "Fair"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "judgement",
+          "title": "Judgement",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Good"
+            },
+            {
+              "value": "Item 2",
+              "text": "Fair"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "question1",
+          "title": "Judgement",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Good"
+            },
+            {
+              "value": "Item 2",
+              "text": "Fair"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "affect",
+          "title": "Affect",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Appropriate"
+            },
+            {
+              "value": "Item 2",
+              "text": "Inappropriate"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "mood",
+          "title": "Mood",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Euthymic"
+            },
+            {
+              "value": "Item 2",
+              "text": "Depressed"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "orientation",
+          "title": "Orientation",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "X3: Oriented to person, place and time"
+            },
+            {
+              "value": "Item 2",
+              "text": "X2: Oriented to person, place; Impaired to time"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "question2",
+          "title": "Orientation",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "X3: Oriented to person, place and time"
+            },
+            {
+              "value": "Item 2",
+              "text": "X2: Oriented to person, place; Impaired to time"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "memory",
+          "title": "Memory",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Intact"
+            },
+            {
+              "value": "Item 2",
+              "text": "Poor remote"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "attention",
+          "title": "Attention",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Good"
+            },
+            {
+              "value": "Item 2",
+              "text": "Variable"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "thought_content",
+          "title": "Thought Content",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Intact"
+            },
+            {
+              "value": "Item 2",
+              "text": "Poor remote"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "question3",
+          "title": "Thought Process",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Normal"
+            },
+            {
+              "value": "Item 2",
+              "text": "Blocking"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "perception",
+          "title": "Perception",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Normal"
+            },
+            {
+              "value": "Item 2",
+              "text": "Blocking"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "interview_behavior",
+          "title": "Interview Behavior",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Appropriate"
+            },
+            {
+              "value": "Item 2",
+              "text": "Aggressive"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "speech",
+          "title": "Speech",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Normal"
+            },
+            {
+              "value": "Item 2",
+              "text": "Hesitant"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "text",
+          "name": "date",
+          "title": "Date and time",
+          "inputType": "datetime-local"
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}

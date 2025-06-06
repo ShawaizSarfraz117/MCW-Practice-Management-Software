@@ -17,7 +17,8 @@ export async function seedSurveys(prisma) {
     { filename: "Standard Intake Questionnaire Template.json", name: "Standard Intake Questionnaire Template" , type: "intake_forms" , is_default: true },
     { filename: "Standard Progress Note.json", name: "Standard Progress Note" , type: "progress_notes" , is_default: false },
     { filename: "Treatment Plan.json", name: "Treatment Plan & Goals Note" , type: "progress_notes" , is_default: false },
-    { filename: "Release of Information.json", name: "Release of Information" , type: "other_documents" , is_default: false }
+    { filename: "Release of Information.json", name: "Release of Information" , type: "other_documents" , is_default: false },
+    { filename: "Mental Status Exam.json", name: "Mental Status Exam" , type: "mental_status_exam" , is_default: false }
   ];
 
   const surveysPath = join(process.cwd(), "../../apps/back-office/public/surveys");

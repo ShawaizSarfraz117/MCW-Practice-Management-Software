@@ -64,6 +64,7 @@ export const fetchAppointments = async ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useFetchAppointments = (queryKey: any, searchParams: any) => {
+  console.log("🚀 ~ useFetchAppointments ~ searchParams:", searchParams);
   return useQuery({
     queryKey: queryKey,
     queryFn: () => fetchAppointments(searchParams),
@@ -100,6 +101,19 @@ export const fetchInvoices = async ({ searchParams = {} }) => {
     return [response, null];
   } catch (error) {
     return [null, error instanceof Error ? error : new Error("Unknown error")];
+  }
+};
+
+export const fetchBillingDocument = async ({ searchParams = {} }) => {
+  try {
+    const response = await FETCH.get({
+      url: "/billing-documents",
+      searchParams,
+    });
+
+    return response;
+  } catch (_error) {
+    return null;
   }
 };
 
