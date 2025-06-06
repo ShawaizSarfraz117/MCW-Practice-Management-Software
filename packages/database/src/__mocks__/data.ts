@@ -52,6 +52,7 @@ import {
   EmailTemplate,
   Product,
   ClinicianLocation,
+  Prisma,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { BillingSettings } from "../types/billing.js";
@@ -167,7 +168,7 @@ export const AppointmentFactory = {
     User: UserPrismaFactory,
     start_date: faker.date.future(),
     end_date: faker.date.future(),
-    type: faker.helpers.arrayElement(["consultation", "therapy", "followup"]),
+    type: faker.helpers.arrayElement(["APPOINTMENT", "EVENT"]),
     status: faker.helpers.arrayElement(["scheduled", "completed", "cancelled"]),
     notes: faker.lorem.paragraph(),
     ...overrides,
@@ -658,3 +659,105 @@ export const BillingSettingsPrismaFactory = defineBillingSettingsFactory({
     };
   },
 });
+
+/**
+ * Factory helper for creating appointments with all relations
+ * This creates the exact shape returned by prisma.appointment.findUnique with includes
+ * Used in unit tests to mock the response from re-querying after creation
+ */
+export function createAppointmentWithRelations(
+  appointment: Partial<Appointment>,
+  relations: {
+    clientGroup?: Partial<ClientGroup>;
+    clinician?: Partial<Clinician>;
+    location?: Partial<Location>;
+    tags?: Array<{ id: string; name: string; color: string | null }>;
+  } = {},
+): Prisma.AppointmentGetPayload<{
+  include: {
+    AppointmentTag: { include: { Tag: true } };
+    ClientGroup: {
+      include: { ClientGroupMembership: { include: { Client: true } } };
+    };
+    Clinician: { select: { id: true; first_name: true; last_name: true } };
+    Location: { select: { id: true; name: true; address: true } };
+  };
+}> {
+  const { clientGroup, clinician, location, tags = [] } = relations;
+
+  return {
+    ...appointment,
+    AppointmentTag: tags.map((tag, index) => ({
+      id: `appt-tag-${index}`,
+      appointment_id: appointment.id as string,
+      tag_id: tag.id,
+      Tag: tag,
+    })),
+    ClientGroup: clientGroup
+      ? {
+          ...clientGroup,
+          // Ensure all required fields
+          id: clientGroup.id as string,
+          type: clientGroup.type as string,
+          name: clientGroup.name as string,
+          is_active: clientGroup.is_active ?? true,
+          available_credit: clientGroup.available_credit ?? new Decimal(0),
+          created_at: clientGroup.created_at ?? new Date(),
+          auto_monthly_statement_enabled:
+            clientGroup.auto_monthly_statement_enabled ?? false,
+          auto_monthly_superbill_enabled:
+            clientGroup.auto_monthly_superbill_enabled ?? false,
+          first_seen_at: clientGroup.first_seen_at ?? null,
+          notes: clientGroup.notes ?? null,
+          clinician_id: clientGroup.clinician_id ?? null,
+          ClientGroupMembership: [],
+        }
+      : null,
+    Clinician: clinician
+      ? {
+          id: clinician.id as string,
+          first_name: clinician.first_name as string,
+          last_name: clinician.last_name as string,
+        }
+      : null,
+    Location: location
+      ? {
+          id: location.id as string,
+          name: location.name as string,
+          address: location.address as string,
+        }
+      : null,
+  } as Prisma.AppointmentGetPayload<{
+    include: {
+      AppointmentTag: { include: { Tag: true } };
+      ClientGroup: {
+        include: { ClientGroupMembership: { include: { Client: true } } };
+      };
+      Clinician: { select: { id: true; first_name: true; last_name: true } };
+      Location: { select: { id: true; name: true; address: true } };
+    };
+  }>;
+}
+
+/**
+ * Factory helper for creating events (type='EVENT') with all relations
+ */
+export function createEventWithRelations(
+  event: Partial<Appointment>,
+  relations: {
+    clinician?: Partial<Clinician>;
+    location?: Partial<Location>;
+  } = {},
+): ReturnType<typeof createAppointmentWithRelations> {
+  return createAppointmentWithRelations(
+    {
+      ...event,
+      type: "EVENT",
+      client_group_id: null,
+    },
+    {
+      ...relations,
+      clientGroup: undefined,
+    },
+  );
+}

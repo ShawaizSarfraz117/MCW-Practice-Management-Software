@@ -4,7 +4,10 @@ import { createRequestWithBody } from "@mcw/utils";
 import { POST } from "@/api/appointment/route";
 import prismaMock from "@mcw/database/mock";
 import { Decimal } from "@prisma/client/runtime/library";
-import type { Prisma } from "@mcw/database";
+import {
+  createAppointmentWithRelations,
+  createEventWithRelations,
+} from "@mcw/database/mock-data";
 
 // Mock data
 const mockUser = {
@@ -70,7 +73,7 @@ describe("Appointment Client Group Name Tests", () => {
 
     const expectedAppointment = {
       id: "appt-123",
-      type: "APPOINTMENT",
+      type: "APPOINTMENT" as const,
       title: "Appointment with Smith Family Group", // This should use the actual client group name
       is_all_day: false,
       start_date: new Date("2024-01-10T10:00:00.000Z"),
@@ -95,31 +98,15 @@ describe("Appointment Client Group Name Tests", () => {
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);
     prismaMock.clientGroup.findUnique.mockResolvedValueOnce(mockClientGroup);
 
-    // Mock the re-query that happens after creation
-    // Type for appointment with all relations as returned by the API
-    const appointmentWithRelations: Prisma.AppointmentGetPayload<{
-      include: {
-        AppointmentTag: { include: { Tag: true } };
-        ClientGroup: {
-          include: { ClientGroupMembership: { include: { Client: true } } };
-        };
-        Clinician: { select: { id: true; first_name: true; last_name: true } };
-        Location: { select: { id: true; name: true; address: true } };
-      };
-    }> = {
-      ...expectedAppointment,
-      AppointmentTag: [],
-      ClientGroup: {
-        ...mockClientGroup,
-        ClientGroupMembership: [],
+    // Mock the re-query that happens after creation using factory helper
+    const appointmentWithRelations = createAppointmentWithRelations(
+      expectedAppointment,
+      {
+        clientGroup: mockClientGroup,
+        clinician: mockClinician,
+        location: mockLocation,
       },
-      Clinician: {
-        id: mockClinician.id,
-        first_name: mockClinician.first_name,
-        last_name: mockClinician.last_name,
-      },
-      Location: mockLocation,
-    };
+    );
 
     prismaMock.appointment.findUnique.mockResolvedValueOnce(
       appointmentWithRelations,
@@ -127,7 +114,7 @@ describe("Appointment Client Group Name Tests", () => {
 
     // Create request
     const appointmentData = {
-      type: "APPOINTMENT",
+      type: "APPOINTMENT" as const,
       title: "Appointment with Smith Family Group",
       is_all_day: false,
       start_date: "2024-01-10T10:00:00.000Z",
@@ -187,27 +174,11 @@ describe("Appointment Client Group Name Tests", () => {
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedEvent);
 
-    // Mock the re-query that happens after creation
-    const eventWithRelations: Prisma.AppointmentGetPayload<{
-      include: {
-        AppointmentTag: { include: { Tag: true } };
-        ClientGroup: {
-          include: { ClientGroupMembership: { include: { Client: true } } };
-        };
-        Clinician: { select: { id: true; first_name: true; last_name: true } };
-        Location: { select: { id: true; name: true; address: true } };
-      };
-    }> = {
-      ...expectedEvent,
-      AppointmentTag: [],
-      ClientGroup: null,
-      Clinician: {
-        id: mockClinician.id,
-        first_name: mockClinician.first_name,
-        last_name: mockClinician.last_name,
-      },
-      Location: mockLocation,
-    };
+    // Mock the re-query that happens after creation using factory helper
+    const eventWithRelations = createEventWithRelations(expectedEvent, {
+      clinician: mockClinician,
+      location: mockLocation,
+    });
 
     prismaMock.appointment.findUnique.mockResolvedValueOnce(eventWithRelations);
 
@@ -241,7 +212,7 @@ describe("Appointment Client Group Name Tests", () => {
 
     const expectedAppointment = {
       id: "appt-456",
-      type: "APPOINTMENT",
+      type: "APPOINTMENT" as const,
       title: "Appointment with Smith Family Group",
       is_all_day: false,
       start_date: new Date("2024-01-10T10:00:00.000Z"),
@@ -265,37 +236,22 @@ describe("Appointment Client Group Name Tests", () => {
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);
 
-    // Mock the re-query that happens after creation
-    const appointmentWithRelations2: Prisma.AppointmentGetPayload<{
-      include: {
-        AppointmentTag: { include: { Tag: true } };
-        ClientGroup: {
-          include: { ClientGroupMembership: { include: { Client: true } } };
-        };
-        Clinician: { select: { id: true; first_name: true; last_name: true } };
-        Location: { select: { id: true; name: true; address: true } };
-      };
-    }> = {
-      ...expectedAppointment,
-      AppointmentTag: [],
-      ClientGroup: {
-        ...mockClientGroup,
-        ClientGroupMembership: [],
+    // Mock the re-query that happens after creation using factory helper
+    const appointmentWithRelations2 = createAppointmentWithRelations(
+      expectedAppointment,
+      {
+        clientGroup: mockClientGroup,
+        clinician: mockClinician,
+        location: mockLocation,
       },
-      Clinician: {
-        id: mockClinician.id,
-        first_name: mockClinician.first_name,
-        last_name: mockClinician.last_name,
-      },
-      Location: mockLocation,
-    };
+    );
 
     prismaMock.appointment.findUnique.mockResolvedValueOnce(
       appointmentWithRelations2,
     );
 
     const appointmentData = {
-      type: "APPOINTMENT",
+      type: "APPOINTMENT" as const,
       title: "Appointment with Smith Family Group",
       start_date: "2024-01-10T10:00:00.000Z",
       end_date: "2024-01-10T11:00:00.000Z",
@@ -319,7 +275,7 @@ describe("Appointment Client Group Name Tests", () => {
     prismaMock.clientGroup.findUnique.mockResolvedValueOnce(null);
 
     const appointmentData = {
-      type: "APPOINTMENT",
+      type: "APPOINTMENT" as const,
       title: "Appointment with Unknown Client",
       start_date: "2024-01-10T10:00:00.000Z",
       end_date: "2024-01-10T11:00:00.000Z",
