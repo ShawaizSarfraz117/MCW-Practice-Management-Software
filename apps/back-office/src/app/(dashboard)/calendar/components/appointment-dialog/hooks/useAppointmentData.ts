@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { format } from "date-fns";
 import { UseAppointmentDataProps } from "../types";
+import { parseRecurringRule } from "@/(dashboard)/calendar/utils/recurringRuleUtils";
 
 export function useAppointmentData({
   open,
@@ -132,6 +133,12 @@ export function useAppointmentData({
         appointmentData.client_type === "group" ? "group" : "individual"
       ) as "individual" | "group";
 
+      // Parse recurring info if present
+      const recurringInfo =
+        appointmentData.is_recurring && appointmentData.recurring_rule
+          ? parseRecurringRule(appointmentData.recurring_rule) || undefined
+          : undefined;
+
       // Create form values from appointment data
       const formValues = {
         type,
@@ -150,6 +157,7 @@ export function useAppointmentData({
         status: appointmentData.status || "pending",
         location: appointmentData.location_id || "",
         recurring: appointmentData.is_recurring || false,
+        recurringInfo: recurringInfo,
         allDay: appointmentData.is_all_day || false,
         cancelAppointments: true,
         notifyClients: true,

@@ -719,7 +719,11 @@ export function CalendarView({
         values.recurringInfo.period === "WEEKLY" &&
         values.recurringInfo.selectedDays?.length > 0
       ) {
-        parts.push(`BYDAY=${values.recurringInfo.selectedDays.join(",")}`);
+        const dayOrder = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+        const sortedDays = [...values.recurringInfo.selectedDays].sort(
+          (a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b),
+        );
+        parts.push(`BYDAY=${sortedDays.join(",")}`);
       }
 
       // Add monthly pattern if specified
@@ -1386,6 +1390,9 @@ export function CalendarView({
               Tag: { name: string };
             }>;
 
+            // Check if current view is a week view
+            const isWeekView = currentView.includes("Week");
+
             // Handle Availability events separately
             if (type === "availability") {
               const title = arg.event.title || "Available";
@@ -1414,80 +1421,82 @@ export function CalendarView({
                     {title}
                   </div>
 
-                  {/* Tags and icons on the right */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {appointmentTags.map((appointmentTag, index: number) => {
-                      const tag = appointmentTag.Tag;
-                      const tagName = tag.name;
+                  {/* Tags and icons on the right - only show if NOT week view */}
+                  {!isWeekView && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {appointmentTags.map((appointmentTag, index: number) => {
+                        const tag = appointmentTag.Tag;
+                        const tagName = tag.name;
 
-                      // Define tag styling based on tag name
-                      let tagStyle = "";
-                      let tagText = "";
+                        // Define tag styling based on tag name
+                        let tagStyle = "";
+                        let tagText = "";
 
-                      switch (tagName) {
-                        case "Appointment Paid":
-                          tagStyle = "bg-green-500 text-white";
-                          tagText = "✓ Paid";
-                          break;
-                        case "Appointment Unpaid":
-                          tagStyle = "bg-gray-500 text-white";
-                          tagText = "Unpaid";
-                          break;
-                        case "New Client":
-                          tagStyle =
-                            "bg-green-100 text-green-800 border border-green-300";
-                          tagText = "New";
-                          break;
-                        case "No Note":
-                          tagStyle = "bg-gray-200 text-gray-700";
-                          tagText = "No Note";
-                          break;
-                        case "Note Added":
-                          return null;
-                        default:
-                          tagStyle =
-                            "bg-gray-100 text-gray-800 border border-gray-200";
-                          tagText = tagName;
-                      }
+                        switch (tagName) {
+                          case "Appointment Paid":
+                            tagStyle = "bg-green-500 text-white";
+                            tagText = "✓ Paid";
+                            break;
+                          case "Appointment Unpaid":
+                            tagStyle = "bg-gray-500 text-white";
+                            tagText = "Unpaid";
+                            break;
+                          case "New Client":
+                            tagStyle =
+                              "bg-green-100 text-green-800 border border-green-300";
+                            tagText = "New";
+                            break;
+                          case "No Note":
+                            tagStyle = "bg-gray-200 text-gray-700";
+                            tagText = "No Note";
+                            break;
+                          case "Note Added":
+                            return null;
+                          default:
+                            tagStyle =
+                              "bg-gray-100 text-gray-800 border border-gray-200";
+                            tagText = tagName;
+                        }
 
-                      return (
-                        <span
-                          key={index}
-                          className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded-full ${tagStyle}`}
-                          style={{ fontSize: "9px" }}
-                        >
-                          {tagText}
-                        </span>
-                      );
-                    })}
+                        return (
+                          <span
+                            key={index}
+                            className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded-full ${tagStyle}`}
+                            style={{ fontSize: "9px" }}
+                          >
+                            {tagText}
+                          </span>
+                        );
+                      })}
 
-                    {/* Show document icon if there are notes */}
-                    {appointmentTags.some(
-                      (at) => at.Tag.name === "Note Added",
-                    ) && (
-                      <div className="flex items-center">
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="text-gray-600"
-                        >
-                          <path d="M4 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-                          <path d="M5 5h6v1H5V5zm0 2h6v1H5V7zm0 2h4v1H5V9z" />
-                        </svg>
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="text-green-600 ml-1"
-                        >
-                          <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
+                      {/* Show document icon if there are notes */}
+                      {appointmentTags.some(
+                        (at) => at.Tag.name === "Note Added",
+                      ) && (
+                        <div className="flex items-center">
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 16 16"
+                            fill="currentColor"
+                            className="text-gray-600"
+                          >
+                            <path d="M4 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+                            <path d="M5 5h6v1H5V5zm0 2h6v1H5V7zm0 2h4v1H5V9z" />
+                          </svg>
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 16 16"
+                            fill="currentColor"
+                            className="text-green-600 ml-1"
+                          >
+                            <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );
