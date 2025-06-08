@@ -1,10 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { FETCH } from "@mcw/utils";
-import { UploadedFile } from "@mcw/types";
+
+interface UploadedFileFromAPI {
+  id: string;
+  title: string;
+  url: string;
+  type: string;
+  uploadedAt: Date;
+  uploadedBy: string | null;
+  isShared: boolean;
+  sharedAt: Date | null;
+  sharingEnabled: boolean;
+  status?: string;
+}
 
 interface UploadedFilesResponse {
   success: boolean;
-  files: UploadedFile[];
+  files: UploadedFileFromAPI[];
 }
 
 export const useUploadedFiles = (clientGroupId?: string) => {
@@ -15,9 +27,9 @@ export const useUploadedFiles = (clientGroupId?: string) => {
         return { success: true, files: [] };
       }
 
-      const response = await FETCH.get<UploadedFilesResponse>({
+      const response = (await FETCH.get({
         url: `/client/files/upload?client_group_id=${clientGroupId}`,
-      });
+      })) as UploadedFilesResponse;
 
       return response;
     },

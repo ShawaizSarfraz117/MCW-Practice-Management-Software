@@ -3,12 +3,12 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { NextResponse } from "next/server";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { GET, POST, DELETE } from "@/api/appointment/route";
-import { prismaMock } from "@mcw/database/mock";
+import prismaMock from "@mcw/database/mock";
 import {
   ClientGroupFactory,
   createAppointmentWithRelations,
 } from "@mcw/database/mock-data";
-import type { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client/runtime/library";
 
 // Mock the utilities
 vi.mock("@/utils/appointment-helpers", () => {
@@ -16,23 +16,25 @@ vi.mock("@/utils/appointment-helpers", () => {
   const mockCreateAppointmentWhereClause = vi.fn();
   const mockCheckAppointmentLimit = vi.fn();
   const mockAddDefaultAppointmentTags = vi.fn();
-  
+
   return {
     validateAppointmentData: mockValidateAppointmentData,
     createAppointmentWhereClause: mockCreateAppointmentWhereClause,
     checkAppointmentLimit: mockCheckAppointmentLimit,
     parseRecurringRule: vi.fn((rule) => ({
       freq: rule.includes("Weekly") ? "WEEKLY" : rule,
-      byDays: rule.includes("Monday") ? ["Monday", "Wednesday", "Friday"] : []
+      byDays: rule.includes("Monday") ? ["Monday", "Wednesday", "Friday"] : [],
     })),
-    adjustDateForRecurringPattern: vi.fn((start, end) => ({ 
-      adjustedStartDate: start, 
-      adjustedEndDate: end 
+    adjustDateForRecurringPattern: vi.fn((start, end) => ({
+      adjustedStartDate: start,
+      adjustedEndDate: end,
     })),
     getAppointmentIncludes: vi.fn(() => ({
       Clinician: { include: { User: true } },
       Location: true,
-      ClientGroup: { include: { ClientGroupMembership: { include: { Client: true } } } },
+      ClientGroup: {
+        include: { ClientGroupMembership: { include: { Client: true } } },
+      },
       AppointmentTag: { include: { Tag: true } },
     })),
     addDefaultAppointmentTags: mockAddDefaultAppointmentTags,
@@ -42,7 +44,7 @@ vi.mock("@/utils/appointment-helpers", () => {
 vi.mock("@/utils/appointment-recurring", () => {
   const mockCreateWeeklyRecurringWithDays = vi.fn();
   const mockCreateStandardRecurring = vi.fn();
-  
+
   return {
     createWeeklyRecurringWithDays: mockCreateWeeklyRecurringWithDays,
     createStandardRecurring: mockCreateStandardRecurring,
@@ -55,7 +57,7 @@ vi.mock("@/utils/appointment-handlers", () => {
   const mockHandleDeleteSingle = vi.fn();
   const mockHandleDeleteAll = vi.fn();
   const mockHandleDeleteFuture = vi.fn();
-  
+
   return {
     handleUpdateThisOnly: mockHandleUpdateThisOnly,
     handleUpdateFuture: mockHandleUpdateFuture,
@@ -66,15 +68,13 @@ vi.mock("@/utils/appointment-handlers", () => {
 });
 
 // Import mocked functions
-import { 
+import {
   validateAppointmentData,
   createAppointmentWhereClause,
   checkAppointmentLimit,
   addDefaultAppointmentTags,
 } from "@/utils/appointment-helpers";
-import {
-  createStandardRecurring,
-} from "@/utils/appointment-recurring";
+import { createStandardRecurring } from "@/utils/appointment-recurring";
 import {
   handleDeleteSingle,
   handleDeleteAll,
@@ -83,7 +83,9 @@ import {
 
 // Get mock references
 const mockValidateAppointmentData = vi.mocked(validateAppointmentData);
-const mockCreateAppointmentWhereClause = vi.mocked(createAppointmentWhereClause);
+const mockCreateAppointmentWhereClause = vi.mocked(
+  createAppointmentWhereClause,
+);
 const mockCheckAppointmentLimit = vi.mocked(checkAppointmentLimit);
 const mockAddDefaultAppointmentTags = vi.mocked(addDefaultAppointmentTags);
 const mockCreateStandardRecurring = vi.mocked(createStandardRecurring);
@@ -135,8 +137,8 @@ describe("Appointment API", () => {
         }),
       });
 
-      expect(data).toHaveProperty('id', mockAppointment.id);
-      expect(data).toHaveProperty('isFirstAppointmentForGroup', true);
+      expect(data).toHaveProperty("id", mockAppointment.id);
+      expect(data).toHaveProperty("isFirstAppointmentForGroup", true);
     });
 
     it("should return 404 when appointment is not found", async () => {
@@ -156,7 +158,6 @@ describe("Appointment API", () => {
         createAppointmentWithRelations({ id: "2", client_group_id: null }),
       ];
       prismaMock.appointment.findMany.mockResolvedValue(mockAppointments);
-      // @ts-expect-error - Mock groupBy for testing
       prismaMock.appointment.groupBy = vi.fn().mockResolvedValue([]);
 
       const request = createRequest("/api/appointment");
@@ -178,8 +179,7 @@ describe("Appointment API", () => {
     it("should filter appointments by clinician", async () => {
       const clinicianId = "clinician-123";
       prismaMock.appointment.findMany.mockResolvedValue([]);
-      // @ts-expect-error - Mock groupBy for testing
-      prismaMock.appointment.groupBy.mockResolvedValue([]);
+      prismaMock.appointment.groupBy = vi.fn().mockResolvedValue([]);
       mockCreateAppointmentWhereClause.mockReturnValue({
         clinician_id: clinicianId,
       });
@@ -204,7 +204,6 @@ describe("Appointment API", () => {
       const startDate = "2024-01-01";
       const endDate = "2024-01-31";
       prismaMock.appointment.findMany.mockResolvedValue([]);
-      // @ts-expect-error - Mock groupBy for testing
       prismaMock.appointment.groupBy = vi.fn().mockResolvedValue([]);
       mockCreateAppointmentWhereClause.mockReturnValue({
         start_date: {
@@ -235,10 +234,12 @@ describe("Appointment API", () => {
     it("should correctly identify first appointments for client groups", async () => {
       const clientGroupId = "group-123";
       const mockAppointments = [
-        createAppointmentWithRelations({ id: "1", client_group_id: clientGroupId }),
+        createAppointmentWithRelations({
+          id: "1",
+          client_group_id: clientGroupId,
+        }),
       ];
       prismaMock.appointment.findMany.mockResolvedValue(mockAppointments);
-      // @ts-expect-error - Mock groupBy for testing
       prismaMock.appointment.groupBy = vi.fn().mockResolvedValue([
         {
           client_group_id: clientGroupId,
@@ -286,7 +287,7 @@ describe("Appointment API", () => {
         status: "SCHEDULED",
         type: "APPOINTMENT",
       });
-      
+
       prismaMock.clientGroup.findUnique.mockResolvedValue(clientGroup);
       prismaMock.appointment.create.mockResolvedValue(createdAppointment);
       const appointmentWithTags = {
@@ -295,7 +296,10 @@ describe("Appointment API", () => {
       };
       prismaMock.appointment.findUnique.mockResolvedValue(appointmentWithTags);
 
-      const request = createRequestWithBody("/api/appointment", newAppointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        newAppointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -306,7 +310,7 @@ describe("Appointment API", () => {
       );
 
       expect(response.status).toBe(201);
-      expect(data).toHaveProperty('id', createdAppointment.id);
+      expect(data).toHaveProperty("id", createdAppointment.id);
     });
 
     it("should return 400 for missing required fields", async () => {
@@ -320,7 +324,7 @@ describe("Appointment API", () => {
         "clinician",
         "location",
         "created by or clinician",
-        "client"
+        "client",
       ]);
 
       const request = createRequestWithBody("/api/appointment", invalidData);
@@ -347,7 +351,10 @@ describe("Appointment API", () => {
 
       prismaMock.clientGroup.findUnique.mockResolvedValue(null);
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -382,7 +389,10 @@ describe("Appointment API", () => {
       prismaMock.clientGroup.findUnique.mockResolvedValue(clientGroup);
       mockCheckAppointmentLimit.mockResolvedValue(true);
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -419,13 +429,24 @@ describe("Appointment API", () => {
       const masterAppointment = createAppointmentWithRelations({
         id: "master-1",
         ...appointmentData,
+        type: "APPOINTMENT",
         start_date: new Date(appointmentData.start_date),
         end_date: new Date(appointmentData.end_date),
       });
-      
+
       const createdAppointments = [
-        createAppointmentWithRelations({ id: "1", ...appointmentData, start_date: new Date(appointmentData.start_date), end_date: new Date(appointmentData.end_date) }),
-        createAppointmentWithRelations({ id: "2", ...appointmentData, start_date: new Date(appointmentData.start_date), end_date: new Date(appointmentData.end_date) }),
+        createAppointmentWithRelations({
+          id: "1",
+          ...appointmentData,
+          start_date: new Date(appointmentData.start_date),
+          end_date: new Date(appointmentData.end_date),
+        }),
+        createAppointmentWithRelations({
+          id: "2",
+          ...appointmentData,
+          start_date: new Date(appointmentData.start_date),
+          end_date: new Date(appointmentData.end_date),
+        }),
       ];
 
       prismaMock.clientGroup.findUnique.mockResolvedValue(clientGroup);
@@ -433,7 +454,10 @@ describe("Appointment API", () => {
       mockCreateStandardRecurring.mockResolvedValue(createdAppointments);
       prismaMock.appointment.findMany.mockResolvedValue(createdAppointments);
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -456,7 +480,10 @@ describe("Appointment API", () => {
         appointment_type: "Standard",
       };
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -465,7 +492,10 @@ describe("Appointment API", () => {
     });
 
     it("should return 400 for invalid request data", async () => {
-      const request = createRequestWithBody("/api/appointment", null as unknown as Record<string, unknown>);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        null as unknown as Record<string, unknown>,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -473,7 +503,7 @@ describe("Appointment API", () => {
       expect(data.error).toBe("Invalid request data");
     });
   });
-  
+
   describe("DELETE /api/appointment", () => {
     it("should delete a single appointment", async () => {
       const existingAppointment = createAppointmentWithRelations({
@@ -483,10 +513,12 @@ describe("Appointment API", () => {
 
       prismaMock.appointment.findUnique.mockResolvedValue(existingAppointment);
       prismaMock.invoice.findMany.mockResolvedValue([]);
-      mockHandleDeleteSingle.mockResolvedValue(NextResponse.json({ message: "Appointment deleted successfully" }));
+      mockHandleDeleteSingle.mockResolvedValue(
+        NextResponse.json({ message: "Appointment deleted successfully" }),
+      );
 
       const request = createRequest(
-        "/api/appointment?id=appointment-123&deleteOption=single"
+        "/api/appointment?id=appointment-123&deleteOption=single",
       );
       const response = await DELETE(request);
       const data = await response.json();
@@ -506,26 +538,28 @@ describe("Appointment API", () => {
         is_recurring: true,
         recurring_appointment_id: null,
       });
-      
+
       prismaMock.appointment.findUnique.mockResolvedValue(existingAppointment);
       prismaMock.invoice.findMany.mockResolvedValue([]);
-      mockHandleDeleteAll.mockResolvedValue(NextResponse.json({ 
-        message: "All recurring appointments deleted successfully",
-        deletedCount: 5 
-      }));
+      mockHandleDeleteAll.mockResolvedValue(
+        NextResponse.json({
+          message: "All recurring appointments deleted successfully",
+          deletedCount: 5,
+        }),
+      );
 
       const request = createRequest(
-        "/api/appointment?id=appointment-123&deleteOption=all"
+        "/api/appointment?id=appointment-123&deleteOption=all",
       );
       const response = await DELETE(request);
       const data = await response.json();
 
-      expect(mockHandleDeleteAll).toHaveBeenCalledWith(
-        "appointment-123",
-      );
+      expect(mockHandleDeleteAll).toHaveBeenCalledWith("appointment-123");
 
       expect(response.status).toBe(200);
-      expect(data.message).toBe("All recurring appointments deleted successfully");
+      expect(data.message).toBe(
+        "All recurring appointments deleted successfully",
+      );
       expect(data.deletedCount).toBe(5);
     });
 
@@ -536,16 +570,18 @@ describe("Appointment API", () => {
         recurring_appointment_id: "master-123",
         start_date: new Date("2024-01-15T10:00:00Z"),
       });
-      
+
       prismaMock.appointment.findUnique.mockResolvedValue(existingAppointment);
       prismaMock.invoice.findMany.mockResolvedValue([]);
-      mockHandleDeleteFuture.mockResolvedValue(NextResponse.json({ 
-        message: "Future appointments deleted successfully",
-        deletedCount: 3 
-      }));
+      mockHandleDeleteFuture.mockResolvedValue(
+        NextResponse.json({
+          message: "Future appointments deleted successfully",
+          deletedCount: 3,
+        }),
+      );
 
       const request = createRequest(
-        "/api/appointment?id=appointment-123&deleteOption=future"
+        "/api/appointment?id=appointment-123&deleteOption=future",
       );
       const response = await DELETE(request);
       const data = await response.json();
@@ -574,9 +610,9 @@ describe("Appointment API", () => {
 
     it("should return 404 for non-existent appointment", async () => {
       prismaMock.appointment.findUnique.mockResolvedValue(null);
-      
+
       const request = createRequest(
-        "/api/appointment?id=appointment-123&deleteOption=invalid"
+        "/api/appointment?id=appointment-123&deleteOption=invalid",
       );
       const response = await DELETE(request);
       const data = await response.json();

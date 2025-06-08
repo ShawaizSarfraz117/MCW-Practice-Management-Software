@@ -136,7 +136,7 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
         frequency: false,
         isTemplate: false,
         isShared: file.isShared,
-        sharedOn: file.sharedAt,
+        sharedOn: file.sharedAt || undefined,
         status: file.status || "Not sent",
       }));
 

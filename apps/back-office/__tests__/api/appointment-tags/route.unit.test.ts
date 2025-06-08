@@ -79,8 +79,11 @@ describe("Appointment Tags API - Unit Tests", () => {
       const response = await GET(request);
       const data = await response.json();
 
-      expect(data).toEqual({ error: "Failed to fetch tags" });
+      // withErrorHandling returns detailed error in development
       expect(response.status).toBe(500);
+      expect(data.error).toBeDefined();
+      expect(data.error.message).toBe("Database error");
+      expect(data.error.issueId).toBeDefined();
     });
   });
 
