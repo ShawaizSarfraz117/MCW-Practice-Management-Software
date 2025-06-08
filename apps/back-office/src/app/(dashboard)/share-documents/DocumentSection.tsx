@@ -59,7 +59,7 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
       {/* Show column headers for client context */}
       {showStatusColumns && (
         <div className="grid grid-cols-12 gap-4 text-xs text-gray-500 font-medium pb-2 border-b">
-          <div className="col-span-6"></div>
+          <div className="col-span-6" />
           <div className="col-span-2">Frequency</div>
           <div className="col-span-2">Last shared</div>
           <div className="col-span-2">Status</div>
@@ -86,8 +86,8 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
                     onCheckedChange={() => onToggle?.(item.id)}
                   />
                   <Label
-                    htmlFor={item.id}
                     className="cursor-pointer"
+                    htmlFor={item.id}
                     onClick={() => onToggle?.(item.id)}
                   >
                     {item.label}
@@ -152,8 +152,8 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
                     onCheckedChange={() => onToggle?.(item.id)}
                   />
                   <Label
-                    htmlFor={item.id}
                     className="cursor-pointer"
+                    htmlFor={item.id}
                     onClick={() => onToggle?.(item.id)}
                   >
                     {item.label}

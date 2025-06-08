@@ -4,10 +4,7 @@ import { withErrorHandling } from "@mcw/utils";
 
 // PUT - Update an existing appointment
 export const PUT = withErrorHandling(
-  async (
-    request: NextRequest,
-    { params }: { params: { id: string } },
-  ) => {
+  async (request: NextRequest, { params }: { params: { id: string } }) => {
     const data = await request.json();
     const id = params.id;
     const appointment = await prisma.appointment.findUnique({
@@ -56,5 +53,5 @@ export const PUT = withErrorHandling(
     });
 
     return NextResponse.json(updatedAppointment);
-  }
+  },
 );

@@ -284,12 +284,12 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
       <SendingDialog isOpen={isSending} />
 
       <SuccessDialog
+        clientName={clientName}
         isOpen={isSuccess}
         onClose={() => {
           setIsSuccess(false);
           onComplete();
         }}
-        clientName={clientName}
       />
     </div>
   );

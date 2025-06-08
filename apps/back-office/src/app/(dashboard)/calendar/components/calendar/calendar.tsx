@@ -1275,11 +1275,6 @@ export function CalendarView({
           ref={calendarRef}
           allDaySlot={true}
           allDayText="All day"
-          eventTimeFormat={{
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }}
           dayHeaderContent={
             isScheduledPage
               ? (args: DayHeaderContentArg) => {
@@ -1475,21 +1470,21 @@ export function CalendarView({
                       ) && (
                         <div className="flex items-center">
                           <svg
-                            width="12"
+                            className="text-gray-600"
+                            fill="currentColor"
                             height="12"
                             viewBox="0 0 16 16"
-                            fill="currentColor"
-                            className="text-gray-600"
+                            width="12"
                           >
                             <path d="M4 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
                             <path d="M5 5h6v1H5V5zm0 2h6v1H5V7zm0 2h4v1H5V9z" />
                           </svg>
                           <svg
-                            width="12"
+                            className="text-green-600 ml-1"
+                            fill="currentColor"
                             height="12"
                             viewBox="0 0 16 16"
-                            fill="currentColor"
-                            className="text-green-600 ml-1"
+                            width="12"
                           >
                             <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z" />
                           </svg>
@@ -1569,6 +1564,11 @@ export function CalendarView({
           eventDisplay="block"
           eventOverlap={true}
           events={filteredEvents}
+          eventTimeFormat={{
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          }}
           headerToolbar={false}
           height="100%"
           initialView={currentView}
@@ -1677,10 +1677,10 @@ export function CalendarView({
 
       {showIntakeForm && intakeClientData && (
         <IntakeForm
-          clientName={intakeClientData.clientName}
           clientEmail={intakeClientData.clientEmail}
-          clientId={intakeClientData.clientId}
           clientGroupId={intakeClientData.clientGroupId}
+          clientId={intakeClientData.clientId}
+          clientName={intakeClientData.clientName}
           onClose={() => {
             setShowIntakeForm(false);
             setIntakeClientData(null);

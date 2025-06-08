@@ -32,14 +32,14 @@ export default function ShareDocumentsModal({
   if (showShareDocuments) {
     return (
       <ShareDocuments
-        clientName={clientName}
         clientEmail={clientEmail}
-        clientId={clientId}
         clientGroupId={clientGroupId}
-        onClose={handleClose}
+        clientId={clientId}
+        clientName={clientName}
         context="client-share"
         showReminders={false}
         title={`Share documents with ${clientName}`}
+        onClose={handleClose}
         onSuccess={(selectedDocumentIds) => {
           console.log("Documents shared:", selectedDocumentIds);
           handleClose();
@@ -57,8 +57,8 @@ export default function ShareDocumentsModal({
             Share Documents with {clientName}
           </h3>
           <button
-            onClick={() => setShowShareDocuments(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
+            onClick={() => setShowShareDocuments(true)}
           >
             Select Documents to Share
           </button>

@@ -130,8 +130,9 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
-            value={form.getFieldValue<string>("startTime")}
+            disablePastTimes={true}
             format="12h"
+            value={form.getFieldValue<string>("startTime")}
             onChange={(time) => {
               handleTimeChange("startTime", time);
               // Reset end time if it's before the new start time
@@ -140,21 +141,20 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
                 form.setFieldValue("endTime", "");
               }
             }}
-            disablePastTimes={true}
           />
           <span className="text-sm text-gray-500">to</span>
           <TimePicker
             data-timepicker
             className="border-gray-200"
-            value={form.getFieldValue<string>("endTime")}
+            disabledOptions={(time) => !isTimeAfterStart(time)}
+            disablePastTimes={true}
             format="24h"
+            value={form.getFieldValue<string>("endTime")}
             onChange={(time) => {
               if (isTimeAfterStart(time)) {
                 handleTimeChange("endTime", time);
               }
             }}
-            disabledOptions={(time) => !isTimeAfterStart(time)}
-            disablePastTimes={true}
           />
         </div>
         <span className="text-sm text-muted-foreground whitespace-nowrap">

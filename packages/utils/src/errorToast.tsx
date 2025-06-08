@@ -88,13 +88,18 @@ export function showErrorToast(toast: ToastFunction, error: unknown) {
       errorMessage = apiError.error;
       errorDetails = apiError.error;
     } else if (apiError.error && typeof apiError.error === "object") {
-      errorMessage = apiError.error.message || "An error occurred";
-      issueId = apiError.error.issueId;
+      const errorObj = apiError.error as {
+        message?: string;
+        issueId?: string;
+        stack?: string;
+      };
+      errorMessage = errorObj.message || "An error occurred";
+      issueId = errorObj.issueId;
       errorDetails = apiError.error;
 
       // Log stack trace in development
-      if (process.env.NODE_ENV !== "production" && apiError.error.stack) {
-        console.error("Stack trace:", apiError.error.stack);
+      if (process.env.NODE_ENV !== "production" && errorObj.stack) {
+        console.error("Stack trace:", errorObj.stack);
       }
     }
   } else if (error instanceof Error) {
