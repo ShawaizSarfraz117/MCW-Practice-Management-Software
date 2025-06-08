@@ -28,7 +28,7 @@ export const useUploadedFiles = (clientGroupId?: string) => {
       }
 
       const response = (await FETCH.get({
-        url: `/client/files/upload?client_group_id=${clientGroupId}`,
+        url: `/client/files/upload?client_group_id=${encodeURIComponent(clientGroupId)}`,
       })) as UploadedFilesResponse;
 
       return response;

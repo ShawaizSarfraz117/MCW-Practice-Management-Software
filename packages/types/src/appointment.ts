@@ -1,8 +1,8 @@
 // Appointment-related types and enums
 
 export enum AppointmentType {
-  APPOINTMENT = "APPOINTMENT",
-  EVENT = "EVENT",
+  APPOINTMENT = "appointment",
+  EVENT = "event",
 }
 
 export enum AppointmentStatus {
