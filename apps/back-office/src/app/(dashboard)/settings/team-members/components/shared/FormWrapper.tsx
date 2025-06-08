@@ -26,12 +26,12 @@ export const FormWrapper: React.FC<FormWrapperProps> = ({
   onSubmit,
 }) => (
   <form
+    className="space-y-6"
     onSubmit={(e) => {
       e.preventDefault();
       e.stopPropagation();
       onSubmit(e);
     }}
-    className="space-y-6"
   >
     {children}
     <div className="flex justify-end">

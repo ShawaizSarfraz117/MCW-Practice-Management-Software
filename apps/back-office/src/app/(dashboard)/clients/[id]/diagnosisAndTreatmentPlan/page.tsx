@@ -30,11 +30,11 @@ export default function DiagnosisAndTreatmentPlan() {
       {/* Breadcrumb and Documentation History */}
       <div className="w-[90%] flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
         <div className="text-sm text-gray-500 flex flex-wrap items-center gap-1">
-          <Link href="/clients" className="hover:underline">
+          <Link className="hover:underline" href="/clients">
             Clients and contacts
           </Link>
           <span>/</span>
-          <Link href="#" className="hover:underline">
+          <Link className="hover:underline" href="#">
             Jamie D. Appleseed's profile
           </Link>
           <span>/</span>
@@ -43,8 +43,8 @@ export default function DiagnosisAndTreatmentPlan() {
           </span>
         </div>
         <button
-          type="button"
           className="text-[#2d8467] hover:underline font-medium"
+          type="button"
           onClick={() => setSidebarOpen(true)}
         >
           Documentation history
@@ -58,34 +58,34 @@ export default function DiagnosisAndTreatmentPlan() {
         <span className="text-gray-300">|</span>
         07/12/2024 (0)
         <span className="text-gray-300">|</span>
-        <Link href="#" className="text-[#2d8467] hover:underline">
+        <Link className="text-[#2d8467] hover:underline" href="#">
           Schedule appointment
         </Link>
         <span className="text-gray-300">|</span>
-        <Link href="#" className="text-[#2d8467] hover:underline">
+        <Link className="text-[#2d8467] hover:underline" href="#">
           Edit
         </Link>
       </div>
 
       {!showTreatmentPlan ? (
         <DiagnosisRows
-          diagnoses={diagnoses}
-          updateDiagnosis={updateDiagnosis}
           addDiagnosis={addDiagnosis}
-          removeDiagnosis={removeDiagnosis}
           date={date}
-          setDate={setDate}
-          time={time}
-          setTime={setTime}
+          diagnoses={diagnoses}
+          removeDiagnosis={removeDiagnosis}
           renderSkipLink={
             <button
-              type="button"
               className="text-[#2d8467] hover:underline"
+              type="button"
               onClick={() => setShowTreatmentPlan(true)}
             >
               Skip to treatment plan
             </button>
           }
+          setDate={setDate}
+          setTime={setTime}
+          time={time}
+          updateDiagnosis={updateDiagnosis}
         />
       ) : (
         <TreatmentPlanTemplate />

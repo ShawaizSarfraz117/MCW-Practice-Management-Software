@@ -28,8 +28,8 @@ export default function PersonalInfoEdit({
 
   return (
     <form
-      id="personal-info-edit-form"
       className="space-y-4"
+      id="personal-info-edit-form"
       onSubmit={handleSubmit}
     >
       <div>

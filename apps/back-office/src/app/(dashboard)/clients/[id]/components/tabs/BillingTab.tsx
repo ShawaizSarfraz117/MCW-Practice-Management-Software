@@ -257,7 +257,6 @@ export default function BillingTab({
           </div>
           <DateRangePicker
             isOpen={dateRangePickerOpen}
-            onClose={() => setDateRangePickerOpen(false)}
             onApply={(_startDate, _endDate, displayOption) => {
               setSelectedDateRangeDisplay(displayOption);
               if (displayOption === "Custom Range") {
@@ -266,6 +265,7 @@ export default function BillingTab({
               setDateRangePickerOpen(false);
             }}
             onCancel={() => setDateRangePickerOpen(false)}
+            onClose={() => setDateRangePickerOpen(false)}
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">

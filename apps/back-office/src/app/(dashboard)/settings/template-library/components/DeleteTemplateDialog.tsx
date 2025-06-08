@@ -37,11 +37,11 @@ export function DeleteTemplateDialog({
   return (
     <>
       <Button
-        variant="ghost"
-        size="icon"
         className="h-8 w-8 hover:bg-gray-100"
-        onClick={() => setOpen(true)}
         data-testid="trash-icon"
+        size="icon"
+        variant="ghost"
+        onClick={() => setOpen(true)}
       >
         <Trash2 className="h-4 w-4 text-gray-500" />
       </Button>
@@ -56,18 +56,18 @@ export function DeleteTemplateDialog({
             </p>
             <div className="flex items-center justify-end gap-3 pt-4">
               <Button
-                variant="outline"
-                onClick={() => setOpen(false)}
                 className="px-4"
                 disabled={deleteMutation.isPending}
+                variant="outline"
+                onClick={() => setOpen(false)}
               >
                 Cancel
               </Button>
               <Button
-                variant="destructive"
-                onClick={handleDelete}
                 className="bg-red-500 hover:bg-red-600 px-4"
                 disabled={deleteMutation.isPending}
+                variant="destructive"
+                onClick={handleDelete}
               >
                 {deleteMutation.isPending ? "Deleting..." : "Delete"}
               </Button>

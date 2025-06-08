@@ -28,7 +28,7 @@ export default function ClientPortalCard() {
             </div>
             <div className="text-sm text-[#6B7280] mb-2">
               This is the default domain of your Website and Client Portal.{" "}
-              <a href="#" className="text-[#2563EB] hover:underline">
+              <a className="text-[#2563EB] hover:underline" href="#">
                 Learn more
               </a>
             </div>
@@ -45,18 +45,18 @@ export default function ClientPortalCard() {
                 https://
               </span>
               <Input
-                value={subdomain}
-                onChange={(e) => setSubdomain(e.target.value)}
+                autoFocus
                 className="w-full h-10 text-base font-medium border-t border-b border-[#E5E7EB] rounded-none focus-visible:ring-0 bg-white min-w-0"
                 style={{ borderLeft: "none", borderRight: "none" }}
-                autoFocus
+                value={subdomain}
+                onChange={(e) => setSubdomain(e.target.value)}
               />
               <span className="text-[#BDBDBD] text-base font-medium bg-[#F5F5F5] border border-[#E5E7EB] rounded-r-md px-3 h-10 flex items-center select-none">
                 .clientsecure.me
               </span>
               <Button
-                size="sm"
                 className="bg-[#188153] hover:bg-[#146945] text-white font-medium rounded-md px-5 ml-2"
+                size="sm"
                 onClick={() => setEditing(false)}
               >
                 Save
@@ -68,40 +68,40 @@ export default function ClientPortalCard() {
           ) : (
             <>
               <Input
-                value={`https://${subdomain}.clientsecure.me`}
-                className="w-full h-10 text-base font-medium bg-white border border-[#E5E7EB] focus-visible:ring-0 focus-visible:border-[#2D8467] rounded-md"
                 readOnly
+                className="w-full h-10 text-base font-medium bg-white border border-[#E5E7EB] focus-visible:ring-0 focus-visible:border-[#2D8467] rounded-md"
+                value={`https://${subdomain}.clientsecure.me`}
               />
               <Button
-                size="sm"
                 className="bg-[#188153] hover:bg-[#146945] text-white font-medium rounded-md px-5"
+                size="sm"
                 onClick={() => setEditing(true)}
               >
                 Edit
               </Button>
               <span className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-[#E5E7EB] bg-[#F9FAFB] ml-1">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
                   className="h-5 w-5 text-[#9CA3AF]"
                   fill="none"
-                  viewBox="0 0 24 24"
                   stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <rect
+                    height="13"
+                    rx="2"
+                    strokeWidth="2"
+                    width="13"
                     x="9"
                     y="9"
-                    width="13"
-                    height="13"
-                    rx="2"
-                    strokeWidth="2"
                   />
                   <rect
-                    x="3"
-                    y="3"
-                    width="13"
                     height="13"
                     rx="2"
                     strokeWidth="2"
+                    width="13"
+                    x="3"
+                    y="3"
                   />
                 </svg>
               </span>
@@ -119,9 +119,9 @@ export default function ClientPortalCard() {
                 viewBox="0 0 24 24"
               >
                 <path
+                  d="M5 13l4 4L19 7"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M5 13l4 4L19 7"
                 />
               </svg>
               This URL is available
@@ -139,24 +139,24 @@ export default function ClientPortalCard() {
               Your Client Portal is a place where people can find you online and
               for you to communicate securely with clients. Play around with the
               Client Portal and customize it to make it your own.
-              <a href="#" className="text-[#2563EB] ml-1 hover:underline">
+              <a className="text-[#2563EB] ml-1 hover:underline" href="#">
                 Learn more
               </a>
             </div>
           </div>
           <button className="absolute top-3 right-3 text-[#6B7280] hover:text-[#111827]">
             <svg
-              xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5"
               fill="none"
-              viewBox="0 0 24 24"
               stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
             >
               <path
+                d="M6 18L18 6M6 6l12 12"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
               />
             </svg>
           </button>

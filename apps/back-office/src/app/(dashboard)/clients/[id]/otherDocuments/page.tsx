@@ -20,11 +20,11 @@ export default function OtherDocuments() {
       {/* Breadcrumb and Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 w-full">
         <div className="text-sm text-gray-500 flex flex-wrap items-center gap-1">
-          <Link href="/clients" className="hover:underline">
+          <Link className="hover:underline" href="/clients">
             Clients and contacts
           </Link>
           <span>/</span>
-          <Link href="#" className="hover:underline">
+          <Link className="hover:underline" href="#">
             Jamie D. Appleseed's profile
           </Link>
           <span>/</span>
@@ -32,14 +32,14 @@ export default function OtherDocuments() {
         </div>
         <div className="flex gap-4 mt-2 sm:mt-0 items-center">
           <Button
-            variant="secondary"
             className="bg-gray-100 text-gray-800 font-semibold px-4 py-2 rounded shadow-none border border-gray-200 hover:bg-gray-200"
+            variant="secondary"
           >
             Send Referrals
           </Button>
           <button
-            type="button"
             className="text-[#2d8467] hover:underline font-medium whitespace-nowrap"
+            type="button"
             onClick={() => setSidebarOpen(true)}
           >
             Documentation history
@@ -58,11 +58,11 @@ export default function OtherDocuments() {
         <span className="text-gray-300">|</span>
         07/12/2024 (0)
         <span className="text-gray-300">|</span>
-        <Link href="#" className="text-[#2d8467] hover:underline">
+        <Link className="text-[#2d8467] hover:underline" href="#">
           Schedule appointment
         </Link>
         <span className="text-gray-300">|</span>
-        <Link href="#" className="text-[#2d8467] hover:underline">
+        <Link className="text-[#2d8467] hover:underline" href="#">
           Edit
         </Link>
       </div>

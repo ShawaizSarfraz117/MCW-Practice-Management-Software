@@ -73,8 +73,8 @@ export default function MentalStatusExam() {
           <span>Mental Status Exam</span>
         </div>
         <Button
-          variant="outline"
           className="mt-2 sm:mt-0 flex items-center gap-2"
+          variant="outline"
         >
           <MessageCircle className="h-4 w-4" />
           Message
@@ -88,11 +88,11 @@ export default function MentalStatusExam() {
         <span className="text-gray-300">|</span>
         07/12/2024 (0)
         <span className="text-gray-300">|</span>
-        <Link href="#" className="text-[#2d8467] hover:underline">
+        <Link className="text-[#2d8467] hover:underline" href="#">
           Schedule appointment
         </Link>
         <span className="text-gray-300">|</span>
-        <Link href="#" className="text-[#2d8467] hover:underline">
+        <Link className="text-[#2d8467] hover:underline" href="#">
           Edit
         </Link>
       </div>
@@ -101,8 +101,8 @@ export default function MentalStatusExam() {
       <div className="flex items-center justify-between mt-8 mb-2 max-w-2xl">
         <h2 className="text-xl font-semibold">Current Mental Status</h2>
         <button
-          type="button"
           className="text-green-700 font-medium hover:underline text-sm"
+          type="button"
           onClick={() => setFields((f) => ({ ...f, ...normalValues }))}
         >
           All Normal
@@ -133,9 +133,9 @@ export default function MentalStatusExam() {
               {label}
             </label>
             <Input
+              className="w-full h-10"
               value={fields[key as keyof typeof fields]}
               onChange={(e) => handleChange(key, e.target.value)}
-              className="w-full h-10"
             />
           </div>
         ))}
@@ -145,11 +145,11 @@ export default function MentalStatusExam() {
             Recommendations
           </label>
           <ReactQuill
+            className="bg-white w-[40%] h-28"
+            placeholder="Begin typing here..."
             theme="snow"
             value={fields.recommendations}
             onChange={(val) => handleChange("recommendations", val)}
-            className="bg-white w-[40%] h-28"
-            placeholder="Begin typing here..."
           />
         </div>
 
@@ -179,7 +179,7 @@ export default function MentalStatusExam() {
 
         {/* Buttons */}
         <div className="flex gap-2 my-6">
-          <Button variant="outline" type="button">
+          <Button type="button" variant="outline">
             Cancel
           </Button>
           <Button

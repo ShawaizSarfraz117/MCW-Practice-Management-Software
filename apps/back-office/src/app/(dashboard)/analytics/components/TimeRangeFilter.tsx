@@ -47,12 +47,12 @@ export function TimeRangeFilter({
         {timeRanges.map((label) => (
           <Button
             key={label}
-            variant={selectedRange === label ? "ghost" : "ghost"}
             className={
               selectedRange === label
                 ? "bg-emerald-100/50 text-emerald-700"
                 : "text-gray-500"
             }
+            variant={selectedRange === label ? "ghost" : "ghost"}
             onClick={() => handleButtonClick(label)}
           >
             {label}
@@ -61,11 +61,11 @@ export function TimeRangeFilter({
         {selectedRange === "Custom" && showPicker && (
           <div className="absolute left-0 top-full z-50 mt-2">
             <DateRangePicker
-              isOpen={showPicker}
-              onClose={() => setShowPicker(false)}
-              onApply={handleApply}
-              initialStartDate={customRange?.startDate}
               initialEndDate={customRange?.endDate}
+              initialStartDate={customRange?.startDate}
+              isOpen={showPicker}
+              onApply={handleApply}
+              onClose={() => setShowPicker(false)}
             />
           </div>
         )}

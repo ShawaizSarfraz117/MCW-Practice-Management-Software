@@ -30,8 +30,8 @@ export default function EditRoleModal({
           </div>
           <div className="text-[16px] text-[#181C1F] mb-6">
             <a
-              href="#"
               className="text-[15px] text-[#2563eb] hover:underline font-medium"
+              href="#"
             >
               Need help? Learn about SimplePractice roles
             </a>
@@ -117,7 +117,7 @@ export default function EditRoleModal({
         <div className="md:block w-[450px] h-[250px] bg-[#FAFAFB] rounded-xl p-6 ml-4 self-start">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-              <Image src={ProfileSvg} alt="Monarch" width={14} height={16} />
+              <Image alt="Monarch" height={16} src={ProfileSvg} width={14} />
             </div>
             <div>
               <div className="font-semibold text-[17px] text-[#181C1F] leading-tight">
@@ -141,7 +141,7 @@ export default function EditRoleModal({
                 <span className="text-[16px] text-[#181C1F]">{role}</span>
                 <button className="flex items-center gap-1 text-[#6B7280] text-[14px] font-normal hover:underline">
                   Show permissions
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                  <svg fill="none" height="18" viewBox="0 0 20 20" width="18">
                     <path
                       d="M7 8l3 3 3-3"
                       stroke="#6B7280"

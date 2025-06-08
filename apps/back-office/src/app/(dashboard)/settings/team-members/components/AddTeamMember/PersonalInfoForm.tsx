@@ -63,10 +63,10 @@ const PersonalInfoForm = forwardRef<PersonalInfoFormRef, PersonalInfoFormProps>(
                     }
                     id={field.name}
                     name={field.name}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="Enter first name"
                     value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
                   />
                 </FormControl>
                 {field.state.meta.errors.length > 0 && (
@@ -95,10 +95,10 @@ const PersonalInfoForm = forwardRef<PersonalInfoFormRef, PersonalInfoFormProps>(
                     }
                     id={field.name}
                     name={field.name}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="Enter last name"
                     value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
                   />
                 </FormControl>
                 {field.state.meta.errors.length > 0 && (
@@ -132,11 +132,11 @@ const PersonalInfoForm = forwardRef<PersonalInfoFormRef, PersonalInfoFormProps>(
                   }
                   id={field.name}
                   name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="Enter email address"
                   type="email"
                   value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
                 />
               </FormControl>
               {field.state.meta.errors.length > 0 && (

@@ -48,8 +48,8 @@ const ProductRow = ({
           <Input
             className="w-full rounded-[6px] border h-[42px] mt-[12px]"
             value={field.state.value}
-            onChange={(e) => field.handleChange(e.target.value)}
             onBlur={() => form.handleSubmit()}
+            onChange={(e) => field.handleChange(e.target.value)}
           />
         )}
       </form.Field>
@@ -59,11 +59,11 @@ const ProductRow = ({
             <Input
               className="rounded-[6px] border w-[162px] h-[42px] mt-[12px] border-gray-300"
               value={`$${field.state.value}`}
+              onBlur={() => form.handleSubmit()}
               onChange={(e) => {
                 const cleanedValue = e.target.value.replace(/[^0-9.]/g, "");
                 field.handleChange(cleanedValue);
               }}
-              onBlur={() => form.handleSubmit()}
             />
           )}
         </form.Field>
