@@ -298,3 +298,71 @@ export function createAppointmentWhereClause(params: {
 
   return whereClause;
 }
+
+export async function updatePaymentStatusTag(
+  appointmentId: string,
+  isPaid: boolean,
+) {
+  try {
+    const tags = await prisma.tag.findMany();
+    const paidTag = tags.find((t) => t.name === "Appointment Paid");
+    const unpaidTag = tags.find((t) => t.name === "Appointment Unpaid");
+
+    if (!paidTag || !unpaidTag) {
+      logger.error("Payment status tags not found");
+      return;
+    }
+
+    // Remove existing payment status tags
+    await prisma.appointmentTag.deleteMany({
+      where: {
+        appointment_id: appointmentId,
+        tag_id: { in: [paidTag.id, unpaidTag.id] },
+      },
+    });
+
+    // Add the appropriate tag
+    await prisma.appointmentTag.create({
+      data: {
+        appointment_id: appointmentId,
+        tag_id: isPaid ? paidTag.id : unpaidTag.id,
+      },
+    });
+  } catch (error) {
+    logger.error(`Error updating payment status tag: ${error}`);
+  }
+}
+
+export async function updateNoteStatusTag(
+  appointmentId: string,
+  hasNote: boolean,
+) {
+  try {
+    const tags = await prisma.tag.findMany();
+    const noteAddedTag = tags.find((t) => t.name === "Note Added");
+    const noNoteTag = tags.find((t) => t.name === "No Note");
+
+    if (!noteAddedTag || !noNoteTag) {
+      logger.error("Note status tags not found");
+      return;
+    }
+
+    // Remove existing note status tags
+    await prisma.appointmentTag.deleteMany({
+      where: {
+        appointment_id: appointmentId,
+        tag_id: { in: [noteAddedTag.id, noNoteTag.id] },
+      },
+    });
+
+    // Add the appropriate tag
+    await prisma.appointmentTag.create({
+      data: {
+        appointment_id: appointmentId,
+        tag_id: hasNote ? noteAddedTag.id : noNoteTag.id,
+      },
+    });
+  } catch (error) {
+    logger.error(`Error updating note status tag: ${error}`);
+  }
+}

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
-import { logger } from "@mcw/logger";
+import { withErrorHandling } from "@mcw/utils";
+import { updatePaymentStatusTag, updateNoteStatusTag } from "@/utils/appointment-helpers";
 
 // GET - Retrieve all tags or appointment tags
-export async function GET(request: NextRequest) {
-  try {
+export const GET = withErrorHandling(async (request: NextRequest) => {
     const searchParams = request.nextUrl.searchParams;
     const appointmentId = searchParams.get("appointmentId");
 
@@ -26,18 +26,10 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(tags);
     }
-  } catch (error) {
-    logger.error(`Error fetching tags: ${error}`);
-    return NextResponse.json(
-      { error: "Failed to fetch tags" },
-      { status: 500 },
-    );
-  }
-}
+});
 
 // POST - Add a tag to an appointment
-export async function POST(request: NextRequest) {
-  try {
+export const POST = withErrorHandling(async (request: NextRequest) => {
     const data = await request.json();
     const { appointmentId, tagId } = data;
 
@@ -75,15 +67,10 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(appointmentTag, { status: 201 });
-  } catch (error) {
-    logger.error(`Error adding tag to appointment: ${error}`);
-    return NextResponse.json({ error: "Failed to add tag" }, { status: 500 });
-  }
-}
+});
 
 // PUT - Update appointment tags (replace existing tags)
-export async function PUT(request: NextRequest) {
-  try {
+export const PUT = withErrorHandling(async (request: NextRequest) => {
     const data = await request.json();
     const { appointmentId, tagIds } = data;
 
@@ -116,18 +103,10 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(updatedTags);
-  } catch (error) {
-    logger.error(`Error updating appointment tags: ${error}`);
-    return NextResponse.json(
-      { error: "Failed to update tags" },
-      { status: 500 },
-    );
-  }
-}
+});
 
 // DELETE - Remove a tag from an appointment
-export async function DELETE(request: NextRequest) {
-  try {
+export const DELETE = withErrorHandling(async (request: NextRequest) => {
     const searchParams = request.nextUrl.searchParams;
     const appointmentId = searchParams.get("appointmentId");
     const tagId = searchParams.get("tagId");
@@ -161,80 +140,7 @@ export async function DELETE(request: NextRequest) {
     });
 
     return NextResponse.json({ message: "Tag removed successfully" });
-  } catch (error) {
-    logger.error(`Error removing tag from appointment: ${error}`);
-    return NextResponse.json(
-      { error: "Failed to remove tag" },
-      { status: 500 },
-    );
-  }
-}
+});
 
-export async function updatePaymentStatusTag(
-  appointmentId: string,
-  isPaid: boolean,
-) {
-  try {
-    const tags = await prisma.tag.findMany();
-    const paidTag = tags.find((t) => t.name === "Appointment Paid");
-    const unpaidTag = tags.find((t) => t.name === "Appointment Unpaid");
-
-    if (!paidTag || !unpaidTag) {
-      logger.error("Payment status tags not found");
-      return;
-    }
-
-    // Remove existing payment status tags
-    await prisma.appointmentTag.deleteMany({
-      where: {
-        appointment_id: appointmentId,
-        tag_id: { in: [paidTag.id, unpaidTag.id] },
-      },
-    });
-
-    // Add the appropriate tag
-    await prisma.appointmentTag.create({
-      data: {
-        appointment_id: appointmentId,
-        tag_id: isPaid ? paidTag.id : unpaidTag.id,
-      },
-    });
-  } catch (error) {
-    logger.error(`Error updating payment status tag: ${error}`);
-  }
-}
-
-// Helper function to update note status tag
-export async function updateNoteStatusTag(
-  appointmentId: string,
-  hasNote: boolean,
-) {
-  try {
-    const tags = await prisma.tag.findMany();
-    const noteAddedTag = tags.find((t) => t.name === "Note Added");
-    const noNoteTag = tags.find((t) => t.name === "No Note");
-
-    if (!noteAddedTag || !noNoteTag) {
-      logger.error("Note status tags not found");
-      return;
-    }
-
-    // Remove existing note status tags
-    await prisma.appointmentTag.deleteMany({
-      where: {
-        appointment_id: appointmentId,
-        tag_id: { in: [noteAddedTag.id, noNoteTag.id] },
-      },
-    });
-
-    // Add the appropriate tag
-    await prisma.appointmentTag.create({
-      data: {
-        appointment_id: appointmentId,
-        tag_id: hasNote ? noteAddedTag.id : noNoteTag.id,
-      },
-    });
-  } catch (error) {
-    logger.error(`Error updating note status tag: ${error}`);
-  }
-}
+// Export the helper functions from appointment-helpers for backward compatibility
+export { updatePaymentStatusTag, updateNoteStatusTag };

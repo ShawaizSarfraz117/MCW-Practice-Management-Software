@@ -55,13 +55,15 @@ export async function cleanupDatabase(
       await Promise.all([
         tx.appointmentTag.deleteMany(),
         tx.audit.deleteMany(),
+        tx.clientFiles.deleteMany(),
         tx.clientGroupFile.deleteMany(),
         tx.rolePermission.deleteMany(),
         tx.userRole.deleteMany(),
         tx.clientProfile.deleteMany(),
-        tx.clientAdress.deleteMany(), // Note: spelled with one 'd' in schema
+        tx.clientAdress.deleteMany(),
         tx.clientReminderPreference.deleteMany(),
         tx.clientGroupMembership.deleteMany(),
+        tx.clientContact.deleteMany(),
       ]);
 
       // Level 2: Tables dependent on Level 3+ tables
@@ -79,6 +81,8 @@ export async function cleanupDatabase(
       await Promise.all([
         tx.appointment.deleteMany(),
         tx.availability.deleteMany(),
+        tx.clinicianServices.deleteMany(),
+        tx.clinicianLocation.deleteMany(),
       ]);
 
       // Level 4: Tables dependent on Level 5+ tables
