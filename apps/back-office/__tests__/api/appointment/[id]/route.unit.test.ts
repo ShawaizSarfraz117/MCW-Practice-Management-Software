@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { NextRequest, NextResponse } from "next/server";
 import prismaMock from "@mcw/database/mock";
 import { createRequestWithBody } from "@mcw/utils";
 import { PUT } from "@/api/appointment/[id]/route";
-import { createAppointmentWithRelations, InvoiceFactory } from "@mcw/database/mock-data";
+import { createAppointmentWithRelations } from "@mcw/database/mock-data";
 import { Decimal } from "@prisma/client/runtime/library";
 
 describe("Appointment [id] API", () => {
@@ -39,7 +38,10 @@ describe("Appointment [id] API", () => {
         serviceId: "service-123",
       };
 
-      const request = createRequestWithBody(`/api/appointment/${appointmentId}`, updateData);
+      const request = createRequestWithBody(
+        `/api/appointment/${appointmentId}`,
+        updateData,
+      );
       const response = await PUT(request, { params: { id: appointmentId } });
       const data = await response.json();
 
@@ -78,7 +80,10 @@ describe("Appointment [id] API", () => {
         serviceId: "new-service",
       };
 
-      const request = createRequestWithBody(`/api/appointment/${appointmentId}`, updateData);
+      const request = createRequestWithBody(
+        `/api/appointment/${appointmentId}`,
+        updateData,
+      );
       const response = await PUT(request, { params: { id: appointmentId } });
       const data = await response.json();
 
@@ -116,7 +121,10 @@ describe("Appointment [id] API", () => {
         serviceId: "service-123",
       };
 
-      const request = createRequestWithBody(`/api/appointment/${appointmentId}`, updateData);
+      const request = createRequestWithBody(
+        `/api/appointment/${appointmentId}`,
+        updateData,
+      );
       const response = await PUT(request, { params: { id: appointmentId } });
 
       expect(prismaMock.appointment.update).toHaveBeenCalledWith({
@@ -141,7 +149,10 @@ describe("Appointment [id] API", () => {
         serviceId: "service-123",
       };
 
-      const request = createRequestWithBody(`/api/appointment/${appointmentId}`, updateData);
+      const request = createRequestWithBody(
+        `/api/appointment/${appointmentId}`,
+        updateData,
+      );
       const response = await PUT(request, { params: { id: appointmentId } });
       const data = await response.json();
 
@@ -151,7 +162,6 @@ describe("Appointment [id] API", () => {
 
     it("should handle appointments with invoices", async () => {
       const appointmentId = "appointment-123";
-      const invoice = InvoiceFactory.build({ appointment_id: appointmentId });
       const existingAppointment = createAppointmentWithRelations({
         id: appointmentId,
         appointment_fee: new Decimal(100),
@@ -172,7 +182,10 @@ describe("Appointment [id] API", () => {
         serviceId: "service-123",
       };
 
-      const request = createRequestWithBody(`/api/appointment/${appointmentId}`, updateData);
+      const request = createRequestWithBody(
+        `/api/appointment/${appointmentId}`,
+        updateData,
+      );
       const response = await PUT(request, { params: { id: appointmentId } });
 
       expect(response.status).toBe(200);
@@ -205,7 +218,10 @@ describe("Appointment [id] API", () => {
         serviceId: "service-123",
       };
 
-      const request = createRequestWithBody(`/api/appointment/${appointmentId}`, updateData);
+      const request = createRequestWithBody(
+        `/api/appointment/${appointmentId}`,
+        updateData,
+      );
       const response = await PUT(request, { params: { id: appointmentId } });
 
       expect(prismaMock.appointment.update).toHaveBeenCalledWith({
@@ -213,7 +229,7 @@ describe("Appointment [id] API", () => {
         data: {
           appointment_fee: 149.99,
           write_off: 19.99,
-          adjustable_amount: expect.closeTo(40, 5)
+          adjustable_amount: expect.closeTo(40, 5),
         },
       });
 
@@ -243,7 +259,10 @@ describe("Appointment [id] API", () => {
         serviceId: "service-123",
       };
 
-      const request = createRequestWithBody(`/api/appointment/${appointmentId}`, updateData);
+      const request = createRequestWithBody(
+        `/api/appointment/${appointmentId}`,
+        updateData,
+      );
       const response = await PUT(request, { params: { id: appointmentId } });
 
       expect(prismaMock.appointment.update).toHaveBeenCalledWith({
@@ -251,7 +270,7 @@ describe("Appointment [id] API", () => {
         data: {
           appointment_fee: 150,
           write_off: 10,
-          adjustable_amount: expect.closeTo(40, 5)
+          adjustable_amount: expect.closeTo(40, 5),
         },
       });
 
