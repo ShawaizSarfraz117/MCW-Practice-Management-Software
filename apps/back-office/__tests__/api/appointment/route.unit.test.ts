@@ -285,7 +285,7 @@ describe("Appointment API", () => {
         start_date: new Date(newAppointmentData.start_date),
         end_date: new Date(newAppointmentData.end_date),
         status: "SCHEDULED",
-        type: "APPOINTMENT",
+        type: "appointment",
       });
 
       prismaMock.clientGroup.findUnique.mockResolvedValue(clientGroup);
@@ -429,7 +429,7 @@ describe("Appointment API", () => {
       const masterAppointment = createAppointmentWithRelations({
         id: "master-1",
         ...appointmentData,
-        type: "APPOINTMENT",
+        type: "appointment",
         start_date: new Date(appointmentData.start_date),
         end_date: new Date(appointmentData.end_date),
       });

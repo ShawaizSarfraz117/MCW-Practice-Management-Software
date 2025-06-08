@@ -190,7 +190,7 @@ describe("New Client Tag - Integration Tests", () => {
 
       // Create first appointment for this client group
       const appointmentData = {
-        type: "APPOINTMENT",
+        type: "appointment",
         title: "First Appointment",
         is_all_day: false,
         start_date: new Date().toISOString(),
@@ -274,7 +274,7 @@ describe("New Client Tag - Integration Tests", () => {
       // Create first appointment (without using API to avoid tag logic)
       const firstAppointment = await prisma.appointment.create({
         data: {
-          type: "APPOINTMENT",
+          type: "appointment",
           title: "First Appointment",
           is_all_day: false,
           start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
@@ -292,7 +292,7 @@ describe("New Client Tag - Integration Tests", () => {
 
       // Now create second appointment via API
       const appointmentData = {
-        type: "APPOINTMENT",
+        type: "appointment",
         title: "Second Appointment",
         is_all_day: false,
         start_date: new Date().toISOString(),
@@ -409,7 +409,7 @@ describe("New Client Tag - Integration Tests", () => {
 
       // Create appointment
       const appointmentData = {
-        type: "APPOINTMENT",
+        type: "appointment",
         title: "Initial Session",
         is_all_day: false,
         start_date: new Date().toISOString(),
@@ -482,7 +482,7 @@ describe("New Client Tag - Integration Tests", () => {
 
       // Create recurring appointment
       const appointmentData = {
-        type: "APPOINTMENT",
+        type: "appointment",
         title: "Weekly Therapy",
         is_all_day: false,
         start_date: new Date().toISOString(),
