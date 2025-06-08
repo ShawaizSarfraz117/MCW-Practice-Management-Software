@@ -1,5 +1,6 @@
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
+import { AppointmentType } from "@mcw/types";
 import {
   BaseAppointmentData,
   RecurringRuleInfo,
@@ -75,10 +76,13 @@ export async function createWeeklyRecurringWithDays(
         recurringAppointments.push(recurringAppointment);
         createdCount++;
 
-        await addDefaultAppointmentTags(
-          recurringAppointment.id,
-          recurringAppointment.client_group_id,
-        );
+        // Only add default tags for appointment type, not for events
+        if (baseAppointmentData.type === AppointmentType.APPOINTMENT) {
+          await addDefaultAppointmentTags(
+            recurringAppointment.id,
+            recurringAppointment.client_group_id,
+          );
+        }
       } catch (error) {
         logger.error(
           `Failed to create recurring appointment for date ${appointmentDate.toISOString()}: ${error}`,
@@ -221,7 +225,10 @@ export async function updateFutureRecurringAppointments(
           ...cleanUpdateData,
           start_date: newStartDate,
           end_date: newEndDate,
-          recurring_rule: updateData.recurring_rule,
+          recurring_rule: updateData.recurring_rule as
+            | string
+            | null
+            | undefined,
         },
       });
     }
@@ -250,7 +257,10 @@ export async function updateFutureRecurringAppointments(
           ...cleanUpdateData,
           start_date: newStartDate,
           end_date: newEndDate,
-          recurring_rule: updateData.recurring_rule,
+          recurring_rule: updateData.recurring_rule as
+            | string
+            | null
+            | undefined,
         },
       });
 
@@ -292,7 +302,10 @@ export async function updateFutureRecurringAppointments(
           ...cleanUpdateData,
           start_date: newStartDate,
           end_date: newEndDate,
-          recurring_rule: updateData.recurring_rule,
+          recurring_rule: updateData.recurring_rule as
+            | string
+            | null
+            | undefined,
         },
       });
 
@@ -351,7 +364,7 @@ export async function updateRecurringByTimeChange(
         ...safeUpdateData,
         start_date: futureStart,
         end_date: futureEnd,
-        recurring_rule: updateData.recurring_rule, // Ensure recurring rule is updated
+        recurring_rule: updateData.recurring_rule as string | null | undefined, // Ensure recurring rule is updated
       },
     });
   }

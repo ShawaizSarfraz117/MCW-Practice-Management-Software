@@ -195,6 +195,7 @@ export function EventTab(): React.ReactNode {
             onValueChange={(value) => {
               form.setFieldValue("clinician", value);
               clearValidationError("clinician");
+              forceUpdate();
             }}
           />
 

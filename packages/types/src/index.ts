@@ -33,3 +33,6 @@ export * from "./fileSharing";
 
 // Re-export client types
 export * from "./client";
+
+// Re-export appointment types
+export * from "./appointment";

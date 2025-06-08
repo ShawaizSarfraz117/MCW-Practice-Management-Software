@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { withErrorHandling } from "@mcw/utils";
+import { AppointmentType } from "@mcw/types";
 import {
   validateAppointmentData,
   createAppointmentWhereClause,
@@ -240,10 +241,13 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       include: getAppointmentIncludes(),
     });
 
-    await addDefaultAppointmentTags(
-      masterAppointment.id,
-      masterAppointment.client_group_id,
-    );
+    // Only add default tags for appointment type, not for events
+    if (masterAppointment.type === AppointmentType.APPOINTMENT) {
+      await addDefaultAppointmentTags(
+        masterAppointment.id,
+        masterAppointment.client_group_id,
+      );
+    }
 
     let allAppointments;
 
@@ -295,10 +299,13 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     include: getAppointmentIncludes(),
   });
 
-  await addDefaultAppointmentTags(
-    newAppointment.id,
-    newAppointment.client_group_id,
-  );
+  // Only add default tags for appointment type, not for events
+  if (newAppointment.type === AppointmentType.APPOINTMENT) {
+    await addDefaultAppointmentTags(
+      newAppointment.id,
+      newAppointment.client_group_id,
+    );
+  }
 
   const appointmentWithTags = await prisma.appointment.findUnique({
     where: { id: newAppointment.id },
