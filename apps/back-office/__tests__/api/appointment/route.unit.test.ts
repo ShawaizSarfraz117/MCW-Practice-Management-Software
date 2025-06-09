@@ -29,6 +29,7 @@ const mockClientGroup = {
   available_credit: new Decimal(0),
   auto_monthly_statement_enabled: false,
   auto_monthly_superbill_enabled: false,
+  administrative_notes: null,
 };
 
 // Helper to build a minimal appointment with all required fields

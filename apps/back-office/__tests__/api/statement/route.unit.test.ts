@@ -201,6 +201,7 @@ const mockClientGroup = (overrides = {}) => {
   return {
     id: "group-1",
     name: "Test Group",
+    administrative_notes: null,
     ClientGroupMembership: [
       {
         Client: {
