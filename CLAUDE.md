@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL INSTRUCTIONS - MUST NEVER BE IGNORED
+
+**DISCUSSION AND COLLABORATION REQUIREMENTS**:
+
+- When the user says "let's discuss", "let's talk", or "let's brainstorm" - STOP and have a conversation
+- NEVER implement or create documents when discussion is requested
+- ALWAYS present options and wait for user input
+- When user says "after we agree" - explicit agreement is required before proceeding
+- Ask clarifying questions instead of making assumptions
+- Present ideas for feedback, don't just execute
+
 ## Project Overview
 
 MCW Practice Management Software is a HIPAA-compliant healthcare practice management system built as a Turborepo-based monorepo with two main applications:
@@ -262,6 +273,108 @@ Integration tests use a separate SQL Server instance via Docker:
 - **Implementation**: Always include error details in responses for non-production environments
 - **Rationale**: Maximum error visibility saves significant development time by providing immediate feedback
 
+### Error Handling Implementation
+
+The project uses a centralized error handling system that provides maximum visibility in development while protecting sensitive information in production.
+
+#### API Error Handling
+
+All API routes should use the `withErrorHandling` wrapper:
+
+```typescript
+import { withErrorHandling } from "@mcw/utils";
+
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  // Your route logic here
+});
+
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  // Your route logic here
+});
+```
+
+This wrapper automatically:
+
+- **Catches uncaught exceptions** (500 errors)
+- **Generates unique error IDs** in format: `ERR-YYYYMMDD-HHMMSS-XXXX`
+- **Logs full error details** server-side with stack traces
+- **Returns environment-appropriate responses**:
+  - Development: Full error details with stack trace
+  - Production: Sanitized message with issue ID only
+
+#### Frontend Error Display
+
+Use the centralized `showErrorToast` function in all mutations:
+
+```typescript
+import { showErrorToast } from "@mcw/utils";
+import { toast } from "@mcw/ui";
+
+const mutation = useMutation({
+  mutationFn: myApiCall,
+  onError: (error: unknown) => {
+    showErrorToast(toast, error);
+  },
+});
+```
+
+This automatically:
+
+- **Displays user-friendly error messages** in toasts
+- **Shows issue IDs** for tracking (in case of 500 errors)
+- **Logs full error details** to browser console in development
+- **Makes toast text selectable** for easy copying
+
+#### Error Response Formats
+
+**Business Logic Errors (400, 401, 403, 404):**
+
+```json
+{
+  "error": "Clear business error message"
+}
+// or
+{
+  "error": {
+    "message": "Clear business error message",
+    "details": "Additional context if needed"
+  }
+}
+```
+
+**Server Errors (500) - Development:**
+
+```json
+{
+  "error": {
+    "message": "Error message",
+    "stack": "Full stack trace...",
+    "issueId": "ERR-20250106-143052-X7K9",
+    "timestamp": "2025-01-06T14:30:52.000Z"
+  }
+}
+```
+
+**Server Errors (500) - Production:**
+
+```json
+{
+  "error": {
+    "message": "An error occurred while processing your request",
+    "issueId": "ERR-20250106-143052-X7K9"
+  }
+}
+```
+
+#### Key Benefits
+
+1. **Consistent error handling** across all API routes
+2. **Maximum visibility** for developers in non-production
+3. **Secure error messages** in production
+4. **Trackable errors** via unique issue IDs
+5. **Selectable/copyable** error text in toasts
+6. **Automatic logging** with proper context
+
 ### Security Principles
 
 - HIPAA compliance is mandatory
@@ -290,6 +403,52 @@ Integration tests use a separate SQL Server instance via Docker:
 - Always use `catch (error: unknown)` pattern
 - Mock boundaries at repository level for unit tests
 - Integration tests use real database interactions
+
+**Type Safety Rules**:
+
+We follow a strict three-layer type hierarchy. Types flow DOWN, never UP:
+
+1. **Prisma types** (`@mcw/database`) → API routes only
+2. **Shared types** (`@mcw/types`) → All shared business types
+3. **App types** (`apps/*/src/types/`) → UI-specific only
+
+See [Type System Architecture](./Docs/TYPE_SYSTEM_ARCHITECTURE.md) for detailed rules and examples.
+
+**Validation**: Co-locate validation schemas with type definitions (see Architecture doc)
+
+**Key Rules**:
+
+- **ALWAYS use shared types from `@mcw/types` package** for all shared interfaces
+- **Use Prisma types from `@mcw/database`** only when creating new shared types in `@mcw/types`
+- **NEVER create duplicate type definitions** in individual components or pages
+- **Follow naming conventions**: snake_case for API/DB, camelCase for UI
+- Import order:
+  1. First check `@mcw/types` for existing shared types
+  2. If not found, create in `@mcw/types` using Prisma types from `@mcw/database`
+  3. Never create local interfaces for data that comes from the database
+- Example:
+
+  ```typescript
+  // Good - use shared types
+  import { SafeUserWithRelations, TeamMembersResponse } from "@mcw/types";
+
+  // Good - creating new shared types in packages/types
+  import { User, Clinician } from "@mcw/database";
+  export type SafeUser = Omit<User, "password_hash">;
+
+  // Bad - creating local types in components
+  interface TeamMember {
+    id: string;
+    email: string;
+    // ... duplicating what's already in shared types
+  }
+  ```
+
+**Type Conversion**:
+
+- Use utilities from `@mcw/utils` for case conversion between snake_case and camelCase
+- Keep database/API layer in snake_case
+- Keep UI/form layer in camelCase
 
 **Test Location and Naming Rules**:
 

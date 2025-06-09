@@ -3,21 +3,27 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Video, Check, X } from "lucide-react";
-import { SearchSelect, Button } from "@mcw/ui";
+import { SearchSelect, Button, toast } from "@mcw/ui";
 import { cn } from "@mcw/utils";
+import { useRouter } from "next/navigation";
+import { createInvoice } from "@/(dashboard)/clients/services/client.service";
 
-import { AppointmentTabProps } from "./types";
+import { AppointmentTabProps, AppointmentData } from "./types";
 import { ValidationError } from "./components/ValidationError";
 import { useFormContext } from "./context/FormContext";
 import { DateTimeControls } from "./components/FormControls";
 import { EditConfirmationModal } from "./EditConfirmationModal";
 import { DeleteConfirmationModal } from "./components/DeleteConfirmationModal";
+import { AppointmentLockedModal } from "./components/AppointmentLockedModal";
 import { RecurringSettings } from "./components/RecurringSettings";
 import { RecurringHeader } from "./components/RecurringHeader";
 import { useAppointmentUpdate } from "./hooks/useAppointmentUpdate";
 import { useAppointmentDelete } from "@/(dashboard)/calendar/hooks/useAppointmentDelete";
 import { parseRecurringRule } from "@/(dashboard)/calendar/utils/recurringRuleUtils";
 import { appointmentStatusOptions } from "@/(dashboard)/calendar/mock/appointmentData";
+import { BillingSection } from "./components/BillingSection";
+import { ServicesSection } from "./components/ServicesSection";
+import { NotesSection } from "./components/NotesSection";
 
 import CallIcon from "@/assets/images/call-icon.svg";
 import MessageIcon from "@/assets/images/message-icon.svg";
@@ -53,10 +59,66 @@ export function EditAppointmentTab({
 
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [isRecurringExpanded, setIsRecurringExpanded] = useState(false);
+  const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+  const [clientBalance, setClientBalance] = useState<number>(0);
+  const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (appointmentData?.status) {
       form.setFieldValue("status", appointmentData.status);
+    }
+  }, [appointmentData]);
+
+  // Fetch client balance
+  useEffect(() => {
+    const fetchClientBalance = async () => {
+      const clientGroupId =
+        (appointmentData as AppointmentData & { client_group_id?: string })
+          ?.client_group_id || appointmentData?.ClientGroup?.id;
+      if (!clientGroupId) return;
+
+      try {
+        // Fetch invoices for the client group
+        const response = await fetch(
+          `/api/invoice?clientGroupId=${clientGroupId}`,
+        );
+        if (response.ok) {
+          const invoices = await response.json();
+
+          // Calculate balance similar to ClientBillingCard
+          const totalInvoiceAmount = invoices.reduce(
+            (sum: number, invoice: { amount: number | string }) =>
+              sum + Number(invoice.amount),
+            0,
+          );
+
+          const totalPaymentsAmount = invoices.reduce(
+            (
+              sum: number,
+              invoice: { Payment?: Array<{ amount: number | string }> },
+            ) => {
+              const invoicePayments =
+                invoice.Payment?.reduce(
+                  (paymentSum: number, payment: { amount: number | string }) =>
+                    paymentSum + Number(payment.amount),
+                  0,
+                ) || 0;
+              return sum + invoicePayments;
+            },
+            0,
+          );
+
+          const remainingBalance = totalInvoiceAmount - totalPaymentsAmount;
+          setClientBalance(remainingBalance);
+        }
+      } catch (error) {
+        console.error("Error fetching client balance:", error);
+      }
+    };
+
+    if (appointmentData) {
+      fetchClientBalance();
     }
   }, [appointmentData]);
 
@@ -97,6 +159,7 @@ export function EditAppointmentTab({
     onDone,
     setGeneralError,
     appointmentId: appointmentData?.id,
+    onLockedByInvoice: () => setIsLockedModalOpen(true),
   });
 
   const selectedServices = form.getFieldValue<
@@ -107,6 +170,98 @@ export function EditAppointmentTab({
     form.setFieldValue("recurring", true);
     form.setFieldValue("recurringInfo", data);
     forceUpdate();
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!appointmentData?.id) return;
+
+    // Extract client_group_id from the appointmentData
+    const clientGroupId =
+      (appointmentData as AppointmentData & { client_group_id?: string })
+        .client_group_id || appointmentData.ClientGroup?.id;
+
+    if (!clientGroupId) {
+      toast({
+        description:
+          "Cannot create invoice: No client group associated with this appointment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingInvoice(true);
+    try {
+      const [invoice, error] = await createInvoice({
+        body: {
+          appointment_id: appointmentData.id,
+          client_group_id: clientGroupId,
+          clinician_id: appointmentData.clinician_id || null,
+          amount: appointmentData.appointment_fee || 0,
+          invoice_type:
+            appointmentData.Invoice &&
+            Array.isArray(appointmentData.Invoice) &&
+            appointmentData.Invoice.length > 0
+              ? "adjustment"
+              : "invoice",
+        },
+      });
+
+      if (!error && invoice) {
+        toast({
+          description: "Invoice created successfully",
+          variant: "success",
+        });
+
+        // Dispatch a custom event to refresh appointments
+        window.dispatchEvent(
+          new CustomEvent("appointmentUpdated", {
+            detail: { appointment: { ...appointmentData, Invoice: [invoice] } },
+          }),
+        );
+
+        // Navigate to the client billing tab with the invoice
+        setTimeout(() => {
+          router.push(
+            `/clients/${clientGroupId}?tab=billing&type=invoice&invoiceId=${invoice.id}`,
+          );
+        }, 500);
+      } else {
+        toast({
+          description: "Failed to create invoice",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      toast({
+        description: "Failed to create invoice",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingInvoice(false);
+    }
+  };
+
+  const handleAddPayment = () => {
+    if (!appointmentData?.id) return;
+
+    const clientGroupId =
+      (appointmentData as AppointmentData & { client_group_id?: string })
+        .client_group_id || appointmentData.ClientGroup?.id;
+
+    if (!clientGroupId) {
+      toast({
+        description:
+          "Cannot add payment: No client group associated with this appointment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Navigate to the client page with payment modal
+    router.push(
+      `/clients/${clientGroupId}?tab=billing&type=payment&appointmentId=${appointmentData.id}`,
+    );
   };
 
   return (
@@ -271,77 +426,29 @@ export function EditAppointmentTab({
           </div>
         )}
 
-        <div className="pb-4 border-b">
-          <div className="flex justify-between items-center">
-            <p className="text-[13px] space-x-2">
-              <span className="text-[#717171] font-[500]">Notes</span>
-              <span className="text-[#0a96d4]">04/5/2025</span> |
-              <span className="text-[#0a96d4]">02/27/2027</span>
-            </p>
-            <p className="text-[#0a96d4] text-[13px] cursor-pointer">
-              Add Note
-            </p>
-          </div>
-        </div>
+        <NotesSection
+          appointmentData={appointmentData}
+          onAddNote={() => {
+            // TODO: Implement add note functionality
+            console.log("Add note clicked");
+          }}
+        />
 
-        <div className="pb-4 border-b">
-          <p className="text-[#717171] font-medium text-[14px]">Services</p>
-          <div className="flex gap-3">
-            <div className="w-full">
-              <SearchSelect
-                className="border w-full rounded-[5px]"
-                options={servicesData.map((service) => ({
-                  label: service.type,
-                  value: service.id,
-                }))}
-                placeholder="Select service"
-                searchable={false}
-                showPagination={false}
-                value={
-                  selectedServices[0]?.serviceId ||
-                  appointmentData?.PracticeService?.id ||
-                  ""
-                }
-                onValueChange={handleServiceSelect}
-              />
-            </div>
-            <div className="flex justify-between border-gray-300 border w-[120px] items-center gap-2 rounded-[5px] py-1.5 px-2 text-[13px]">
-              <span>Fee</span>
-              <span>
-                $
-                {appointmentData?.PracticeService?.rate ||
-                  appointmentData?.appointment_fee ||
-                  selectedServices[0]?.fee ||
-                  0}
-              </span>
-            </div>
-          </div>
-          <p className="text-[#0a96d4] font-medium text-[14px] p-2 cursor-pointer">
-            Add service
-          </p>
-        </div>
+        <ServicesSection
+          appointmentData={appointmentData}
+          selectedServices={selectedServices}
+          servicesData={servicesData}
+          onServiceSelect={handleServiceSelect}
+        />
 
-        <div className="pb-4 border-b">
-          <div className="flex justify-between items-center">
-            <p className="font-medium text-[15px] text-[#717171]">Billing</p>
-            <p className="text-[14px] text-[#717171]">Self-pay</p>
-          </div>
-          <div className="flex justify-between items-center">
-            <p className="text-[15px] text-[#717171]">Appointment Total</p>
-            <p className="text-[14px] text-[#717171]">
-              ${appointmentData?.appointment_fee}
-            </p>
-          </div>
-        </div>
-
-        <div className="pb-4">
-          <p className="text-[14px] text-[#0a96d4] cursor-pointer">
-            Create Invoice
-          </p>
-          <p className="text-[14px] text-[#717171] underline pt-3 ">
-            Client Balance: $180
-          </p>
-        </div>
+        <BillingSection
+          appointmentData={appointmentData}
+          appointmentFee={appointmentData?.appointment_fee}
+          clientBalance={clientBalance}
+          isCreatingInvoice={isCreatingInvoice}
+          onAddPayment={handleAddPayment}
+          onCreateInvoice={handleCreateInvoice}
+        />
 
         <div className="flex justify-between items-center pb-5">
           <div
@@ -374,6 +481,11 @@ export function EditAppointmentTab({
         onConfirm={handleDeleteConfirm}
         onOpenChange={setIsDeleteModalOpen}
         onOptionChange={setSelectedDeleteOption}
+      />
+
+      <AppointmentLockedModal
+        open={isLockedModalOpen}
+        onOpenChange={setIsLockedModalOpen}
       />
     </>
   );

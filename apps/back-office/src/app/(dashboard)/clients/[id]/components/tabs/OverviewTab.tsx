@@ -50,10 +50,7 @@ function ChartNoteEditor() {
     <div className="mb-6 p-4 border border-[#e5e7eb] rounded-lg">
       <div className="mb-6">
         <ReactQuill
-          theme="snow"
-          value={editorContent}
-          onChange={setEditorContent}
-          placeholder="Add Chart Note: include notes from a call with a client or copy & paste the contents of a document"
+          formats={["bold", "italic", "underline", "list", "bullet", "link"]}
           modules={{
             toolbar: [
               ["bold", "italic", "underline"],
@@ -62,11 +59,14 @@ function ChartNoteEditor() {
               ["clean"],
             ],
           }}
-          formats={["bold", "italic", "underline", "list", "bullet", "link"]}
+          placeholder="Add Chart Note: include notes from a call with a client or copy & paste the contents of a document"
           style={{
             height: "120px",
             marginBottom: "50px",
           }}
+          theme="snow"
+          value={editorContent}
+          onChange={setEditorContent}
         />
       </div>
 
@@ -116,7 +116,6 @@ function DateRangeFilterControls({
       </div>
       <DateRangePicker
         isOpen={dateRangePickerOpen}
-        onClose={() => setDateRangePickerOpen(false)}
         onApply={(_startDate, _endDate, displayOption) => {
           setSelectedDateRangeDisplay(displayOption);
           if (displayOption === "Custom Range") {
@@ -125,6 +124,7 @@ function DateRangeFilterControls({
           setDateRangePickerOpen(false);
         }}
         onCancel={() => setDateRangePickerOpen(false)}
+        onClose={() => setDateRangePickerOpen(false)}
       />
       <Select defaultValue={filterType} onValueChange={setFilterType}>
         <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">
@@ -142,7 +142,7 @@ function DateRangeFilterControls({
 }
 
 // Navigation Dropdown Component
-function NavigationDropdown({ clientName }: { clientName: string }) {
+function NavigationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const params = useParams();
@@ -160,46 +160,30 @@ function NavigationDropdown({ clientName }: { clientName: string }) {
       <DropdownMenuContent>
         <DropdownMenuItem
           onSelect={() =>
-            router.push(
-              `/clients/${params.id}/diagnosisAndTreatmentPlan?clientName=${encodeURIComponent(clientName)}`,
-            )
+            router.push(`/clients/${params.id}/diagnosisAndTreatmentPlan`)
           }
         >
           Diagnosis and treatment plan
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() =>
-            router.push(
-              `/clients/${params.id}/goodFaithEstimate?clientName=${encodeURIComponent(clientName)}`,
-            )
+            router.push(`/clients/${params.id}/goodFaithEstimate`)
           }
         >
           Good faith estimate
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
-            router.push(
-              `/clients/${params.id}/mentalStatusExam?clientName=${encodeURIComponent(clientName)}`,
-            )
-          }
+          onSelect={() => router.push(`/clients/${params.id}/mentalStatusExam`)}
         >
           Mental Status Exam
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
-            router.push(
-              `/clients/${params.id}/scoredMeasure?clientName=${encodeURIComponent(clientName)}`,
-            )
-          }
+          onSelect={() => router.push(`/clients/${params.id}/scoredMeasure`)}
         >
           Scored Measure
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
-            router.push(
-              `/clients/${params.id}/otherDocuments?clientName=${encodeURIComponent(clientName)}`,
-            )
-          }
+          onSelect={() => router.push(`/clients/${params.id}/otherDocuments`)}
         >
           Other document
         </DropdownMenuItem>
@@ -208,7 +192,7 @@ function NavigationDropdown({ clientName }: { clientName: string }) {
   );
 }
 
-export default function OverviewTab({ clientName }: { clientName: string }) {
+export default function OverviewTab() {
   const [selectedDate] = useState<Date | undefined>(
     new Date(2025, 0, 8), // Jan 8, 2025
   );
@@ -240,7 +224,7 @@ export default function OverviewTab({ clientName }: { clientName: string }) {
           filterType={filterType}
           setFilterType={setFilterType}
         />
-        <NavigationDropdown clientName={clientName} />
+        <NavigationDropdown />
       </div>
 
       {/* Timeline */}
@@ -270,7 +254,7 @@ export default function OverviewTab({ clientName }: { clientName: string }) {
                   </button>
                 </div>
                 <div className="text-sm text-gray-500">
-                  {format(new Date(appointment.start_date), "h:mm a")}
+                  {format(new Date(appointment.start_date), "HH:mm")}
                 </div>
               </div>
             ))

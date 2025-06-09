@@ -103,9 +103,9 @@ export default function ShareModal({
 
         <div className="flex justify-center pt-4">
           <Button
-            onClick={handleShare}
-            disabled={selectedUsers.length === 0}
             className="bg-blue-500 hover:bg-blue-600 text-white px-8"
+            disabled={selectedUsers.length === 0}
+            onClick={handleShare}
           >
             Continue to Share
           </Button>

@@ -8,6 +8,12 @@ import type {
   ClientGroup as BaseClientGroup,
 } from "@/types/entities";
 
+/**
+ * @deprecated Use centralized Service type from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] 3 of 6+ Service definitions
+ * TODO: [TYPE-MIGRATION] Move extended fields to @mcw/types/entities/service
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, use ServiceUI for components
+ */
 export interface Service extends BaseService {
   is_default: boolean;
   type: string;
@@ -23,14 +29,30 @@ export interface Service extends BaseService {
   color: string | null;
 }
 
+/**
+ * @deprecated Use centralized Clinician type from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] 3 of 4+ Clinician definitions
+ * TODO: [TYPE-MIGRATION] Extend base type with is_active in shared types
+ */
 export interface Clinician extends BaseClinician {
   is_active: boolean;
 }
 
+/**
+ * @deprecated Use centralized Location type from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] 4 of 5+ Location definitions
+ * TODO: [TYPE-MIGRATION] Extend base type with is_active in shared types
+ */
 export interface Location extends BaseLocation {
   is_active: boolean;
 }
 
+/**
+ * @deprecated Use centralized Client type from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] 2 of 3+ Client definitions
+ * TODO: [TYPE-MIGRATION] Import ClientUI from @mcw/types instead
+ * TODO: [TYPE-MIGRATION-CASING] This has mixed casing - standardize with ClientUI type
+ */
 export interface Client extends BaseClient {
   legal_first_name?: string;
   legal_last_name?: string;
@@ -39,6 +61,11 @@ export interface Client extends BaseClient {
   is_active?: boolean;
 }
 
+/**
+ * @deprecated Use centralized ClientGroup type from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] 2 of 3+ ClientGroup definitions
+ * TODO: [TYPE-MIGRATION] Extend base type in shared types
+ */
 export interface ClientGroup extends BaseClientGroup {
   type: string;
 }

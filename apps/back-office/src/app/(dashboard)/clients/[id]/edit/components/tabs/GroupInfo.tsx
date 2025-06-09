@@ -85,13 +85,15 @@ export function GroupInfo({
             </SelectContent>
           </Select>
         </div>
-        <div className="w-full">
-          <EditClientForm
-            className="w-full max-w-3xl"
-            clientData={clientGroup.ClientGroupMembership[0]}
-            onSave={handleSave}
-          />
-        </div>
+        {clientGroup.type === "adult" && (
+          <div className="w-full">
+            <EditClientForm
+              className="w-full max-w-3xl"
+              clientData={clientGroup.ClientGroupMembership[0]}
+              onSave={handleSave}
+            />
+          </div>
+        )}
         <div className="pt-4 px-4 py-4 space-y-5">
           <div className="border-t" />
           <h2 className="text-lg font-semibold mb-4">About Client</h2>

@@ -115,6 +115,7 @@ export function ClientBillingCard({
 
         <Button
           className="w-full bg-[#2d8467] hover:bg-[#236c53]"
+          disabled={invoices.length === 0}
           onClick={onAddPayment}
         >
           Add Payment

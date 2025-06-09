@@ -135,7 +135,7 @@ export default function TelehealthForm({ onClose }: TelehealthFormProps) {
             {/* Color */}
 
             <div className="p-4 border-t flex justify-between">
-              <Button variant="outline" type="button" onClick={handleClose}>
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
               <Button

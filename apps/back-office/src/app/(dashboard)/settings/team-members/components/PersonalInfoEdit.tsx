@@ -19,15 +19,17 @@ export default function PersonalInfoEdit({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const name = formData.get("name") as string;
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
     const email = formData.get("email") as string;
+    const name = `${firstName} ${lastName}`.trim();
     onSubmit({ name, email });
   };
 
   return (
     <form
-      id="personal-info-edit-form"
       className="space-y-4"
+      id="personal-info-edit-form"
       onSubmit={handleSubmit}
     >
       <div>

@@ -124,7 +124,7 @@ export default function BillingAddresses() {
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Address / Office</TableHead>
-            <TableHead className="w-[100px]"></TableHead>
+            <TableHead className="w-[100px]" />
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -15,24 +15,55 @@ export function calculateDuration(
   }
 
   if (startTime && endTime) {
-    // Parse times
-    const [startTimeStr, startPeriod] = startTime.split(" ");
-    const [endTimeStr, endPeriod] = endTime.split(" ");
-    const [startHour, startMinute] = startTimeStr.split(":").map(Number);
-    const [endHour, endMinute] = endTimeStr.split(":").map(Number);
+    const convertTo24Hour = (
+      time12h: string,
+    ): { hour: number; minute: number } => {
+      const time24HourRegex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+      const time12HourRegex = /^(\d{1,2}):([0-5][0-9])\s*(AM|PM)$/i;
 
-    // Convert to 24-hour format
-    let start24Hour = startHour;
-    if (startPeriod === "PM" && startHour !== 12) start24Hour += 12;
-    if (startPeriod === "AM" && startHour === 12) start24Hour = 0;
+      if (time24HourRegex.test(time12h)) {
+        const [hour, minute] = time12h.split(":").map(Number);
+        return { hour, minute };
+      } else if (time12HourRegex.test(time12h)) {
+        // 12-hour format
+        const match = time12h.match(time12HourRegex);
+        if (!match) return { hour: 0, minute: 0 };
 
-    let end24Hour = endHour;
-    if (endPeriod === "PM" && endHour !== 12) end24Hour += 12;
-    if (endPeriod === "AM" && endHour === 12) end24Hour = 0;
+        let hour = parseInt(match[1], 10);
+        const minute = parseInt(match[2], 10);
+        const period = match[3].toUpperCase();
 
-    // Calculate minutes
-    const mins = (end24Hour - start24Hour) * 60 + (endMinute - startMinute);
-    return `${mins} mins`;
+        // Convert to 24-hour format
+        if (period === "PM" && hour !== 12) hour += 12;
+        if (period === "AM" && hour === 12) hour = 0;
+
+        return { hour, minute };
+      }
+
+      return { hour: 0, minute: 0 };
+    };
+
+    const start = convertTo24Hour(startTime);
+    const end = convertTo24Hour(endTime);
+
+    // Calculate total minutes
+    const totalMins =
+      (end.hour - start.hour) * 60 + (end.minute - start.minute);
+
+    // Handle negative duration (shouldn't happen but just in case)
+    if (totalMins <= 0) return "0 mins";
+
+    // Format as hours and minutes
+    const hours = Math.floor(totalMins / 60);
+    const minutes = totalMins % 60;
+
+    if (hours === 0) {
+      return `${minutes} mins`;
+    } else if (minutes === 0) {
+      return `${hours} hour${hours !== 1 ? "s" : ""}`;
+    } else {
+      return `${hours} hour${hours !== 1 ? "s" : ""} ${minutes} mins`;
+    }
   }
 
   return "0 mins";

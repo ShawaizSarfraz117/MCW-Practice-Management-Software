@@ -6,12 +6,22 @@ import type {
 } from "@/types/entities";
 
 // Calendar component types
+/**
+ * @deprecated Use centralized Clinician type from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] 2 of 4+ Clinician definitions
+ * TODO: [TYPE-MIGRATION] This extends base type with UI fields - keep as UI-specific
+ */
 export interface Clinician extends Partial<BaseClinicianType> {
   value: string;
   label: string;
   group: string;
 }
 
+/**
+ * @deprecated Use centralized Location type from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] 3 of 5+ Location definitions
+ * TODO: [TYPE-MIGRATION] This extends base type with UI fields - keep as UI-specific
+ */
 export interface Location extends Partial<BaseLocationType> {
   value: string;
   label: string;
@@ -40,6 +50,11 @@ export interface Event {
 
 export type AppointmentData = BaseAppointment;
 
+/**
+ * @deprecated Move to @mcw/types/entities/availability
+ * TODO: [TYPE-MIGRATION] This is a shared type
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create AvailabilityUI type for components
+ */
 export interface AvailabilityData {
   id: string;
   title: string;

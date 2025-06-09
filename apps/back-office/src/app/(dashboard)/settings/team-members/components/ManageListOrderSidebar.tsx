@@ -47,19 +47,19 @@ export default function ManageListOrderSidebar({
             >
               <span className="sr-only">Close</span>
               <svg
-                width="16"
+                className="h-5 w-5 text-gray-500"
+                fill="none"
                 height="16"
                 viewBox="0 0 16 16"
-                fill="none"
+                width="16"
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-gray-500"
               >
                 <path
                   d="M4 12L12 4M4 4L12 12"
                   stroke="currentColor"
-                  strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  strokeWidth="1.5"
                 />
               </svg>
             </Button>
@@ -74,39 +74,39 @@ export default function ManageListOrderSidebar({
               </p>
 
               <RadioGroup
+                className="space-y-4"
                 value={sortOrder}
                 onValueChange={setSortOrder}
-                className="space-y-4"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="dateAdded" id="dateAdded" />
+                  <RadioGroupItem id="dateAdded" value="dateAdded" />
                   <Label
-                    htmlFor="dateAdded"
                     className="text-sm font-normal cursor-pointer"
+                    htmlFor="dateAdded"
                   >
                     Date team member was added
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem
-                    value="lastNameAlphabetically"
                     id="lastNameAlphabetically"
+                    value="lastNameAlphabetically"
                   />
                   <Label
-                    htmlFor="lastNameAlphabetically"
                     className="text-sm font-normal cursor-pointer"
+                    htmlFor="lastNameAlphabetically"
                   >
                     Last name alphabetically
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem
-                    value="firstNameAlphabetically"
                     id="firstNameAlphabetically"
+                    value="firstNameAlphabetically"
                   />
                   <Label
-                    htmlFor="firstNameAlphabetically"
                     className="text-sm font-normal cursor-pointer"
+                    htmlFor="firstNameAlphabetically"
                   >
                     First name alphabetically
                   </Label>

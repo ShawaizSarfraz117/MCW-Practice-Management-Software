@@ -128,8 +128,8 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
       <div className="flex items-center gap-2">
         <h2 className="text-base font-semibold text-gray-900">Consent forms</h2>
         <a
-          href="#"
           className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          href="#"
         >
           Learn more
           <ExternalLink className="h-3 w-3" />
@@ -165,22 +165,22 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
                 <TableCell>
                   <div className="flex items-center gap-4">
                     <Button
-                      variant="ghost"
-                      size="icon"
                       className="h-8 w-8 hover:bg-gray-100"
+                      size="icon"
+                      variant="ghost"
                       onClick={() => setViewingForm(form)}
                     >
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
                     <button
-                      onClick={() => setEditingForm(form)}
                       className="text-green-600 hover:text-green-800 text-sm"
+                      onClick={() => setEditingForm(form)}
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => setDeletingForm(form)}
                       className="text-red-600 hover:text-red-800 text-sm"
+                      onClick={() => setDeletingForm(form)}
                     >
                       Delete
                     </button>
@@ -191,8 +191,8 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
             <TableRow>
               <TableCell colSpan={3}>
                 <button
-                  onClick={() => setIsCreating(true)}
                   className="flex items-center text-green-600 hover:text-green-800 gap-1 text-sm"
+                  onClick={() => setIsCreating(true)}
                 >
                   <Plus className="h-4 w-4" />
                   New consent form
@@ -214,9 +214,9 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
                   {viewingForm.name}
                 </h2>
                 <Button
-                  variant="ghost"
-                  size="icon"
                   className="h-8 w-8"
+                  size="icon"
+                  variant="ghost"
                   onClick={() => window.print()}
                 >
                   🖨️
@@ -234,10 +234,10 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
                       return (
                         <SurveyPreview
                           content={viewingForm.content}
-                          title={viewingForm.name}
-                          type="OTHER_DOCUMENTS"
                           mode="edit"
                           showInstructions={true}
+                          title={viewingForm.name}
+                          type="OTHER_DOCUMENTS"
                         />
                       );
                     } catch {
@@ -287,8 +287,8 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
               </h2>
             </div>
             <Button
-              onClick={() => handleSave(!!editingForm)}
               className="bg-[#2d8467] hover:bg-[#236c53]"
+              onClick={() => handleSave(!!editingForm)}
             >
               {editingForm ? "Save Changes" : "Save"}
             </Button>
@@ -300,12 +300,12 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
                 Form Name
               </label>
               <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder="Enter form name"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
-                placeholder="Enter form name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
 
@@ -315,13 +315,13 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
               </label>
               <div className="border rounded-md">
                 <ReactQuill
+                  className="h-[calc(100vh-380px)]"
+                  modules={modules}
                   theme="snow"
                   value={formData.content}
                   onChange={(content) =>
                     setFormData((prev) => ({ ...prev, content }))
                   }
-                  modules={modules}
-                  className="h-[calc(100vh-380px)]"
                 />
               </div>
             </div>
@@ -344,9 +344,9 @@ The standard meeting time for psychotherapy is 50 minutes. It is up to you, howe
               Cancel
             </Button>
             <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
               variant="destructive"
               onClick={handleConfirmDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Delete
             </Button>

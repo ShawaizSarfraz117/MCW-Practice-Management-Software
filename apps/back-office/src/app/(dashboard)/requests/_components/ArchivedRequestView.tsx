@@ -175,8 +175,8 @@ export default function ArchivedRequestView() {
           {filterOptions.map((filter) => (
             <div key={filter.id} className="space-y-2">
               <label
-                htmlFor={filter.id}
                 className="text-sm font-medium text-gray-700"
+                htmlFor={filter.id}
               >
                 {filter.title}
               </label>
@@ -184,7 +184,7 @@ export default function ArchivedRequestView() {
                 value={selectedFilters[filter.id]}
                 onValueChange={(value) => handleFilterChange(filter.id, value)}
               >
-                <SelectTrigger id={filter.id} className="w-full">
+                <SelectTrigger className="w-full" id={filter.id}>
                   <SelectValue placeholder={`Select ${filter.title}`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -216,7 +216,7 @@ export default function ArchivedRequestView() {
           <TableBody>
             {archivedRequests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10">
+                <TableCell className="text-center py-10" colSpan={7}>
                   <div className="flex flex-col items-center">
                     <div className="rounded-full bg-gray-100 p-3 mb-3">
                       <ArchiveIcon className="h-6 w-6 text-gray-400" />

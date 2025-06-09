@@ -1,8 +1,6 @@
 /* eslint-disable max-lines-per-function */
 "use client";
-
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
 import AdministrativeNoteCard from "./AdministrativeNoteCard";
@@ -19,7 +17,8 @@ import FilesTab, { FilesTabRef } from "./tabs/FilesTab";
 import { AddPaymentModal } from "./AddPaymentModal";
 import {
   fetchInvoices,
-  fetchClientGroups,
+  fetchSingleClientGroup,
+  ClientGroupWithMembership,
 } from "@/(dashboard)/clients/services/client.service";
 import { Invoice, Payment } from "@prisma/client";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
@@ -29,7 +28,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ClientInfoCard } from "./ClientInfoCard";
 import { useToast } from "@mcw/ui";
 
+import Link from "next/link";
 export function getClientGroupInfo(client: unknown) {
+  if (!client) return "";
   const name = (
     client as {
       ClientGroupMembership: {
@@ -132,12 +133,13 @@ export default function ClientProfile({
   const { data: clientGroup } = useQuery({
     queryKey: ["clientGroup", id],
     queryFn: async () => {
-      const [response, error] = await fetchClientGroups({
-        searchParams: { id: Array.isArray(id) ? id[0] : id },
-      });
-      if (error) throw error;
-      if (response && response.data && response.data.length > 0) {
-        const clientGroupData = response.data[0];
+      const response = (await fetchSingleClientGroup({
+        id: id as string,
+        searchParams: {},
+      })) as { data: ClientGroupWithMembership } | null;
+
+      if (response?.data) {
+        const clientGroupData = response.data;
         setCredit(Number(clientGroupData.available_credit) || 0);
 
         if (clientGroupData.ClientGroupMembership?.length) {
@@ -281,7 +283,7 @@ export default function ClientProfile({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full mt-2">
       {/* Breadcrumb */}
       <AdministrativeNoteDrawer
         open={adminNoteModalOpen}
@@ -302,37 +304,29 @@ export default function ClientProfile({
         onClose={() => setShareModalOpen(false)}
         onShare={handleShare}
       />
-      <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
-        <Link className="hover:text-gray-700" href="/clients">
-          Clients and contacts
-        </Link>
-        <span className="mx-1">/</span>
-        <span>{clientName}&apos;s profile</span>
-      </div>
       {/* Client Header */}
       <div className="px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold mb-1">
-            {clientName}
-          </h1>
-          <div className="text-sm text-gray-600 flex flex-wrap items-center gap-2">
-            <span>{invoices[0]?.ClientGroup?.type}</span>
-            <span className="text-gray-300 hidden sm:inline">•</span>
-            <span>
-              {invoices.length && invoices[0]?.Appointment?.start_date
-                ? format(invoices[0].Appointment.start_date, "MM/dd/yyyy")
-                : "-"}
-            </span>
-            <span className="text-gray-300 hidden sm:inline">•</span>
+          <h1 className="text-2xl font-semibold mb-1">{clientName}</h1>
+          <div className="text-sm text-gray-500 mb-2 flex flex-wrap gap-2 items-center">
+            {clientGroup && "type" in clientGroup ? clientGroup.type : ""}
             {getNextAppointmentDate() && (
-              <span>Next Appt: {getNextAppointmentDate()}</span>
+              <>
+                <span className="text-gray-300">|</span>
+                <span>Next Appt: {getNextAppointmentDate()}</span>
+                <span className="text-gray-300">|</span>
+              </>
             )}
-            <button
-              className="text-blue-500 hover:underline"
-              onClick={() => router.push(`/clients/${id}/edit`)}
+            <Link className="text-[#2d8467] hover:underline" href="/calendar">
+              Schedule appointment
+            </Link>
+            <span className="text-gray-300">|</span>
+            <Link
+              className="text-[#2d8467] hover:underline"
+              href={`/clients/${id}/edit`}
             >
               Edit
-            </button>
+            </Link>
           </div>
         </div>
         <div className="flex gap-2">
@@ -426,7 +420,7 @@ export default function ClientProfile({
               </div>
             </div>
             <TabsContent value="overview">
-              <OverviewTab clientName={clientName} />
+              <OverviewTab />
             </TabsContent>
 
             <TabsContent value="billing">

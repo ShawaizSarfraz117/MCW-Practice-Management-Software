@@ -1,15 +1,29 @@
+/* eslint-disable max-lines-per-function */
 "use client";
 
 import { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
+import {
+  Button,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  toast,
+} from "@mcw/ui";
 import { ClientDetailsCard } from "./ClientDetailsCard";
 import { useQuery } from "@tanstack/react-query";
-import { fetchClientGroups } from "@/(dashboard)/clients/services/client.service";
+import {
+  fetchSingleClientGroup,
+  createClientContact,
+} from "@/(dashboard)/clients/services/client.service";
 import Link from "next/link";
 import { getClientGroupInfo } from "@/(dashboard)/clients/[id]/components/ClientProfile";
 import { GroupInfo } from "./tabs/GroupInfo";
 import { useSearchParams, useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
+import { ContactAddDrawer } from "./ContactAddDrawer";
+import { ClientFormValues } from "../types";
+import { EmptyContactsState } from "./EmptyContactsState";
 // Matching the structure in ClientDetailsCard
 export interface ClientMembership {
   client_id: string;
@@ -89,14 +103,41 @@ export default function ClientEdit({
   const [activeTab, setActiveTab] = useState("group-info");
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [clientContact, setClientContact] = useState<ClientGroupFromAPI | null>(
+    null,
+  );
+  const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
 
   // Set the active tab based on URL parameter
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    if (tabParam && ["group-info", "clients", "billing"].includes(tabParam)) {
+    if (
+      tabParam &&
+      ["group-info", "clients", "billing", "contacts"].includes(tabParam)
+    ) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
+
+  const fetchClientContactsData = async () => {
+    const res = (await fetchSingleClientGroup({
+      id: clientGroupId,
+      searchParams: {
+        isContactOnly: "true",
+        includeProfile: "true",
+        includeAdress: "true",
+      },
+    })) as { data: ClientGroupFromAPI } | null;
+    if (res?.data) {
+      setClientContact(res.data);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "contacts") {
+      fetchClientContactsData();
+    }
+  }, [activeTab]);
 
   // Update URL when tab changes
   const handleTabChange = (value: string) => {
@@ -110,27 +151,24 @@ export default function ClientEdit({
     });
   };
 
-  // Fetch client group data
-  const { data: clientGroupData = {}, isLoading } = useQuery({
+  const {
+    data: clientGroupData = {},
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["clientGroup", clientGroupId],
     queryFn: async () => {
-      const [data, error] = await fetchClientGroups({
+      const data = (await fetchSingleClientGroup({
+        id: clientGroupId,
         searchParams: {
-          id: clientGroupId,
           includeProfile: "true",
           includeAdress: "true",
         },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      return data;
+      })) as { data: ClientGroupFromAPI } | null;
+      return data?.data;
     },
   });
 
-  // Check if clientGroupData is of type ClientGroupWithMembership
   const isClientGroup =
     clientGroupData &&
     typeof clientGroupData === "object" &&
@@ -148,6 +186,29 @@ export default function ClientEdit({
     family: "Family",
   };
 
+  const handleAddContact = () => {
+    setIsContactDrawerOpen(true);
+  };
+
+  const handleSaveContact = async (contactData: ClientFormValues) => {
+    const [_, err] = await createClientContact({
+      body: { ...contactData, clientGroupId },
+    });
+    if (err) {
+      toast({
+        title: "Failed to create contact",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsContactDrawerOpen(false);
+    fetchClientContactsData();
+    toast({
+      title: "Contact created successfully",
+      variant: "success",
+    });
+  };
+
   if (isLoading) {
     return <Loading className="items-center" />;
   }
@@ -155,26 +216,30 @@ export default function ClientEdit({
   return (
     <div className="p-6">
       <div className="mb-6">
-        <nav className="flex items-center text-sm text-gray-500 mb-2">
-          <Link href="/clients">Clients and contacts</Link>
-          <span className="mx-2">/</span>
-          <Link href={`/clients/${clientGroupId}`}>{clientData?.name}</Link>
-          <span className="mx-2">/</span>
-          <span className="text-gray-700">Edit client</span>
-        </nav>
-        <h1 className="text-2xl font-semibold mb-4">
-          Edit client{" "}
-          <span className="text-[#2D8467]">
-            {clientData ? getClientGroupInfo(clientData) : ""}
-          </span>
-        </h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-2xl font-semibold mb-4">
+            Edit client{" "}
+            <span className="text-[#2D8467]">
+              {clientData ? (
+                <Link href={`/clients/${clientData.id}`}>
+                  {getClientGroupInfo(clientData)}
+                </Link>
+              ) : (
+                ""
+              )}
+            </span>
+          </h1>
+          {activeTab === "contacts" && (
+            <Button onClick={handleAddContact}>Add Contact</Button>
+          )}
+        </div>
       </div>
 
       <Tabs
+        className="w-full"
         defaultValue="clients"
         value={activeTab}
         onValueChange={handleTabChange}
-        className="w-full"
       >
         <div className="border-b border-[#e5e7eb] overflow-x-auto">
           <TabsList className="h-[40px] bg-transparent p-0 w-auto">
@@ -191,6 +256,14 @@ export default function ClientEdit({
             >
               Clients
             </TabsTrigger>
+            {clientData?.type === "adult" && (
+              <TabsTrigger
+                className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "contacts" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
+                value="contacts"
+              >
+                Contacts
+              </TabsTrigger>
+            )}
             <TabsTrigger
               className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "billing" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
               value="billing"
@@ -212,10 +285,34 @@ export default function ClientEdit({
               <ClientDetailsCard
                 key={membership.client_id}
                 client={membership}
+                type="client"
+                onRefresh={refetch}
               />
             ))}
           </div>
         </TabsContent>
+        {activeTab === "contacts" && (
+          <TabsContent value="contacts">
+            <div className="mt-6">
+              {clientContact?.ClientGroupMembership &&
+              clientContact.ClientGroupMembership.length > 0 ? (
+                clientContact.ClientGroupMembership.map((membership) => (
+                  <ClientDetailsCard
+                    key={membership.client_id}
+                    client={membership}
+                    type="contact"
+                    onRefresh={fetchClientContactsData}
+                  />
+                ))
+              ) : (
+                <EmptyContactsState
+                  clientName={clientData?.name}
+                  onAddContact={handleAddContact}
+                />
+              )}
+            </div>
+          </TabsContent>
+        )}
 
         <TabsContent value="billing">
           <div className="mt-6">
@@ -224,6 +321,12 @@ export default function ClientEdit({
           </div>
         </TabsContent>
       </Tabs>
+
+      <ContactAddDrawer
+        isOpen={isContactDrawerOpen}
+        onClose={() => setIsContactDrawerOpen(false)}
+        onSaveContact={handleSaveContact}
+      />
     </div>
   );
 }

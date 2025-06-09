@@ -25,7 +25,7 @@ export function PersonalInfoSection({
 
   const handlePersonalInfoSubmit = (data: { name: string; email: string }) => {
     // Extract first and last name
-    const nameParts = data.name.trim().split(" ");
+    const nameParts = (data.name || "").trim().split(" ");
     const first_name = nameParts[0] || "";
     const last_name = nameParts.slice(1).join(" ") || "";
 
@@ -86,7 +86,9 @@ export function PersonalInfoSection({
           <div>
             <p className="text-base text-[#4B5563]">Name</p>
             <p className="text-base font-medium text-[#1F2937]">
-              {member.firstName || "No name found"}
+              {member.firstName && member.lastName
+                ? `${member.firstName} ${member.lastName}`
+                : member.firstName || "No name found"}
             </p>
           </div>
           <div>

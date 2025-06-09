@@ -27,6 +27,8 @@ import {
 import { EditAppointmentDialog } from "../EditAppointmentDialog";
 import { AvailabilitySidebar } from "../availability/AvailabilitySidebar";
 import { ClientGroup } from "../appointment-dialog/types";
+import { IntakeForm } from "../intake/IntakeForm";
+import { AppointmentTagName } from "@/types/entities/appointment";
 import {
   Button,
   Card,
@@ -147,6 +149,15 @@ export function CalendarView({
   const [selectedLocations, setSelectedLocations] = useState<string[]>(
     initialLocations.map((loc: Location) => loc.value),
   );
+
+  // Intake form state
+  const [showIntakeForm, setShowIntakeForm] = useState(false);
+  const [intakeClientData, setIntakeClientData] = useState<{
+    clientName: string;
+    clientEmail: string;
+    clientId: string;
+    clientGroupId: string;
+  } | null>(null);
 
   const calendarRef = useRef<FullCalendar>(null);
 
@@ -269,6 +280,10 @@ export function CalendarView({
           (
             appointment: AppointmentData & {
               isFirstAppointmentForGroup?: boolean;
+              AppointmentTag?: Array<{
+                Tag: { name: string };
+              }>;
+              Invoice?: Array<{ id: string; status: string }>;
             },
           ) => ({
             id: appointment.id,
@@ -278,9 +293,12 @@ export function CalendarView({
             end: appointment.end_date,
             location: appointment.location_id || "",
             extendedProps: {
-              type: "appointment",
+              type: "appointment" as const,
               isFirstAppointmentForGroup:
                 appointment.isFirstAppointmentForGroup,
+              appointmentTags: appointment.AppointmentTag || [],
+              hasInvoice: appointment.Invoice && appointment.Invoice.length > 0,
+              invoices: appointment.Invoice || [],
             },
           }),
         );
@@ -303,6 +321,10 @@ export function CalendarView({
       "appointmentDeleted",
       handleAppointmentDelete as EventListener,
     );
+    window.addEventListener(
+      "appointmentTagsUpdated",
+      handleAppointmentDelete as EventListener,
+    );
 
     return () => {
       window.removeEventListener(
@@ -311,6 +333,10 @@ export function CalendarView({
       );
       window.removeEventListener(
         "appointmentDeleted",
+        handleAppointmentDelete as EventListener,
+      );
+      window.removeEventListener(
+        "appointmentTagsUpdated",
         handleAppointmentDelete as EventListener,
       );
     };
@@ -346,9 +372,16 @@ export function CalendarView({
 
       // Handle appointments with client group
       if (values.clientGroup) {
-        const response = await fetch(
-          `/api/client/group?id=${values.clientGroup}`,
-        );
+        if (typeof values.clientGroup === "object" && values.clientGroup.name) {
+          return createAppointmentWithAPI(values, values.clientGroup.name);
+        }
+
+        const clientGroupId =
+          typeof values.clientGroup === "object"
+            ? values.clientGroup.id
+            : values.clientGroup;
+
+        const response = await fetch(`/api/client/group?id=${clientGroupId}`);
         if (response.ok) {
           const clientGroupData = await response.json();
           const clientName = clientGroupData.name || "Client Group";
@@ -367,6 +400,34 @@ export function CalendarView({
       console.error("Error in appointment creation:", error);
       return [];
     }
+  };
+
+  // Helper function to get client email
+  const getClientEmail = async (clientId: string): Promise<string | null> => {
+    try {
+      const response = await fetch(`/api/client/contact?clientId=${clientId}`);
+      if (response.ok) {
+        const result = await response.json();
+        const contacts = result.data || []; // Extract the data array
+
+        // Find email contact - try primary first, then any email
+        const emailContact =
+          contacts.find(
+            (c: { contact_type: string; is_primary: boolean; value: string }) =>
+              (c.contact_type === "EMAIL" || c.contact_type === "email") &&
+              c.is_primary,
+          ) ||
+          contacts.find(
+            (c: { contact_type: string; value: string }) =>
+              c.contact_type === "EMAIL" || c.contact_type === "email",
+          );
+
+        return emailContact?.value || null;
+      }
+    } catch (error) {
+      console.error("Error fetching client email:", error);
+    }
+    return null;
   };
 
   // Function to create appointment via API
@@ -446,6 +507,62 @@ export function CalendarView({
         ? responseData
         : [responseData];
 
+      console.log("Created appointments:", appointments);
+      console.log("First appointment tags:", appointments[0]?.AppointmentTag);
+
+      // Log the actual structure to debug
+      if (appointments[0]?.AppointmentTag?.length > 0) {
+        console.log(
+          "Tag structure:",
+          JSON.stringify(appointments[0].AppointmentTag[0], null, 2),
+        );
+      }
+
+      // Check the first appointment (main appointment for recurring) for "New Client" tag
+      const firstAppointment = appointments[0];
+      const hasNewClientTag = firstAppointment?.AppointmentTag?.some(
+        (tag: { Tag?: { name?: string } }) => {
+          console.log("Checking tag:", tag);
+          console.log("Tag name:", tag.Tag?.name);
+          console.log("Expected name:", AppointmentTagName.NEW_CLIENT);
+          return tag.Tag?.name === AppointmentTagName.NEW_CLIENT;
+        },
+      );
+
+      console.log("Has new client tag:", hasNewClientTag);
+      console.log("First appointment full data:", firstAppointment);
+
+      // If it's a new client appointment, show the intake form
+      if (hasNewClientTag && firstAppointment) {
+        const clientGroup = firstAppointment.ClientGroup;
+        console.log("Client group:", clientGroup);
+
+        if (clientGroup && clientGroup.ClientGroupMembership?.length > 0) {
+          const firstMember = clientGroup.ClientGroupMembership[0];
+          const client = firstMember.Client;
+          console.log("Client data:", client);
+
+          if (client) {
+            // Get client email from contacts
+            const clientEmail = await getClientEmail(client.id);
+
+            setIntakeClientData({
+              clientName: `${client.legal_first_name} ${client.legal_last_name}`,
+              clientEmail: clientEmail || "",
+              clientId: client.id,
+              clientGroupId: clientGroup.id,
+            });
+            console.log("Setting intake form to show with data:", {
+              clientName: `${client.legal_first_name} ${client.legal_last_name}`,
+              clientEmail: clientEmail || "",
+            });
+            setShowIntakeForm(true);
+          }
+        } else {
+          console.log("No client group or membership found");
+        }
+      }
+
       // Format events for calendar
       const formattedEvents = appointments.map((appointment) => ({
         id: appointment.id,
@@ -454,6 +571,12 @@ export function CalendarView({
         start: appointment.start_date,
         end: appointment.end_date,
         location: appointment.location_id || "",
+        extendedProps: {
+          type: "appointment" as const,
+          appointmentTags: appointment.AppointmentTag || [],
+          hasInvoice: appointment.Invoice && appointment.Invoice.length > 0,
+          invoices: appointment.Invoice || [],
+        },
       }));
 
       return formattedEvents;
@@ -490,22 +613,35 @@ export function CalendarView({
         return date.toISOString();
       }
 
-      // Validate time string format
-      const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
-      if (!timeRegex.test(timeStr)) {
+      // Validate time string format - handle both 12-hour and 24-hour formats
+      const time12Regex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
+      const time24Regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+      if (!time12Regex.test(timeStr) && !time24Regex.test(timeStr)) {
         console.error("Invalid time string format:", timeStr);
         throw new Error(
-          `Invalid time format. Expected "HH:MM AM/PM", got "${timeStr}"`,
+          `Invalid time format. Expected "HH:MM" or "HH:MM AM/PM", got "${timeStr}"`,
         );
       }
 
-      const [timeValue, period] = timeStr.split(" ");
-      const [hours, minutes] = timeValue.split(":").map(Number);
+      let hours24: number, minutes: number;
 
-      // Convert 12-hour format to 24-hour
-      let hours24 = hours;
-      if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
-      if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+      if (time12Regex.test(timeStr)) {
+        // 12-hour format
+        const [timeValue, period] = timeStr.split(" ");
+        const [hours, mins] = timeValue.split(":").map(Number);
+        hours24 = hours;
+        minutes = mins;
+
+        // Convert 12-hour format to 24-hour
+        if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
+        if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+      } else {
+        // 24-hour format
+        const [hours, mins] = timeStr.split(":").map(Number);
+        hours24 = hours;
+        minutes = mins;
+      }
 
       // Create a new date with the correct local time
       const newDate = new Date(date);
@@ -588,7 +724,11 @@ export function CalendarView({
         values.recurringInfo.period === "WEEKLY" &&
         values.recurringInfo.selectedDays?.length > 0
       ) {
-        parts.push(`BYDAY=${values.recurringInfo.selectedDays.join(",")}`);
+        const dayOrder = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+        const sortedDays = [...values.recurringInfo.selectedDays].sort(
+          (a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b),
+        );
+        parts.push(`BYDAY=${sortedDays.join(",")}`);
       }
 
       // Add monthly pattern if specified
@@ -637,6 +777,11 @@ export function CalendarView({
       recurringRule = parts.join(";");
     }
 
+    // Ensure we have a valid user ID for created_by
+    if (!session?.user?.id) {
+      throw new Error("User session not found. Please log in again.");
+    }
+
     const payload = {
       type: values.type || "APPOINTMENT",
       title:
@@ -649,9 +794,13 @@ export function CalendarView({
       start_date: startDateTime,
       end_date: endDateTime,
       location_id: values.location || "",
-      client_group_id: values.clientGroup ? values.clientGroup : null,
+      client_group_id: values.clientGroup
+        ? typeof values.clientGroup === "object"
+          ? values.clientGroup.id
+          : values.clientGroup
+        : null,
       clinician_id: values.clinician || selectedResource || "",
-      created_by: session?.user?.id || "",
+      created_by: session.user.id,
       status: "SCHEDULED",
       is_recurring: values.recurring || false,
       recurring_rule: recurringRule,
@@ -725,6 +874,10 @@ export function CalendarView({
         (
           appointment: AppointmentData & {
             isFirstAppointmentForGroup?: boolean;
+            AppointmentTag?: Array<{
+              Tag: { name: string };
+            }>;
+            Invoice?: Array<{ id: string; status: string }>;
           },
         ) => ({
           id: appointment.id,
@@ -734,8 +887,11 @@ export function CalendarView({
           end: appointment.end_date,
           location: appointment.location_id || "",
           extendedProps: {
-            type: "appointment",
+            type: "appointment" as const,
             isFirstAppointmentForGroup: appointment.isFirstAppointmentForGroup,
+            appointmentTags: appointment.AppointmentTag || [],
+            hasInvoice: appointment.Invoice && appointment.Invoice.length > 0,
+            invoices: appointment.Invoice || [],
           },
         }),
       );
@@ -1021,10 +1177,25 @@ export function CalendarView({
     setSelectedDate(selectInfo.start);
     setSelectedResource(selectInfo.resource?.id || null);
 
+    // Get the local time by adjusting for timezone
+    const adjustForTimezone = (date: Date) => {
+      const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() + userTimezoneOffset);
+    };
+
+    const localStart = adjustForTimezone(selectInfo.start);
+    const localEnd = adjustForTimezone(selectInfo.end);
+
+    // Format the times in local timezone
+    const startTime = format(localStart, "h:mm a"); // 12-hour format
+    const endTime = format(localEnd, "h:mm a"); // 12-hour format
+
     // Save the selected time info for the appointment dialog
     const eventData = {
-      startTime: format(selectInfo.start, "h:mm a"),
-      endTime: format(selectInfo.end, "h:mm a"),
+      startTime,
+      endTime,
+      startDate: localStart.toISOString(),
+      endDate: localEnd.toISOString(),
     };
 
     // Store this data to be accessed by the form
@@ -1039,7 +1210,7 @@ export function CalendarView({
   // View handling functions
   const handleViewChange = (newView: string) => {
     // For non-admin users, don't allow resourceTimeGrid views
-    if (!isAdmin && newView.startsWith("resourceTimeGrid")) {
+    if (newView.startsWith("resourceTimeGrid")) {
       newView = newView.replace("resourceTimeGrid", "timeGrid");
     }
 
@@ -1215,69 +1386,139 @@ export function CalendarView({
           eventClick={handleEventClick}
           eventContent={(arg) => {
             const type = arg.event.extendedProps?.type;
-            const isFirstAppointment = arg.event.extendedProps
+            const _isFirstAppointment = arg.event.extendedProps
               ?.isFirstAppointmentForGroup as boolean | undefined;
+            const appointmentTags = (arg.event.extendedProps?.appointmentTags ||
+              []) as Array<{
+              Tag: { name: string };
+            }>;
+            const _hasInvoice = arg.event.extendedProps?.hasInvoice as
+              | boolean
+              | undefined;
+            const _invoices = (arg.event.extendedProps?.invoices ||
+              []) as Array<{
+              id: string;
+              status: string;
+            }>;
+
+            // Check if current view is a week view
+            const isWeekView = currentView.includes("Week");
 
             // Handle Availability events separately
             if (type === "availability") {
-              const start = arg.event.start;
-              const startTime = start
-                ? new Date(start).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })
-                : "";
               const title = arg.event.title || "Available";
 
               return (
                 <div className="p-1">
-                  <div className="text-xs font-medium text-gray-600 mb-0.5">
-                    {startTime}
-                  </div>
                   <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
                     {title}
                   </div>
-                  {/* Availability events don't get New/Old badges */}
                 </div>
               );
             }
 
             // Handle regular Appointment events
             const title = arg.event.title; // Or format as needed
-            // Add badge based on isFirstAppointmentForGroup
-            const badgeText =
-              isFirstAppointment === true
-                ? "New"
-                : isFirstAppointment === false
-                  ? ""
-                  : null;
-            const badgeColor =
-              isFirstAppointment === true
-                ? "bg-green-100 text-green-800"
-                : isFirstAppointment === false
-                  ? "bg-blue-100 text-blue-800"
-                  : "";
+            const startTime = arg.timeText; // This contains the formatted start time
 
             return (
               <div className="p-1 flex flex-col h-full relative">
-                {/* You might want to add time or other info here */}
-                <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis mb-1 flex-grow">
-                  {title}
+                {/* Start time above title */}
+                <div className="text-xs text-gray-600 mb-0.5">{startTime}</div>
+
+                <div className="flex h-full">
+                  {/* Title on the left */}
+                  <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis flex-grow pr-2">
+                    {title}
+                  </div>
+
+                  {/* Tags and icons on the right - only show if NOT week view */}
+                  {!isWeekView && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {appointmentTags.map((appointmentTag, index: number) => {
+                        const tag = appointmentTag.Tag;
+                        const tagName = tag.name;
+
+                        // Define tag styling based on tag name
+                        let tagStyle = "";
+                        let tagText = "";
+
+                        switch (tagName) {
+                          case "Appointment Paid":
+                            tagStyle = "bg-green-500 text-white";
+                            tagText = "✓ Paid";
+                            break;
+                          case "Appointment Unpaid":
+                            tagStyle = "bg-gray-500 text-white";
+                            tagText = "Unpaid";
+                            break;
+                          case "New Client":
+                            tagStyle =
+                              "bg-green-100 text-green-800 border border-green-300";
+                            tagText = "New";
+                            break;
+                          case "No Note":
+                            tagStyle = "bg-gray-200 text-gray-700";
+                            tagText = "No Note";
+                            break;
+                          case "Note Added":
+                            return null;
+                          default:
+                            tagStyle =
+                              "bg-gray-100 text-gray-800 border border-gray-200";
+                            tagText = tagName;
+                        }
+
+                        return (
+                          <span
+                            key={index}
+                            className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded-full ${tagStyle}`}
+                            style={{ fontSize: "9px" }}
+                          >
+                            {tagText}
+                          </span>
+                        );
+                      })}
+
+                      {/* Show document icon if there are notes */}
+                      {appointmentTags.some(
+                        (at) => at.Tag.name === "Note Added",
+                      ) && (
+                        <div className="flex items-center">
+                          <svg
+                            className="text-gray-600"
+                            fill="currentColor"
+                            height="12"
+                            viewBox="0 0 16 16"
+                            width="12"
+                          >
+                            <path d="M4 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+                            <path d="M5 5h6v1H5V5zm0 2h6v1H5V7zm0 2h4v1H5V9z" />
+                          </svg>
+                          <svg
+                            className="text-green-600 ml-1"
+                            fill="currentColor"
+                            height="12"
+                            viewBox="0 0 16 16"
+                            width="12"
+                          >
+                            <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {badgeText && (
-                  <span
-                    className={`absolute top-1.5 right-1.5 text-xs font-medium px-1.5 py-0.5 rounded-full ${badgeColor}`}
-                  >
-                    {badgeText}
-                  </span>
-                )}
               </div>
             );
           }}
           eventDidMount={(info) => {
             const event = info.event;
             const type = event.extendedProps?.type;
+
+            // Add cursor pointer for all events
+            info.el.classList.add("cursor-pointer");
+
             if (type === "availability") {
               const allowRequests = event.extendedProps?.allow_online_requests;
               const isRecurring = event.extendedProps?.is_recurring;
@@ -1287,7 +1528,6 @@ export function CalendarView({
                 "bg-[#2d84671a]",
                 "border-0",
                 "opacity-85",
-                "cursor-pointer",
                 "pointer-events-auto",
                 "z-10",
                 "relative",
@@ -1335,11 +1575,22 @@ export function CalendarView({
               info.el.addEventListener("mouseleave", () => {
                 info.el.classList.replace("opacity-100", "opacity-85");
               });
+            } else {
+              // Style regular appointments with greenish background
+              info.el.style.backgroundColor = "#e6f4ea";
+              info.el.style.borderLeft = "3px solid #0f9d58";
+              info.el.style.borderRadius = "4px";
+              info.el.classList.add("hover:shadow-md", "transition-shadow");
             }
           }}
           eventDisplay="block"
           eventOverlap={true}
           events={filteredEvents}
+          eventTimeFormat={{
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          }}
           headerToolbar={false}
           height="100%"
           initialView={currentView}
@@ -1365,7 +1616,7 @@ export function CalendarView({
               slotLabelFormat: {
                 hour: "numeric",
                 minute: "2-digit",
-                meridiem: "short",
+                hour12: true,
               },
             },
             timeGridDay: {
@@ -1373,9 +1624,9 @@ export function CalendarView({
               duration: { days: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "numeric",
+                hour: "2-digit",
                 minute: "2-digit",
-                meridiem: "short",
+                hour12: false,
               },
             },
             resourceTimeGridWeek: {
@@ -1383,9 +1634,9 @@ export function CalendarView({
               duration: { weeks: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "numeric",
+                hour: "2-digit",
                 minute: "2-digit",
-                meridiem: "short",
+                hour12: false,
               },
             },
             timeGridWeek: {
@@ -1393,9 +1644,9 @@ export function CalendarView({
               duration: { weeks: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "numeric",
+                hour: "2-digit",
                 minute: "2-digit",
-                meridiem: "short",
+                hour12: false,
               },
             },
             dayGridMonth: {
@@ -1445,6 +1696,19 @@ export function CalendarView({
         onClose={() => setShowAvailabilitySidebar(false)}
         onOpenChange={setShowAvailabilitySidebar}
       />
+
+      {showIntakeForm && intakeClientData && (
+        <IntakeForm
+          clientEmail={intakeClientData.clientEmail}
+          clientGroupId={intakeClientData.clientGroupId}
+          clientId={intakeClientData.clientId}
+          clientName={intakeClientData.clientName}
+          onClose={() => {
+            setShowIntakeForm(false);
+            setIntakeClientData(null);
+          }}
+        />
+      )}
     </div>
   );
 }

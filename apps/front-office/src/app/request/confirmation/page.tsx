@@ -98,9 +98,9 @@ export default function ConfirmationPage() {
               viewBox="0 0 24 24"
             >
               <path
+                d="M5 13l4 4L19 7"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M5 13l4 4L19 7"
               />
             </svg>
           </div>
@@ -136,8 +136,8 @@ export default function ConfirmationPage() {
         </div>
         <div className="flex gap-4 w-full max-w-md mx-auto mt-10">
           <Button
-            variant="outline"
             className="flex-1 rounded-none"
+            variant="outline"
             onClick={() => setCancelled(true)}
           >
             CANCEL APPOINTMENT
@@ -219,12 +219,12 @@ export default function ConfirmationPage() {
               </div>
             </div>
             <Image
-              src={newMeeting}
-              alt="Meeting Illustration"
-              width={280}
-              height={220}
-              className="object-contain rounded-lg bg-gray-50"
               priority
+              alt="Meeting Illustration"
+              className="object-contain rounded-lg bg-gray-50"
+              height={220}
+              src={newMeeting}
+              width={280}
             />
           </div>
           {/* Right Column */}
@@ -237,10 +237,10 @@ export default function ConfirmationPage() {
                 {calendarButtons.map((button) => (
                   <Button
                     key={button.label}
-                    variant="outline"
-                    size="sm"
-                    onClick={button.onClick}
                     className="bg-gray-100 hover:bg-gray-200 min-w-[90px]"
+                    size="sm"
+                    variant="outline"
+                    onClick={button.onClick}
                   >
                     {button.label}
                   </Button>

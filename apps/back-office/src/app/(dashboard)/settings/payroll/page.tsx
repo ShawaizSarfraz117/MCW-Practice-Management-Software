@@ -22,8 +22,8 @@ export default function PayrollPage() {
         </div>
         <div className="flex items-center gap-4">
           <Link
-            href="#"
             className="text-xs text-blue-600 hover:underline whitespace-nowrap flex items-center gap-1"
+            href="#"
           >
             <span>Watch a quick video about Payroll</span>
           </Link>
@@ -50,13 +50,13 @@ export default function PayrollPage() {
           Before calculating payroll for your practice, you'll need to close the
           associated{" "}
           <span className="font-medium text-gray-700">Pay Period</span> of the{" "}
-          <Link href="#" className="text-blue-600 hover:underline">
+          <Link className="text-blue-600 hover:underline" href="#">
             Income allocation
           </Link>{" "}
           report. To automate this process, select the{" "}
           <span className="font-medium text-gray-700">Close Pay Period</span>{" "}
           option from the dropdown below that aligns with your payroll schedule.{" "}
-          <Link href="#" className="text-blue-600 hover:underline">
+          <Link className="text-blue-600 hover:underline" href="#">
             Learn More
           </Link>
         </p>
