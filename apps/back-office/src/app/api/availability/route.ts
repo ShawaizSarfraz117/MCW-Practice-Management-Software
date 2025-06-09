@@ -17,7 +17,7 @@ const availabilitySchema = z.object({
   title: z.string().optional(),
   clinician_id: z.string().uuid(),
   allow_online_requests: z.boolean().default(false),
-  location_id: z.string().uuid(),
+  location_id: z.string(), // Temporarily allow non-UUID strings for "video"/"physical"
   start_date: z.string().datetime(),
   end_date: z.string().datetime(),
   is_recurring: z.boolean().default(false),
@@ -49,6 +49,14 @@ export async function POST(request: NextRequest) {
     const id = searchParams.get("id");
     const services = searchParams.get("services");
     const body = await request.json();
+
+    // Handle location mapping from frontend values to location_id
+    if (body.location && !body.location_id) {
+      // Map "video" and "physical" to a location_id
+      // Using the location value as location_id for now
+      // In a proper implementation, this would map to actual location UUIDs
+      body.location_id = body.location;
+    }
 
     // If ID and services=true, add service to availability
     if (id && services === "true") {
@@ -86,7 +94,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if the relationship already exists
-      const existingRelation = await prisma.AvailabilityServices.findUnique({
+      const existingRelation = await prisma.availabilityServices.findUnique({
         where: {
           availability_id_service_id: {
             availability_id: id,
@@ -103,7 +111,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create the availability-service relationship
-      const availabilityService = await prisma.AvailabilityServices.create({
+      const availabilityService = await prisma.availabilityServices.create({
         data: {
           availability_id: id,
           service_id: serviceId,
@@ -187,7 +195,7 @@ export async function POST(request: NextRequest) {
           {} as Record<string, string>,
         );
 
-        logger.info(`Parsed rule parts:`, ruleParts);
+        logger.info(ruleParts, "Parsed rule parts");
 
         // Handle both 'WEEK' and 'WEEKLY' for backwards compatibility
         let freq = ruleParts.FREQ || "WEEKLY";
@@ -204,7 +212,7 @@ export async function POST(request: NextRequest) {
         logger.info(
           `Parsed values - freq: ${freq}, count: ${count}, byDay: ${byDay.join(",")}, interval: ${interval}`,
         );
-        logger.info(`byDay array:`, byDay);
+        logger.info({ byDay }, "byDay array");
         logger.info(`byDay.length: ${byDay.length}`);
 
         // For weekly recurrence with specific days
@@ -241,8 +249,8 @@ export async function POST(request: NextRequest) {
             "Saturday",
           ];
 
-          const startDate = new Date(data.start_date);
-          const endDate = new Date(data.end_date);
+          const startDate = new Date(data.start_date!);
+          const endDate = new Date(data.end_date!);
           const duration = endDate.getTime() - startDate.getTime();
 
           // Get the day of the week for the start date
@@ -365,8 +373,8 @@ export async function POST(request: NextRequest) {
                 );
               } catch (error) {
                 logger.error(
-                  `Failed to create recurring availability for date ${availabilityDate.toISOString()}:`,
-                  error,
+                  { error },
+                  `Failed to create recurring availability for date ${availabilityDate.toISOString()}`,
                 );
                 // Continue with next date instead of failing completely
               }
@@ -378,8 +386,8 @@ export async function POST(request: NextRequest) {
         }
         // For monthly and yearly recurrence (simplified for now)
         else if ((freq === "MONTHLY" || freq === "YEARLY") && count > 1) {
-          const startDate = new Date(data.start_date);
-          const endDate = new Date(data.end_date);
+          const startDate = new Date(data.start_date!);
+          const endDate = new Date(data.end_date!);
 
           for (let i = 1; i < count; i++) {
             const newStartDate = new Date(startDate);
@@ -444,7 +452,7 @@ export async function POST(request: NextRequest) {
               })),
           );
 
-          await tx.AvailabilityServices.createMany({
+          await tx.availabilityServices.createMany({
             data: availabilityServicesData,
           });
         }
@@ -482,7 +490,7 @@ export async function POST(request: NextRequest) {
               })),
           );
 
-          await tx.AvailabilityServices.createMany({
+          await tx.availabilityServices.createMany({
             data: availabilityServicesData,
           });
         }
@@ -499,13 +507,19 @@ export async function POST(request: NextRequest) {
       `Created ${result.totalCreated} availabilities with ${result.servicesAdded} total services added`,
     );
 
+    // Map location_id to location for frontend compatibility
+    const mappedAvailabilities = result.availabilities.map((availability) => ({
+      ...availability,
+      location: availability.location_id,
+    }));
+
     // For backward compatibility with tests, return single availability if only one was created
     if (result.totalCreated === 1) {
-      return NextResponse.json(result.availabilities[0]);
+      return NextResponse.json(mappedAvailabilities[0]);
     }
 
     return NextResponse.json({
-      availabilities: result.availabilities,
+      availabilities: mappedAvailabilities,
       servicesAdded: result.servicesAdded,
       totalCreated: result.totalCreated,
       message: `Successfully created ${result.totalCreated} availability${result.totalCreated > 1 ? " instances" : ""}`,
@@ -573,7 +587,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get availability services with detailed information
-      const availabilityServices = await prisma.AvailabilityServices.findMany({
+      const availabilityServices = await prisma.availabilityServices.findMany({
         where: { availability_id: id },
         include: {
           PracticeService: true,
@@ -636,7 +650,13 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      return NextResponse.json(availability);
+      // Map location_id back to location for frontend compatibility
+      const response = {
+        ...availability,
+        location: availability.location_id, // Map location_id to location
+      };
+
+      return NextResponse.json(response);
     }
 
     // Otherwise, handle filtering logic for multiple availabilities
@@ -676,7 +696,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(availabilities);
+    // Map location_id to location for frontend compatibility
+    const mappedAvailabilities = availabilities.map((availability) => ({
+      ...availability,
+      location: availability.location_id,
+    }));
+
+    return NextResponse.json(mappedAvailabilities);
   } catch (error) {
     logger.error({ error }, "Error fetching availabilities");
     return NextResponse.json(
@@ -697,6 +723,7 @@ export async function PUT(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
+    const editOption = searchParams.get("editOption"); // 'single', 'future', or 'all'
 
     if (!id) {
       return NextResponse.json(
@@ -706,6 +733,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Handle location mapping from frontend values to location_id
+    if (body.location && !body.location_id) {
+      // Map "video" and "physical" to a location_id
+      // Using the location value as location_id for now
+      // In a proper implementation, this would map to actual location UUIDs
+      body.location_id = body.location;
+    }
+
     const validatedData = availabilitySchema.partial().parse(body);
 
     // Convert date strings to Date objects if they exist and prepare data
@@ -723,25 +759,210 @@ export async function PUT(request: NextRequest) {
       data.end_date = new Date(validatedData.end_date);
     }
 
-    const availability = await prisma.availability.update({
+    // Handle services update separately
+    const selectedServices = body.selectedServices || [];
+
+    // First, get the availability to check if it's recurring
+    const availability = await prisma.availability.findUnique({
       where: { id },
-      data,
-      select: {
-        id: true,
-        clinician_id: true,
-        title: true,
-        start_date: true,
-        end_date: true,
-        location_id: true,
-        allow_online_requests: true,
-        is_recurring: true,
-        recurring_rule: true,
-        created_at: true,
-        updated_at: true,
-      },
     });
 
-    return NextResponse.json(availability);
+    if (!availability) {
+      return NextResponse.json(
+        { error: "Availability not found" },
+        { status: 404 },
+      );
+    }
+
+    // Handle recurring availability updates
+    if (availability.is_recurring && editOption) {
+      // Determine the parent ID (could be this availability or its parent)
+      const parentId =
+        availability.recurring_availability_id || availability.id;
+
+      // Use a transaction to update availabilities and related services
+      const result = await prisma.$transaction(async (tx) => {
+        let availabilityIds: string[] = [];
+        const updatedAvailabilities = [];
+
+        switch (editOption) {
+          case "single":
+            // Update only this specific availability
+            availabilityIds = [id];
+            break;
+
+          case "future": {
+            // Update this and all future availabilities in the series
+            const futureAvailabilities = await tx.availability.findMany({
+              where: {
+                OR: [
+                  {
+                    recurring_availability_id: parentId,
+                    start_date: {
+                      gte: availability.start_date,
+                    },
+                  },
+                  {
+                    id: availability.id, // Include the current one
+                  },
+                  {
+                    // If this is the parent, include it and its future children
+                    AND: [
+                      { id: parentId },
+                      { start_date: { gte: availability.start_date } },
+                    ],
+                  },
+                ],
+              },
+              select: { id: true },
+            });
+            availabilityIds = futureAvailabilities.map((a) => a.id);
+            break;
+          }
+
+          case "all": {
+            // Update all availabilities in the series including the parent
+            const allAvailabilities = await tx.availability.findMany({
+              where: {
+                OR: [{ recurring_availability_id: parentId }, { id: parentId }],
+              },
+              select: { id: true },
+            });
+            availabilityIds = allAvailabilities.map((a) => a.id);
+            break;
+          }
+
+          default:
+            // Default to single update
+            availabilityIds = [id];
+        }
+
+        // Update all selected availabilities
+        for (const availId of availabilityIds) {
+          const updated = await tx.availability.update({
+            where: { id: availId },
+            data,
+            select: {
+              id: true,
+              clinician_id: true,
+              title: true,
+              start_date: true,
+              end_date: true,
+              location_id: true,
+              allow_online_requests: true,
+              is_recurring: true,
+              recurring_rule: true,
+              created_at: true,
+              updated_at: true,
+            },
+          });
+          updatedAvailabilities.push(updated);
+        }
+
+        // Update services for all affected availabilities
+        if (selectedServices.length > 0) {
+          // Delete existing services
+          await tx.availabilityServices.deleteMany({
+            where: {
+              availability_id: {
+                in: availabilityIds,
+              },
+            },
+          });
+
+          // Create new services
+          const availabilityServicesData = availabilityIds.flatMap(
+            (availabilityId) =>
+              selectedServices.map((serviceId: string) => ({
+                availability_id: availabilityId,
+                service_id: serviceId,
+              })),
+          );
+
+          await tx.availabilityServices.createMany({
+            data: availabilityServicesData,
+          });
+        }
+
+        return {
+          availabilities: updatedAvailabilities,
+          updatedCount: updatedAvailabilities.length,
+        };
+      });
+
+      logger.info(
+        `Updated ${result.updatedCount} availabilities with editOption: ${editOption}`,
+      );
+
+      // Map location_id to location for frontend compatibility
+      const mappedAvailabilities = result.availabilities.map(
+        (availability) => ({
+          ...availability,
+          location: availability.location_id,
+        }),
+      );
+
+      return NextResponse.json({
+        availabilities: mappedAvailabilities,
+        updatedCount: result.updatedCount,
+        message: `Successfully updated ${result.updatedCount} availability${result.updatedCount > 1 ? " instances" : ""}`,
+      });
+    } else {
+      // For non-recurring availabilities or when editOption is not specified
+      // Use a transaction to update availability and related services
+      const result = await prisma.$transaction(async (tx) => {
+        // Update the availability
+        const updated = await tx.availability.update({
+          where: { id },
+          data,
+          select: {
+            id: true,
+            clinician_id: true,
+            title: true,
+            start_date: true,
+            end_date: true,
+            location_id: true,
+            allow_online_requests: true,
+            is_recurring: true,
+            recurring_rule: true,
+            created_at: true,
+            updated_at: true,
+          },
+        });
+
+        // Update services if provided
+        if (selectedServices.length > 0) {
+          // Delete existing services
+          await tx.availabilityServices.deleteMany({
+            where: {
+              availability_id: id,
+            },
+          });
+
+          // Create new services
+          const availabilityServicesData = selectedServices.map(
+            (serviceId: string) => ({
+              availability_id: id,
+              service_id: serviceId,
+            }),
+          );
+
+          await tx.availabilityServices.createMany({
+            data: availabilityServicesData,
+          });
+        }
+
+        return updated;
+      });
+
+      // Map location_id to location for frontend compatibility
+      const mappedResult = {
+        ...result,
+        location: result.location_id,
+      };
+
+      return NextResponse.json(mappedResult);
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -785,7 +1006,7 @@ export async function DELETE(request: NextRequest) {
       }
 
       // Check if the relationship exists
-      const existingRelation = await prisma.AvailabilityServices.findUnique({
+      const existingRelation = await prisma.availabilityServices.findUnique({
         where: {
           availability_id_service_id: {
             availability_id: id,
@@ -802,7 +1023,7 @@ export async function DELETE(request: NextRequest) {
       }
 
       // Delete the availability-service relationship
-      await prisma.AvailabilityServices.delete({
+      await prisma.availabilityServices.delete({
         where: {
           availability_id_service_id: {
             availability_id: id,
@@ -899,7 +1120,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         // Delete all related AvailabilityServices records
-        await tx.AvailabilityServices.deleteMany({
+        await tx.availabilityServices.deleteMany({
           where: {
             availability_id: {
               in: availabilityIds,
@@ -921,7 +1142,7 @@ export async function DELETE(request: NextRequest) {
       // Use a transaction to delete availability and related services
       await prisma.$transaction(async (tx) => {
         // First, delete all related AvailabilityServices records
-        await tx.AvailabilityServices.deleteMany({
+        await tx.availabilityServices.deleteMany({
           where: {
             availability_id: id,
           },
