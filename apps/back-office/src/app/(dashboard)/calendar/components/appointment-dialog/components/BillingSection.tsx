@@ -125,7 +125,17 @@ export function BillingSection({
             );
           }
         })()}
-        <p className="text-[14px] text-[#717171] underline pt-3 ">
+        <p
+          className="text-[14px] text-[#0a96d4] underline pt-3 cursor-pointer hover:text-[#0884ba]"
+          onClick={() => {
+            const clientGroupId =
+              appointmentData?.client_group_id ||
+              appointmentData?.ClientGroup?.id;
+            if (clientGroupId) {
+              router.push(`/clients/${clientGroupId}?tab=billing`);
+            }
+          }}
+        >
           Client Balance: ${clientBalance.toFixed(2)}
         </p>
       </div>

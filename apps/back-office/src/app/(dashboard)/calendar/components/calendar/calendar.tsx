@@ -283,6 +283,7 @@ export function CalendarView({
               AppointmentTag?: Array<{
                 Tag: { name: string };
               }>;
+              Invoice?: Array<{ id: string; status: string }>;
             },
           ) => ({
             id: appointment.id,
@@ -296,6 +297,8 @@ export function CalendarView({
               isFirstAppointmentForGroup:
                 appointment.isFirstAppointmentForGroup,
               appointmentTags: appointment.AppointmentTag || [],
+              hasInvoice: appointment.Invoice && appointment.Invoice.length > 0,
+              invoices: appointment.Invoice || [],
             },
           }),
         );
@@ -571,6 +574,8 @@ export function CalendarView({
         extendedProps: {
           type: "appointment" as const,
           appointmentTags: appointment.AppointmentTag || [],
+          hasInvoice: appointment.Invoice && appointment.Invoice.length > 0,
+          invoices: appointment.Invoice || [],
         },
       }));
 
@@ -872,6 +877,7 @@ export function CalendarView({
             AppointmentTag?: Array<{
               Tag: { name: string };
             }>;
+            Invoice?: Array<{ id: string; status: string }>;
           },
         ) => ({
           id: appointment.id,
@@ -884,6 +890,8 @@ export function CalendarView({
             type: "appointment" as const,
             isFirstAppointmentForGroup: appointment.isFirstAppointmentForGroup,
             appointmentTags: appointment.AppointmentTag || [],
+            hasInvoice: appointment.Invoice && appointment.Invoice.length > 0,
+            invoices: appointment.Invoice || [],
           },
         }),
       );
@@ -1202,7 +1210,7 @@ export function CalendarView({
   // View handling functions
   const handleViewChange = (newView: string) => {
     // For non-admin users, don't allow resourceTimeGrid views
-    if (!isAdmin && newView.startsWith("resourceTimeGrid")) {
+    if (newView.startsWith("resourceTimeGrid")) {
       newView = newView.replace("resourceTimeGrid", "timeGrid");
     }
 
@@ -1384,6 +1392,14 @@ export function CalendarView({
               []) as Array<{
               Tag: { name: string };
             }>;
+            const _hasInvoice = arg.event.extendedProps?.hasInvoice as
+              | boolean
+              | undefined;
+            const _invoices = (arg.event.extendedProps?.invoices ||
+              []) as Array<{
+              id: string;
+              status: string;
+            }>;
 
             // Check if current view is a week view
             const isWeekView = currentView.includes("Week");
@@ -1559,6 +1575,12 @@ export function CalendarView({
               info.el.addEventListener("mouseleave", () => {
                 info.el.classList.replace("opacity-100", "opacity-85");
               });
+            } else {
+              // Style regular appointments with greenish background
+              info.el.style.backgroundColor = "#e6f4ea";
+              info.el.style.borderLeft = "3px solid #0f9d58";
+              info.el.style.borderRadius = "4px";
+              info.el.classList.add("hover:shadow-md", "transition-shadow");
             }
           }}
           eventDisplay="block"

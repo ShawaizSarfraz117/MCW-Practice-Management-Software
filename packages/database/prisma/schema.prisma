@@ -111,8 +111,12 @@ model Availability {
   /// Whether clients can request appointments during this time via portal.
   allow_online_requests Boolean                @default(false, map: "DF_Availability_AllowOnlineRequests")
   location_id           String                 @db.UniqueIdentifier
+  /// For recurring availabilities: NULL if this is the parent/template, or parent's ID if this is a child instance.
+  recurring_availability_id String?            @db.UniqueIdentifier
   Clinician             Clinician              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Clinician")
   Location              Location               @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Location")
+  Availability          Availability?         @relation("AvailabilityToAvailability", fields: [recurring_availability_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Availability_RecurringAvailability")
+  other_Availability    Availability[]        @relation("AvailabilityToAvailability")
   AvailabilityServices  AvailabilityServices[]
 
   @@index([clinician_id], map: "IX_Availability_clinician_id")

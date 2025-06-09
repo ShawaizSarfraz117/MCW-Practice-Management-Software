@@ -75,7 +75,7 @@ export function AppointmentSidebar({
   const [searchTerm, setSearchTerm] = useState("");
   const [availabilityId, setAvailabilityId] = useState<string | null>(null);
   const [preSelectedServices, setPreSelectedServices] = useState<string[]>([]);
-  const [removedAutoServices, setRemovedAutoServices] = useState<string[]>([]);
+  const [_removedAutoServices, setRemovedAutoServices] = useState<string[]>([]);
 
   const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
     useFormTabs(selectedResource, selectedDate);
@@ -206,9 +206,9 @@ export function AppointmentSidebar({
         isRecurring: availabilityData.is_recurring || false,
       }));
     }
-  }, [open, availabilityData, isEditMode]);
+  }, [open, availabilityData, isEditMode, setAvailabilityFormValues]);
 
-  const { data: services = [], isLoading: isLoadingServices } = useQuery<
+  const { data: _services = [], isLoading: isLoadingServices } = useQuery<
     DetailedService[]
   >({
     queryKey: ["services", availabilityFormValues.clinician],
@@ -395,12 +395,7 @@ export function AppointmentSidebar({
         allow_online_requests: allowOnlineRequests,
         is_recurring: isRecurring,
         recurring_rule: isRecurring ? createRecurringRule() : null,
-        selectedServices: [
-          ...services
-            .filter((s: DetailedService) => !removedAutoServices.includes(s.id))
-            .map((s) => s.id),
-          ...preSelectedServices,
-        ],
+        selectedServices: preSelectedServices,
       };
 
       const response = await fetch("/api/availability", {
@@ -773,16 +768,13 @@ export function AppointmentSidebar({
                     validationState.location && "border-red-500",
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#16A34A]" />
-                    <SelectValue
-                      placeholder={
-                        isLoadingLocations
-                          ? "Loading locations..."
-                          : "Select a location *"
-                      }
-                    />
-                  </div>
+                  <SelectValue
+                    placeholder={
+                      isLoadingLocations
+                        ? "Loading locations..."
+                        : "Select a location *"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map((location: Location) => (
@@ -798,265 +790,298 @@ export function AppointmentSidebar({
               />
             </div>
 
-            {/* Services Section */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-base font-medium">Services</h3>
-              </div>
+            {/* Services Section - only show when online requests are allowed */}
+            {allowOnlineRequests && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-base font-medium">Services</h3>
+                </div>
 
-              <div className="text-sm text-gray-600">
-                Add services that are set up for online requests.{" "}
-                <button
-                  className="text-[#16A34A] hover:underline"
-                  onClick={() => {
-                    /* Add manage service settings handler */
-                  }}
-                >
-                  Manage service settings
-                </button>
-              </div>
+                <div className="text-sm text-gray-600">
+                  Add services that are set up for online requests.{" "}
+                  <button
+                    className="text-[#16A34A] hover:underline"
+                    onClick={() => {
+                      /* Add manage service settings handler */
+                    }}
+                  >
+                    Manage service settings
+                  </button>
+                </div>
 
-              {availabilityId ? (
-                isLoadingAvailabilityServices ? (
+                {availabilityId ? (
+                  isLoadingAvailabilityServices ? (
+                    <div className="text-center py-4 text-gray-500">
+                      Loading availability services...
+                    </div>
+                  ) : availabilityServices.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">
+                      No services added to this availability yet
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium text-gray-700">
+                        Added Services:
+                      </div>
+                      {availabilityServices.map(
+                        (service: AvailabilityService) => (
+                          <div
+                            key={service.id}
+                            className="flex items-center justify-between p-4 border rounded-lg bg-green-50 border-green-200"
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium">
+                                {service.code} {service.type}
+                              </div>
+                              <div className="text-sm text-gray-600 flex items-center gap-2">
+                                <span>{service.duration} min</span>
+                                <span>•</span>
+                                <span>
+                                  ${service.defaultRate || service.rate}
+                                </span>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                handleRemoveServiceFromAvailability(service.id)
+                              }
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )
+                ) : isLoadingServices ? (
                   <div className="text-center py-4 text-gray-500">
-                    Loading availability services...
+                    Loading services...
                   </div>
-                ) : availabilityServices.length === 0 ? (
+                ) : !availabilityFormValues.clinician ? (
+                  <div className="text-center py-4 text-gray-500">
+                    No team member selected from calendar
+                  </div>
+                ) : preSelectedServices.length === 0 ? (
                   <div className="text-center py-4 text-gray-500">
                     No services added to this availability yet
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="text-sm font-medium text-gray-700">
-                      Added Services:
-                    </div>
-                    {availabilityServices.map(
-                      (service: AvailabilityService) => (
-                        <div
-                          key={service.id}
-                          className="flex items-center justify-between p-4 border rounded-lg bg-green-50 border-green-200"
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium">
-                              {service.code} {service.type}
-                            </div>
-                            <div className="text-sm text-gray-600 flex items-center gap-2">
-                              <span>{service.duration} min</span>
-                              <span>•</span>
-                              <span>
-                                ${service.defaultRate || service.rate}
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              handleRemoveServiceFromAvailability(service.id)
-                            }
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )
-              ) : isLoadingServices ? (
-                <div className="text-center py-4 text-gray-500">
-                  Loading services...
-                </div>
-              ) : !availabilityFormValues.clinician ? (
-                <div className="text-center py-4 text-gray-500">
-                  No team member selected from calendar
-                </div>
-              ) : services.length === 0 && preSelectedServices.length === 0 ? (
-                <div className="text-center py-4 text-gray-500">
-                  No services available for online requests for the selected
-                  team member
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {[
-                    ...services.filter(
-                      (s: DetailedService) =>
-                        !removedAutoServices.includes(s.id),
-                    ),
-                    ...allServices.filter((s: DetailedService) =>
-                      preSelectedServices.includes(s.id),
-                    ),
-                  ].map((service: DetailedService) => {
-                    const serviceData = {
-                      id: service.id,
-                      code: service.code,
-                      type: service.type,
-                      duration: service.duration,
-                      rate: service.defaultRate || service.rate,
-                      isCustomRate: !!service.customRate,
-                      isActive: service.isActive !== false,
-                    };
+                    {allServices
+                      .filter((s: DetailedService) =>
+                        preSelectedServices.includes(s.id),
+                      )
+                      .map((service: DetailedService) => {
+                        const serviceData = {
+                          id: service.id,
+                          code: service.code,
+                          type: service.type,
+                          duration: service.duration,
+                          rate: service.defaultRate || service.rate,
+                          isCustomRate: !!service.customRate,
+                          isActive: service.isActive !== false,
+                        };
 
-                    return (
-                      <div
-                        key={serviceData.id}
-                        className={cn(
-                          "flex items-center justify-between p-4 border rounded-lg",
-                          !serviceData.isActive && "opacity-50 bg-gray-50",
-                        )}
-                      >
-                        <div className="flex-1">
-                          <div className="font-medium">
-                            {serviceData.code} {serviceData.type}
-                            {!serviceData.isActive && (
-                              <span className="ml-2 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                                Inactive
-                              </span>
+                        return (
+                          <div
+                            key={serviceData.id}
+                            className={cn(
+                              "flex items-center justify-between p-4 border rounded-lg",
+                              !serviceData.isActive && "opacity-50 bg-gray-50",
                             )}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium">
+                                {serviceData.code} {serviceData.type}
+                                {!serviceData.isActive && (
+                                  <span className="ml-2 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                                    Inactive
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-600 flex items-center gap-2">
+                                <span>{serviceData.duration} min</span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  ${serviceData.rate}
+                                </span>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                if (
+                                  preSelectedServices.includes(serviceData.id)
+                                ) {
+                                  // Remove from pre-selected services
+                                  setPreSelectedServices((prev) =>
+                                    prev.filter((id) => id !== serviceData.id),
+                                  );
+                                } else {
+                                  // This is an auto-added service, add it to removed list
+                                  setRemovedAutoServices((prev) => [
+                                    ...prev,
+                                    serviceData.id,
+                                  ]);
+                                }
+                              }}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
                           </div>
-                          <div className="text-sm text-gray-600 flex items-center gap-2">
-                            <span>{serviceData.duration} min</span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              ${serviceData.rate}
-                            </span>
+                        );
+                      })}
+                  </div>
+                )}
+
+                <div className="relative service-dropdown-container">
+                  <button
+                    className="inline-flex items-center gap-2 px-3 py-2 text-left text-gray-600 bg-[#E5E7EB] rounded-md"
+                    type="button"
+                    onClick={() => setShowServiceDropdown(!showServiceDropdown)}
+                  >
+                    <span>Add service</span>
+                  </button>
+
+                  {showServiceDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-96 overflow-hidden">
+                      {/* Header with title */}
+                      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                        <h3 className="text-sm font-semibold text-gray-900">
+                          Add Service
+                        </h3>
+                      </div>
+
+                      {/* Search Input */}
+                      <div className="p-4 border-b border-gray-100">
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg
+                              className="h-4 w-4 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                              />
+                            </svg>
                           </div>
+                          <Input
+                            className="!pl-8 w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                            placeholder="Search"
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                          />
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (preSelectedServices.includes(serviceData.id)) {
-                              // Remove from pre-selected services
-                              setPreSelectedServices((prev) =>
-                                prev.filter((id) => id !== serviceData.id),
-                              );
-                            } else {
-                              // This is an auto-added service, add it to removed list
-                              setRemovedAutoServices((prev) => [
-                                ...prev,
-                                serviceData.id,
-                              ]);
-                            }
-                          }}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
 
-              <div className="relative service-dropdown-container">
-                <button
-                  className="inline-flex items-center gap-2 px-3 py-2 text-left text-gray-600 bg-[#E5E7EB] rounded-md"
-                  type="button"
-                  onClick={() => setShowServiceDropdown(!showServiceDropdown)}
-                >
-                  <span>Add service</span>
-                </button>
-
-                {showServiceDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-96 overflow-hidden">
-                    {/* Header with title */}
-                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                      <h3 className="text-sm font-semibold text-gray-900">
-                        Add Service
-                      </h3>
-                    </div>
-
-                    {/* Search Input */}
-                    <div className="p-4 border-b border-gray-100">
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <svg
-                            className="h-4 w-4 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                            />
-                          </svg>
+                      {isLoadingAllServices ? (
+                        <div className="px-4 py-8 text-center">
+                          <div className="text-gray-400 mb-2">
+                            <svg
+                              className="h-8 w-8 mx-auto animate-spin"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                              />
+                            </svg>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            Loading services...
+                          </p>
                         </div>
-                        <Input
-                          className="!pl-8 w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                          placeholder="Search"
-                          type="text"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                      </div>
-                    </div>
+                      ) : allServices.length === 0 ? (
+                        <div className="px-4 py-8 text-center">
+                          <div className="text-gray-400 mb-2">
+                            <svg
+                              className="h-8 w-8 mx-auto"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                              />
+                            </svg>
+                          </div>
+                          <p className="text-sm font-medium text-gray-700">
+                            No services available
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            No services found for the selected team member
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="max-h-64 overflow-y-auto">
+                          {!availabilityId &&
+                            allServices.filter(
+                              (service: DetailedService) =>
+                                searchTerm === "" ||
+                                service.code
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase()) ||
+                                service.type
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase()),
+                            ).length > 0 && (
+                              <div className="px-4 py-2 bg-[#2D84671A] border-b border-blue-100">
+                                <button
+                                  className="w-full text-left py-2 px-3  rounded-lg text-[#2D8467] font-medium text-sm transition-colors duration-150"
+                                  type="button"
+                                  onClick={() => {
+                                    const filteredServices = allServices.filter(
+                                      (service: DetailedService) =>
+                                        searchTerm === "" ||
+                                        service.code
+                                          .toLowerCase()
+                                          .includes(searchTerm.toLowerCase()) ||
+                                        service.type
+                                          .toLowerCase()
+                                          .includes(searchTerm.toLowerCase()),
+                                    );
+                                    filteredServices.forEach(
+                                      (service: DetailedService) => {
+                                        if (
+                                          !preSelectedServices.includes(
+                                            service.id,
+                                          )
+                                        ) {
+                                          handlePreSelectService(service.id);
+                                        }
+                                      },
+                                    );
+                                    setShowServiceDropdown(false);
+                                    setSearchTerm("");
+                                  }}
+                                >
+                                  Add all services
+                                </button>
+                              </div>
+                            )}
 
-                    {isLoadingAllServices ? (
-                      <div className="px-4 py-8 text-center">
-                        <div className="text-gray-400 mb-2">
-                          <svg
-                            className="h-8 w-8 mx-auto animate-spin"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                            />
-                          </svg>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          Loading services...
-                        </p>
-                      </div>
-                    ) : allServices.length === 0 ? (
-                      <div className="px-4 py-8 text-center">
-                        <div className="text-gray-400 mb-2">
-                          <svg
-                            className="h-8 w-8 mx-auto"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                            />
-                          </svg>
-                        </div>
-                        <p className="text-sm font-medium text-gray-700">
-                          No services available
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          No services found for the selected team member
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="max-h-64 overflow-y-auto">
-                        {!availabilityId &&
-                          allServices.filter(
-                            (service: DetailedService) =>
-                              searchTerm === "" ||
-                              service.code
-                                .toLowerCase()
-                                .includes(searchTerm.toLowerCase()) ||
-                              service.type
-                                .toLowerCase()
-                                .includes(searchTerm.toLowerCase()),
-                          ).length > 0 && (
-                            <div className="px-4 py-2 bg-[#2D84671A] border-b border-blue-100">
-                              <button
-                                className="w-full text-left py-2 px-3  rounded-lg text-[#2D8467] font-medium text-sm transition-colors duration-150"
-                                type="button"
-                                onClick={() => {
-                                  const filteredServices = allServices.filter(
+                          {/* Services list */}
+                          <div className="py-2">
+                            {availabilityId
+                              ? // After availability is created - show all services with disabled state for added ones
+                                allServices
+                                  .filter(
                                     (service: DetailedService) =>
                                       searchTerm === "" ||
                                       service.code
@@ -1065,118 +1090,214 @@ export function AppointmentSidebar({
                                       service.type
                                         .toLowerCase()
                                         .includes(searchTerm.toLowerCase()),
-                                  );
-                                  filteredServices.forEach(
-                                    (service: DetailedService) => {
-                                      if (
-                                        !preSelectedServices.includes(
-                                          service.id,
-                                        )
-                                      ) {
-                                        handlePreSelectService(service.id);
-                                      }
-                                    },
-                                  );
-                                  setShowServiceDropdown(false);
-                                  setSearchTerm("");
-                                }}
-                              >
-                                Add all services
-                              </button>
-                            </div>
-                          )}
-
-                        {/* Services list */}
-                        <div className="py-2">
-                          {availabilityId
-                            ? // After availability is created - show services not yet added
-                              allServices
-                                .filter(
-                                  (service: DetailedService) =>
-                                    !availabilityServices.some(
-                                      (as: AvailabilityService) =>
-                                        as.id === service.id,
-                                    ),
-                                )
-                                .filter(
-                                  (service: DetailedService) =>
-                                    searchTerm === "" ||
-                                    service.code
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()) ||
-                                    service.type
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()),
-                                )
-                                .map((service: DetailedService) => (
-                                  <button
-                                    key={service.id}
-                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors duration-150"
-                                    onClick={() => {
-                                      handleAddServiceToAvailability(
-                                        service.id,
+                                  )
+                                  .map((service: DetailedService) => {
+                                    const isAlreadyAdded =
+                                      availabilityServices.some(
+                                        (as: AvailabilityService) =>
+                                          as.id === service.id,
                                       );
-                                      setShowServiceDropdown(false);
-                                      setSearchTerm("");
-                                    }}
-                                  >
-                                    <div className="text-gray-900 text-sm">
-                                      {service.code} {service.type}
-                                      {service.duration && (
-                                        <span className="text-gray-500">
-                                          , {service.duration} min
-                                        </span>
-                                      )}
-                                    </div>
-                                  </button>
-                                ))
-                            : // Before availability is created - show all services that can be selected
-                              allServices
-                                .filter(
-                                  (service: DetailedService) =>
-                                    searchTerm === "" ||
-                                    service.code
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()) ||
-                                    service.type
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()),
-                                )
-                                .map((service: DetailedService) => (
-                                  <button
-                                    key={service.id}
-                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors duration-150"
-                                    onClick={() => {
-                                      handlePreSelectService(service.id);
-                                      setShowServiceDropdown(false);
-                                      setSearchTerm("");
-                                    }}
-                                  >
-                                    <div className="text-gray-900 text-sm">
-                                      {service.code} {service.type}
-                                      {service.duration && (
-                                        <span className="text-gray-500">
-                                          , {service.duration} min
-                                        </span>
-                                      )}
-                                    </div>
-                                  </button>
-                                ))}
 
-                          {/* No results message */}
-                          {allServices.filter(
-                            (service: DetailedService) =>
-                              searchTerm === "" ||
-                              service.code
-                                .toLowerCase()
-                                .includes(searchTerm.toLowerCase()) ||
-                              service.type
-                                .toLowerCase()
-                                .includes(searchTerm.toLowerCase()),
-                          ).length === 0 &&
-                            searchTerm !== "" && (
+                                    return (
+                                      <button
+                                        key={service.id}
+                                        className={cn(
+                                          "w-full text-left px-4 py-3 transition-colors duration-150 border-b border-gray-50 last:border-b-0",
+                                          isAlreadyAdded
+                                            ? "bg-gray-50 cursor-not-allowed"
+                                            : "hover:bg-gray-50 cursor-pointer",
+                                        )}
+                                        disabled={isAlreadyAdded}
+                                        onClick={() => {
+                                          if (!isAlreadyAdded) {
+                                            handleAddServiceToAvailability(
+                                              service.id,
+                                            );
+                                            setShowServiceDropdown(false);
+                                            setSearchTerm("");
+                                          }
+                                        }}
+                                      >
+                                        <div className="flex items-start justify-between">
+                                          <div className="flex-1">
+                                            <div
+                                              className={cn(
+                                                "font-medium text-sm",
+                                                isAlreadyAdded
+                                                  ? "text-gray-500"
+                                                  : "text-gray-900",
+                                              )}
+                                            >
+                                              {service.code} {service.type}
+                                            </div>
+                                            {service.duration && (
+                                              <div
+                                                className={cn(
+                                                  "text-xs mt-1",
+                                                  isAlreadyAdded
+                                                    ? "text-gray-400"
+                                                    : "text-gray-500",
+                                                )}
+                                              >
+                                                {service.duration} minutes
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {service.defaultRate ||
+                                            service.rate ||
+                                            service.effectiveRate ? (
+                                              <div
+                                                className={cn(
+                                                  "text-sm font-medium",
+                                                  isAlreadyAdded
+                                                    ? "text-gray-400"
+                                                    : "text-gray-700",
+                                                )}
+                                              >
+                                                $
+                                                {service.effectiveRate ||
+                                                  service.defaultRate ||
+                                                  service.rate}
+                                              </div>
+                                            ) : null}
+                                          </div>
+                                        </div>
+                                      </button>
+                                    );
+                                  })
+                              : // Before availability is created - show all services with disabled state for pre-selected ones
+                                allServices
+                                  .filter(
+                                    (service: DetailedService) =>
+                                      searchTerm === "" ||
+                                      service.code
+                                        .toLowerCase()
+                                        .includes(searchTerm.toLowerCase()) ||
+                                      service.type
+                                        .toLowerCase()
+                                        .includes(searchTerm.toLowerCase()),
+                                  )
+                                  .map((service: DetailedService) => {
+                                    const isAlreadyAdded =
+                                      preSelectedServices.includes(service.id);
+
+                                    return (
+                                      <button
+                                        key={service.id}
+                                        className={cn(
+                                          "w-full text-left px-4 py-3 transition-colors duration-150 border-b border-gray-50 last:border-b-0",
+                                          isAlreadyAdded
+                                            ? "bg-gray-50 cursor-not-allowed"
+                                            : "hover:bg-gray-50 cursor-pointer",
+                                        )}
+                                        disabled={isAlreadyAdded}
+                                        onClick={() => {
+                                          if (!isAlreadyAdded) {
+                                            handlePreSelectService(service.id);
+                                            setShowServiceDropdown(false);
+                                            setSearchTerm("");
+                                          }
+                                        }}
+                                      >
+                                        <div className="flex items-start justify-between">
+                                          <div className="flex-1">
+                                            <div
+                                              className={cn(
+                                                "font-medium text-sm",
+                                                isAlreadyAdded
+                                                  ? "text-gray-500"
+                                                  : "text-gray-900",
+                                              )}
+                                            >
+                                              {service.code} {service.type}
+                                            </div>
+                                            {service.duration && (
+                                              <div
+                                                className={cn(
+                                                  "text-xs mt-1",
+                                                  isAlreadyAdded
+                                                    ? "text-gray-400"
+                                                    : "text-gray-500",
+                                                )}
+                                              >
+                                                {service.duration} minutes
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {service.defaultRate ||
+                                            service.rate ||
+                                            service.effectiveRate ? (
+                                              <div
+                                                className={cn(
+                                                  "text-sm font-medium",
+                                                  isAlreadyAdded
+                                                    ? "text-gray-400"
+                                                    : "text-gray-700",
+                                                )}
+                                              >
+                                                $
+                                                {service.effectiveRate ||
+                                                  service.defaultRate ||
+                                                  service.rate}
+                                              </div>
+                                            ) : null}
+                                          </div>
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+
+                            {/* No results message */}
+                            {allServices.filter(
+                              (service: DetailedService) =>
+                                searchTerm === "" ||
+                                service.code
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase()) ||
+                                service.type
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase()),
+                            ).length === 0 &&
+                              searchTerm !== "" && (
+                                <div className="px-4 py-8 text-center">
+                                  <div className="text-gray-400 mb-2">
+                                    <svg
+                                      className="h-8 w-8 mx-auto"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                      />
+                                    </svg>
+                                  </div>
+                                  <p className="text-sm text-gray-500">
+                                    No services found matching
+                                  </p>
+                                  <p className="text-sm font-medium text-gray-700">
+                                    "{searchTerm}"
+                                  </p>
+                                </div>
+                              )}
+                          </div>
+
+                          {/* All services already added message */}
+                          {availabilityId &&
+                            allServices.filter(
+                              (service: DetailedService) =>
+                                !availabilityServices.some(
+                                  (as: AvailabilityService) =>
+                                    as.id === service.id,
+                                ),
+                            ).length === 0 && (
                               <div className="px-4 py-8 text-center">
-                                <div className="text-gray-400 mb-2">
+                                <div className="text-green-400 mb-2">
                                   <svg
                                     className="h-8 w-8 mx-auto"
                                     fill="none"
@@ -1184,66 +1305,32 @@ export function AppointmentSidebar({
                                     viewBox="0 0 24 24"
                                   >
                                     <path
-                                      d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                                       strokeLinecap="round"
                                       strokeLinejoin="round"
                                       strokeWidth={2}
                                     />
                                   </svg>
                                 </div>
-                                <p className="text-sm text-gray-500">
-                                  No services found matching
-                                </p>
                                 <p className="text-sm font-medium text-gray-700">
-                                  "{searchTerm}"
+                                  All services added
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  All available services have been added to this
+                                  availability
                                 </p>
                               </div>
                             )}
+
+                          {/* Bottom spacing */}
+                          <div className="h-4" />
                         </div>
-
-                        {/* All services already added message */}
-                        {availabilityId &&
-                          allServices.filter(
-                            (service: DetailedService) =>
-                              !availabilityServices.some(
-                                (as: AvailabilityService) =>
-                                  as.id === service.id,
-                              ),
-                          ).length === 0 && (
-                            <div className="px-4 py-8 text-center">
-                              <div className="text-green-400 mb-2">
-                                <svg
-                                  className="h-8 w-8 mx-auto"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                  />
-                                </svg>
-                              </div>
-                              <p className="text-sm font-medium text-gray-700">
-                                All services added
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                All available services have been added to this
-                                availability
-                              </p>
-                            </div>
-                          )}
-
-                        {/* Bottom spacing */}
-                        <div className="h-4" />
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {generalError && (
               <div className="text-red-500 text-sm">{generalError}</div>

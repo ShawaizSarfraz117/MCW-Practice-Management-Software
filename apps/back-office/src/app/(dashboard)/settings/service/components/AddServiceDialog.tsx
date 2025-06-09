@@ -153,7 +153,7 @@ const AddServiceDialog = ({
     if (isOpen) {
       resetForm();
     }
-  }, [isOpen]);
+  }, [isOpen, resetForm]);
 
   return (
     <Dialog
@@ -299,10 +299,10 @@ const AddServiceDialog = ({
                 children={(field) => (
                   <Input
                     className="text-[#374151] text-[14px] w-[340px] h-[35px]"
+                    placeholder="0"
                     type="number"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="0"
                     // step="0.01"
                   />
                 )}
