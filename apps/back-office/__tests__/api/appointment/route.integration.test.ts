@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { prisma } from "@mcw/database";
-import type { User, Clinician, ClientGroup, Location, PracticeService } from "@mcw/database";
+import type {
+  User,
+  Clinician,
+  ClientGroup,
+  Location,
+  PracticeService,
+} from "@mcw/database";
 import { cleanupDatabase } from "@mcw/database/test-utils";
 import { createRequest, createRequestWithBody, generateUUID } from "@mcw/utils";
 import { GET, POST, PUT, DELETE } from "@/api/appointment/route";
@@ -40,11 +46,15 @@ describe("Appointment API Integration Tests", () => {
     testService = await prisma.practiceService.create({
       data: PracticeServiceFactory.build(),
     });
-    
+
     // Create default tags
     await Promise.all([
-      prisma.tag.create({ data: TagFactory.build({ name: "Appointment Paid" }) }),
-      prisma.tag.create({ data: TagFactory.build({ name: "Appointment Unpaid" }) }),
+      prisma.tag.create({
+        data: TagFactory.build({ name: "Appointment Paid" }),
+      }),
+      prisma.tag.create({
+        data: TagFactory.build({ name: "Appointment Unpaid" }),
+      }),
       prisma.tag.create({ data: TagFactory.build({ name: "Note Added" }) }),
       prisma.tag.create({ data: TagFactory.build({ name: "No Note" }) }),
     ]);
@@ -134,7 +144,7 @@ describe("Appointment API Integration Tests", () => {
 
       // Test filtering by date range
       const request = createRequest(
-        `/api/appointment?startDate=2024-01-14&endDate=2024-01-16`
+        `/api/appointment?startDate=2024-01-14&endDate=2024-01-16`,
       );
       const response = await GET(request);
       const data = await response.json();
@@ -186,11 +196,13 @@ describe("Appointment API Integration Tests", () => {
 
       const response2 = await GET(request);
       const data2 = await response2.json();
-      
+
       // The second appointment added should have isFirstAppointmentForGroup = false
       // The response is sorted by start_date, so we need to check the proper one
-      const secondAppointment = data2.find((apt: { start_date: string | Date }) => 
-        new Date(apt.start_date).getTime() === new Date("2024-01-20T10:00:00Z").getTime()
+      const secondAppointment = data2.find(
+        (apt: { start_date: string | Date }) =>
+          new Date(apt.start_date).getTime() ===
+          new Date("2024-01-20T10:00:00Z").getTime(),
       );
       expect(secondAppointment.isFirstAppointmentForGroup).toBe(false);
     });
@@ -209,7 +221,10 @@ describe("Appointment API Integration Tests", () => {
         service_id: testService.id,
       };
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -237,7 +252,10 @@ describe("Appointment API Integration Tests", () => {
         created_by: testUser.id,
       };
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -259,7 +277,10 @@ describe("Appointment API Integration Tests", () => {
         recurring_end_date: "2024-02-05",
       };
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -269,7 +290,7 @@ describe("Appointment API Integration Tests", () => {
 
       // Verify appointments were created in database
       const appointments = await prisma.appointment.findMany({
-        where: { 
+        where: {
           client_group_id: testClientGroup.id,
           is_recurring: true,
           start_date: {
@@ -310,9 +331,12 @@ describe("Appointment API Integration Tests", () => {
         created_by: testUser.id,
       };
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
-      
+
       // Should still create as the system allows overlapping appointments
       expect(response.status).toBe(201);
     });
@@ -459,7 +483,7 @@ describe("Appointment API Integration Tests", () => {
       });
 
       const request = createRequest(
-        `/api/appointment?id=${appointment.id}&deleteOption=single`
+        `/api/appointment?id=${appointment.id}&deleteOption=single`,
       );
       const response = await DELETE(request);
       const data = await response.json();
@@ -493,7 +517,7 @@ describe("Appointment API Integration Tests", () => {
           is_recurring: true,
         },
       });
-      
+
       // Create child recurring appointments
       await Promise.all([
         prisma.appointment.create({
@@ -533,21 +557,23 @@ describe("Appointment API Integration Tests", () => {
       ]);
 
       const request = createRequest(
-        `/api/appointment?id=${masterAppointment.id}&deleteOption=all`
+        `/api/appointment?id=${masterAppointment.id}&deleteOption=all`,
       );
       const response = await DELETE(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.message).toBe("All appointments in the series deleted successfully");
+      expect(data.message).toBe(
+        "All appointments in the series deleted successfully",
+      );
 
       // Verify all were deleted
       const remaining = await prisma.appointment.findMany({
-        where: { 
+        where: {
           OR: [
             { id: masterAppointment.id },
-            { recurring_appointment_id: masterAppointment.id }
-          ]
+            { recurring_appointment_id: masterAppointment.id },
+          ],
         },
       });
       expect(remaining).toHaveLength(0);

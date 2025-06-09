@@ -34,6 +34,7 @@ describe("Client Group Chart Notes API Unit Tests", () => {
     auto_monthly_superbill_enabled: false,
     first_seen_at: faker.date.recent(),
     notes: null,
+    administrative_notes: null,
     ...overrides,
   });
 

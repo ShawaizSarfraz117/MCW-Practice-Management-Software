@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
+import AdministrativeNoteCard from "./AdministrativeNoteCard";
 import ShareModal from "./ShareModal";
 
 import { Button } from "@mcw/ui";
@@ -25,6 +26,8 @@ import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
 import { useQuery } from "@tanstack/react-query";
 import { ClientInfoCard } from "./ClientInfoCard";
+import { useToast } from "@mcw/ui";
+
 import Link from "next/link";
 export function getClientGroupInfo(client: unknown) {
   if (!client) return "";
@@ -68,6 +71,14 @@ export interface InvoiceWithPayments extends Invoice {
   };
 }
 
+interface AdministrativeNote {
+  id: string;
+  content: string;
+  createdBy: string;
+  createdAt: string | Date;
+  authorName: string;
+}
+
 export default function ClientProfile({
   clientId: _clientId,
 }: ClientProfileProps) {
@@ -79,10 +90,17 @@ export default function ClientProfile({
   const [creditAmount, setCredit] = useState<number>(0);
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
   const [clientName, setClientName] = useState("");
+  const [administrativeNotes, setAdministrativeNotes] = useState<
+    AdministrativeNote[]
+  >([]);
+  const [editingNote, setEditingNote] = useState<AdministrativeNote | null>(
+    null,
+  );
   const { id } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const filesTabRef = useRef<FilesTabRef>(null);
+  const { toast } = useToast();
 
   // Helper function to get the next appointment date
   const getNextAppointmentDate = (): string | null => {
@@ -97,6 +115,19 @@ export default function ClientProfile({
     }
 
     return null;
+  };
+
+  // Fetch administrative notes
+  const fetchAdministrativeNotes = async () => {
+    try {
+      const response = await fetch(`/api/clients/${id}/administrative-notes`);
+      if (response.ok) {
+        const data = await response.json();
+        setAdministrativeNotes(data.notes || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch administrative notes:", error);
+    }
   };
 
   const { data: clientGroup } = useQuery({
@@ -137,6 +168,7 @@ export default function ClientProfile({
 
   useEffect(() => {
     fetchInvoicesData();
+    fetchAdministrativeNotes();
   }, [id]);
 
   useEffect(() => {
@@ -189,12 +221,75 @@ export default function ClientProfile({
     }, 100);
   };
 
+  const handleNoteSaved = () => {
+    fetchAdministrativeNotes();
+  };
+
+  const handleEditNote = (note: AdministrativeNote) => {
+    setEditingNote(note);
+    setAdminNoteModalOpen(true);
+  };
+
+  const handleNoteModalClose = (open: boolean) => {
+    setAdminNoteModalOpen(open);
+    if (!open) {
+      setEditingNote(null);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      const response = await fetch(
+        `/api/clients/${id}/administrative-notes/${noteId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (response.ok) {
+        setAdministrativeNotes((prev) =>
+          prev.filter((note) => note.id !== noteId),
+        );
+        toast({
+          title: "Success",
+          description: "Administrative note deleted successfully.",
+          variant: "success",
+        });
+      } else {
+        throw new Error("Failed to delete note");
+      }
+    } catch (error) {
+      console.error("Failed to delete note:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete administrative note.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddNote = () => {
+    // Prevent adding more than 1 note
+    if (administrativeNotes.length >= 1) {
+      toast({
+        title: "Limit Reached",
+        description:
+          "You can only have one administrative note. Please edit or delete the existing note.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setAdminNoteModalOpen(true);
+  };
+
   return (
     <div className="flex flex-col h-full mt-2">
       {/* Breadcrumb */}
       <AdministrativeNoteDrawer
         open={adminNoteModalOpen}
-        onOpenChange={setAdminNoteModalOpen}
+        onOpenChange={handleNoteModalClose}
+        onNoteSaved={handleNoteSaved}
+        editingNote={editingNote}
       />
       {addPaymentModalOpen && (
         <AddPaymentModal
@@ -258,18 +353,36 @@ export default function ClientProfile({
       <div className="grid grid-cols-12 flex-1">
         {/* Left Side - Tabs */}
         <div className="col-span-12 lg:col-span-8 border-t lg:border-r border-[#e5e7eb]">
-          {/* Add Administrative Note Button - Fixed at the top */}
-          <div className="hidden lg:block sticky top-0 z-10">
-            <div className="absolute right-4 top-1">
-              <Button
-                className="text-blue-500 hover:bg-blue-50"
-                variant="ghost"
-                onClick={() => setAdminNoteModalOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
-              </Button>
+          {administrativeNotes.length === 0 ? (
+            /* Add Administrative Note Button - Only when no notes */
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+              <div className="flex justify-end p-2">
+                <Button
+                  className="text-blue-500 hover:bg-blue-50"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddNote}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Administrative Notes Section - Replaces button when notes exist */
+            <div className="p-4 sm:p-6">
+              {administrativeNotes.map((note) => (
+                <AdministrativeNoteCard
+                  key={note.id}
+                  note={note}
+                  clientName={clientName}
+                  dateOfBirth="09/15/1995"
+                  onEdit={handleEditNote}
+                  onDelete={handleDeleteNote}
+                />
+              ))}
+            </div>
+          )}
+
           <Tabs
             className="w-full"
             defaultValue="measures"
@@ -351,7 +464,7 @@ export default function ClientProfile({
           <Button
             className="text-blue-500 hover:bg-blue-50 w-full justify-center"
             variant="ghost"
-            onClick={() => setAdminNoteModalOpen(true)}
+            onClick={handleAddNote}
           >
             <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
           </Button>
