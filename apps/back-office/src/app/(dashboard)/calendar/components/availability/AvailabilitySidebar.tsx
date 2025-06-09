@@ -92,7 +92,7 @@ export function AvailabilitySidebar({
   const [period, setPeriod] = useState("week");
   const [endType, setEndType] = useState("never");
   const [endValue, setEndValue] = useState<string>("");
-  const [selectedLocation, setSelectedLocation] = useState("video");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteOption, setDeleteOption] = useState<"single" | "future" | "all">(
     "single",
@@ -132,6 +132,18 @@ export function AvailabilitySidebar({
   const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
     useFormTabs(selectedResource, selectedDate);
 
+  // Fetch locations
+  const { data: locations = [] } = useQuery<Location[]>({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const response = await fetch("/api/location");
+      if (!response.ok) {
+        throw new Error("Failed to fetch locations");
+      }
+      return response.json();
+    },
+  });
+
   // Fetch all services for the dropdown
   const { data: allServices = [] } = useQuery<Service[]>({
     queryKey: [
@@ -169,7 +181,10 @@ export function AvailabilitySidebar({
       setAllowOnlineRequests(availabilityData.allow_online_requests || false);
       setIsRecurring(availabilityData.is_recurring || false);
       setTitle(availabilityData.title || "");
-      setSelectedLocation(availabilityData.location || "video");
+      // Use location_id if available, otherwise location
+      setSelectedLocation(
+        availabilityData.location_id || availabilityData.location || "",
+      );
 
       // Initialize local selected services with fetched services when in edit mode
       if (isEditMode && availabilityServices.length > 0) {
@@ -259,7 +274,8 @@ export function AvailabilitySidebar({
           : "5:00 PM",
         type: "availability",
         clinician: availabilityData.clinician_id || "",
-        location: availabilityData.location || "video",
+        location:
+          availabilityData.location_id || availabilityData.location || "",
         allowOnlineRequests: availabilityData.allow_online_requests || false,
         isRecurring: availabilityData.is_recurring || false,
         recurringRule: availabilityData.recurring_rule || undefined,
@@ -277,7 +293,7 @@ export function AvailabilitySidebar({
       setPeriod("week");
       setEndType("never");
       setEndValue("");
-      setSelectedLocation("video");
+      setSelectedLocation("");
       setLocalSelectedServices([]);
     }
   }, [open, availabilityData, setAvailabilityFormValues]);
@@ -508,7 +524,7 @@ export function AvailabilitySidebar({
           availabilityFormValues.endDate,
           availabilityFormValues.endTime,
         ),
-        location: selectedLocation,
+        location_id: selectedLocation,
         clinician_id: availabilityFormValues.clinician,
         allow_online_requests: allowOnlineRequests,
         is_recurring: isRecurring,
@@ -812,8 +828,11 @@ export function AvailabilitySidebar({
                       </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="video">Video Office</SelectItem>
-                      <SelectItem value="physical">Physical Office</SelectItem>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

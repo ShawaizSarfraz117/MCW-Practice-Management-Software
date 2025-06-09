@@ -17,7 +17,7 @@ const availabilitySchema = z.object({
   title: z.string().optional(),
   clinician_id: z.string().uuid(),
   allow_online_requests: z.boolean().default(false),
-  location_id: z.string(), // Temporarily allow non-UUID strings for "video"/"physical"
+  location_id: z.string().uuid(),
   start_date: z.string().datetime(),
   end_date: z.string().datetime(),
   is_recurring: z.boolean().default(false),
@@ -49,14 +49,6 @@ export async function POST(request: NextRequest) {
     const id = searchParams.get("id");
     const services = searchParams.get("services");
     const body = await request.json();
-
-    // Handle location mapping from frontend values to location_id
-    if (body.location && !body.location_id) {
-      // Map "video" and "physical" to a location_id
-      // Using the location value as location_id for now
-      // In a proper implementation, this would map to actual location UUIDs
-      body.location_id = body.location;
-    }
 
     // If ID and services=true, add service to availability
     if (id && services === "true") {
@@ -507,19 +499,13 @@ export async function POST(request: NextRequest) {
       `Created ${result.totalCreated} availabilities with ${result.servicesAdded} total services added`,
     );
 
-    // Map location_id to location for frontend compatibility
-    const mappedAvailabilities = result.availabilities.map((availability) => ({
-      ...availability,
-      location: availability.location_id,
-    }));
-
     // For backward compatibility with tests, return single availability if only one was created
     if (result.totalCreated === 1) {
-      return NextResponse.json(mappedAvailabilities[0]);
+      return NextResponse.json(result.availabilities[0]);
     }
 
     return NextResponse.json({
-      availabilities: mappedAvailabilities,
+      availabilities: result.availabilities,
       servicesAdded: result.servicesAdded,
       totalCreated: result.totalCreated,
       message: `Successfully created ${result.totalCreated} availability${result.totalCreated > 1 ? " instances" : ""}`,
@@ -640,6 +626,13 @@ export async function GET(request: NextRequest) {
           recurring_rule: true,
           created_at: true,
           updated_at: true,
+          Location: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+            },
+          },
         },
       });
 
@@ -650,13 +643,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Map location_id back to location for frontend compatibility
-      const response = {
-        ...availability,
-        location: availability.location_id, // Map location_id to location
-      };
-
-      return NextResponse.json(response);
+      return NextResponse.json(availability);
     }
 
     // Otherwise, handle filtering logic for multiple availabilities
@@ -693,16 +680,17 @@ export async function GET(request: NextRequest) {
         recurring_rule: true,
         created_at: true,
         updated_at: true,
+        Location: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+          },
+        },
       },
     });
 
-    // Map location_id to location for frontend compatibility
-    const mappedAvailabilities = availabilities.map((availability) => ({
-      ...availability,
-      location: availability.location_id,
-    }));
-
-    return NextResponse.json(mappedAvailabilities);
+    return NextResponse.json(availabilities);
   } catch (error) {
     logger.error({ error }, "Error fetching availabilities");
     return NextResponse.json(
@@ -733,14 +721,6 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-
-    // Handle location mapping from frontend values to location_id
-    if (body.location && !body.location_id) {
-      // Map "video" and "physical" to a location_id
-      // Using the location value as location_id for now
-      // In a proper implementation, this would map to actual location UUIDs
-      body.location_id = body.location;
-    }
 
     const validatedData = availabilitySchema.partial().parse(body);
 
@@ -894,16 +874,8 @@ export async function PUT(request: NextRequest) {
         `Updated ${result.updatedCount} availabilities with editOption: ${editOption}`,
       );
 
-      // Map location_id to location for frontend compatibility
-      const mappedAvailabilities = result.availabilities.map(
-        (availability) => ({
-          ...availability,
-          location: availability.location_id,
-        }),
-      );
-
       return NextResponse.json({
-        availabilities: mappedAvailabilities,
+        availabilities: result.availabilities,
         updatedCount: result.updatedCount,
         message: `Successfully updated ${result.updatedCount} availability${result.updatedCount > 1 ? " instances" : ""}`,
       });
@@ -955,13 +927,7 @@ export async function PUT(request: NextRequest) {
         return updated;
       });
 
-      // Map location_id to location for frontend compatibility
-      const mappedResult = {
-        ...result,
-        location: result.location_id,
-      };
-
-      return NextResponse.json(mappedResult);
+      return NextResponse.json(result);
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
