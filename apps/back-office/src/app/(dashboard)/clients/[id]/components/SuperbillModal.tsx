@@ -169,20 +169,20 @@ export function SuperbillModal({
                   <div className="grid grid-cols-5 px-4 py-3 bg-gray-50 border-b border-[#e5e7eb]">
                     <div className="flex items-center">
                       <input
-                        type="checkbox"
-                        className="mr-2 h-4 w-4"
-                        onChange={(e) => handleSelectAll(e.target.checked)}
                         checked={
                           appointments.length > 0 &&
                           selectedAppointments.length === appointments.length
                         }
+                        className="mr-2 h-4 w-4"
+                        type="checkbox"
+                        onChange={(e) => handleSelectAll(e.target.checked)}
                       />
                       <span className="font-medium">Date</span>
                     </div>
                     <div className="font-medium">Details</div>
                     <div className="font-medium">Type</div>
                     <div className="font-medium">Amount</div>
-                    <div></div>
+                    <div />
                   </div>
 
                   {/* Table Rows */}
@@ -193,17 +193,17 @@ export function SuperbillModal({
                     >
                       <div className="flex items-center">
                         <input
-                          type="checkbox"
+                          checked={selectedAppointments.includes(
+                            appointment.id,
+                          )}
                           className="mr-2 h-4 w-4"
+                          type="checkbox"
                           onChange={(e) =>
                             handleAppointmentSelection(
                               appointment.id,
                               e.target.checked,
                             )
                           }
-                          checked={selectedAppointments.includes(
-                            appointment.id,
-                          )}
                         />
                         <span>
                           {format(new Date(appointment.start_date), "MMM dd")}
@@ -212,7 +212,7 @@ export function SuperbillModal({
                       <div>{appointment.title}</div>
                       <div>Self-pay</div>
                       <div>${appointment.appointment_fee}</div>
-                      <div></div>
+                      <div />
                     </div>
                   ))}
                 </div>
@@ -225,16 +225,16 @@ export function SuperbillModal({
 
             <div className="mt-6 flex justify-end">
               <Button
-                variant="outline"
                 className="mr-2"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
               >
                 Cancel
               </Button>
               <Button
                 className="bg-[#2d8467] hover:bg-[#236c53]"
-                onClick={handleCreateSuperbill}
                 disabled={selectedAppointments.length === 0 || isSubmitting}
+                onClick={handleCreateSuperbill}
               >
                 {isSubmitting ? "Creating..." : "Create Superbill"}
               </Button>

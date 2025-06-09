@@ -21,9 +21,9 @@ export default function RequestForm({ setIsFormOpen }: RequestFormProps) {
   return (
     <Card className="border p-6 relative">
       <Button
-        variant="ghost"
-        size="icon"
         className="absolute right-4 top-4 h-8 w-8"
+        size="icon"
+        variant="ghost"
         onClick={() => setIsFormOpen(false)}
       >
         <X className="h-4 w-4" />
@@ -40,12 +40,12 @@ export default function RequestForm({ setIsFormOpen }: RequestFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="client" className="text-sm font-medium">
+              <label className="text-sm font-medium" htmlFor="client">
                 Client
               </label>
               <div className="relative">
                 <Select>
-                  <SelectTrigger id="client" className="w-full pl-9">
+                  <SelectTrigger className="w-full pl-9" id="client">
                     <SelectValue placeholder="Select a client" />
                   </SelectTrigger>
                   <SelectContent>
@@ -61,7 +61,7 @@ export default function RequestForm({ setIsFormOpen }: RequestFormProps) {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="request-type" className="text-sm font-medium">
+              <label className="text-sm font-medium" htmlFor="request-type">
                 Request Type
               </label>
               <Select>
@@ -79,7 +79,7 @@ export default function RequestForm({ setIsFormOpen }: RequestFormProps) {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="priority" className="text-sm font-medium">
+              <label className="text-sm font-medium" htmlFor="priority">
                 Priority
               </label>
               <Select>
@@ -97,20 +97,20 @@ export default function RequestForm({ setIsFormOpen }: RequestFormProps) {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="due-date" className="text-sm font-medium">
+              <label className="text-sm font-medium" htmlFor="due-date">
                 Due Date
               </label>
-              <Input type="date" id="due-date" />
+              <Input id="due-date" type="date" />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="request-message" className="text-sm font-medium">
+              <label className="text-sm font-medium" htmlFor="request-message">
                 Message
               </label>
               <Textarea
+                className="min-h-[120px]"
                 id="request-message"
                 placeholder="Enter request details..."
-                className="min-h-[120px]"
               />
             </div>
           </div>

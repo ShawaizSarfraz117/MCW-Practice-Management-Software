@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   createInvoice,
+  fetchAppointments,
   updateAppointment,
 } from "@/(dashboard)/clients/services/client.service";
 import { Button } from "@mcw/ui";
@@ -17,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@mcw/ui";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Loading from "@/components/Loading";
 import { format } from "date-fns";
 import { InvoiceDialog } from "../InvoiceDialogue";
@@ -30,7 +31,6 @@ import {
 } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { toast } from "@mcw/ui";
-import { useFetchAppointments } from "@/(dashboard)/clients/services/client.service";
 import { SuperbillModal } from "../SuperbillModal";
 import { SuperbillDialog } from "../SuperbillDialog";
 import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
@@ -87,19 +87,22 @@ export default function BillingTab({
   const params = useParams();
   const searchParams = useSearchParams();
 
-  const { data, isLoading } = useFetchAppointments(
-    [
+  const { data, isLoading } = useQuery({
+    queryKey: [
       "appointments",
       selectedDateRangeDisplay,
       statusFilter,
       addPaymentModalOpen,
       invoiceDialogOpen,
     ],
-    {
-      clientGroupId: params.id,
-      status: statusFilter !== "billable" ? statusFilter : undefined,
-    },
-  );
+    queryFn: () =>
+      fetchAppointments({
+        searchParams: {
+          clientGroupId: params.id,
+        },
+      }),
+  });
+
   const queryClient = useQueryClient();
 
   // Type assertion
@@ -257,7 +260,6 @@ export default function BillingTab({
           </div>
           <DateRangePicker
             isOpen={dateRangePickerOpen}
-            onClose={() => setDateRangePickerOpen(false)}
             onApply={(_startDate, _endDate, displayOption) => {
               setSelectedDateRangeDisplay(displayOption);
               if (displayOption === "Custom Range") {
@@ -266,6 +268,7 @@ export default function BillingTab({
               setDateRangePickerOpen(false);
             }}
             onCancel={() => setDateRangePickerOpen(false)}
+            onClose={() => setDateRangePickerOpen(false)}
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">

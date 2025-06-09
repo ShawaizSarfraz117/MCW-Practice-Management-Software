@@ -69,7 +69,7 @@ export function DateRangeCalendar({
               </div>
               <div className="grid grid-cols-7 gap-3">
                 {Array.from({ length: month.startOffset }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-10 w-10"></div>
+                  <div key={`empty-${i}`} className="h-10 w-10" />
                 ))}
 
                 {month.days.map((day) => {
@@ -97,13 +97,13 @@ export function DateRangeCalendar({
                   return (
                     <button
                       key={`day-${day}`}
+                      aria-selected={
+                        dateStatus.isSelectedStart || dateStatus.isSelectedEnd
+                      }
                       className={className}
                       onClick={() => onDateSelect(month.year, month.month, day)}
                       onMouseEnter={() =>
                         onDateHover(month.year, month.month, day)
-                      }
-                      aria-selected={
-                        dateStatus.isSelectedStart || dateStatus.isSelectedEnd
                       }
                     >
                       {day}

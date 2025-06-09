@@ -118,8 +118,8 @@ export default function Filters({
           {clientOptions.map((client) => (
             <DropdownMenuItem
               key={client}
-              onClick={() => setSelectedClient(client)}
               className="hover:bg-[#D1E4DE] focus:bg-[#D1E4DE] cursor-pointer"
+              onClick={() => setSelectedClient(client)}
             >
               {client}
             </DropdownMenuItem>
@@ -141,12 +141,12 @@ export default function Filters({
           </DropdownMenuTrigger>
           <div className="absolute z-50">
             <DateRangePicker
+              initialEndDate={toDate}
+              initialStartDate={fromDate}
               isOpen={showDatePicker}
-              onClose={() => setShowDatePicker(false)}
               onApply={handleDatePickerApply}
               onCancel={handleDatePickerCancel}
-              initialStartDate={fromDate}
-              initialEndDate={toDate}
+              onClose={() => setShowDatePicker(false)}
             />
           </div>
         </DropdownMenu>
@@ -163,8 +163,8 @@ export default function Filters({
           {eventTypeOptions.map((eventType) => (
             <DropdownMenuItem
               key={eventType}
-              onClick={() => setSelectedEventType(eventType)}
               className="hover:bg-[#D1E4DE] focus:bg-[#D1E4DE] cursor-pointer"
+              onClick={() => setSelectedEventType(eventType)}
             >
               {eventType}
             </DropdownMenuItem>

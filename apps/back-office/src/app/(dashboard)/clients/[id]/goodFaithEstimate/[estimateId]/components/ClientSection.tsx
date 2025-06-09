@@ -28,9 +28,9 @@ export default function ClientSection({
       <div className="flex items-center justify-between mb-2">
         <span className="font-semibold text-gray-700 text-lg">Client</span>
         <Button
-          variant="ghost"
-          size="icon"
           className="ml-2 h-6 w-6"
+          size="icon"
+          variant="ghost"
           onClick={() => setEditClient(true)}
         >
           <Pencil className="h-4 w-4" />
@@ -81,11 +81,11 @@ export default function ClientSection({
               Name
             </label>
             <Input
+              className="h-10"
               value={client.name}
               onChange={(e) =>
                 setClient((c) => ({ ...c, name: e.target.value }))
               }
-              className="h-10"
             />
           </div>
           <div className="mb-2">
@@ -93,11 +93,11 @@ export default function ClientSection({
               Date of birth
             </label>
             <Input
+              className="h-10"
               value={client.dob}
               onChange={(e) =>
                 setClient((c) => ({ ...c, dob: e.target.value }))
               }
-              className="h-10"
             />
           </div>
           <div className="mb-2">
@@ -105,11 +105,11 @@ export default function ClientSection({
               Address
             </label>
             <Input
+              className="h-10"
               value={client.address}
               onChange={(e) =>
                 setClient((c) => ({ ...c, address: e.target.value }))
               }
-              className="h-10"
             />
           </div>
           <div className="mb-2">
@@ -117,11 +117,11 @@ export default function ClientSection({
               Contact permission
             </label>
             <Input
+              className="h-10"
               value={client.contact}
               onChange={(e) =>
                 setClient((c) => ({ ...c, contact: e.target.value }))
               }
-              className="h-10"
             />
           </div>
         </>

@@ -64,6 +64,7 @@ export const fetchAppointments = async ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useFetchAppointments = (queryKey: any, searchParams: any) => {
+  console.log("🚀 ~ useFetchAppointments ~ searchParams:", searchParams);
   return useQuery({
     queryKey: queryKey,
     queryFn: () => fetchAppointments(searchParams),
@@ -103,6 +104,19 @@ export const fetchInvoices = async ({ searchParams = {} }) => {
   }
 };
 
+export const fetchBillingDocument = async ({ searchParams = {} }) => {
+  try {
+    const response = await FETCH.get({
+      url: "/billing-documents",
+      searchParams,
+    });
+
+    return response;
+  } catch (_error) {
+    return null;
+  }
+};
+
 export const updateInvoice = async ({ body = {} }: { body: object }) => {
   try {
     const response: unknown = await FETCH.update({
@@ -124,6 +138,33 @@ export const createClient = async ({ body = {} }) => {
       url: "/client",
       body,
       isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const createClientContact = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/client/contact",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const deleteClientContact = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.remove({
+      url: `/client/contact`,
+      body,
     });
 
     return [response, null];
@@ -161,13 +202,8 @@ export const updateClientGroup = async ({ body = {} }) => {
 };
 
 export const useUpdateClient = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: updateClient,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clientGroup"] });
-    },
   });
 };
 export const useUpdateClientGroup = () => {
@@ -179,6 +215,25 @@ export const useUpdateClientGroup = () => {
       queryClient.invalidateQueries({ queryKey: ["clientGroup"] });
     },
   });
+};
+
+export const fetchSingleClientGroup = async ({
+  id,
+  searchParams,
+}: {
+  id: string;
+  searchParams: Record<string, string | number | boolean>;
+}) => {
+  try {
+    const response = await FETCH.get({
+      url: `/client/group/${id}`,
+      searchParams,
+    });
+
+    return response;
+  } catch (_error) {
+    return null;
+  }
 };
 
 export const fetchClientGroups = async (params: {
@@ -286,6 +341,64 @@ export const updateClientReminderPref = async ({ body = {} }) => {
       url: "/client/contact",
       body,
       isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const fetchGoodFaithEstimate = async (id: string) => {
+  try {
+    const response = await FETCH.get({
+      url: `/good-faith-estimates/${id}`,
+    });
+
+    return response;
+  } catch (_error) {
+    return null;
+  }
+};
+
+export const createGoodFaithEstimate = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/good-faith-estimates",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const updateGoodFaithEstimate = async ({
+  body = {},
+  id,
+}: {
+  body: object;
+  id: string;
+}) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: `/good-faith-estimates/${id}`,
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const fetchDiagnosis = async () => {
+  try {
+    const response: unknown = await FETCH.get({
+      url: "/diagnosis",
     });
 
     return [response, null];

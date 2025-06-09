@@ -101,8 +101,8 @@ export default function RequestList({ type }: RequestListProps) {
       case "Completed":
         return (
           <Badge
-            variant="outline"
             className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
+            variant="outline"
           >
             <CheckCircle2 className="h-3 w-3" /> Completed
           </Badge>
@@ -110,8 +110,8 @@ export default function RequestList({ type }: RequestListProps) {
       case "Pending":
         return (
           <Badge
-            variant="outline"
             className="bg-yellow-50 text-yellow-700 border-yellow-200 flex items-center gap-1"
+            variant="outline"
           >
             <Clock className="h-3 w-3" /> Pending
           </Badge>
@@ -119,8 +119,8 @@ export default function RequestList({ type }: RequestListProps) {
       case "Rejected":
         return (
           <Badge
-            variant="outline"
             className="bg-red-50 text-red-700 border-red-200 flex items-center gap-1"
+            variant="outline"
           >
             <X className="h-3 w-3" /> Rejected
           </Badge>
@@ -139,13 +139,13 @@ export default function RequestList({ type }: RequestListProps) {
             selected
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button size="sm" variant="outline">
               Mark as Complete
             </Button>
             <Button
-              variant="outline"
-              size="sm"
               className="text-red-600 border-red-200 hover:bg-red-50"
+              size="sm"
+              variant="outline"
             >
               Reject
             </Button>
@@ -159,12 +159,12 @@ export default function RequestList({ type }: RequestListProps) {
             <TableRow>
               <TableHead className="w-10">
                 <Checkbox
+                  aria-label="Select all requests"
                   checked={
                     selectedItems.length === filteredRequests.length &&
                     filteredRequests.length > 0
                   }
                   onCheckedChange={toggleSelectAll}
-                  aria-label="Select all requests"
                 />
               </TableHead>
               <TableHead>Request ID</TableHead>
@@ -173,13 +173,13 @@ export default function RequestList({ type }: RequestListProps) {
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Message</TableHead>
-              <TableHead className="w-10"></TableHead>
+              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRequests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center">
+                <TableCell className="h-32 text-center" colSpan={8}>
                   <div className="flex flex-col items-center justify-center space-y-3">
                     <div className="text-gray-400 rounded-full bg-gray-100 p-3">
                       <MessageSquare className="h-6 w-6" />
@@ -192,7 +192,7 @@ export default function RequestList({ type }: RequestListProps) {
                         No request data available for this category
                       </p>
                     </div>
-                    <Button size="sm" className="gap-1 mt-2">
+                    <Button className="gap-1 mt-2" size="sm">
                       <PlusCircle className="h-4 w-4" />
                       Create New Request
                     </Button>
@@ -204,9 +204,9 @@ export default function RequestList({ type }: RequestListProps) {
                 <TableRow key={request.id} className="hover:bg-gray-50">
                   <TableCell>
                     <Checkbox
+                      aria-label={`Select request ${request.id}`}
                       checked={selectedItems.includes(request.id)}
                       onCheckedChange={() => toggleSelect(request.id)}
-                      aria-label={`Select request ${request.id}`}
                     />
                   </TableCell>
                   <TableCell className="font-medium">{request.id}</TableCell>
@@ -218,7 +218,7 @@ export default function RequestList({ type }: RequestListProps) {
                     {request.message}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button className="h-8 w-8" size="icon" variant="ghost">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </TableCell>

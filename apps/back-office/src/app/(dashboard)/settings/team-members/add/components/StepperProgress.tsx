@@ -1,5 +1,10 @@
 import { Check } from "lucide-react";
 
+interface Step {
+  label: string;
+  description: string;
+}
+
 interface StepProps {
   number: number;
   label: string;
@@ -9,47 +14,42 @@ interface StepProps {
 
 interface StepperProgressProps {
   activeStep: number;
+  steps?: Step[];
 }
 
-export default function StepperProgress({ activeStep }: StepperProgressProps) {
-  // Create a flat list of steps
-  const steps: StepProps[] = [
-    {
-      number: 1,
-      label: "Personal Info",
-      isActive: activeStep === 0,
-      isCompleted: activeStep > 0,
-    },
-    {
-      number: 2,
-      label: "Clinical Info",
-      isActive: activeStep === 1,
-      isCompleted: activeStep > 1,
-    },
-    {
-      number: 3,
-      label: "License",
-      isActive: activeStep === 2,
-      isCompleted: activeStep > 2,
-    },
-    {
-      number: 4,
-      label: "Services",
-      isActive: activeStep === 3,
-      isCompleted: activeStep > 3,
-    },
-    {
-      number: 5,
-      label: "Role & Permissions",
-      isActive: activeStep === 4,
-      isCompleted: activeStep > 4,
-    },
+export default function StepperProgress({
+  activeStep,
+  steps,
+}: StepperProgressProps) {
+  // Default steps if none provided
+  const defaultSteps = [
+    { label: "Personal Info", description: "Basic information" },
+    { label: "Role & Permissions", description: "Access control" },
+    { label: "Clinical Info", description: "Specialty details" },
+    { label: "License", description: "Licensing information" },
+    { label: "Confirmation", description: "Review and save" },
   ];
+
+  // Use provided steps or default
+  const stepsToUse = steps || defaultSteps;
+
+  // Create a flat list of steps
+  const progressSteps: StepProps[] = stepsToUse.map((step, index) => ({
+    number: index + 1,
+    label: step.label,
+    isActive: activeStep === index,
+    isCompleted: activeStep > index,
+  }));
+
+  // Filter out the "Complete" step for the progress bar display
+  const displaySteps = progressSteps.filter(
+    (step) => step.label !== "Complete",
+  );
 
   return (
     <div className="p-4 border-b">
       <div className="flex justify-between items-center gap-3">
-        {steps.map((step, index) => (
+        {displaySteps.map((step, index) => (
           <div key={index} className="flex items-center flex-1">
             {/* Step Circle */}
             <div
@@ -79,7 +79,7 @@ export default function StepperProgress({ activeStep }: StepperProgressProps) {
               </span>
 
               {/* Progress Line (if not the last step) */}
-              {index < steps.length - 1 && (
+              {index < displaySteps.length - 1 && (
                 <div className="mt-3 h-0.5 bg-gray-200 relative">
                   {step.isCompleted && (
                     <div className="absolute top-0 left-0 h-0.5 bg-[#2D8467] w-full" />

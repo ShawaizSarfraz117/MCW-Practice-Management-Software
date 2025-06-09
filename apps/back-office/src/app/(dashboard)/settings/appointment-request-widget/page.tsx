@@ -33,17 +33,17 @@ export default function AppointmentRequestWidgetPage() {
             </Button>
             <div className="flex items-center gap-2 text-[#374151] text-sm mt-1">
               <svg
-                xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5 text-[#de6a26]"
                 fill="none"
-                viewBox="0 0 24 24"
                 stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
               >
                 <path
+                  d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"
                 />
               </svg>
               <span>
@@ -56,10 +56,10 @@ export default function AppointmentRequestWidgetPage() {
             <Image
               alt="Widget Preview"
               className="max-w-full h-auto rounded-lg shadow-lg"
+              height={200}
               src={WidgetPreview}
               style={{ maxWidth: 260 }}
               width={260}
-              height={200}
             />
           </div>
         </div>
@@ -70,7 +70,7 @@ export default function AppointmentRequestWidgetPage() {
           <p className="text-[#374151] text-sm mb-3">
             Add this code into your website where you want your appointment
             request widget to be.{" "}
-            <a href="#" className="text-[#2563EB] hover:underline">
+            <a className="text-[#2563EB] hover:underline" href="#">
               How to add it
             </a>
           </p>
@@ -87,7 +87,7 @@ export default function AppointmentRequestWidgetPage() {
                 }}
               >
                 <span>
-                  <Image src={CopyIcon} alt="Copy" width={14} height={14} />
+                  <Image alt="Copy" height={14} src={CopyIcon} width={14} />
                 </span>
                 Copy code
               </Button>

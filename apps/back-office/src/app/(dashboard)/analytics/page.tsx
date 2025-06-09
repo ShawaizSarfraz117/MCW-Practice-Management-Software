@@ -54,8 +54,8 @@ export default function AnalyticsPage() {
                     Reports related to your practice income
                   </p>
                   <Link
-                    href="/analytics/income"
                     className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    href="/analytics/income"
                   >
                     <span>Income</span>
                   </Link>
@@ -73,8 +73,8 @@ export default function AnalyticsPage() {
                     Reports related to client billing and payments
                   </p>
                   <Link
-                    href="/analytics/outstanding-balances"
                     className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    href="/analytics/outstanding-balances"
                   >
                     <span>Outstanding balances</span>
                   </Link>
@@ -94,14 +94,14 @@ export default function AnalyticsPage() {
                     Reports related to appointments and client communication
                   </p>
                   <Link
-                    href="/analytics/attendance"
                     className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    href="/analytics/attendance"
                   >
                     <span>Attendance</span>
                   </Link>
                   <Link
-                    href="/analytics/appointment-status"
                     className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    href="/analytics/appointment-status"
                   >
                     <span>Appointment status</span>
                   </Link>

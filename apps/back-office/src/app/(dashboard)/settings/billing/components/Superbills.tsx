@@ -30,25 +30,25 @@ export default function Superbills() {
         <div className="flex flex-col gap-3">
           <label className="flex items-center gap-2">
             <input
-              type="checkbox"
-              className="accent-[#2D8467] w-4 h-4"
               defaultChecked
+              className="accent-[#2D8467] w-4 h-4"
+              type="checkbox"
             />
             <span className="text-[#111827]">Include practice logo</span>
           </label>
           <label className="flex items-center gap-2">
             <input
-              type="checkbox"
-              className="accent-[#2D8467] w-4 h-4"
               defaultChecked
+              className="accent-[#2D8467] w-4 h-4"
+              type="checkbox"
             />
             <span className="text-[#111827]">Include signature line</span>
           </label>
           <label className="flex items-center gap-2">
             <input
-              type="checkbox"
-              className="accent-[#2D8467] w-4 h-4"
               defaultChecked
+              className="accent-[#2D8467] w-4 h-4"
+              type="checkbox"
             />
             <span className="text-[#111827]">
               Include diagnosis description
@@ -62,8 +62,8 @@ export default function Superbills() {
         </h3>
         <textarea
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Information that will show in the footer of your billing documents goes here. The character limit is 120 characters."
           maxLength={120}
+          placeholder="Information that will show in the footer of your billing documents goes here. The character limit is 120 characters."
           rows={2}
         />
       </div>

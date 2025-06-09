@@ -32,9 +32,9 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
     <div className="flex items-center gap-2 mb-2">
       <h2 className="text-lg font-semibold text-gray-900">Diagnosis</h2>
       <span className="text-gray-400 cursor-pointer" title="Diagnosis info">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+        <svg fill="none" height="18" viewBox="0 0 24 24" width="18">
           <circle cx="12" cy="12" r="10" stroke="#9CA3AF" strokeWidth="2" />
-          <text x="12" y="16" textAnchor="middle" fontSize="14" fill="#9CA3AF">
+          <text fill="#9CA3AF" fontSize="14" textAnchor="middle" x="12" y="16">
             ?
           </text>
         </svg>
@@ -54,10 +54,10 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
               Diagnosis code
             </label>
             <Input
+              className="w-full h-10"
               placeholder="Search"
               value={diag.code}
               onChange={(e) => updateDiagnosis(idx, "code", e.target.value)}
-              className="w-full h-10"
             />
           </div>
           <div className="flex-1 flex flex-col">
@@ -66,36 +66,36 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
             </label>
             <div className="flex items-center">
               <Input
-                placeholder="None Selected"
-                value={diag.description}
                 readOnly
                 className="w-full h-10"
+                placeholder="None Selected"
+                value={diag.description}
               />
               <div className="flex flex-row gap-1 ml-2">
                 <Button
+                  aria-label="Add diagnosis"
+                  className="p-0 h-6 w-6 text-[#2d8467]"
                   type="button"
                   variant="ghost"
-                  className="p-0 h-6 w-6 text-[#2d8467]"
                   onClick={addDiagnosis}
-                  aria-label="Add diagnosis"
                 >
                   +
                 </Button>
                 <Button
+                  aria-label="Remove diagnosis"
+                  className="p-0 h-6 w-6 text-gray-400"
+                  disabled={diagnoses.length === 1}
                   type="button"
                   variant="ghost"
-                  className="p-0 h-6 w-6 text-gray-400"
                   onClick={() => removeDiagnosis(idx)}
-                  disabled={diagnoses.length === 1}
-                  aria-label="Remove diagnosis"
                 >
-                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                  <svg fill="none" height="16" viewBox="0 0 24 24" width="16">
                     <path
                       d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"
                       stroke="currentColor"
-                      strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
+                      strokeWidth="2"
                     />
                   </svg>
                 </Button>
@@ -111,33 +111,33 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
           </label>
           <div className="flex gap-2">
             <Input
+              className="w-full h-10"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full h-10"
             />
             <Input
+              className="w-full h-10"
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="w-full h-10"
             />
           </div>
         </div>
       </div>
       <div className="flex justify-between gap-2 mt-6 max-w-4xl">
-        <Button variant="outline" type="button">
+        <Button type="button" variant="outline">
           Cancel
         </Button>
         <div className="flex items-center gap-2">
           {renderSkipLink ? (
             renderSkipLink
           ) : (
-            <Link href="#" className="text-[#2d8467] hover:underline">
+            <Link className="text-[#2d8467] hover:underline" href="#">
               Skip to treatment plan
             </Link>
           )}
-          <Button variant="secondary" type="button">
+          <Button type="button" variant="secondary">
             Load last plan
           </Button>
           <Button

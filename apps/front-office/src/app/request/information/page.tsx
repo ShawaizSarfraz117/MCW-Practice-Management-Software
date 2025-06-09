@@ -241,10 +241,10 @@ export default function InformationPage() {
           Date of birth
         </label>
         <Input
-          type="date"
           className={`w-full ${errors[`${prefix}_dateOfBirth`] ? "border-red-500" : ""}`}
-          value={data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : ""}
           max={new Date().toISOString().slice(0, 10)}
+          type="date"
+          value={data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : ""}
           onChange={(e) => onChange("dateOfBirth", e.target.value)}
         />
         {errors[`${prefix}_dateOfBirth`] && (

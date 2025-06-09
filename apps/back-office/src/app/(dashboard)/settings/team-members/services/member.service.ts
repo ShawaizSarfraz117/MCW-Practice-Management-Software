@@ -1,41 +1,29 @@
 import { FETCH } from "@mcw/utils";
-import { User, Role, Clinician } from "@prisma/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@mcw/ui";
-interface UserWithRoleAndClinician extends User {
-  UserRole: {
-    Role: Role;
-  }[];
-  Clinician: Clinician | null;
-}
-
-interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
-}
+import { TeamMembersResponse, TeamMembersSearchParams } from "@mcw/types";
 
 export const fetchTeamMembers = async ({
   searchParams = {},
 }: {
-  searchParams?: {
-    search?: string;
-    role?: string;
-    page?: number;
-    pageSize?: number;
-  };
-}): Promise<
-  [PaginatedResponse<UserWithRoleAndClinician> | null, Error | null]
-> => {
+  searchParams?: TeamMembersSearchParams;
+}): Promise<[TeamMembersResponse | null, Error | null]> => {
   try {
+    // Clean up search params to remove undefined values
+    const cleanedParams = Object.entries(searchParams).reduce(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {} as Record<string, string | number | boolean>,
+    );
+
     const response = (await FETCH.get({
       url: "/team-members",
-      searchParams,
-    })) as PaginatedResponse<UserWithRoleAndClinician>;
+      searchParams: cleanedParams,
+    })) as TeamMembersResponse;
 
     return [response, null];
   } catch (error) {
@@ -43,14 +31,7 @@ export const fetchTeamMembers = async ({
   }
 };
 
-export const useTeamMembers = (
-  searchParams: {
-    search?: string;
-    role?: string;
-    page?: number;
-    pageSize?: number;
-  } = {},
-) => {
+export const useTeamMembers = (searchParams: TeamMembersSearchParams = {}) => {
   return useQuery({
     queryKey: ["team-members", searchParams],
     queryFn: () => fetchTeamMembers({ searchParams }).then(([data]) => data),
@@ -140,26 +121,39 @@ export const useRoleDetails = (id: string) => {
 };
 
 export const createTeamMember = async ({ body = {} }) => {
+  console.log("createTeamMember called with:", body);
   try {
     const response: unknown = await FETCH.post({
       url: "/team-members",
       body,
       isFormData: false,
     });
-
-    return [response, null];
+    console.log("createTeamMember response:", response);
+    return response;
   } catch (error) {
-    return [null, error];
+    console.error("createTeamMember error:", error);
+    throw error;
   }
 };
 
-export const useCreateTeamMember = () => {
+export const useCreateTeamMember = (options?: {
+  onSuccess?: (data: unknown) => void;
+  onError?: (error: unknown) => void;
+}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: createTeamMember,
-    onSuccess: () => {
+    onSuccess: (data, _variables, _context) => {
+      console.log("Mutation hook onSuccess called with:", data);
       queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      // Call the custom onSuccess callback if provided
+      options?.onSuccess?.(data);
+    },
+    onError: (error, _variables, _context) => {
+      console.log("Mutation hook onError called with:", error);
+      // Call the custom onError callback if provided
+      options?.onError?.(error);
     },
   });
 };

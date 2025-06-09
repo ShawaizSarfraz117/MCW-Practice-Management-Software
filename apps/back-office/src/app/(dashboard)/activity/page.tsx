@@ -56,18 +56,18 @@ export default function AccountActivitySection() {
       <div className="bg-white rounded-lg border shadow-sm">
         {/* Filters Section */}
         <Filters
-          searchQuery={state.searchQuery}
-          setSearchQuery={setSearchQuery}
-          selectedClient={state.selectedClient}
-          setSelectedClient={setSelectedClient}
-          selectedTimeRange={state.selectedTimeRange}
-          setSelectedTimeRange={setSelectedTimeRange}
-          selectedEventType={state.selectedEventType}
-          setSelectedEventType={setSelectedEventType}
           fromDate={state.fromDate}
+          searchQuery={state.searchQuery}
+          selectedClient={state.selectedClient}
+          selectedEventType={state.selectedEventType}
+          selectedTimeRange={state.selectedTimeRange}
           setFromDate={setFromDate}
-          toDate={state.toDate}
+          setSearchQuery={setSearchQuery}
+          setSelectedClient={setSelectedClient}
+          setSelectedEventType={setSelectedEventType}
+          setSelectedTimeRange={setSelectedTimeRange}
           setToDate={setToDate}
+          toDate={state.toDate}
         />
 
         {/* Activity Content */}

@@ -15,6 +15,7 @@ export async function getBackOfficeSession() {
  */
 export async function getClinicianInfo() {
   const session = await getBackOfficeSession();
+  console.log("🚀 ~ getClinicianInfo ~ session:", session);
   const isClinician = session?.user?.roles?.some(
     (role) => role === CLINICIAN_ROLE,
   );
@@ -35,4 +36,20 @@ export async function getClinicianInfo() {
   const clinicianId = clinician?.id ?? null;
 
   return { isClinician, clinicianId, clinician };
+}
+
+export function getClientGroupInfo(client: unknown) {
+  const name = (
+    client as {
+      ClientGroupMembership: {
+        Client: { legal_first_name: string; legal_last_name: string };
+      }[];
+    }
+  ).ClientGroupMembership.map((m) =>
+    `${m.Client?.legal_first_name ?? ""} ${m.Client?.legal_last_name ?? ""}`.trim(),
+  )
+    .filter(Boolean)
+    .join(" & ");
+
+  return name;
 }

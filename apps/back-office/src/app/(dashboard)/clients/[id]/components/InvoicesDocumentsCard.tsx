@@ -1,10 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Badge } from "@mcw/ui";
 import { InvoiceWithPayments } from "./ClientProfile";
 import { useSearchParams } from "next/navigation";
 import { formatDate } from "date-fns";
+import { fetchBillingDocument } from "@/(dashboard)/clients/services/client.service";
+
+interface BillingDocument {
+  documentType: string;
+  number: string;
+}
+
+interface BillingDocumentsResponse {
+  data: BillingDocument[];
+  pagination: Record<string, unknown>;
+}
 
 interface InvoicesDocumentsCardProps {
   invoices: InvoiceWithPayments[];
@@ -14,7 +25,23 @@ export function InvoicesDocumentsCard({
   invoices,
 }: InvoicesDocumentsCardProps) {
   const [invoicesCollapsed, setInvoicesCollapsed] = useState(false);
+  const [billingDocuments, setBillingDocuments] =
+    useState<BillingDocumentsResponse>({
+      data: [],
+      pagination: {},
+    });
+
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    fetchBillingDocument({
+      searchParams: { type: JSON.stringify(["superbill", "statement"]) },
+    }).then((res) => {
+      if (res) {
+        setBillingDocuments(res as BillingDocumentsResponse);
+      }
+    });
+  }, []);
 
   return (
     <div className="p-4 sm:p-6 border border-[#e5e7eb] rounded-md">
@@ -39,6 +66,7 @@ export function InvoicesDocumentsCard({
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-blue-500">
                     <Link
+                      className="hover:underline"
                       href={`${window.location.pathname}?tab=${searchParams.get("tab")}&invoiceId=${invoice.id}&type=invoice`}
                     >
                       {invoice.invoice_number}
@@ -71,14 +99,16 @@ export function InvoicesDocumentsCard({
         </div>
 
         <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-blue-500">SB #0001</div>
-            <div className="text-xs text-gray-500">02/01 - 02/05/2025</div>
-          </div>
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-blue-500">STMT #0001</div>
-            <div className="text-xs text-gray-500">02/01 - 02/06/2025</div>
-          </div>
+          {billingDocuments?.data?.map((document, index) => (
+            <div key={index} className="flex justify-between items-center">
+              <div className="text-sm text-blue-500 hover:underline cursor-pointer">
+                {document.documentType === "statement"
+                  ? `STMT #${document.number}`
+                  : `SB #${document.number}`}
+              </div>
+              {/* <div className="text-xs text-gray-500">02/01 - 02/05/2025</div> */}
+            </div>
+          ))}
         </div>
       </div>
     </div>
