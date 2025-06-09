@@ -332,7 +332,7 @@ model ClinicianClient {
   is_primary    Boolean   @default(false, map: "DF_ClinicianClient_IsPrimary")
   assigned_date DateTime  @default(now(), map: "DF__Clinician__assig__430CD787")
   Client        Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Client")
-  Clinician     Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Clinician")
+  Clinician     Clinician  @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Clinician")
 
   @@id([client_id, clinician_id], map: "PK_ClinicianClient_ID")
 }
