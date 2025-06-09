@@ -65,16 +65,16 @@ export function AutocompleteInput({
       <div className="relative">
         <Input
           ref={inputRef}
+          className={cn("pr-8", className)}
+          placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          placeholder={placeholder}
-          className={cn("pr-8", className)}
         />
         <button
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
         >
           <ChevronDown className="h-4 w-4" />
         </button>
@@ -88,12 +88,12 @@ export function AutocompleteInput({
           {filteredOptions.map((option, index) => (
             <button
               key={index}
-              type="button"
-              onClick={() => handleSelect(option)}
               className={cn(
                 "relative w-full cursor-pointer select-none py-2 px-3 text-left hover:bg-gray-100",
                 option === value && "bg-gray-50 font-semibold",
               )}
+              type="button"
+              onClick={() => handleSelect(option)}
             >
               {option}
             </button>

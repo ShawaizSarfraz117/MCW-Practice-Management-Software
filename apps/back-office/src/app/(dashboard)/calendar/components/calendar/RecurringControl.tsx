@@ -24,6 +24,14 @@ interface RecurringControlProps {
     endType: string;
     endValue: string | undefined;
   }) => void;
+  initialValues?: {
+    frequency?: string;
+    period?: string;
+    selectedDays?: string[];
+    monthlyPattern?: string;
+    endType?: string;
+    endValue?: string;
+  };
 }
 
 const weekdays = [
@@ -40,14 +48,48 @@ export function RecurringControl({
   visible,
   open,
   onRecurringChange,
+  initialValues,
 }: RecurringControlProps) {
-  const [frequency, setFrequency] = useState("1");
-  const [period, setPeriod] = useState("WEEKLY");
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [endType, setEndType] = useState("After");
-  const [endCount, setEndCount] = useState("1");
-  const [endDate, setEndDate] = useState<Date>();
-  const [monthlyPattern, setMonthlyPattern] = useState<string>("onDateOfMonth");
+  const [frequency, setFrequency] = useState(initialValues?.frequency || "1");
+  const [period, setPeriod] = useState(initialValues?.period || "WEEKLY");
+  const [selectedDays, setSelectedDays] = useState<string[]>(
+    initialValues?.selectedDays || [],
+  );
+  const [endType, setEndType] = useState(initialValues?.endType || "After");
+  const [endCount, setEndCount] = useState(
+    initialValues?.endType === "After" && initialValues?.endValue
+      ? initialValues.endValue
+      : "1",
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    initialValues?.endType === "On Date" && initialValues?.endValue
+      ? new Date(initialValues.endValue)
+      : undefined,
+  );
+  const [monthlyPattern, setMonthlyPattern] = useState<string>(
+    initialValues?.monthlyPattern || "onDateOfMonth",
+  );
+
+  // Update state when initialValues change
+  useEffect(() => {
+    if (initialValues) {
+      console.log("Updating state with initialValues:", initialValues);
+      setFrequency(initialValues.frequency || "1");
+      setPeriod(initialValues.period || "WEEKLY");
+      setSelectedDays(initialValues.selectedDays || []);
+      setEndType(initialValues.endType || "After");
+      if (initialValues.endType === "After" && initialValues.endValue) {
+        setEndCount(initialValues.endValue);
+      }
+      if (initialValues.endType === "On Date" && initialValues.endValue) {
+        setEndDate(new Date(initialValues.endValue));
+      }
+      if (initialValues.monthlyPattern) {
+        setMonthlyPattern(initialValues.monthlyPattern);
+      }
+    }
+  }, [initialValues]);
+
   const getMonthlyOptions = (date: Date) => {
     const dayOfMonth = date.getDate();
     const dayOfWeek = date.getDay();
@@ -90,12 +132,14 @@ export function RecurringControl({
     return options;
   };
   useEffect(() => {
-    if (startDate) {
+    if (startDate && !initialValues?.selectedDays?.length) {
       const dayOfWeek = startDate.getDay();
       setSelectedDays([weekdays[dayOfWeek].value]);
+    }
+    if (startDate && !initialValues?.endValue) {
       setEndDate(addDays(startDate, 25));
     }
-  }, [startDate]);
+  }, [startDate, initialValues]);
   useEffect(() => {
     if (open) {
       setFrequency("1");
@@ -108,7 +152,7 @@ export function RecurringControl({
         setSelectedDays([weekdays[dayOfWeek].value]);
         setEndDate(addDays(startDate, 25));
       }
-    } else {
+    } else if (!initialValues) {
       setSelectedDays([]);
       setEndDate(undefined);
     }

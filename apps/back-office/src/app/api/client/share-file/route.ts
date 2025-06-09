@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
-import { getBackOfficeSession, getClinicianInfo } from "@/utils/helpers";
+import { getBackOfficeSession } from "@/utils/helpers";
 import { generateUUID } from "@mcw/utils";
+import { FileFrequency, FILE_FREQUENCY_OPTIONS } from "@mcw/types";
 
 interface FileSharePayload {
   client_group_id: string;
@@ -10,7 +11,47 @@ interface FileSharePayload {
     client_id: string;
     file_ids?: string[];
     survey_template_ids?: string[];
+    frequencies?: Record<string, FileFrequency>;
   }[];
+}
+
+function calculateNextDueDate(
+  frequency?: FileFrequency,
+  fromDate: Date = new Date(),
+  nextAppointmentDate?: Date,
+): Date | null {
+  if (!frequency) return null;
+
+  switch (frequency) {
+    case FILE_FREQUENCY_OPTIONS.ONCE:
+      return null;
+    case FILE_FREQUENCY_OPTIONS.AFTER_EVERY_APPOINTMENT:
+      // Will be calculated based on next appointment
+      return nextAppointmentDate || null;
+    case FILE_FREQUENCY_OPTIONS.BEFORE_EVERY_APPOINTMENT:
+      // Will be calculated based on next appointment minus 1 day
+      if (nextAppointmentDate) {
+        const dueDate = new Date(nextAppointmentDate);
+        dueDate.setDate(dueDate.getDate() - 1);
+        return dueDate;
+      }
+      return null;
+    case FILE_FREQUENCY_OPTIONS.BEFORE_EVERY_OTHER_APPOINTMENT:
+      // Will need appointment tracking logic
+      return null;
+    case FILE_FREQUENCY_OPTIONS.EVERY_2_WEEKS: {
+      const twoWeeks = new Date(fromDate);
+      twoWeeks.setDate(twoWeeks.getDate() + 14);
+      return twoWeeks;
+    }
+    case FILE_FREQUENCY_OPTIONS.EVERY_4_WEEKS: {
+      const fourWeeks = new Date(fromDate);
+      fourWeeks.setDate(fourWeeks.getDate() + 28);
+      return fourWeeks;
+    }
+    default:
+      return null;
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -96,6 +137,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Get user session for authentication
+    const session = await getBackOfficeSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Parse request body
     const payload: FileSharePayload = await request.json();
 
@@ -125,15 +172,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current clinician info
-    const { clinicianId } = await getClinicianInfo();
-
-    if (!clinicianId) {
-      return NextResponse.json(
-        { error: "Unauthorized. Clinician information not found." },
-        { status: 401 },
-      );
-    }
+    const userId = session.user.id;
 
     // Create transaction to ensure all related records are created or none
     const result = await prisma.$transaction(async (tx) => {
@@ -183,6 +222,9 @@ export async function POST(request: NextRequest) {
               client_id: client.client_id,
               client_group_file_id: clientGroupFile.id,
               status: "Pending",
+              frequency: client.frequencies?.[fileId] || null,
+              shared_at: now,
+              next_due_date: calculateNextDueDate(client.frequencies?.[fileId]),
             },
           });
           createdFiles.push({
@@ -211,7 +253,7 @@ export async function POST(request: NextRequest) {
                 `Shared file - ${new Date().toISOString()}`,
               type: "Consent",
               url: null,
-              uploaded_by_id: clinicianId,
+              uploaded_by_id: userId,
               created_at: now,
               updated_at: now,
             },
@@ -225,6 +267,11 @@ export async function POST(request: NextRequest) {
               client_id: client.client_id,
               client_group_file_id: clientGroupFile.id,
               status: "Pending",
+              frequency: client.frequencies?.[surveyTemplateId] || null,
+              shared_at: now,
+              next_due_date: calculateNextDueDate(
+                client.frequencies?.[surveyTemplateId],
+              ),
             },
           });
 

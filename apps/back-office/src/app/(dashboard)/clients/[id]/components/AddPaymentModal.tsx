@@ -197,6 +197,8 @@ export function AddPaymentModal({
         }
 
         fetchInvoicesData();
+        window.dispatchEvent(new CustomEvent("appointmentTagsUpdated"));
+
         onOpenChange(false);
       }
     } catch (error) {

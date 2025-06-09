@@ -173,9 +173,9 @@ const ClientCard = ({
           <div>
             <label className="block text-sm font-medium mb-1">Name *</label>
             <Input
+              className={errors.name ? "border-red-500" : ""}
               value={clientData.name}
               onChange={(e) => handleNameChange(e.target.value)}
-              className={errors.name ? "border-red-500" : ""}
             />
             {errors.name && (
               <p className="text-red-500 text-xs mt-1">{errors.name}</p>
@@ -187,10 +187,10 @@ const ClientCard = ({
               Date of birth *
             </label>
             <Input
+              className={errors.dateOfBirth ? "border-red-500" : ""}
               type="date"
               value={clientData.dateOfBirth}
               onChange={(e) => handleDateChange(e.target.value)}
-              className={errors.dateOfBirth ? "border-red-500" : ""}
             />
             {errors.dateOfBirth && (
               <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>
@@ -302,8 +302,8 @@ const ClientCard = ({
             <div>
               <label className="block text-sm font-medium mb-1">ZIP code</label>
               <Input
-                placeholder="Enter ZIP"
                 className="w-32"
+                placeholder="Enter ZIP"
                 value={clientData.zipCode}
                 onChange={(e) =>
                   setClientData((prev) => ({
@@ -328,8 +328,8 @@ const ClientCard = ({
             <div className="flex gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`voice-${client.id}`}
                   checked={clientData.voicePermission}
+                  id={`voice-${client.id}`}
                   onCheckedChange={(checked) =>
                     setClientData((prev) => ({
                       ...prev,
@@ -337,14 +337,14 @@ const ClientCard = ({
                     }))
                   }
                 />
-                <label htmlFor={`voice-${client.id}`} className="text-sm">
+                <label className="text-sm" htmlFor={`voice-${client.id}`}>
                   Voice message
                 </label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`text-${client.id}`}
                   checked={clientData.textPermission}
+                  id={`text-${client.id}`}
                   onCheckedChange={(checked) =>
                     setClientData((prev) => ({
                       ...prev,
@@ -352,14 +352,14 @@ const ClientCard = ({
                     }))
                   }
                 />
-                <label htmlFor={`text-${client.id}`} className="text-sm">
+                <label className="text-sm" htmlFor={`text-${client.id}`}>
                   Text message
                 </label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`email-${client.id}`}
                   checked={clientData.emailPermission}
+                  id={`email-${client.id}`}
                   onCheckedChange={(checked) =>
                     setClientData((prev) => ({
                       ...prev,
@@ -367,7 +367,7 @@ const ClientCard = ({
                     }))
                   }
                 />
-                <label htmlFor={`email-${client.id}`} className="text-sm">
+                <label className="text-sm" htmlFor={`email-${client.id}`}>
                   Email
                 </label>
               </div>

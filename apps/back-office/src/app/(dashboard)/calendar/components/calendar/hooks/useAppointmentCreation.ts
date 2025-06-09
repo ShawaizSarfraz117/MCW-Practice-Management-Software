@@ -176,15 +176,8 @@ export function useAppointmentCreation(
           ? createdAppointment
           : [createdAppointment];
 
-        // Return the new appointments
-        return appointments.map((appointment) => ({
-          id: appointment.id,
-          resourceId: appointment.clinician_id || "",
-          title: appointment.title,
-          start: appointment.start_date,
-          end: appointment.end_date,
-          location: appointment.location_id || "",
-        }));
+        // Return the new appointments with full data
+        return appointments;
       } catch (error: unknown) {
         console.error("Error creating appointment:", error);
         // Set error message for display

@@ -1,4 +1,4 @@
-import { FETCH } from "@mcw/utils";
+import { FETCH, showErrorToast } from "@mcw/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@mcw/ui";
 import { TeamMembersResponse, TeamMembersSearchParams } from "@mcw/types";
@@ -244,18 +244,14 @@ export const updateClinicalInfo = async (data: {
   NPInumber?: number;
   user_id: string;
 }) => {
-  try {
-    const response = await FETCH.update({
-      url: "/clinicalInfo",
-      method: "PUT",
-      body: data,
-      isFormData: false,
-    });
+  const response = await FETCH.update({
+    url: "/clinicalInfo",
+    method: "PUT",
+    body: data,
+    isFormData: false,
+  });
 
-    return response;
-  } catch (error) {
-    throw new Error(error as string);
-  }
+  return response;
 };
 
 export const useUpdateClinicalInfo = () => {
@@ -271,12 +267,8 @@ export const useUpdateClinicalInfo = () => {
         variant: "success",
       });
     },
-    onError: (_error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update clinical information",
-        variant: "destructive",
-      });
+    onError: (error: unknown) => {
+      showErrorToast(toast, error);
     },
   });
 };

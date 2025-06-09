@@ -111,8 +111,12 @@ model Availability {
   /// Whether clients can request appointments during this time via portal.
   allow_online_requests Boolean                @default(false, map: "DF_Availability_AllowOnlineRequests")
   location_id           String                 @db.UniqueIdentifier
+  /// For recurring availabilities: NULL if this is the parent/template, or parent's ID if this is a child instance.
+  recurring_availability_id String?            @db.UniqueIdentifier
   Clinician             Clinician              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Clinician")
   Location              Location               @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Location")
+  Availability          Availability?         @relation("AvailabilityToAvailability", fields: [recurring_availability_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Availability_RecurringAvailability")
+  other_Availability    Availability[]        @relation("AvailabilityToAvailability")
   AvailabilityServices  AvailabilityServices[]
 
   @@index([clinician_id], map: "IX_Availability_clinician_id")
@@ -462,11 +466,12 @@ model PracticeService {
   block_before        Int                   @default(0)
   is_default          Boolean               @default(false)
   require_call        Boolean               @default(false)
-  Appointment         Appointment[]
-  AppointmentRequests AppointmentRequests[]
-  ClientGroupServices ClientGroupServices[]
-  ClinicianServices   ClinicianServices[]
-  GoodFaithServices   GoodFaithServices[]
+  Appointment          Appointment[]
+  AppointmentRequests  AppointmentRequests[]
+  AvailabilityServices AvailabilityServices[]
+  ClientGroupServices  ClientGroupServices[]
+  ClinicianServices    ClinicianServices[]
+  GoodFaithServices    GoodFaithServices[]
 }
 
 /// User roles for role-based access control (RBAC).
@@ -681,6 +686,10 @@ model ClientGroupFile {
   uploaded_by_id     String?       @db.UniqueIdentifier
   created_at         DateTime      @default(now())
   updated_at         DateTime      @updatedAt
+  is_template        Boolean       @default(false)
+  original_template_id String?     @db.UniqueIdentifier
+  sharing_enabled    Boolean       @default(true)
+  expiry_date        DateTime?     @db.DateTime
   ClientFiles        ClientFiles[]
   ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupFile_ClientGroup")
   User               User?         @relation(fields: [uploaded_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientGroupFile_User")
@@ -803,6 +812,10 @@ model ClientFiles {
   client_id            String          @db.UniqueIdentifier
   status               String          @db.VarChar(50)
   survey_answers_id    String?         @db.UniqueIdentifier
+  frequency            String?         @db.VarChar(50)
+  next_due_date        DateTime?       @db.DateTime
+  shared_at            DateTime?       @db.DateTime
+  completed_at         DateTime?       @db.DateTime
   Client               Client          @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientFiles_Client")
   ClientGroupFile      ClientGroupFile @relation(fields: [client_group_file_id], references: [id], onUpdate: NoAction, map: "FK_ClientFiles_ClientGroupFile")
   SurveyAnswers        SurveyAnswers?  @relation(fields: [survey_answers_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientFiles_SurveyAnswers")
@@ -951,9 +964,10 @@ model AppointmentRequests {
 
 /// Services that can be booked during specific availability windows.
 model AvailabilityServices {
-  availability_id String       @db.UniqueIdentifier
-  service_id      String       @db.UniqueIdentifier
-  Availability    Availability @relation(fields: [availability_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_Availability")
+  availability_id String          @db.UniqueIdentifier
+  service_id      String          @db.UniqueIdentifier
+  Availability    Availability    @relation(fields: [availability_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_Availability")
+  PracticeService PracticeService @relation(fields: [service_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_PracticeService")
 
   @@id([availability_id, service_id], map: "PK_AvailabilityServices")
 }

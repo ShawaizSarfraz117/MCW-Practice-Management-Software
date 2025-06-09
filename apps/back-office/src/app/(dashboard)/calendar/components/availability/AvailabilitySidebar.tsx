@@ -10,54 +10,22 @@ import {
   SelectTrigger,
   SelectValue,
   Input,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@mcw/ui";
-import { X, Plus, Minus, Trash2 } from "lucide-react";
+import { X, Minus, Trash2 } from "lucide-react";
 import { DateTimeControls } from "./components/FormControls";
 import { AvailabilityFormProvider } from "./context/FormContext";
 import { useFormTabs } from "./hooks/useFormTabs";
-import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@mcw/utils";
-
-interface AvailabilitySidebarProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  selectedDate: Date;
-  selectedResource: string | null;
-  onClose: () => void;
-  availabilityData?: {
-    id: string;
-    title: string;
-    start_date: string;
-    end_date: string;
-    location: string;
-    clinician_id: string;
-    allow_online_requests: boolean;
-    is_recurring: boolean;
-    recurring_rule: string | null;
-    service_id?: string;
-  };
-  isEditMode?: boolean;
-}
-
-interface Service {
-  id: string;
-  type: string;
-  code: string;
-  duration: number;
-  description: string;
-  rate: number;
-}
+import { calculateDuration } from "../appointment-dialog/utils/CalculateDuration";
+import {
+  AvailabilitySidebarProps,
+  Service,
+  AvailabilityService,
+  Location,
+} from "./types";
+import { DeleteAvailabilityModal } from "./DeleteAvailabilityModal";
 
 export function AvailabilitySidebar({
   open,
@@ -67,20 +35,16 @@ export function AvailabilitySidebar({
   availabilityData: initialAvailabilityData,
   isEditMode = false,
 }: AvailabilitySidebarProps) {
-  const { data: session } = useSession();
   const queryClient = useQueryClient();
 
-  // Calculate start and end dates for the current week
   const startOfWeek = new Date(selectedDate);
-  startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay()); // Start from Sunday
+  startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
   const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6); // End on Saturday
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
 
-  // Format dates for API
   const apiStartDate = startOfWeek.toISOString().split("T")[0];
   const apiEndDate = endOfWeek.toISOString().split("T")[0];
 
-  // Fetch availability data when in edit mode
   const { data: fetchedAvailabilityData, isLoading: isLoadingAvailability } =
     useQuery({
       queryKey: [
@@ -129,13 +93,90 @@ export function AvailabilitySidebar({
   const [period, setPeriod] = useState("week");
   const [endType, setEndType] = useState("never");
   const [endValue, setEndValue] = useState<string>("");
-  const [selectedLocation, setSelectedLocation] = useState("video");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [services, setServices] = useState<Service[]>([]);
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [deleteOption, setDeleteOption] = useState<"single" | "future" | "all">(
+    "single",
+  );
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [duration, setDuration] = useState<string>("0 mins");
+  const [localSelectedServices, setLocalSelectedServices] = useState<string[]>(
+    [],
+  );
+
+  // Fetch availability services if we have an availability ID
+  const {
+    data: availabilityServices = [],
+    isLoading: _isLoadingAvailabilityServices,
+  } = useQuery<AvailabilityService[]>({
+    queryKey: ["availabilityServices", availabilityData?.id],
+    queryFn: async (): Promise<AvailabilityService[]> => {
+      if (!availabilityData?.id) return [];
+      try {
+        const response = await fetch(
+          `/api/availability?id=${availabilityData.id}&services=true`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          return data.services || [];
+        }
+        return [];
+      } catch (error) {
+        console.error("Error fetching availability services:", error);
+        return [];
+      }
+    },
+    enabled: !!availabilityData?.id && isEditMode,
+  });
 
   const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
     useFormTabs(selectedResource, selectedDate);
+
+  // Fetch locations
+  const { data: locations = [] } = useQuery<Location[]>({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const response = await fetch("/api/location");
+      if (!response.ok) {
+        throw new Error("Failed to fetch locations");
+      }
+      const data = await response.json();
+      // Ensure the result is always an array
+      return Array.isArray(data) ? data : [data];
+    },
+  });
+
+  // Fetch all services for the dropdown
+  const { data: allServices = [] } = useQuery<Service[]>({
+    queryKey: [
+      "allServices",
+      availabilityData?.clinician_id || availabilityFormValues.clinician,
+    ],
+    queryFn: async (): Promise<Service[]> => {
+      try {
+        let url = "/api/service";
+        const clinicianId =
+          availabilityData?.clinician_id || availabilityFormValues.clinician;
+
+        if (clinicianId) {
+          url += `?clinicianId=${clinicianId}&detailed=true`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            return data.services || [];
+          }
+        }
+        return [];
+      } catch (error) {
+        console.error("Error fetching all services:", error);
+        return [];
+      }
+    },
+    enabled: !!(
+      availabilityData?.clinician_id || availabilityFormValues.clinician
+    ),
+  });
 
   // Update state when availabilityData changes
   useEffect(() => {
@@ -143,7 +184,15 @@ export function AvailabilitySidebar({
       setAllowOnlineRequests(availabilityData.allow_online_requests || false);
       setIsRecurring(availabilityData.is_recurring || false);
       setTitle(availabilityData.title || "");
-      setSelectedLocation(availabilityData.location || "video");
+      // Use location_id if available, otherwise location
+      setSelectedLocation(
+        availabilityData.location_id || availabilityData.location || "",
+      );
+
+      // Initialize local selected services with fetched services when in edit mode
+      if (isEditMode && availabilityServices.length > 0) {
+        setLocalSelectedServices(availabilityServices.map((s) => s.id));
+      }
 
       // Handle recurring rule parsing
       if (availabilityData.recurring_rule && availabilityData.is_recurring) {
@@ -209,14 +258,27 @@ export function AvailabilitySidebar({
           ? new Date(availabilityData.end_date)
           : prev.endDate,
         startTime: availabilityData.start_date
-          ? format(new Date(availabilityData.start_date), "hh:mm a")
-          : prev.startTime,
+          ? (() => {
+              const date = new Date(availabilityData.start_date);
+              // Adjust for timezone offset to get the original local time
+              const tzOffset = date.getTimezoneOffset() * 60000;
+              const localDate = new Date(date.getTime() + tzOffset);
+              return format(localDate, "h:mm a");
+            })()
+          : "9:00 AM",
         endTime: availabilityData.end_date
-          ? format(new Date(availabilityData.end_date), "hh:mm a")
-          : prev.endTime,
+          ? (() => {
+              const date = new Date(availabilityData.end_date);
+              // Adjust for timezone offset to get the original local time
+              const tzOffset = date.getTimezoneOffset() * 60000;
+              const localDate = new Date(date.getTime() + tzOffset);
+              return format(localDate, "h:mm a");
+            })()
+          : "5:00 PM",
         type: "availability",
         clinician: availabilityData.clinician_id || "",
-        location: availabilityData.location || "video",
+        location:
+          availabilityData.location_id || availabilityData.location || "",
         allowOnlineRequests: availabilityData.allow_online_requests || false,
         isRecurring: availabilityData.is_recurring || false,
         recurringRule: availabilityData.recurring_rule || undefined,
@@ -234,33 +296,57 @@ export function AvailabilitySidebar({
       setPeriod("week");
       setEndType("never");
       setEndValue("");
-      setSelectedLocation("video");
+      setSelectedLocation("");
+      setLocalSelectedServices([]);
     }
   }, [open, availabilityData, setAvailabilityFormValues]);
 
-  // Fetch services when component mounts
+  // Sync local selected services when availabilityServices change
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const response = await fetch(`/api/service`);
-        if (response.ok) {
-          const data = await response.json();
-          setServices(data);
+    if (
+      isEditMode &&
+      availabilityServices.length > 0 &&
+      localSelectedServices.length === 0
+    ) {
+      setLocalSelectedServices(availabilityServices.map((s) => s.id));
+    }
+  }, [availabilityServices, isEditMode, localSelectedServices.length]);
 
-          // If editing, set selected services from availability data
-          if (isEditMode && availabilityData?.service_id) {
-            setSelectedServices([availabilityData.service_id]);
-          }
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showServiceDropdown) {
+        const target = event.target as Element;
+        if (!target.closest(".service-dropdown-container")) {
+          setShowServiceDropdown(false);
         }
-      } catch (error) {
-        console.error("Error fetching services:", error);
       }
     };
 
-    if (session?.user?.id || selectedResource) {
-      fetchServices();
-    }
-  }, [session?.user?.id, selectedResource, isEditMode, availabilityData]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showServiceDropdown]);
+
+  // Calculate duration dynamically based on form values
+  useEffect(() => {
+    const startDate = availabilityFormValues.startDate;
+    const endDate = availabilityFormValues.endDate;
+    const startTime = availabilityFormValues.startTime;
+    const endTime = availabilityFormValues.endTime;
+    const allDay = availabilityFormValues.allDay;
+
+    setDuration(
+      calculateDuration(startDate, endDate, startTime, endTime, allDay),
+    );
+  }, [
+    availabilityFormValues.startDate,
+    availabilityFormValues.endDate,
+    availabilityFormValues.startTime,
+    availabilityFormValues.endTime,
+    availabilityFormValues.allDay,
+  ]);
 
   // Helper function to create recurring rule in RFC5545 format
   const createRecurringRule = () => {
@@ -289,27 +375,33 @@ export function AvailabilitySidebar({
     return parts.join(";");
   };
 
-  // Helper function to convert date and time to ISO string
-  const getDateTimeISOString = (date: Date, timeStr?: string) => {
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    if (!timeStr)
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
-    try {
-      const [timeValue, period] = timeStr.split(" ");
-      const [hours, minutes] = timeValue.split(":").map(Number);
-      if (isNaN(hours) || isNaN(minutes)) {
-        throw new Error("Invalid time format");
+  // Helper function to convert date and time to local ISO string
+  const getDateTimeUTC = (date: Date, timeStr?: string) => {
+    const newDate = new Date(date);
+    if (timeStr) {
+      try {
+        // Handle both 12-hour format (1:00 PM) and 24-hour format (13:00)
+        if (timeStr.includes(" ")) {
+          // 12-hour format with AM/PM
+          const [timeValue, period] = timeStr.split(" ");
+          const [hours, minutes] = timeValue.split(":").map(Number);
+          let hours24 = hours;
+          if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
+          if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
+          newDate.setHours(hours24, minutes, 0, 0);
+        } else {
+          // 24-hour format
+          const [hours, minutes] = timeStr.split(":").map(Number);
+          newDate.setHours(hours, minutes, 0, 0);
+        }
+      } catch (error) {
+        console.error("Error converting date/time:", error);
       }
-      let hours24 = hours;
-      if (period.toUpperCase() === "PM" && hours !== 12) hours24 += 12;
-      if (period.toUpperCase() === "AM" && hours === 12) hours24 = 0;
-      const newDate = new Date(date);
-      newDate.setHours(hours24, minutes, 0, 0);
-      return `${newDate.getFullYear()}-${pad(newDate.getMonth() + 1)}-${pad(newDate.getDate())}T${pad(newDate.getHours())}:${pad(newDate.getMinutes())}:00`;
-    } catch (error) {
-      console.error("Error converting date/time:", error);
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
     }
+
+    const tzOffset = newDate.getTimezoneOffset() * 60000;
+    const localDate = new Date(newDate.getTime() - tzOffset);
+    return localDate.toISOString();
   };
 
   const toggleDay = (day: string) => {
@@ -318,26 +410,77 @@ export function AvailabilitySidebar({
     );
   };
 
+  // Add service to availability
+  const handleAddServiceToAvailability = (serviceId: string) => {
+    setLocalSelectedServices((prev) => [...prev, serviceId]);
+  };
+
+  // Add all services to availability
+  const handleAddAllServices = () => {
+    const availableServices = allServices.filter(
+      (service: Service) => !localSelectedServices.includes(service.id),
+    );
+
+    setLocalSelectedServices((prev) => [
+      ...prev,
+      ...availableServices.map((s) => s.id),
+    ]);
+    setShowServiceDropdown(false);
+  };
+
+  // Remove service from availability
+  const handleRemoveServiceFromAvailability = (serviceId: string) => {
+    setLocalSelectedServices((prev) => prev.filter((id) => id !== serviceId));
+  };
+
   const handleDelete = async () => {
     try {
-      const response = await fetch(
-        `/api/availability?id=${availabilityData?.id}`,
-        {
-          method: "DELETE",
-        },
+      console.log("Delete attempt - availabilityData:", availabilityData);
+      console.log(
+        "Delete attempt - availabilityData.id:",
+        availabilityData?.id,
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to delete availability");
+      if (!availabilityData?.id) {
+        setGeneralError("No availability ID found");
+        return;
       }
 
-      // Close sidebar first
+      // Add deleteOption parameter for recurring availabilities
+      const deleteUrl = availabilityData?.is_recurring
+        ? `/api/availability?id=${availabilityData.id}&deleteOption=${deleteOption}`
+        : `/api/availability?id=${availabilityData.id}`;
+
+      const response = await fetch(deleteUrl, {
+        method: "DELETE",
+      });
+
+      console.log("Delete response status:", response.status);
+      console.log("Delete response ok:", response.ok);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log("Delete error data:", errorData);
+        throw new Error(errorData.error || "Failed to delete availability");
+      }
+
+      // Close dialog first, then sidebar after successful deletion
+      setIsDeleteDialogOpen(false);
       onOpenChange(false);
 
-      // Invalidate and refetch with date range
+      // Invalidate all availability-related queries
+      await queryClient.invalidateQueries({
+        queryKey: ["availabilities"],
+      });
+
       await queryClient.invalidateQueries({
         queryKey: ["availabilities", apiStartDate, apiEndDate],
       });
+
+      // Trigger custom event for calendar refresh
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("refreshAvailabilities"));
+      }
 
       // Trigger a new fetch with date range
       await queryClient.fetchQuery({
@@ -359,6 +502,8 @@ export function AvailabilitySidebar({
           ? error.message
           : "Failed to delete availability",
       );
+      // Don't close the dialog on error
+      setIsDeleteDialogOpen(false);
     }
   };
 
@@ -374,20 +519,20 @@ export function AvailabilitySidebar({
       // Construct the payload
       const payload = {
         title: title || "Availability",
-        start_date: getDateTimeISOString(
+        start_date: getDateTimeUTC(
           availabilityFormValues.startDate,
           availabilityFormValues.startTime,
         ),
-        end_date: getDateTimeISOString(
+        end_date: getDateTimeUTC(
           availabilityFormValues.endDate,
           availabilityFormValues.endTime,
         ),
-        location: selectedLocation,
+        location_id: selectedLocation,
         clinician_id: availabilityFormValues.clinician,
         allow_online_requests: allowOnlineRequests,
         is_recurring: isRecurring,
         recurring_rule: isRecurring ? createRecurringRule() : null,
-        service_id: selectedServices[0] || null,
+        selectedServices: localSelectedServices,
       };
 
       // Call the API to create/update availability
@@ -414,10 +559,19 @@ export function AvailabilitySidebar({
       // Close sidebar first
       onOpenChange(false);
 
-      // Invalidate and refetch with date range
+      // Invalidate all availability-related queries
+      await queryClient.invalidateQueries({
+        queryKey: ["availabilities"],
+      });
+
       await queryClient.invalidateQueries({
         queryKey: ["availabilities", apiStartDate, apiEndDate],
       });
+
+      // Trigger custom event for calendar refresh
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("refreshAvailabilities"));
+      }
 
       // Trigger a new fetch with date range
       await queryClient.fetchQuery({
@@ -454,7 +608,7 @@ export function AvailabilitySidebar({
         </div>
       ) : (
         <AvailabilityFormProvider
-          duration={"1 hour"}
+          duration={duration}
           forceUpdate={forceUpdate}
           form={{
             ...availabilityFormValues,
@@ -489,7 +643,7 @@ export function AvailabilitySidebar({
           >
             <div className="flex sticky top-0 bg-white items-center justify-between p-4 border-b z-10">
               <div className="flex items-center gap-3">
-                <button onClick={() => onOpenChange(false)}>
+                <button type="button" onClick={() => onOpenChange(false)}>
                   <X className="h-5 w-5" />
                 </button>
                 <h2 className="text-lg">
@@ -498,39 +652,24 @@ export function AvailabilitySidebar({
               </div>
               <div className="flex gap-2">
                 {isEditMode && (
-                  <AlertDialog
-                    open={isDeleteDialogOpen}
-                    onOpenChange={setIsDeleteDialogOpen}
+                  <Button
+                    type="button"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDeleteDialogOpen(true);
+                    }}
                   >
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        variant="ghost"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Availability</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this availability?
-                          This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                          onClick={handleDelete}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 )}
-                <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onOpenChange(false)}
+                >
                   Cancel
                 </Button>
                 <Button
@@ -632,6 +771,7 @@ export function AvailabilitySidebar({
                                       ? "bg-[#16A34A] text-white"
                                       : "bg-white border text-gray-700"
                                   }`}
+                                  type="button"
                                   onClick={() => toggleDay(dayValue)}
                                 >
                                   {day}
@@ -691,81 +831,311 @@ export function AvailabilitySidebar({
                       </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="video">Video Office</SelectItem>
-                      <SelectItem value="physical">Physical Office</SelectItem>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-medium">Services</h3>
-                    <Button
-                      className="text-[#16A34A] hover:text-[#16A34A]/90"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        if (
-                          services.length > 0 &&
-                          !selectedServices.includes(services[0].id)
-                        ) {
-                          setSelectedServices([
-                            ...selectedServices,
-                            services[0].id,
-                          ]);
-                        }
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add service
-                    </Button>
-                  </div>
+                {allowOnlineRequests && (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-base font-medium">Services</h3>
+                    </div>
 
-                  <div className="text-sm text-gray-600">
-                    Add services that are set up for online requests.{" "}
-                    <button
-                      className="text-[#16A34A] hover:underline"
-                      onClick={() => {
-                        /* Add manage service settings handler */
-                      }}
-                    >
-                      Manage service settings
-                    </button>
-                  </div>
+                    <div className="text-sm text-gray-600">
+                      Add services that are set up for online requests.{" "}
+                      <button
+                        className="text-[#16A34A] hover:underline"
+                        onClick={() => {
+                          /* Add manage service settings handler */
+                        }}
+                      >
+                        Manage service settings
+                      </button>
+                    </div>
 
-                  <div className="space-y-3">
-                    {services.map((service) => {
-                      return (
-                        <div
-                          key={service?.id}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div>
-                            <div className="font-medium">
-                              {service.code} {service.type}
+                    {localSelectedServices.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        No services added to this availability yet
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {allServices
+                          .filter((service: Service) =>
+                            localSelectedServices.includes(service.id),
+                          )
+                          .map((service: Service) => (
+                            <div
+                              key={service.id}
+                              className="flex items-center justify-between p-4 border rounded-lg"
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium">
+                                  {service.code} {service.type}
+                                </div>
+                                <div className="text-sm text-gray-600 flex items-center gap-2">
+                                  <span>{service.duration} min</span>
+                                  <span>•</span>
+                                  <span>
+                                    ${service.defaultRate || service.rate}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleRemoveServiceFromAvailability(
+                                    service.id,
+                                  )
+                                }
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
                             </div>
-                            <div className="text-sm text-gray-600">
-                              {service.duration} min • ${service.rate}
+                          ))}
+                      </div>
+                    )}
+
+                    <div className="relative service-dropdown-container">
+                      <button
+                        className=" inline-flex items-center gap-2 px-3 py-2 text-left text-gray-600 bg-[#E5E7EB] rounded-md"
+                        type="button"
+                        onClick={() =>
+                          setShowServiceDropdown(!showServiceDropdown)
+                        }
+                      >
+                        <span>Add service</span>
+                      </button>
+
+                      {showServiceDropdown && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-96 overflow-hidden">
+                          {/* Header with title */}
+                          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                            <h3 className="text-sm font-semibold text-gray-900">
+                              Add service
+                            </h3>
+                          </div>
+
+                          {/* Search Input */}
+                          <div className="p-4 border-b border-gray-100">
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg
+                                  className="h-4 w-4 text-gray-400"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                  />
+                                </svg>
+                              </div>
+                              <Input
+                                className="!pl-8 w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500 "
+                                placeholder="Search services..."
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                              />
                             </div>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setSelectedServices(
-                                selectedServices.filter(
-                                  (id) => id !== service.id,
-                                ),
-                              );
-                            }}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
+
+                          <div className="max-h-64 overflow-y-auto">
+                            {/* Add all services option */}
+                            {allServices.filter(
+                              (service: Service) =>
+                                !localSelectedServices.includes(service.id),
+                            ).length > 0 && (
+                              <div className="px-4 py-2 bg-[#2D84671A] border-b border-blue-100">
+                                <button
+                                  className="w-full text-left py-2 px-3  rounded-lg text-[#2D8467] font-medium text-sm transition-colors duration-150"
+                                  type="button"
+                                  onClick={handleAddAllServices}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <svg
+                                      className="h-4 w-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                      />
+                                    </svg>
+                                    Add all services
+                                  </div>
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Filtered services list */}
+                            <div className="py-2">
+                              {allServices
+                                .filter(
+                                  (service: Service) =>
+                                    searchTerm === "" ||
+                                    service.code
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase()) ||
+                                    service.type
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase()),
+                                )
+                                .map((service: Service) => {
+                                  const isAlreadyAdded =
+                                    localSelectedServices.includes(service.id);
+
+                                  return (
+                                    <button
+                                      key={service.id}
+                                      className={cn(
+                                        "w-full text-left px-4 py-3 transition-colors duration-150 border-b border-gray-50 last:border-b-0",
+                                        isAlreadyAdded
+                                          ? "bg-gray-50 cursor-not-allowed"
+                                          : "hover:bg-gray-50 cursor-pointer",
+                                      )}
+                                      disabled={isAlreadyAdded}
+                                      type="button"
+                                      onClick={() => {
+                                        if (!isAlreadyAdded) {
+                                          handleAddServiceToAvailability(
+                                            service.id,
+                                          );
+                                          setShowServiceDropdown(false);
+                                          setSearchTerm("");
+                                        }
+                                      }}
+                                    >
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                          <div
+                                            className={cn(
+                                              "font-medium text-sm",
+                                              isAlreadyAdded
+                                                ? "text-gray-500"
+                                                : "text-gray-900",
+                                            )}
+                                          >
+                                            {service.code} {service.type}
+                                          </div>
+                                          {service.duration && (
+                                            <div
+                                              className={cn(
+                                                "text-xs mt-1",
+                                                isAlreadyAdded
+                                                  ? "text-gray-400"
+                                                  : "text-gray-500",
+                                              )}
+                                            >
+                                              {service.duration} minutes
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          {service.defaultRate ||
+                                          service.rate ? (
+                                            <div
+                                              className={cn(
+                                                "text-sm font-medium",
+                                                isAlreadyAdded
+                                                  ? "text-gray-400"
+                                                  : "text-gray-700",
+                                              )}
+                                            >
+                                              $
+                                              {service.defaultRate ||
+                                                service.rate}
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                            </div>
+
+                            {/* No results message */}
+                            {allServices.filter(
+                              (service: Service) =>
+                                searchTerm === "" ||
+                                service.code
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase()) ||
+                                service.type
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase()),
+                            ).length === 0 &&
+                              searchTerm !== "" && (
+                                <div className="px-4 py-8 text-center">
+                                  <div className="text-gray-400 mb-2">
+                                    <svg
+                                      className="h-8 w-8 mx-auto"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                      />
+                                    </svg>
+                                  </div>
+                                  <p className="text-sm text-gray-500">
+                                    No services found matching
+                                  </p>
+                                  <p className="text-sm font-medium text-gray-700">
+                                    "{searchTerm}"
+                                  </p>
+                                </div>
+                              )}
+
+                            {allServices.length === 0 && searchTerm === "" && (
+                              <div className="px-4 py-8 text-center">
+                                <div className="text-gray-400 mb-2">
+                                  <svg
+                                    className="h-8 w-8 mx-auto"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-1.414 0l-2.414-2.414a1 1 0 00-.707-.293H8"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                    />
+                                  </svg>
+                                </div>
+                                <p className="text-sm font-medium text-gray-700">
+                                  No services available
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  There are no services available for this
+                                  clinician
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      );
-                    })}
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {generalError && (
                   <div className="text-red-500 text-sm">{generalError}</div>
@@ -775,6 +1145,16 @@ export function AvailabilitySidebar({
           </form>
         </AvailabilityFormProvider>
       )}
+
+      {/* Delete Availability Modal */}
+      <DeleteAvailabilityModal
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDelete}
+        selectedOption={deleteOption}
+        onOptionChange={setDeleteOption}
+        isRecurring={availabilityData?.is_recurring}
+      />
     </div>
   );
 }

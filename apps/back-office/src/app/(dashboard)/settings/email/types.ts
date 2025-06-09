@@ -1,3 +1,8 @@
+/**
+ * @deprecated Move to @mcw/types/entities/email-template
+ * TODO: [TYPE-MIGRATION] Shared email template type
+ * TODO: [TYPE-MIGRATION-CASING] This uses camelCase - keep for UI, create snake_case DB type
+ */
 export interface EmailTemplate {
   id: string;
   name: string;
@@ -23,6 +28,11 @@ export interface EmailTemplateEditSidebarProps {
   isUpdating?: boolean;
 }
 
+/**
+ * @deprecated Move to @mcw/types/entities/client-group
+ * TODO: [TYPE-MIGRATION] Create SafeClientGroupWithRelations
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create ClientGroupUI type for components
+ */
 export interface ClientGroupData {
   id: string;
   name: string;
@@ -40,6 +50,11 @@ export interface ClientGroupData {
   }>;
 }
 
+/**
+ * @deprecated Use SafeUserWithRelations from @mcw/types
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Another Clinician variant
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, use ClinicianUI type for components
+ */
 export interface ClinicianData {
   id: string;
   first_name: string;

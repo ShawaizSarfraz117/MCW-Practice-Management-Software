@@ -40,7 +40,7 @@ const validateTimeSlot = async (
     return { isValid: false, error: "End time must be after start time" };
   }
 
-  // Check for overlapping availability slots
+  // Check for overlapping availability slots using start_date and end_date
   const overlappingSlot = await prisma.availability.findFirst({
     where: {
       clinician_id: clinicianId,
@@ -48,20 +48,20 @@ const validateTimeSlot = async (
       OR: [
         {
           AND: [
-            { start_time: { lte: startTime } },
-            { end_time: { gt: startTime } },
+            { start_date: { lte: startTime } },
+            { end_date: { gt: startTime } },
           ],
         },
         {
           AND: [
-            { start_time: { lt: endTime } },
-            { end_time: { gte: endTime } },
+            { start_date: { lt: endTime } },
+            { end_date: { gte: endTime } },
           ],
         },
         {
           AND: [
-            { start_time: { gte: startTime } },
-            { end_time: { lte: endTime } },
+            { start_date: { gte: startTime } },
+            { end_date: { lte: endTime } },
           ],
         },
       ],
@@ -105,10 +105,10 @@ export async function PUT(
 
     const startTime = validatedData.startTime
       ? new Date(validatedData.startTime)
-      : existingAvailability.start_time;
+      : existingAvailability.start_date;
     const endTime = validatedData.endTime
       ? new Date(validatedData.endTime)
-      : existingAvailability.end_time;
+      : existingAvailability.end_date;
 
     // Validate time slot if times are being updated
     if (validatedData.startTime || validatedData.endTime) {
@@ -126,8 +126,8 @@ export async function PUT(
     const updatedAvailability = await prisma.availability.update({
       where: { id },
       data: {
-        start_time: startTime,
-        end_time: endTime,
+        start_date: startTime,
+        end_date: endTime,
         is_recurring:
           validatedData.isRecurring ?? existingAvailability.is_recurring,
         recurring_rule:

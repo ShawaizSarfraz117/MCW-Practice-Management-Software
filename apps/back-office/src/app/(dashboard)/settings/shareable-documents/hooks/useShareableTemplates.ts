@@ -16,8 +16,12 @@ export interface ShareableTemplate {
   is_shareable: boolean;
 }
 
+export interface ShareableTemplatesResponse {
+  data: ShareableTemplate[];
+}
+
 export function useShareableTemplates() {
-  return useQuery({
+  return useQuery<ShareableTemplatesResponse>({
     queryKey: ["shareable-templates"],
     queryFn: async () => {
       const response = await fetch(
@@ -27,7 +31,7 @@ export function useShareableTemplates() {
         const error = await response.json();
         throw new Error(error.error || "Failed to fetch shareable templates");
       }
-      return response.json();
+      return response.json() as Promise<ShareableTemplatesResponse>;
     },
   });
 }

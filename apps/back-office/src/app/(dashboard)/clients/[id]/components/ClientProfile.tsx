@@ -328,13 +328,13 @@ export default function ClientProfile({
                 <span className="text-gray-300">|</span>
               </>
             )}
-            <Link href="/calendar" className="text-[#2d8467] hover:underline">
+            <Link className="text-[#2d8467] hover:underline" href="/calendar">
               Schedule appointment
             </Link>
             <span className="text-gray-300">|</span>
             <Link
-              href={`/clients/${id}/edit`}
               className="text-[#2d8467] hover:underline"
+              href={`/clients/${id}/edit`}
             >
               Edit
             </Link>

@@ -4,4 +4,5 @@ export enum TemplateType {
   PROGRESS_NOTES = "progress_notes",
   DIAGNOSIS_AND_TREATMENT_PLANS = "diagnosis_and_treatment_plans",
   OTHER_DOCUMENTS = "other_documents",
+  UPLOADED_FILES = "uploaded_files",
 }

@@ -152,10 +152,10 @@ const ProviderCard = ({
             <div>
               <label className="block text-sm font-medium mb-1">NPI *</label>
               <Input
+                className={errors.npi ? "border-red-500" : ""}
+                placeholder="1234 5678 90"
                 value={providerData.npi}
                 onChange={(e) => handleNPIChange(e.target.value)}
-                placeholder="1234 5678 90"
-                className={errors.npi ? "border-red-500" : ""}
               />
               {errors.npi && (
                 <p className="text-red-500 text-xs mt-1">{errors.npi}</p>
@@ -164,10 +164,10 @@ const ProviderCard = ({
             <div>
               <label className="block text-sm font-medium mb-1">TIN *</label>
               <Input
+                className={errors.tin ? "border-red-500" : ""}
+                placeholder="12-3456789"
                 value={providerData.tin}
                 onChange={(e) => handleTINChange(e.target.value)}
-                placeholder="12-3456789"
-                className={errors.tin ? "border-red-500" : ""}
               />
               {errors.tin && (
                 <p className="text-red-500 text-xs mt-1">{errors.tin}</p>
@@ -199,6 +199,7 @@ const ProviderCard = ({
           <div>
             <label className="block text-sm font-medium mb-1">Address</label>
             <Input
+              placeholder="Enter address"
               value={providerData.address}
               onChange={(e) =>
                 setProviderData((prev) => ({
@@ -206,7 +207,6 @@ const ProviderCard = ({
                   address: e.target.value,
                 }))
               }
-              placeholder="Enter address"
             />
           </div>
 
@@ -235,6 +235,7 @@ const ProviderCard = ({
             <div>
               <label className="block text-sm font-medium mb-1">Phone</label>
               <Input
+                placeholder="Enter phone"
                 value={providerData.phone}
                 onChange={(e) =>
                   setProviderData((prev) => ({
@@ -242,12 +243,13 @@ const ProviderCard = ({
                     phone: e.target.value,
                   }))
                 }
-                placeholder="Enter phone"
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Email</label>
               <Input
+                placeholder="Enter email"
+                type="email"
                 value={providerData.email}
                 onChange={(e) =>
                   setProviderData((prev) => ({
@@ -255,8 +257,6 @@ const ProviderCard = ({
                     email: e.target.value,
                   }))
                 }
-                placeholder="Enter email"
-                type="email"
               />
             </div>
           </div>
