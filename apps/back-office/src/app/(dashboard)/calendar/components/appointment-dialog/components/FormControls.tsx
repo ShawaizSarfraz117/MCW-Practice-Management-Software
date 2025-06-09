@@ -13,6 +13,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
   const allDay = form.getFieldValue<boolean>("allDay");
   const startDate = form.getFieldValue<Date>("startDate");
   const endDate = form.getFieldValue<Date>("endDate");
+  const startTime = form.getFieldValue<string>("startTime");
 
   const handleDateChange = (
     field: "startDate" | "endDate",
@@ -36,6 +37,40 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
   const handleTimeChange = (field: "startTime" | "endTime", time: string) => {
     form.setFieldValue(field, time);
     forceUpdate();
+  };
+
+  // Function to check if a time is after the start time
+  const isTimeAfterStart = (time: string) => {
+    if (!startTime) return true;
+
+    const timeToMinutes = (timeStr: string): number => {
+      const time12Regex = /^(\d{1,2}):([0-5][0-9])\s*(AM|PM)$/i;
+      const time24Regex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+
+      if (time12Regex.test(timeStr)) {
+        const match = timeStr.match(time12Regex);
+        if (!match) return 0;
+
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const period = match[3].toUpperCase();
+
+        if (period === "PM" && hours !== 12) hours += 12;
+        if (period === "AM" && hours === 12) hours = 0;
+
+        return hours * 60 + minutes;
+      } else if (time24Regex.test(timeStr)) {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes;
+      }
+
+      return 0;
+    };
+
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(time);
+
+    return endMinutes > startMinutes;
   };
 
   if (allDay) {
@@ -86,9 +121,16 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
+            disablePastTimes={true}
+            format="12h"
             value={form.getFieldValue<string>("startTime")}
             onChange={(time) => {
               handleTimeChange("startTime", time);
+              // Reset end time if it's before the new start time
+              const currentEndTime = form.getFieldValue<string>("endTime");
+              if (currentEndTime && !isTimeAfterStart(currentEndTime)) {
+                form.setFieldValue("endTime", "");
+              }
               forceUpdate(); // Ensure UI updates
             }}
           />
@@ -96,9 +138,14 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
+            disabledOptions={(time) => !isTimeAfterStart(time)}
+            disablePastTimes={true}
+            format="12h"
             value={form.getFieldValue<string>("endTime")}
             onChange={(time) => {
-              handleTimeChange("endTime", time);
+              if (isTimeAfterStart(time)) {
+                handleTimeChange("endTime", time);
+              }
               forceUpdate(); // Ensure UI updates
             }}
           />

@@ -56,6 +56,46 @@ export async function seedUsers(prisma, { adminRole, backOfficeRole }) {
   });
 
   console.log("Clinician user created:", clinician.email);
+
+  // Create Clinician record for the clinician user
+  const clinicianRecord = await prisma.clinician.upsert({
+    where: { user_id: clinician.id },
+    update: {},
+    create: {
+      id: uuidv4(),
+      user_id: clinician.id,
+      first_name: "Test",
+      last_name: "Clinician",
+      address: "123 Medical Center Drive, Suite 200, Boston, MA 02115",
+      percentage_split: 70,
+      is_active: true,
+      speciality: "General Practice",
+      NPI_number: "1234567890",
+      taxonomy_code: "207Q00000X"
+    }
+  });
+
+  console.log("Clinician record created for:", clinician.email);
+
+  // Also create a Clinician record for the admin user (since admins are also clinicians)
+  const adminClinicianRecord = await prisma.clinician.upsert({
+    where: { user_id: admin.id },
+    update: {},
+    create: {
+      id: uuidv4(),
+      user_id: admin.id,
+      first_name: "Admin",
+      last_name: "User",
+      address: "456 Healthcare Plaza, Floor 3, Boston, MA 02116",
+      percentage_split: 100,
+      is_active: true,
+      speciality: "Practice Administrator",
+      NPI_number: "9876543210",
+      taxonomy_code: "363LF0000X"
+    }
+  });
+
+  console.log("Clinician record created for admin:", admin.email);
   
-  return { admin, clinician };
+  return { admin, clinician, clinicianRecord, adminClinicianRecord };
 } 

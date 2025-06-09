@@ -1,3 +1,8 @@
+/**
+ * @deprecated Use SafeUser or SafeUserWithRelations from @mcw/types instead
+ * TODO: [TYPE-MIGRATION] Move to @mcw/types/entities/user
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create separate UserUI type for components
+ */
 export interface BaseTeamMember {
   id: string;
   email: string;
@@ -9,12 +14,21 @@ export interface BaseTeamMember {
   last_login?: string;
 }
 
+/**
+ * @deprecated Move to @mcw/types/entities/role
+ * TODO: [TYPE-MIGRATION] This should be shared across apps
+ */
 export interface TeamMemberRole {
   id: string;
   name: string;
   permissions?: string[];
 }
 
+/**
+ * @deprecated Use SafeUserWithRelations from @mcw/types instead
+ * TODO: [TYPE-MIGRATION] Remove and use the existing shared type
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create separate UI type with camelCase
+ */
 export interface TeamMemberWithRole extends BaseTeamMember {
   UserRole?: Array<{
     user_id: string;
@@ -24,6 +38,11 @@ export interface TeamMemberWithRole extends BaseTeamMember {
   Clinician?: ClinicianInfo | null;
 }
 
+/**
+ * @deprecated Move to @mcw/types/entities/clinician
+ * TODO: [TYPE-MIGRATION] Create SafeClinician type in shared types
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create ClinicianUI type for components
+ */
 export interface ClinicianInfo {
   id: string;
   user_id: string;

@@ -40,23 +40,64 @@ export function useAppointmentHandler() {
                   : "Client";
 
               // Create appointment with proper client name in title
-              await createAppointment(values, session, clientName);
+              const createdAppointments = await createAppointment(
+                values,
+                session,
+                clientName,
+              );
+
+              // Check if any appointment has the "New Client" tag
+              if (createdAppointments && createdAppointments.length > 0) {
+                const hasNewClientTag = createdAppointments.some(
+                  (appointment: {
+                    AppointmentTag?: Array<{ Tag?: { name?: string } }>;
+                  }) =>
+                    appointment.AppointmentTag?.some(
+                      (tag: { Tag?: { name?: string } }) =>
+                        tag.Tag?.name === "New Client",
+                    ),
+                );
+
+                if (hasNewClientTag) {
+                  // Return data indicating this is a new client appointment
+                  return {
+                    appointments: createdAppointments,
+                    isNewClient: true,
+                    clientName,
+                    clientEmail: clientData.email || "",
+                  };
+                }
+              }
+
+              return { appointments: createdAppointments, isNewClient: false };
             } catch (error) {
               console.error("Error fetching client details:", error);
               // Continue with generic title if client fetch fails
-              await createAppointment(values, session);
+              const createdAppointments = await createAppointment(
+                values,
+                session,
+              );
+              return { appointments: createdAppointments, isNewClient: false };
             }
           } else {
             // No client specified, just create the appointment with default title
-            await createAppointment(values, session);
+            const createdAppointments = await createAppointment(
+              values,
+              session,
+            );
+            return { appointments: createdAppointments, isNewClient: false };
           }
         } catch (err) {
           console.error("Error preparing appointment data:", err);
+          return { appointments: [], isNewClient: false };
         }
       }
 
       // Call the callback if provided
       if (callback) callback();
+
+      // Return empty result if no form data
+      return { appointments: [], isNewClient: false };
     },
     [session, createAppointment],
   );

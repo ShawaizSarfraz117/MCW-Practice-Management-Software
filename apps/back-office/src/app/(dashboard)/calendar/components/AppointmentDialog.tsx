@@ -81,10 +81,17 @@ export function AppointmentDialog({
         return;
       }
 
-      // Time format validation
-      const timeRegex = /^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$/;
-      if (!timeRegex.test(value.startTime) || !timeRegex.test(value.endTime)) {
-        setGeneralError("Time must be in format '6:30 PM'");
+      // Time format validation - accept both 12-hour and 24-hour formats
+      const time24Regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      const time12Regex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
+
+      const isValidStartTime =
+        time24Regex.test(value.startTime) || time12Regex.test(value.startTime);
+      const isValidEndTime =
+        time24Regex.test(value.endTime) || time12Regex.test(value.endTime);
+
+      if (!isValidStartTime || !isValidEndTime) {
+        setGeneralError("Invalid time format. Please select a valid time.");
         return;
       }
 
@@ -129,8 +136,8 @@ export function AppointmentDialog({
         selectedServices: [{ serviceId: "", fee: 0 }],
         startDate: selectedDate || new Date(),
         endDate: selectedDate || new Date(),
-        startTime: "12:00 PM",
-        endTime: "12:50 PM",
+        startTime: "12:00",
+        endTime: "12:50",
         location: "sp",
         recurring: false,
         allDay: false,
@@ -147,8 +154,8 @@ export function AppointmentDialog({
         selectedServices: [],
         startDate: selectedDate || new Date(),
         endDate: selectedDate || new Date(),
-        startTime: "12:00 PM",
-        endTime: "12:50 PM",
+        startTime: "12:00",
+        endTime: "12:50",
         location: "sp",
         recurring: false,
         allDay: false,

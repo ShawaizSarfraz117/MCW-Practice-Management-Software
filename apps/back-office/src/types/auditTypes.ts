@@ -1,7 +1,15 @@
 // back-office/src/types/auditTypes.ts
 
+/**
+ * TODO: [TYPE-MIGRATION] Change to import from @mcw/database
+ */
 import { Audit } from "@prisma/client";
 
+/**
+ * @deprecated Don't extend Prisma types directly
+ * TODO: [TYPE-MIGRATION] Create SafeAudit type in @mcw/types
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create AuditUI type for components
+ */
 export interface TransformedAudit extends Omit<Audit, "Id"> {
   id: string;
   Client?: {
@@ -13,6 +21,11 @@ export interface TransformedAudit extends Omit<Audit, "Id"> {
   };
 }
 
+/**
+ * @deprecated Don't extend Prisma types directly
+ * TODO: [TYPE-MIGRATION] Create SafeAuditWithRelations in @mcw/types
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create AuditWithRelationsUI type
+ */
 export interface AuditWithRelations extends Audit {
   Client?: {
     legal_first_name: string | null;
@@ -23,6 +36,11 @@ export interface AuditWithRelations extends Audit {
   };
 }
 
+/**
+ * @deprecated Move to @mcw/types/entities/audit
+ * TODO: [TYPE-MIGRATION] This is a shared type used in API responses
+ * TODO: [TYPE-MIGRATION-CASING] Keep snake_case, create ActivityEventUI type
+ */
 export interface ActivityEvent {
   id: string;
   datetime: string;
@@ -42,6 +60,10 @@ export interface ActivityEvent {
   };
 }
 
+/**
+ * @deprecated Use PaginationMeta from @mcw/types instead
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Similar to existing pagination types
+ */
 export interface PaginationData {
   total: number;
   page: number;
@@ -55,6 +77,10 @@ export interface ActivityTableProps {
   timeRange: string;
 }
 
+/**
+ * @deprecated Use PaginatedResponse<TransformedAudit> from @mcw/types
+ * TODO: [TYPE-MIGRATION] Replace with generic PaginatedResponse type
+ */
 export interface ActivityResponse {
   data: TransformedAudit[];
   pagination: {

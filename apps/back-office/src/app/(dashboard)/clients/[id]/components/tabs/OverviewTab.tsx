@@ -254,7 +254,7 @@ export default function OverviewTab() {
                   </button>
                 </div>
                 <div className="text-sm text-gray-500">
-                  {format(new Date(appointment.start_date), "h:mm a")}
+                  {format(new Date(appointment.start_date), "HH:mm")}
                 </div>
               </div>
             ))

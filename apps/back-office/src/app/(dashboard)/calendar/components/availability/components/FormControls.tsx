@@ -13,6 +13,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
   const allDay = form.getFieldValue<boolean>("allDay");
   const startDate = form.getFieldValue<Date>("startDate");
   const endDate = form.getFieldValue<Date>("endDate");
+  const startTime = form.getFieldValue<string>("startTime");
 
   const handleDateChange = (
     field: "startDate" | "endDate",
@@ -38,6 +39,52 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
     forceUpdate();
   };
 
+  // Function to check if a time is after the start time
+  const isTimeAfterStart = (time: string) => {
+    if (!startTime) return true;
+
+    // Handle both 12-hour format (1:00 PM) and 24-hour format (13:00)
+    let startHour24: number, startMinute: number;
+    let endHour24: number, endMinute: number;
+
+    if (startTime.includes(" ")) {
+      // 12-hour format
+      const [startHour, startMin, startPeriod] =
+        startTime.match(/(\d+):(\d+) (AM|PM)/)?.slice(1) || [];
+      startHour24 = parseInt(startHour);
+      startMinute = parseInt(startMin);
+      if (startPeriod === "PM" && startHour24 !== 12) startHour24 += 12;
+      if (startPeriod === "AM" && startHour24 === 12) startHour24 = 0;
+    } else {
+      // 24-hour format
+      const [startHour, startMin] = startTime.split(":").map(Number);
+      startHour24 = startHour;
+      startMinute = startMin;
+    }
+
+    if (time.includes(" ")) {
+      // 12-hour format
+      const [endHour, endMin, endPeriod] =
+        time.match(/(\d+):(\d+) (AM|PM)/)?.slice(1) || [];
+      endHour24 = parseInt(endHour);
+      endMinute = parseInt(endMin);
+      if (endPeriod === "PM" && endHour24 !== 12) endHour24 += 12;
+      if (endPeriod === "AM" && endHour24 === 12) endHour24 = 0;
+    } else {
+      // 24-hour format
+      const [endHour, endMin] = time.split(":").map(Number);
+      endHour24 = endHour;
+      endMinute = endMin;
+    }
+
+    // Compare times
+    if (startHour24 !== endHour24) {
+      return endHour24 > startHour24;
+    }
+
+    return endMinute > startMinute;
+  };
+
   if (allDay) {
     return (
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
@@ -46,7 +93,6 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           value={startDate as Date}
           onChange={(date) => {
             handleDateChange("startDate", date);
-            forceUpdate();
           }}
         />
         <span className="text-sm text-gray-500">to</span>
@@ -56,7 +102,6 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             value={endDate as Date}
             onChange={(date) => {
               handleDateChange("endDate", date);
-              forceUpdate();
             }}
           />
           <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -78,7 +123,6 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
         value={startDate as Date}
         onChange={(date) => {
           handleDateChange("startDate", date);
-          forceUpdate();
         }}
       />
       <div className="flex items-center gap-2">
@@ -86,20 +130,30 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
           <TimePicker
             data-timepicker
             className="border-gray-200"
+            disablePastTimes={true}
+            format="12h"
             value={form.getFieldValue<string>("startTime")}
             onChange={(time) => {
               handleTimeChange("startTime", time);
-              forceUpdate();
+              // Reset end time if it's before the new start time
+              const currentEndTime = form.getFieldValue<string>("endTime");
+              if (currentEndTime && !isTimeAfterStart(currentEndTime)) {
+                form.setFieldValue("endTime", "");
+              }
             }}
           />
           <span className="text-sm text-gray-500">to</span>
           <TimePicker
             data-timepicker
             className="border-gray-200"
+            disabledOptions={(time) => !isTimeAfterStart(time)}
+            disablePastTimes={true}
+            format="24h"
             value={form.getFieldValue<string>("endTime")}
             onChange={(time) => {
-              handleTimeChange("endTime", time);
-              forceUpdate();
+              if (isTimeAfterStart(time)) {
+                handleTimeChange("endTime", time);
+              }
             }}
           />
         </div>

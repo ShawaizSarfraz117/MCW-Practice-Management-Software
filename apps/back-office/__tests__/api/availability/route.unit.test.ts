@@ -24,6 +24,14 @@ vi.mock("@mcw/database", () => {
   const availabilityCreateMock = vi.fn();
   const availabilityUpdateMock = vi.fn();
   const availabilityDeleteMock = vi.fn();
+  const availabilityServicesDeleteManyMock = vi.fn();
+  const availabilityServicesFindManyMock = vi.fn();
+  const availabilityServicesFindUniqueMock = vi.fn();
+  const availabilityServicesCreateMock = vi.fn();
+  const availabilityServicesCreateManyMock = vi.fn();
+  const clinicianServicesFindManyMock = vi.fn();
+  const practiceServiceFindUniqueMock = vi.fn();
+  const transactionMock = vi.fn();
 
   return {
     prisma: {
@@ -34,6 +42,20 @@ vi.mock("@mcw/database", () => {
         update: availabilityUpdateMock,
         delete: availabilityDeleteMock,
       },
+      availabilityServices: {
+        findMany: availabilityServicesFindManyMock,
+        findUnique: availabilityServicesFindUniqueMock,
+        create: availabilityServicesCreateMock,
+        createMany: availabilityServicesCreateManyMock,
+        deleteMany: availabilityServicesDeleteManyMock,
+      },
+      clinicianServices: {
+        findMany: clinicianServicesFindManyMock,
+      },
+      practiceService: {
+        findUnique: practiceServiceFindUniqueMock,
+      },
+      $transaction: transactionMock,
     },
     __esModule: true,
   };
@@ -137,7 +159,25 @@ describe("Availability API Unit Tests", () => {
 
   it("POST /api/availability should create a new availability", async () => {
     const newAvail = mockAvailability();
-    (prisma.availability.create as unknown as Mock).mockResolvedValue(newAvail);
+
+    // Mock the transaction to execute the callback immediately
+    (prisma.$transaction as unknown as Mock).mockImplementation(
+      async (callback) => {
+        // Mock tx.availability.create to return newAvail
+        const tx = {
+          availability: {
+            create: vi.fn().mockResolvedValue(newAvail),
+          },
+          clinicianServices: {
+            findMany: vi.fn().mockResolvedValue([]),
+          },
+          availabilityServices: {
+            createMany: vi.fn().mockResolvedValue({ count: 0 }),
+          },
+        };
+        return callback(tx);
+      },
+    );
 
     const availData = {
       clinician_id: mockClinician.id,
@@ -152,6 +192,13 @@ describe("Availability API Unit Tests", () => {
 
     const req = createAuthRequest("/api/availability", "POST", availData);
     const response = await POST(req);
+
+    // Log error if not 200
+    if (response.status !== 200) {
+      const errorData = await response.json();
+      console.error("POST error:", errorData);
+    }
+
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json).toHaveProperty("id", newAvail.id);
@@ -163,7 +210,25 @@ describe("Availability API Unit Tests", () => {
   it("PUT /api/availability should update an existing availability", async () => {
     const existing = mockAvailability();
     const updated = mockAvailability({ title: "Updated Slot" });
-    (prisma.availability.update as unknown as Mock).mockResolvedValue(updated);
+
+    // Mock findUnique to return an existing availability
+    (prisma.availability.findUnique as Mock).mockResolvedValue(existing);
+
+    // Mock transaction for non-recurring update
+    (prisma.$transaction as unknown as Mock).mockImplementation(
+      async (callback) => {
+        const tx = {
+          availability: {
+            update: vi.fn().mockResolvedValue(updated),
+          },
+          availabilityServices: {
+            deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+            createMany: vi.fn().mockResolvedValue({ count: 0 }),
+          },
+        };
+        return callback(tx);
+      },
+    );
 
     const updateData = {
       title: "Updated Slot",
@@ -180,9 +245,26 @@ describe("Availability API Unit Tests", () => {
   });
 
   it("DELETE /api/availability/?id=<id> should delete an availability", async () => {
-    (prisma.availability.delete as unknown as Mock).mockResolvedValue(
+    // Mock findUnique to return an availability
+    (prisma.availability.findUnique as Mock).mockResolvedValue(
       mockAvailability(),
     );
+
+    // Mock the transaction for delete
+    (prisma.$transaction as unknown as Mock).mockImplementation(
+      async (callback) => {
+        const tx = {
+          availabilityServices: {
+            deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+          },
+          availability: {
+            delete: vi.fn().mockResolvedValue(mockAvailability()),
+          },
+        };
+        return callback(tx);
+      },
+    );
+
     const req = createAuthRequest(
       "/api/availability?id=availability-id",
       "DELETE",

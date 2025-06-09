@@ -12,6 +12,7 @@ import { useFormContext } from "./context/FormContext";
 import { DateTimeControls } from "./components/FormControls";
 import { EditConfirmationModal } from "./EditConfirmationModal";
 import { DeleteConfirmationModal } from "./components/DeleteConfirmationModal";
+import { AppointmentLockedModal } from "./components/AppointmentLockedModal";
 import { RecurringSettings } from "./components/RecurringSettings";
 import { RecurringHeader } from "./components/RecurringHeader";
 import { useAppointmentUpdate } from "./hooks/useAppointmentUpdate";
@@ -51,6 +52,7 @@ export function EditEvent({
 
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [isRecurringExpanded, setIsRecurringExpanded] = useState(false);
+  const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
 
   useEffect(() => {
     if (appointmentData?.status) {
@@ -92,6 +94,7 @@ export function EditEvent({
     onDone,
     setGeneralError,
     appointmentId: appointmentData?.id,
+    onLockedByInvoice: () => setIsLockedModalOpen(true),
   });
 
   const handleRecurringSettingsSave = (data: RecurringInfo) => {
@@ -239,6 +242,11 @@ export function EditEvent({
         onConfirm={handleDeleteConfirm}
         onOpenChange={setIsDeleteModalOpen}
         onOptionChange={setSelectedDeleteOption}
+      />
+
+      <AppointmentLockedModal
+        open={isLockedModalOpen}
+        onOpenChange={setIsLockedModalOpen}
       />
     </>
   );

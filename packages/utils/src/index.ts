@@ -1,9 +1,14 @@
 export * from "./formatting";
 export * from "./styles";
-export * from "./test-utils";
-export * from "./fetch";
 export * from "./surveyjs";
 export * from "./surveyjs-custom";
+export * from "./errorToast";
+
+// Re-export server utilities for backward compatibility
+// These should be imported from @mcw/utils/server in client components
+export * from "./test-utils";
+export * from "./fetch";
+export * from "./withErrorHandling";
 
 // Example validation utility
 export function validateEmail(email: string): boolean {

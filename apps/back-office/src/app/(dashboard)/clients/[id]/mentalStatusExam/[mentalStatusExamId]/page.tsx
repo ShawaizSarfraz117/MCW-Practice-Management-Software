@@ -381,8 +381,8 @@ export default function EditMentalStatusExam() {
 
       {/* Form */}
       <form
-        onSubmit={handleSubmit}
         className="flex flex-col justify-center gap-4"
+        onSubmit={handleSubmit}
       >
         {[
           { label: "Appearance", key: "appearance" },
@@ -406,11 +406,11 @@ export default function EditMentalStatusExam() {
               {label}
             </label>
             <AutocompleteInput
+              className="w-full h-10"
               options={fieldOptions[key as keyof typeof fieldOptions] || []}
+              placeholder={`Select or type ${label.toLowerCase()}`}
               value={fields[key as keyof typeof fields]}
               onChange={(value) => handleChange(key, value)}
-              placeholder={`Select or type ${label.toLowerCase()}`}
-              className="w-full h-10"
             />
           </div>
         ))}
@@ -459,8 +459,8 @@ export default function EditMentalStatusExam() {
           </Button>
           <Button
             className="bg-[#2d8467] hover:bg-[#236c53] text-white"
-            type="submit"
             disabled={isSubmitting}
+            type="submit"
           >
             {isSubmitting ? "Updating..." : "Update Mental Status Exam"}
           </Button>

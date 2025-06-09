@@ -6,7 +6,6 @@ import type React from "react";
 import { CalendarView } from "./components/calendar/calendar";
 
 import { useState, useEffect, useCallback } from "react";
-import { IntakeForm } from "./components/intake/IntakeForm";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { CreateClientDrawer } from "../clients/components/CreateClientDrawer";
@@ -46,6 +45,7 @@ type Appointment = {
   clinician_id?: string;
   status: string;
   is_recurring: boolean;
+  isFirstAppointmentForGroup?: boolean;
   Client?: {
     id: string;
     legal_first_name: string;
@@ -62,6 +62,16 @@ type Appointment = {
     name: string;
     address: string;
   };
+  AppointmentTag?: Array<{
+    id: string;
+    appointment_id: string;
+    tag_id: string;
+    Tag: {
+      id: string;
+      name: string;
+      color: string;
+    };
+  }>;
 };
 
 // Custom hook to get clinician data for the current user
@@ -142,7 +152,6 @@ function determineLocationType(
 const CalendarPage: React.FC = () => {
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [_appointmentDate, setAppointmentDate] = useState("");
-  const [showIntakeForm, setShowIntakeForm] = useState(false);
 
   // Use the custom hook to get clinician data
   const {
@@ -316,6 +325,14 @@ const CalendarPage: React.FC = () => {
           location: appointment.location_id,
           allDay: appointment.is_all_day,
           status: appointment.status,
+          extendedProps: {
+            type:
+              appointment.type === "APPOINTMENT"
+                ? ("appointment" as const)
+                : ("availability" as const),
+            isFirstAppointmentForGroup: appointment.isFirstAppointmentForGroup,
+            appointmentTags: appointment.AppointmentTag || [],
+          },
         };
       })
     : [];
@@ -327,7 +344,6 @@ const CalendarPage: React.FC = () => {
 
   const handleAppointmentDone = () => {
     setShowCreateClient(false);
-    // setShowIntakeForm(true);
   };
 
   // Show loading state if waiting for clinician data or API data
@@ -367,14 +383,6 @@ const CalendarPage: React.FC = () => {
           open={showCreateClient}
           onOpenChange={setShowCreateClient}
         />
-
-        {showIntakeForm && (
-          <IntakeForm
-            clientEmail="almir@example.com"
-            clientName="Almir Kazacic"
-            onClose={() => setShowIntakeForm(false)}
-          />
-        )}
       </div>
     </div>
   );

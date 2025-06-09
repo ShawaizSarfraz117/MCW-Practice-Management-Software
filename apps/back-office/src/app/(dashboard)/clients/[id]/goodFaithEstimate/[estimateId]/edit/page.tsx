@@ -555,19 +555,17 @@ const EditGoodFaithEstimatePage = () => {
           <ClientCard
             client={firstClient.Client}
             index={0}
+            initialData={clientsData[firstClient.client_id]}
             isFirstClient={true}
             onDataChange={(data) =>
               handleClientDataChange(firstClient.client_id, data)
             }
-            initialData={clientsData[firstClient.client_id]}
           />
         )}
 
         {goodFaithData.Clinician && locationsData && (
           <ProviderCard
             clinician={goodFaithData.Clinician}
-            locations={locationsData}
-            onDataChange={handleProviderDataChange}
             initialData={{
               name: `${goodFaithData.Clinician.first_name} ${goodFaithData.Clinician.last_name}`,
               npi: goodFaithData.clinician_npi || "",
@@ -579,6 +577,8 @@ const EditGoodFaithEstimatePage = () => {
               phone: goodFaithData.clinician_phone || "",
               email: goodFaithData.clinician_email || "",
             }}
+            locations={locationsData}
+            onDataChange={handleProviderDataChange}
           />
         )}
       </div>
@@ -589,11 +589,11 @@ const EditGoodFaithEstimatePage = () => {
           key={gfClient.client_id}
           client={gfClient.Client}
           index={index + 1}
+          initialData={clientsData[gfClient.client_id]}
           isFirstClient={false}
           onDataChange={(data) =>
             handleClientDataChange(gfClient.client_id, data)
           }
-          initialData={clientsData[gfClient.client_id]}
         />
       ))}
 
@@ -680,7 +680,7 @@ const EditGoodFaithEstimatePage = () => {
               <div>Quantity</div>
               <div>Rate</div>
               <div>Total</div>
-              <div></div>
+              <div />
             </div>
 
             {serviceRows.map((row, index) => (
@@ -751,6 +751,7 @@ const EditGoodFaithEstimatePage = () => {
                 </div>
                 <div>
                   <Input
+                    min="1"
                     type="number"
                     value={row.quantity}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -760,11 +761,12 @@ const EditGoodFaithEstimatePage = () => {
                         parseInt(e.target.value) || 1,
                       )
                     }
-                    min="1"
                   />
                 </div>
                 <div>
                   <Input
+                    placeholder="$0.00"
+                    step="0.01"
                     type="number"
                     value={row.rate}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -774,8 +776,6 @@ const EditGoodFaithEstimatePage = () => {
                         parseFloat(e.target.value) || 0,
                       )
                     }
-                    placeholder="$0.00"
-                    step="0.01"
                   />
                 </div>
                 <div className="flex items-center">
@@ -784,10 +784,10 @@ const EditGoodFaithEstimatePage = () => {
                 <div className="flex justify-center">
                   {serviceRows.length > 1 && (
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeServiceRow(index)}
                       className="p-1 h-8 w-8 text-gray-400 hover:text-red-600"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeServiceRow(index)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -797,7 +797,7 @@ const EditGoodFaithEstimatePage = () => {
             ))}
           </div>
 
-          <Button onClick={addServiceRow} variant="outline" className="mt-2">
+          <Button className="mt-2" variant="outline" onClick={addServiceRow}>
             + Add service
           </Button>
 
@@ -819,10 +819,10 @@ const EditGoodFaithEstimatePage = () => {
         </CardHeader>
         <CardContent>
           <Textarea
+            className="min-h-32"
+            placeholder="Enter any additional notes..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Enter any additional notes..."
-            className="min-h-32"
           />
         </CardContent>
       </Card>
@@ -833,9 +833,9 @@ const EditGoodFaithEstimatePage = () => {
           Cancel
         </Button>
         <Button
-          onClick={handleSave}
-          disabled={isSaving || hasValidationErrors}
           className={hasValidationErrors ? "opacity-50 cursor-not-allowed" : ""}
+          disabled={isSaving || hasValidationErrors}
+          onClick={handleSave}
         >
           {isSaving ? "Updating..." : "Update"}
         </Button>
