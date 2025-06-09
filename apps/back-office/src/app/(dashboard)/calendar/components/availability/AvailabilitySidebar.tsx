@@ -23,6 +23,7 @@ import {
   AvailabilitySidebarProps,
   Service,
   AvailabilityService,
+  Location,
 } from "./types";
 import { DeleteAvailabilityModal } from "./DeleteAvailabilityModal";
 
@@ -140,7 +141,9 @@ export function AvailabilitySidebar({
       if (!response.ok) {
         throw new Error("Failed to fetch locations");
       }
-      return response.json();
+      const data = await response.json();
+      // Ensure the result is always an array
+      return Array.isArray(data) ? data : [data];
     },
   });
 
