@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const status = searchParams.get("status");
+    const include = searchParams.get("include");
 
     if (id) {
       logger.info("Retrieving specific appointment");
@@ -84,11 +85,19 @@ export async function GET(request: NextRequest) {
 
       // Add invoice status filtering to the whereClause directly
       if (status && status !== "undefined") {
-        whereClause.Invoice = {
-          some: {
-            status: status, // Filter directly on the invoice status field
-          },
-        };
+        if (status === "UNINVOICED") {
+          // For UNINVOICED, find appointments with zero invoices
+          whereClause.Invoice = {
+            none: {}, // No invoices exist for this appointment
+          };
+        } else {
+          // For other statuses (PAID, UNPAID), find appointments with invoices of that status
+          whereClause.Invoice = {
+            some: {
+              status: status, // Filter directly on the invoice status field
+            },
+          };
+        }
       }
 
       // List appointments with filters
@@ -124,6 +133,7 @@ export async function GET(request: NextRequest) {
               address: true,
             },
           },
+          Superbill: include === "Superbill" ? true : false,
         },
         orderBy: {
           start_date: "asc",

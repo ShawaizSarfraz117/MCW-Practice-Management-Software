@@ -99,7 +99,9 @@ export async function POST(request: NextRequest) {
       const maxInvoice = await prisma.invoice.findFirst({
         orderBy: { invoice_number: "desc" },
       });
-      const nextInvoiceNumber = maxInvoice ? maxInvoice.invoice_number + 1 : 1;
+      const nextInvoiceNumber = maxInvoice
+        ? Number(maxInvoice.invoice_number) + 1
+        : 1;
 
       const invoice = await prisma.invoice.create({
         data: {
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
           type: "ADJUSTMENT",
           status:
             Number(appointment.adjustable_amount) < 0 ? "CREDIT" : "UNPAID",
-          invoice_number: `INV #${nextInvoiceNumber}`,
+          invoice_number: String(nextInvoiceNumber),
           issued_date: new Date(),
           due_date: new Date(),
         },
@@ -137,12 +139,13 @@ export async function POST(request: NextRequest) {
       const maxInvoice = await prisma.invoice.findFirst({
         orderBy: { invoice_number: "desc" },
       });
-      const nextInvoiceNumber = maxInvoice ? maxInvoice.invoice_number + 1 : 1;
-      const invoiceNumber = `INV #${nextInvoiceNumber}`;
+      const nextInvoiceNumber = maxInvoice
+        ? Number(maxInvoice.invoice_number) + 1
+        : 1;
       // Create new invoice
       const newInvoice = await prisma.invoice.create({
         data: {
-          invoice_number: invoiceNumber,
+          invoice_number: String(nextInvoiceNumber),
           client_group_id: data.client_group_id,
           appointment_id: data.appointment_id,
           clinician_id: data.clinician_id || null,
