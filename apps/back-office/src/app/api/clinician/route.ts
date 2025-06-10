@@ -1,3 +1,5 @@
+/* eslint-disable no-restricted-imports */
+// API routes are allowed to import from @mcw/database
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
@@ -22,6 +24,11 @@ export async function GET(request: NextRequest) {
       const clinician = await prisma.user.findUnique({
         where: { id: userId },
         include: {
+          UserRole: {
+            include: {
+              Role: true,
+            },
+          },
           clinicalInfos: true,
           Clinician: {
             include: {

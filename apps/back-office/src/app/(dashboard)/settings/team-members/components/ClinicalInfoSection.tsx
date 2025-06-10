@@ -4,7 +4,9 @@ import { Card } from "@mcw/ui";
 import { TeamMember } from "../hooks/useRolePermissions";
 import EditTeamMemberSidebar from "./EditTeamMemberSidebar";
 import ClinicalInfoEdit from "./ClinicalInfoEdit";
-import { useUpdateClinicalInfo } from "../services/member.service";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@mcw/ui";
+import { showErrorToast } from "@mcw/utils";
 
 interface ClinicalInfoSectionProps {
   member: TeamMember;
@@ -19,28 +21,51 @@ export function ClinicalInfoSection({
   isEditing,
   onClose,
 }: ClinicalInfoSectionProps) {
-  const { mutate: updateClinicalInfo, isPending } = useUpdateClinicalInfo();
+  const queryClient = useQueryClient();
+
+  // Update clinical info through team-members API
+  const updateMutation = useMutation({
+    mutationFn: async (data: { specialty: string; npiNumber: string }) => {
+      const response = await fetch(`/api/team-members`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: member.id,
+          specialty: data.specialty,
+          npiNumber: data.npiNumber,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update clinical information");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Clinical information updated successfully",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["clinician-details", member.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      onClose();
+    },
+    onError: (error: unknown) => {
+      showErrorToast(toast, error);
+    },
+  });
 
   const handleClinicalInfoSubmit = (data: {
     specialty: string;
     npiNumber: string;
   }) => {
-    // Convert the NPI number to a number
-    const NPInumber = data.npiNumber ? parseInt(data.npiNumber, 10) : undefined;
-
-    updateClinicalInfo(
-      {
-        speciality: data.specialty,
-        taxonomyCode: "000", // Default taxonomy code
-        NPInumber,
-        user_id: member.id,
-      },
-      {
-        onSuccess: () => {
-          onClose();
-        },
-      },
-    );
+    updateMutation.mutate(data);
   };
 
   const handleSave = () => {
@@ -85,7 +110,7 @@ export function ClinicalInfoSection({
 
       <EditTeamMemberSidebar
         formId="clinical-info-edit-form"
-        isLoading={isPending}
+        isLoading={updateMutation.isPending}
         isOpen={isEditing}
         title="Edit clinical info"
         onClose={onClose}

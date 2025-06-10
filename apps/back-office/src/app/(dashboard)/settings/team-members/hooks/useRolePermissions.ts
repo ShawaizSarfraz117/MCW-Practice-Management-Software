@@ -36,6 +36,14 @@ export type ClinicianLevel =
   | "Entire practice";
 
 export type RoleType =
+  | "ADMIN"
+  | "ADMIN.PRACTICE-MANAGER"
+  | "ADMIN.PRACTICE-BILLER"
+  | "CLINICIAN.BASIC"
+  | "CLINICIAN.BILLING"
+  | "CLINICIAN.FULL-CLIENT-LIST"
+  | "CLINICIAN.ENTIRE-PRACTICE"
+  | "CLINICIAN.SUPERVISOR"
   | "Clinician"
   | "Supervisor"
   | "Practice Owner"
@@ -63,6 +71,19 @@ export const CLINICIAN_LEVEL_DESCRIPTIONS: Record<ClinicianLevel, string> = {
 };
 
 export const ROLE_DESCRIPTIONS: Record<RoleType, string> = {
+  ADMIN: "Full access to all practice features and settings",
+  "ADMIN.PRACTICE-MANAGER":
+    "Manages practice operations, team members, and settings",
+  "ADMIN.PRACTICE-BILLER":
+    "Handles client payments, insurance claims, and financial reports",
+  "CLINICIAN.BASIC": "Can schedule and add documentation for their clients",
+  "CLINICIAN.BILLING":
+    "Can bill, schedule, and add documentation for their clients",
+  "CLINICIAN.FULL-CLIENT-LIST":
+    "Can bill, schedule, and add documentation for their clients. Can see profiles and appointments for all clients.",
+  "CLINICIAN.ENTIRE-PRACTICE":
+    "Can bill, schedule, and add documentation for all clients in the practice. Can see most reports and practice settings.",
+  "CLINICIAN.SUPERVISOR": "Supervises other clinicians and reviews their work",
   Clinician: "For team members who treat clients",
   Supervisor: "For team members who supervise a pre-licensed clinician",
   "Practice Owner": "Full access to all practice features and settings",
@@ -80,6 +101,106 @@ export const ROLE_DESCRIPTIONS: Record<RoleType, string> = {
 };
 
 export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
+  ADMIN: {
+    clientCare: [
+      "View and create chart notes",
+      "View completed questionnaires and scored measures",
+      "View and manage client documents",
+      "View and manage intake documents",
+      "Full access to all client records",
+    ],
+    operations: [
+      "View and manage financial dashboards",
+      "Full practice management access",
+      "Manage team members and roles",
+      "Configure practice settings",
+    ],
+  },
+  "ADMIN.PRACTICE-MANAGER": {
+    clientCare: [
+      "View client records",
+      "Manage client documents",
+      "View intake documents",
+      "Access to all client profiles",
+    ],
+    operations: [
+      "Manage team members and roles",
+      "Configure practice settings",
+      "View practice reports",
+      "Manage practice operations",
+      "Access scheduling for all clinicians",
+    ],
+  },
+  "ADMIN.PRACTICE-BILLER": {
+    clientCare: [
+      "View basic client information",
+      "Access billing-related documents",
+      "View insurance information",
+    ],
+    operations: [
+      "Full financial dashboard access",
+      "Manage billing and payments",
+      "Process insurance claims",
+      "Generate financial reports",
+      "Manage superbills and invoices",
+      "View and edit billing settings",
+    ],
+  },
+  "CLINICIAN.BASIC": {
+    clientCare: [
+      "View and create chart notes for their clients",
+      "Schedule appointments for their clients",
+      "Add documentation for their clients",
+    ],
+    operations: ["View own calendar", "Schedule own appointments"],
+  },
+  "CLINICIAN.BILLING": {
+    clientCare: [
+      "View and create chart notes for their clients",
+      "Schedule appointments for their clients",
+      "Add documentation for their clients",
+      "Bill for their clients",
+    ],
+    operations: [
+      "View own calendar",
+      "Schedule own appointments",
+      "Access billing features for own clients",
+    ],
+  },
+  "CLINICIAN.FULL-CLIENT-LIST": {
+    clientCare: [
+      "View and create chart notes for their clients",
+      "Schedule appointments for their clients",
+      "Add documentation for their clients",
+      "Bill for their clients",
+      "View all client profiles",
+      "View all appointments",
+    ],
+    operations: [
+      "View practice calendar",
+      "Schedule own appointments",
+      "Access billing features for own clients",
+      "View client directory",
+    ],
+  },
+  "CLINICIAN.ENTIRE-PRACTICE": {
+    clientCare: [
+      "View and create chart notes for all clients",
+      "Schedule appointments for all clients",
+      "Add documentation for all clients",
+      "Bill for all clients",
+      "View all client profiles",
+      "View all appointments",
+    ],
+    operations: [
+      "View practice calendar",
+      "Schedule any appointments",
+      "Access billing features for all clients",
+      "View client directory",
+      "View most reports",
+      "View practice settings",
+    ],
+  },
   Clinician: {
     clientCare: [
       "View and create chart notes",

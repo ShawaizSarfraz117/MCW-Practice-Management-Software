@@ -1,7 +1,14 @@
-import { FETCH, showErrorToast } from "@mcw/utils";
+import { FETCH } from "@mcw/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@mcw/ui";
 import { TeamMembersResponse, TeamMembersSearchParams } from "@mcw/types";
+// Re-export clinical functions for backward compatibility
+export {
+  updateClinicalInfo,
+  useUpdateClinicalInfo,
+  updateLicenses,
+  useUpdateLicenses,
+} from "./clinical.service";
 
 export const fetchTeamMembers = async ({
   searchParams = {},
@@ -42,27 +49,37 @@ export const useTeamMembers = (searchParams: TeamMembersSearchParams = {}) => {
 interface ClinicianDetails {
   id: string;
   email: string;
+  UserRole?: {
+    user_id: string;
+    role_id: string;
+    Role: {
+      id: string;
+      name: string;
+      description: string | null;
+    };
+  }[];
   clinicalInfos?: {
     id: string;
     speciality: string;
     taxonomy_code: string;
     NPI_number: number;
-    licenses: {
+  }[];
+  Clinician?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    License?: {
       id: string;
       license_type: string;
       license_number: string;
       expiration_date: string | Date;
       state: string;
     }[];
-  }[];
-  Clinician?: {
-    id: string;
-    first_name: string;
-    last_name: string;
     ClinicianServices?: {
       id: string;
       PracticeService: {
         id: string;
+        name: string;
         type: string;
         description?: string;
       };
@@ -234,88 +251,6 @@ export const useDeleteTeamMember = () => {
     mutationFn: deleteTeamMember,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-members"] });
-    },
-  });
-};
-
-export const updateClinicalInfo = async (data: {
-  speciality?: string;
-  taxonomyCode?: string;
-  NPInumber?: number;
-  user_id: string;
-}) => {
-  const response = await FETCH.update({
-    url: "/clinicalInfo",
-    method: "PUT",
-    body: data,
-    isFormData: false,
-  });
-
-  return response;
-};
-
-export const useUpdateClinicalInfo = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: updateClinicalInfo,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clinician-details"] });
-      toast({
-        title: "Success",
-        description: "Clinical information updated successfully",
-        variant: "success",
-      });
-    },
-    onError: (error: unknown) => {
-      showErrorToast(toast, error);
-    },
-  });
-};
-
-export const updateLicenses = async (data: {
-  licenses: Array<{
-    id?: number;
-    license_type: string;
-    license_number: string;
-    expiration_date: string;
-    state: string;
-  }>;
-  clinical_info_id: number;
-}) => {
-  try {
-    const response = await FETCH.update({
-      url: "/license",
-      method: "PUT",
-      body: data,
-      isFormData: false,
-    });
-
-    return response;
-  } catch (error) {
-    throw new Error(error as string);
-  }
-};
-
-export const useUpdateLicenses = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: updateLicenses,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clinician-details"] });
-      toast({
-        title: "Success",
-        description: "License information updated successfully",
-        variant: "success",
-      });
-    },
-    onError: (_error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update license information",
-        variant: "destructive",
-      });
     },
   });
 };

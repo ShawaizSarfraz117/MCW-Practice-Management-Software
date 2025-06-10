@@ -24,6 +24,29 @@ interface MockUserRole {
   [key: string]: any;
 }
 
+interface MockLicense {
+  id: string;
+  license_type: string;
+  license_number: string;
+  expiration_date: Date;
+  state: string;
+  [key: string]: any;
+}
+
+interface MockPracticeService {
+  id: string;
+  name: string;
+  [key: string]: any;
+}
+
+interface MockClinicianService {
+  clinician_id: string;
+  service_id: string;
+  is_active: boolean;
+  PracticeService?: MockPracticeService;
+  [key: string]: any;
+}
+
 interface MockClinician {
   id: string;
   user_id: string;
@@ -35,6 +58,17 @@ interface MockClinician {
   speciality: string | null;
   NPI_number: string | null;
   taxonomy_code: string | null;
+  License?: MockLicense[];
+  ClinicianServices?: MockClinicianService[];
+  [key: string]: any;
+}
+
+interface MockClinicalInfo {
+  id: string;
+  user_id: string;
+  speciality: string;
+  taxonomy_code: string;
+  NPI_number: number;
   [key: string]: any;
 }
 
@@ -48,6 +82,7 @@ interface MockUser {
   profile_photo: string | null;
   UserRole?: MockUserRole[];
   Clinician?: MockClinician | null;
+  clinicalInfos?: MockClinicalInfo[];
   [key: string]: any;
 }
 
@@ -57,6 +92,7 @@ vi.mock("@mcw/logger", () => ({
     error: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
+    debug: vi.fn(),
   },
   getDbLogger: vi.fn(() => ({
     error: vi.fn(),
@@ -86,6 +122,7 @@ const mockUser = (overrides = {}): MockUser => ({
   profile_photo: null,
   UserRole: [],
   Clinician: null,
+  clinicalInfos: [],
   ...overrides,
 });
 
@@ -116,6 +153,43 @@ const mockClinician = (overrides = {}): MockClinician => ({
   speciality: null,
   NPI_number: null,
   taxonomy_code: null,
+  License: [],
+  ClinicianServices: [],
+  ...overrides,
+});
+
+// Helper function to create a mock license
+const mockLicense = (overrides = {}): MockLicense => ({
+  id: "mock-license-id",
+  license_type: "Medical",
+  license_number: "123456",
+  expiration_date: new Date("2025-12-31"),
+  state: "CA",
+  ...overrides,
+});
+
+// Helper function to create a mock practice service
+const mockPracticeService = (overrides = {}): MockPracticeService => ({
+  id: "mock-service-id",
+  name: "Therapy",
+  ...overrides,
+});
+
+// Helper function to create a mock clinician service
+const mockClinicianService = (overrides = {}): MockClinicianService => ({
+  clinician_id: "mock-clinician-id",
+  service_id: "mock-service-id",
+  is_active: true,
+  ...overrides,
+});
+
+// Helper function to create a mock clinical info
+const mockClinicalInfo = (overrides = {}): MockClinicalInfo => ({
+  id: "mock-clinical-info-id",
+  user_id: "mock-user-id",
+  speciality: "Psychiatry",
+  taxonomy_code: "2084P0800X",
+  NPI_number: 1234567890,
   ...overrides,
 });
 
@@ -145,20 +219,24 @@ describe("Team Members API Unit Tests", () => {
             },
           ],
           Clinician: null,
+          clinicalInfos: [],
         } as MockUser,
         {
           ...mockUser({ id: "user-2", email: "clinician@example.com" }),
           UserRole: [
             {
               ...mockUserRole({ role_id: "role-clinician" }),
-              Role: mockRole({ id: "role-clinician", name: "Clinician" }),
+              Role: mockRole({ id: "role-clinician", name: "CLINICIAN.BASIC" }),
             },
           ],
           Clinician: mockClinician({
             user_id: "user-2",
             first_name: "John",
             last_name: "Doe",
+            License: [],
+            ClinicianServices: [],
           }) as MockClinician,
+          clinicalInfos: [],
         } as MockUser,
       ];
 
@@ -181,6 +259,79 @@ describe("Team Members API Unit Tests", () => {
       expect(data.pagination.total).toBe(2);
       expect(data.pagination.page).toBe(1);
       expect(data.pagination.pageSize).toBe(20);
+    });
+
+    it("should return team members with complete clinician data including licenses and services", async () => {
+      // Mock user data with complete clinician information
+      const mockUsers = [
+        {
+          ...mockUser({ id: "user-3", email: "dr.smith@example.com" }),
+          UserRole: [
+            {
+              ...mockUserRole({ role_id: "role-clinician" }),
+              Role: mockRole({ id: "role-clinician", name: "CLINICIAN.FULL" }),
+            },
+          ],
+          Clinician: mockClinician({
+            user_id: "user-3",
+            first_name: "Dr",
+            last_name: "Smith",
+            License: [
+              mockLicense({
+                id: "license-1",
+                license_type: "Medical",
+                license_number: "MD123456",
+                state: "CA",
+              }),
+            ],
+            ClinicianServices: [
+              {
+                ...mockClinicianService(),
+                PracticeService: mockPracticeService({
+                  id: "service-1",
+                  name: "Individual Therapy",
+                }),
+              },
+              {
+                ...mockClinicianService({
+                  service_id: "service-2",
+                }),
+                PracticeService: mockPracticeService({
+                  id: "service-2",
+                  name: "Group Therapy",
+                }),
+              },
+            ],
+          }) as MockClinician,
+          clinicalInfos: [
+            mockClinicalInfo({
+              speciality: "Psychiatry",
+              NPI_number: 1234567890,
+            }),
+          ],
+        } as MockUser,
+      ];
+
+      // Set up mocks
+      prismaMock.user.findMany.mockResolvedValueOnce(mockUsers);
+      prismaMock.user.count.mockResolvedValueOnce(1);
+
+      // Create request
+      const request = createRequest("/api/team-members");
+      const response = await GET(request);
+      const data = await response.json();
+
+      // Assert response
+      expect(response.status).toBe(200);
+      expect(data.data).toHaveLength(1);
+
+      const clinician = data.data[0];
+      expect(clinician.Clinician).toBeTruthy();
+      expect(clinician.Clinician.License).toHaveLength(1);
+      expect(clinician.Clinician.License[0].license_number).toBe("MD123456");
+      expect(clinician.Clinician.ClinicianServices).toHaveLength(2);
+      expect(clinician.clinicalInfos).toHaveLength(1);
+      expect(clinician.clinicalInfos[0].speciality).toBe("Psychiatry");
     });
 
     it("should filter by search term", async () => {
@@ -374,7 +525,7 @@ describe("Team Members API Unit Tests", () => {
       prismaMock.role.findMany.mockResolvedValueOnce([
         mockRole({
           id: "role-clinician",
-          name: "Clinician",
+          name: "CLINICIAN.BASIC",
           description: null,
         }),
       ]);
@@ -393,7 +544,7 @@ describe("Team Members API Unit Tests", () => {
         UserRole: [
           {
             ...mockUserRole({ user_id: newUserId, role_id: "role-clinician" }),
-            Role: mockRole({ id: "role-clinician", name: "Clinician" }),
+            Role: mockRole({ id: "role-clinician", name: "CLINICIAN.BASIC" }),
           },
         ],
         Clinician: mockClinician({
@@ -401,6 +552,7 @@ describe("Team Members API Unit Tests", () => {
           first_name: "New",
           last_name: "Clinician",
         }) as MockClinician,
+        clinicalInfos: [],
       } as MockUser);
 
       // Create request
@@ -409,7 +561,7 @@ describe("Team Members API Unit Tests", () => {
         firstName: "New",
         lastName: "Clinician",
         password: "password123",
-        roles: ["Clinician"], // Changed from roleIds to roles
+        roles: ["CLINICIAN.BASIC"], // Changed from roleIds to roles
       };
 
       const request = createRequestWithBody("/api/team-members", newUser);
@@ -430,6 +582,133 @@ describe("Team Members API Unit Tests", () => {
           address: "", // Default empty address
           percentage_split: 100, // Default 100%
         }),
+      });
+    });
+
+    it("should create a clinician with license, services, and clinical info", async () => {
+      // Mock user creation with full clinician data
+      const newUserId = "new-full-clinician-id";
+      const newClinicianId = "new-clinician-id";
+
+      prismaMock.user.findUnique.mockResolvedValueOnce(null);
+
+      // Mock role finding
+      prismaMock.role.findMany.mockResolvedValueOnce([
+        mockRole({
+          id: "role-clinician",
+          name: "CLINICIAN.FULL",
+        }),
+      ]);
+
+      prismaMock.$transaction.mockImplementationOnce(async (callback) => {
+        const mockNewUser = mockUser({ id: newUserId });
+        prismaMock.user.create.mockResolvedValueOnce(mockNewUser);
+        prismaMock.clinician.create.mockResolvedValueOnce(
+          mockClinician({ id: newClinicianId, user_id: newUserId }),
+        );
+        prismaMock.clinicalInfo.create.mockResolvedValueOnce(
+          mockClinicalInfo({ user_id: newUserId }),
+        );
+        prismaMock.license.create.mockResolvedValueOnce(
+          mockLicense({ clinician_id: newClinicianId }),
+        );
+        prismaMock.practiceService.findMany.mockResolvedValueOnce([
+          mockPracticeService({ id: "service-1" }),
+          mockPracticeService({ id: "service-2" }),
+        ]);
+        prismaMock.clinicianServices.createMany.mockResolvedValueOnce({
+          count: 2,
+        });
+        return await callback(prismaMock);
+      });
+
+      prismaMock.user.findUnique.mockResolvedValueOnce({
+        ...mockUser({ id: newUserId, email: "dr.new@example.com" }),
+        UserRole: [
+          {
+            ...mockUserRole({ user_id: newUserId, role_id: "role-clinician" }),
+            Role: mockRole({ id: "role-clinician", name: "CLINICIAN.FULL" }),
+          },
+        ],
+        Clinician: mockClinician({
+          id: newClinicianId,
+          user_id: newUserId,
+          first_name: "Dr",
+          last_name: "New",
+          ClinicianServices: [
+            {
+              ...mockClinicianService(),
+              PracticeService: mockPracticeService({ id: "service-1" }),
+            },
+            {
+              ...mockClinicianService(),
+              PracticeService: mockPracticeService({ id: "service-2" }),
+            },
+          ],
+          License: [mockLicense()],
+        }) as MockClinician,
+        clinicalInfos: [mockClinicalInfo({ user_id: newUserId })],
+      } as MockUser);
+
+      // Create request
+      const newUser = {
+        email: "dr.new@example.com",
+        firstName: "Dr",
+        lastName: "New",
+        password: "password123",
+        roles: ["CLINICIAN.FULL"],
+        specialty: "Psychiatry",
+        npiNumber: "1234567890",
+        license: {
+          type: "Medical",
+          number: "MD789",
+          expirationDate: "2025-12-31",
+          state: "NY",
+        },
+        services: ["service-1", "service-2"],
+      };
+
+      const request = createRequestWithBody("/api/team-members", newUser);
+      const response = await POST(request);
+      const data = await response.json();
+
+      // Assert response
+      expect(response.status).toBe(201);
+      expect(data).toHaveProperty("id", newUserId);
+      expect(data.email).toBe(newUser.email);
+
+      // Verify clinical info was created
+      expect(prismaMock.clinicalInfo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          user_id: newUserId,
+          speciality: "Psychiatry",
+          NPI_number: 1234567890,
+        }),
+      });
+
+      // Verify license was created
+      expect(prismaMock.license.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          clinician_id: newClinicianId,
+          license_type: "Medical",
+          license_number: "MD789",
+        }),
+      });
+
+      // Verify services were assigned
+      expect(prismaMock.clinicianServices.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            clinician_id: newClinicianId,
+            service_id: "service-1",
+            is_active: true,
+          }),
+          expect.objectContaining({
+            clinician_id: newClinicianId,
+            service_id: "service-2",
+            is_active: true,
+          }),
+        ]),
       });
     });
 
@@ -539,44 +818,188 @@ describe("Team Members API Unit Tests", () => {
       });
     });
 
-    it("should mark a clinician as inactive when changing to non-clinician", async () => {
-      const userId = "clinician-user-id";
+    it("should update clinician with services, license, and clinical info", async () => {
+      const userId = "update-clinician-id";
       const clinicianId = "clinician-id";
+      const licenseId = "license-id";
 
-      // Mock existing user with clinician
+      // Mock existing user with full data
       prismaMock.user.findUnique.mockResolvedValueOnce({
-        ...mockUser({ id: userId }),
+        ...mockUser({ id: userId, email: "dr.update@example.com" }),
         UserRole: [
           {
             ...mockUserRole({ user_id: userId, role_id: "role-clinician" }),
-            Role: mockRole({ id: "role-clinician", name: "Clinician" }),
+            Role: mockRole({ id: "role-clinician", name: "CLINICIAN.BASIC" }),
           },
         ],
         Clinician: mockClinician({
           id: clinicianId,
           user_id: userId,
-          is_active: true,
+          License: [mockLicense({ id: licenseId, license_number: "OLD123" })],
+          ClinicianServices: [
+            mockClinicianService({ service_id: "old-service" }),
+          ],
         }) as MockClinician,
+        clinicalInfos: [
+          mockClinicalInfo({
+            id: "clinical-info-id",
+            speciality: "General",
+            NPI_number: 9999999999,
+          }),
+        ],
       } as MockUser);
 
-      // Mock role finding for the update
+      // Mock role finding
       prismaMock.role.findMany.mockResolvedValueOnce([
-        mockRole({ id: "role-admin", name: "Admin", description: null }),
+        mockRole({ id: "role-clinician-full", name: "CLINICIAN.FULL" }),
       ]);
 
       // Mock transaction
       prismaMock.$transaction.mockImplementationOnce(async (callback) => {
         prismaMock.userRole.deleteMany.mockResolvedValueOnce({ count: 1 });
-        prismaMock.userRole.create.mockResolvedValueOnce({
-          user_id: userId,
-          role_id: "role-admin",
-        });
+        prismaMock.userRole.createMany.mockResolvedValueOnce({ count: 1 });
         prismaMock.clinician.update.mockResolvedValueOnce(
-          mockClinician({
-            id: clinicianId,
-            user_id: userId,
-            is_active: false,
-          }) as MockClinician,
+          mockClinician({ id: clinicianId }),
+        );
+        prismaMock.clinicalInfo.update.mockResolvedValueOnce(
+          mockClinicalInfo({ speciality: "Psychiatry" }),
+        );
+        prismaMock.license.update.mockResolvedValueOnce(
+          mockLicense({ license_number: "NEW456" }),
+        );
+        prismaMock.clinicianServices.deleteMany.mockResolvedValueOnce({
+          count: 1,
+        });
+        prismaMock.practiceService.findMany.mockResolvedValueOnce([
+          mockPracticeService({ id: "new-service-1" }),
+          mockPracticeService({ id: "new-service-2" }),
+        ]);
+        prismaMock.clinicianServices.createMany.mockResolvedValueOnce({
+          count: 2,
+        });
+        return await callback(prismaMock);
+      });
+
+      // Mock updated user fetch
+      prismaMock.user.findUnique.mockResolvedValueOnce({
+        ...mockUser({ id: userId, email: "dr.update@example.com" }),
+        UserRole: [
+          {
+            ...mockUserRole({
+              user_id: userId,
+              role_id: "role-clinician-full",
+            }),
+            Role: mockRole({
+              id: "role-clinician-full",
+              name: "CLINICIAN.FULL",
+            }),
+          },
+        ],
+        Clinician: mockClinician({
+          id: clinicianId,
+          user_id: userId,
+          ClinicianServices: [
+            {
+              ...mockClinicianService(),
+              PracticeService: mockPracticeService({ id: "new-service-1" }),
+            },
+            {
+              ...mockClinicianService(),
+              PracticeService: mockPracticeService({ id: "new-service-2" }),
+            },
+          ],
+          License: [mockLicense({ license_number: "NEW456" })],
+        }) as MockClinician,
+        clinicalInfos: [mockClinicalInfo({ speciality: "Psychiatry" })],
+      } as MockUser);
+
+      // Create request
+      const updateData = {
+        id: userId,
+        firstName: "Updated",
+        lastName: "Doctor",
+        roles: ["CLINICIAN.FULL"],
+        specialty: "Psychiatry",
+        npiNumber: "1111111111",
+        license: {
+          type: "Medical",
+          number: "NEW456",
+          expirationDate: "2026-12-31",
+          state: "CA",
+        },
+        services: ["new-service-1", "new-service-2"],
+      };
+
+      const request = createRequestWithBody("/api/team-members", updateData, {
+        method: "PUT",
+      });
+      const response = await PUT(request);
+      const data = await response.json();
+
+      // Assert response
+      expect(response.status).toBe(200);
+      expect(data).toHaveProperty("id", userId);
+
+      // Verify clinician was updated
+      expect(prismaMock.clinician.update).toHaveBeenCalledWith({
+        where: { id: clinicianId },
+        data: expect.objectContaining({
+          first_name: "Updated",
+          last_name: "Doctor",
+        }),
+      });
+
+      // Verify clinical info was updated
+      expect(prismaMock.clinicalInfo.update).toHaveBeenCalledWith({
+        where: { id: "clinical-info-id" },
+        data: expect.objectContaining({
+          speciality: "Psychiatry",
+          NPI_number: 1111111111,
+        }),
+      });
+
+      // Verify license was updated
+      expect(prismaMock.license.update).toHaveBeenCalledWith({
+        where: { id: licenseId },
+        data: expect.objectContaining({
+          license_number: "NEW456",
+        }),
+      });
+
+      // Verify services were replaced
+      expect(prismaMock.clinicianServices.deleteMany).toHaveBeenCalledWith({
+        where: { clinician_id: clinicianId },
+      });
+      expect(prismaMock.clinicianServices.createMany).toHaveBeenCalled();
+    });
+
+    it("should create clinician record when updating non-clinician to clinician role", async () => {
+      const userId = "non-clinician-user";
+
+      // Mock existing non-clinician user
+      prismaMock.user.findUnique.mockResolvedValueOnce({
+        ...mockUser({ id: userId }),
+        UserRole: [
+          {
+            ...mockUserRole({ user_id: userId, role_id: "role-admin" }),
+            Role: mockRole({ id: "role-admin", name: "Admin" }),
+          },
+        ],
+        Clinician: null,
+        clinicalInfos: [],
+      } as MockUser);
+
+      // Mock role finding
+      prismaMock.role.findMany.mockResolvedValueOnce([
+        mockRole({ id: "role-clinician", name: "CLINICIAN.BASIC" }),
+      ]);
+
+      // Mock transaction
+      prismaMock.$transaction.mockImplementationOnce(async (callback) => {
+        prismaMock.userRole.deleteMany.mockResolvedValueOnce({ count: 1 });
+        prismaMock.userRole.createMany.mockResolvedValueOnce({ count: 1 });
+        prismaMock.clinician.create.mockResolvedValueOnce(
+          mockClinician({ user_id: userId }),
         );
         return await callback(prismaMock);
       });
@@ -586,21 +1009,20 @@ describe("Team Members API Unit Tests", () => {
         ...mockUser({ id: userId }),
         UserRole: [
           {
-            ...mockUserRole({ user_id: userId, role_id: "role-admin" }),
-            Role: mockRole({ id: "role-admin", name: "Admin" }),
+            ...mockUserRole({ user_id: userId, role_id: "role-clinician" }),
+            Role: mockRole({ id: "role-clinician", name: "CLINICIAN.BASIC" }),
           },
         ],
-        Clinician: mockClinician({
-          id: clinicianId,
-          user_id: userId,
-          is_active: false,
-        }) as MockClinician,
+        Clinician: mockClinician({ user_id: userId }) as MockClinician,
+        clinicalInfos: [],
       } as MockUser);
 
       // Create request
       const updateData = {
         id: userId,
-        roles: ["Admin"], // Changed from roleIds to roles
+        roles: ["CLINICIAN.BASIC"],
+        firstName: "New",
+        lastName: "Clinician",
       };
 
       const request = createRequestWithBody("/api/team-members", updateData, {
@@ -610,12 +1032,16 @@ describe("Team Members API Unit Tests", () => {
 
       expect(response.status).toBe(200);
 
-      // TODO: The API currently doesn't mark clinician as inactive when roles change
-      // This test expectation should be updated when the feature is implemented
-      // expect(prismaMock.clinician.update).toHaveBeenCalledWith({
-      //   where: { id: clinicianId },
-      //   data: { is_active: false },
-      // });
+      // Verify clinician was created
+      expect(prismaMock.clinician.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          user_id: userId,
+          first_name: "New",
+          last_name: "Clinician",
+          address: "",
+          percentage_split: 100,
+        }),
+      });
     });
 
     it("should return 404 if user to update doesn't exist", async () => {
@@ -753,6 +1179,102 @@ describe("Team Members API Unit Tests", () => {
       expect(response.status).toBe(404);
       const data = await response.json();
       expect(data).toHaveProperty("error", "User not found");
+    });
+  });
+
+  describe("Error handling with withErrorHandling wrapper", () => {
+    it("should handle database errors gracefully in GET route", async () => {
+      // Mock database error
+      prismaMock.user.findMany.mockRejectedValueOnce(
+        new Error("Database connection failed"),
+      );
+
+      const request = createRequest("/api/team-members");
+      const response = await GET(request);
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+
+      // In development, we should get detailed error info
+      expect(data).toHaveProperty("error");
+      expect(data.error).toHaveProperty("message");
+      expect(data.error).toHaveProperty("issueId");
+      expect(data.error.issueId).toMatch(/^ERR-\d{8}-\d{6}-[A-Z0-9]{4}$/);
+    });
+
+    it("should handle database errors gracefully in POST route", async () => {
+      prismaMock.user.findUnique.mockResolvedValueOnce(null);
+      prismaMock.role.findMany.mockResolvedValueOnce([
+        mockRole({ name: "Admin" }),
+      ]);
+
+      // Mock transaction error
+      prismaMock.$transaction.mockRejectedValueOnce(
+        new Error("Transaction failed"),
+      );
+
+      const newUser = {
+        email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        roles: ["Admin"],
+      };
+
+      const request = createRequestWithBody("/api/team-members", newUser);
+      const response = await POST(request);
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data).toHaveProperty("error");
+      expect(data.error).toHaveProperty("issueId");
+    });
+
+    it("should handle database errors gracefully in PUT route", async () => {
+      // Mock the initial user check to succeed
+      prismaMock.user.findUnique.mockResolvedValueOnce({
+        ...mockUser({ id: "test-id" }),
+        UserRole: [],
+        Clinician: null,
+        clinicalInfos: [],
+      } as MockUser);
+
+      // Mock transaction error
+      prismaMock.$transaction.mockRejectedValueOnce(new Error("Update failed"));
+
+      const updateData = {
+        id: "test-id",
+        email: "updated@example.com",
+      };
+
+      const request = createRequestWithBody("/api/team-members", updateData, {
+        method: "PUT",
+      });
+      const response = await PUT(request);
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data).toHaveProperty("error");
+      expect(data.error).toHaveProperty("issueId");
+    });
+
+    it("should handle database errors gracefully in DELETE route", async () => {
+      prismaMock.user.findUnique.mockResolvedValueOnce({
+        ...mockUser({ id: "test-id" }),
+        Clinician: null,
+      } as MockUser);
+
+      // Mock transaction error
+      prismaMock.$transaction.mockRejectedValueOnce(new Error("Delete failed"));
+
+      const request = createRequest("/api/team-members?id=test-id", {
+        method: "DELETE",
+      });
+      const response = await DELETE(request);
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data).toHaveProperty("error");
+      expect(data.error).toHaveProperty("issueId");
     });
   });
 });

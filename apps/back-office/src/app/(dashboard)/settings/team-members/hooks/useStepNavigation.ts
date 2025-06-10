@@ -18,7 +18,12 @@ export function useStepNavigation(teamMemberData: Partial<TeamMember>) {
   const [rolesSubmitted, setRolesSubmitted] = useState(false);
 
   const isClinicianSelected = () => {
-    return teamMemberData.roles?.includes("Clinician") || false;
+    // Check if any role includes "Clinician" or "Supervisor"
+    return (
+      teamMemberData.roles?.some(
+        (role) => role === "Clinician" || role === "Supervisor",
+      ) || false
+    );
   };
 
   const visibleSteps = useMemo(() => {
@@ -69,7 +74,11 @@ export function useStepNavigation(teamMemberData: Partial<TeamMember>) {
 
     if (activeStep === 1) {
       setRolesSubmitted(true);
-      const hasClinicianRole = data.roles?.includes("Clinician") || false;
+      // Check if any role includes "Clinician" or "Supervisor"
+      const hasClinicianRole =
+        data.roles?.some(
+          (role) => role === "Clinician" || role === "Supervisor",
+        ) || false;
 
       if (hasClinicianRole) {
         handleNext();
