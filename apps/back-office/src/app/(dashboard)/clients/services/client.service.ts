@@ -406,3 +406,17 @@ export const fetchDiagnosis = async () => {
     return [null, error];
   }
 };
+
+export const createBillingPreference = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/client/group/billing-preference",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};

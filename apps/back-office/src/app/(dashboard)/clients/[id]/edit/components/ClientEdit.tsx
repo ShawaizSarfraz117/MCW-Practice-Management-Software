@@ -24,6 +24,7 @@ import Loading from "@/components/Loading";
 import { ContactAddDrawer } from "./ContactAddDrawer";
 import { ClientFormValues } from "../types";
 import { EmptyContactsState } from "./EmptyContactsState";
+import { BillingInsuranceTab } from "./tabs/BillingInsuranceTab";
 // Matching the structure in ClientDetailsCard
 export interface ClientMembership {
   client_id: string;
@@ -268,7 +269,7 @@ export default function ClientEdit({
               className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "billing" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
               value="billing"
             >
-              Billing and Insurance
+              Billing Settings
             </TabsTrigger>
           </TabsList>
         </div>
@@ -316,8 +317,20 @@ export default function ClientEdit({
 
         <TabsContent value="billing">
           <div className="mt-6">
-            <h2 className="text-lg font-semibold">Billing and Insurance</h2>
-            {/* Billing tab content would go here */}
+            {clientData && (
+              <BillingInsuranceTab
+                clientGroupId={clientGroupId}
+                responsibleClientName={
+                  clientData.ClientGroupMembership.find(
+                    (m) => m.is_responsible_for_billing,
+                  )?.Client.legal_first_name +
+                    " " +
+                    clientData.ClientGroupMembership.find(
+                      (m) => m.is_responsible_for_billing,
+                    )?.Client.legal_last_name || clientData.name
+                }
+              />
+            )}
           </div>
         </TabsContent>
       </Tabs>

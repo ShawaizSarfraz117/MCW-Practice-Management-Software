@@ -50,3 +50,47 @@ export const createSuperbill = async ({ body = {} }) => {
     return [null, error];
   }
 };
+
+export const createChartNote = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/client/group/chart-notes",
+      body: body,
+    });
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const updateChartNote = async ({
+  body = {},
+  id,
+}: {
+  body: object;
+  id: string;
+}) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: `/client/group/chart-notes/${id}`,
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const deleteChartNote = async ({ id }: { id: string }) => {
+  try {
+    const response: unknown = await FETCH.remove({
+      url: `/client/group/chart-notes/${id}`,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
