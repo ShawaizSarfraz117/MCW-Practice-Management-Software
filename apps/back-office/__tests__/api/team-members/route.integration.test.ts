@@ -14,12 +14,12 @@ vi.mock("@/utils/helpers", () => ({
   getBackOfficeSession: vi.fn(),
 }));
 
-// Mock withErrorHandling to return unwrapped handlers for testing
+// Mock only specific exports from @mcw/utils, keeping withErrorHandling intact
 vi.mock("@mcw/utils", async () => {
   const actual = await vi.importActual("@mcw/utils");
   return {
     ...(actual as Record<string, unknown>),
-    withErrorHandling: <T extends (...args: unknown[]) => unknown>(fn: T) => fn, // Return the handler unwrapped
+    // Keep withErrorHandling as is - don't mock it
   };
 });
 
@@ -487,13 +487,16 @@ describe("Team Members API Integration Tests", () => {
     });
 
     it("should return 409 if user already exists", async () => {
+      const testEmail =
+        `existing-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`.toLowerCase();
+
       const existingUser = await createTestUser({
-        email: `existing-${Date.now()}@example.com`,
+        email: testEmail,
       });
       createdUserIds.push(existingUser.id);
 
       const newUser = {
-        email: existingUser.email,
+        email: testEmail,
         firstName: "Test",
         lastName: "User",
         roles: ["ADMIN"],
