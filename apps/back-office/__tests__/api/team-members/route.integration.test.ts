@@ -722,7 +722,7 @@ describe("Team Members API Integration Tests", () => {
 
       const updateData = {
         id: user1.id,
-        email: "user2@example.com",
+        email: user2.email, // Use the actual email of user2
       };
 
       const request = createRequestWithBody("/api/team-members", updateData, {
