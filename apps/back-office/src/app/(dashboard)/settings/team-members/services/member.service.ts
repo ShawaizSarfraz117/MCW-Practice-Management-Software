@@ -2,6 +2,23 @@ import { FETCH } from "@mcw/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@mcw/ui";
 import { TeamMembersResponse, TeamMembersSearchParams } from "@mcw/types";
+
+// Types for team member operations
+export interface UpdateTeamMemberParams {
+  id: string;
+  specialty?: string;
+  npiNumber?: string;
+  roles?: string[];
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  license?: {
+    type: string;
+    number: string;
+    expirationDate: string;
+    state: string;
+  };
+}
 // Re-export clinical functions for backward compatibility
 export {
   updateClinicalInfo,
@@ -175,6 +192,23 @@ export const useCreateTeamMember = (options?: {
   });
 };
 
+export const updateTeamMember = async (params: UpdateTeamMemberParams) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: "/team-members",
+      method: "PUT",
+      body: params,
+      isFormData: false,
+    });
+
+    return response;
+  } catch (error) {
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to update team member",
+    );
+  }
+};
+
 export const createOrUpdateTeamMember = async (params: {
   id: string;
   data: {
@@ -203,6 +237,20 @@ export const createOrUpdateTeamMember = async (params: {
   } catch (error) {
     throw new Error(error as string);
   }
+};
+
+export const useUpdateTeamMember = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<unknown, Error, UpdateTeamMemberParams>({
+    mutationFn: updateTeamMember,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["clinician-details", variables.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+    },
+  });
 };
 
 export const useCreateOrUpdateTeamMember = () => {

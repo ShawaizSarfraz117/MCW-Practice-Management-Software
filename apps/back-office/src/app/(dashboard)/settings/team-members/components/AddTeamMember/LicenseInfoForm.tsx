@@ -67,7 +67,6 @@ const LicenseInfoForm = forwardRef<LicenseInfoFormRef, LicenseInfoFormProps>(
         },
       },
       onSubmit: ({ value }) => {
-        console.log("LicenseInfoForm submitting:", { license: value.license });
         onSubmit({ license: value.license });
       },
     });

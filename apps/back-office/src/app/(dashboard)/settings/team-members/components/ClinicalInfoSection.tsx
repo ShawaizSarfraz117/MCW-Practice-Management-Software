@@ -4,9 +4,9 @@ import { Card } from "@mcw/ui";
 import { TeamMember } from "../hooks/useRolePermissions";
 import EditTeamMemberSidebar from "./EditTeamMemberSidebar";
 import ClinicalInfoEdit from "./ClinicalInfoEdit";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@mcw/ui";
 import { showErrorToast } from "@mcw/utils";
+import { useUpdateTeamMember } from "../services/member.service";
 
 interface ClinicalInfoSectionProps {
   member: TeamMember;
@@ -21,51 +21,35 @@ export function ClinicalInfoSection({
   isEditing,
   onClose,
 }: ClinicalInfoSectionProps) {
-  const queryClient = useQueryClient();
+  const updateMutation = useUpdateTeamMember();
 
-  // Update clinical info through team-members API
-  const updateMutation = useMutation({
-    mutationFn: async (data: { specialty: string; npiNumber: string }) => {
-      const response = await fetch(`/api/team-members`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: member.id,
-          specialty: data.specialty,
-          npiNumber: data.npiNumber,
-        }),
-      });
+  const handleMutationSuccess = () => {
+    toast({
+      title: "Success",
+      description: "Clinical information updated successfully",
+    });
+    onClose();
+  };
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update clinical information");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Clinical information updated successfully",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["clinician-details", member.id],
-      });
-      queryClient.invalidateQueries({ queryKey: ["team-members"] });
-      onClose();
-    },
-    onError: (error: unknown) => {
-      showErrorToast(toast, error);
-    },
-  });
+  const handleMutationError = (error: unknown) => {
+    showErrorToast(toast, error);
+  };
 
   const handleClinicalInfoSubmit = (data: {
     specialty: string;
     npiNumber: string;
   }) => {
-    updateMutation.mutate(data);
+    updateMutation.mutate(
+      {
+        id: member.id,
+        specialty: data.specialty,
+        npiNumber: data.npiNumber,
+      },
+      {
+        onSuccess: handleMutationSuccess,
+        onError: handleMutationError,
+      },
+    );
   };
 
   const handleSave = () => {

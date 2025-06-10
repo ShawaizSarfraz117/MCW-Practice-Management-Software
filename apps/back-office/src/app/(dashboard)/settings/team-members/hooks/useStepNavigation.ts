@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { TeamMember } from "./useRolePermissions";
+import { hasClinicianRole } from "../utils/roleUtils";
 
 const allSteps = [
   { label: "Personal Info", description: "Basic information", key: "personal" },
@@ -18,12 +19,8 @@ export function useStepNavigation(teamMemberData: Partial<TeamMember>) {
   const [rolesSubmitted, setRolesSubmitted] = useState(false);
 
   const isClinicianSelected = () => {
-    // Check if any role includes "Clinician" or "Supervisor"
-    return (
-      teamMemberData.roles?.some(
-        (role) => role === "Clinician" || role === "Supervisor",
-      ) || false
-    );
+    // Use the hasClinicianRole helper to check for clinician roles
+    return hasClinicianRole(teamMemberData.roles);
   };
 
   const visibleSteps = useMemo(() => {
