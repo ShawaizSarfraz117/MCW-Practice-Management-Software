@@ -7,16 +7,26 @@ import { prisma } from "@mcw/database";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { hash } from "bcryptjs";
 import type { SafeUserWithRelations } from "@mcw/types";
+import type { Session } from "next-auth";
 
 // Mock Next.js auth helper
 vi.mock("@/utils/helpers", () => ({
   getBackOfficeSession: vi.fn(),
 }));
 
+// Mock withErrorHandling to return unwrapped handlers for testing
+vi.mock("@mcw/utils", async () => {
+  const actual = await vi.importActual("@mcw/utils");
+  return {
+    ...(actual as Record<string, unknown>),
+    withErrorHandling: <T extends (...args: unknown[]) => unknown>(fn: T) => fn, // Return the handler unwrapped
+  };
+});
+
 // Test data factories
 const createTestUser = async (overrides = {}) => {
   const defaultData = {
-    email: `test-${Date.now()}@example.com`,
+    email: `test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`,
     password_hash: await hash("password123", 10),
     ...overrides,
   };
@@ -47,18 +57,22 @@ const createTestClinician = async (userId: string, overrides = {}) => {
   return prisma.clinician.create({ data: defaultData });
 };
 
-const createTestService = async (name: string) => {
+const createTestService = async (type: string) => {
   const existingService = await prisma.practiceService.findFirst({
-    where: { name },
+    where: { type },
   });
   if (existingService) return existingService;
 
   return prisma.practiceService.create({
     data: {
-      name,
-      category: "Therapy",
-      is_active: true,
-      duration_minutes: 60,
+      type,
+      rate: 150.0,
+      code: `SVC-${type.substring(0, 3).toUpperCase()}`,
+      description: `${type} service`,
+      duration: 60,
+      allow_new_clients: true,
+      available_online: true,
+      bill_in_units: false,
     },
   });
 };
@@ -81,7 +95,8 @@ describe("Team Members API Integration Tests", () => {
         id: "test-user-id",
         email: "test@example.com",
       },
-    });
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    } as Session);
   });
 
   afterEach(async () => {
@@ -90,7 +105,7 @@ describe("Team Members API Integration Tests", () => {
       // Delete clinician services
       await prisma.clinicianServices.deleteMany({
         where: {
-          clinician: {
+          Clinician: {
             user_id: { in: createdUserIds },
           },
         },
@@ -99,7 +114,7 @@ describe("Team Members API Integration Tests", () => {
       // Delete licenses
       await prisma.license.deleteMany({
         where: {
-          clinician: {
+          Clinician: {
             user_id: { in: createdUserIds },
           },
         },
@@ -131,7 +146,6 @@ describe("Team Members API Integration Tests", () => {
       await prisma.practiceService.deleteMany({
         where: {
           id: { in: createdServiceIds },
-          name: { startsWith: "Test Service" },
         },
       });
     }
@@ -145,12 +159,12 @@ describe("Team Members API Integration Tests", () => {
 
       // Create test users
       const adminUser = await createTestUser({
-        email: "admin-test@example.com",
+        email: `admin-test-${Date.now()}@example.com`,
       });
       createdUserIds.push(adminUser.id);
 
       const clinicianUser = await createTestUser({
-        email: "clinician-test@example.com",
+        email: `clinician-test-${Date.now()}@example.com`,
       });
       createdUserIds.push(clinicianUser.id);
 
@@ -228,10 +242,10 @@ describe("Team Members API Integration Tests", () => {
 
       // Find our test users in the response
       const adminResult = data.data.find(
-        (u: SafeUserWithRelations) => u.email === "admin-test@example.com",
+        (u: SafeUserWithRelations) => u.email === adminUser.email,
       );
       const clinicianResult = data.data.find(
-        (u: SafeUserWithRelations) => u.email === "clinician-test@example.com",
+        (u: SafeUserWithRelations) => u.email === clinicianUser.email,
       );
 
       // Verify admin user
@@ -259,7 +273,7 @@ describe("Team Members API Integration Tests", () => {
     it("should filter by search term", async () => {
       // Create test user with specific name
       const user = await createTestUser({
-        email: "searchable-user@example.com",
+        email: `searchable-user-${Date.now()}@example.com`,
       });
       createdUserIds.push(user.id);
 
@@ -283,7 +297,7 @@ describe("Team Members API Integration Tests", () => {
 
       expect(emailResponse.status).toBe(200);
       const foundByEmail = emailData.data.find(
-        (u: SafeUserWithRelations) => u.email === "searchable-user@example.com",
+        (u: SafeUserWithRelations) => u.email === user.email,
       );
       expect(foundByEmail).toBeDefined();
 
@@ -293,7 +307,7 @@ describe("Team Members API Integration Tests", () => {
       const nameData = await nameResponse.json();
 
       const foundByName = nameData.data.find(
-        (u: SafeUserWithRelations) => u.email === "searchable-user@example.com",
+        (u: SafeUserWithRelations) => u.email === user.email,
       );
       expect(foundByName).toBeDefined();
     });
@@ -304,12 +318,12 @@ describe("Team Members API Integration Tests", () => {
       const clinicianRole = await createTestRole("CLINICIAN.FULL");
 
       const adminUser = await createTestUser({
-        email: "role-admin@example.com",
+        email: `role-admin-${Date.now()}@example.com`,
       });
       createdUserIds.push(adminUser.id);
 
       const clinicianUser = await createTestUser({
-        email: "role-clinician@example.com",
+        email: `role-clinician-${Date.now()}@example.com`,
       });
       createdUserIds.push(clinicianUser.id);
 
@@ -339,13 +353,12 @@ describe("Team Members API Integration Tests", () => {
       expect(clinicians.length).toBeGreaterThanOrEqual(1);
       expect(
         clinicians.some(
-          (u: SafeUserWithRelations) =>
-            u.email === "role-clinician@example.com",
+          (u: SafeUserWithRelations) => u.email === clinicianUser.email,
         ),
       ).toBe(true);
       expect(
         clinicians.some(
-          (u: SafeUserWithRelations) => u.email === "role-admin@example.com",
+          (u: SafeUserWithRelations) => u.email === adminUser.email,
         ),
       ).toBe(false);
     });
@@ -355,7 +368,7 @@ describe("Team Members API Integration Tests", () => {
       const role = await createTestRole("ADMIN");
       for (let i = 0; i < 5; i++) {
         const user = await createTestUser({
-          email: `pagination-test-${i}@example.com`,
+          email: `pagination-test-${i}-${Date.now()}@example.com`,
         });
         createdUserIds.push(user.id);
         await prisma.userRole.create({
@@ -403,7 +416,7 @@ describe("Team Members API Integration Tests", () => {
       createdServiceIds.push(service1.id, service2.id);
 
       const newUser = {
-        email: "new-clinician@example.com",
+        email: `new-clinician-${Date.now()}@example.com`,
         firstName: "New",
         lastName: "Clinician",
         password: "SecurePass123!",
@@ -453,7 +466,7 @@ describe("Team Members API Integration Tests", () => {
       await createTestRole("ADMIN");
 
       const newUser = {
-        email: "new-admin@example.com",
+        email: `new-admin-${Date.now()}@example.com`,
         firstName: "New",
         lastName: "Admin",
         password: "SecurePass123!",
@@ -475,12 +488,12 @@ describe("Team Members API Integration Tests", () => {
 
     it("should return 409 if user already exists", async () => {
       const existingUser = await createTestUser({
-        email: "existing@example.com",
+        email: `existing-${Date.now()}@example.com`,
       });
       createdUserIds.push(existingUser.id);
 
       const newUser = {
-        email: "existing@example.com",
+        email: existingUser.email,
         firstName: "Test",
         lastName: "User",
         roles: ["ADMIN"],
@@ -499,7 +512,7 @@ describe("Team Members API Integration Tests", () => {
 
     it("should return 404 if role doesn't exist", async () => {
       const newUser = {
-        email: "test@example.com",
+        email: `test-${Date.now()}@example.com`,
         firstName: "Test",
         lastName: "User",
         roles: ["NON_EXISTENT_ROLE"],
@@ -534,7 +547,7 @@ describe("Team Members API Integration Tests", () => {
   describe("PUT /api/team-members", () => {
     it("should update a team member's basic information", async () => {
       const user = await createTestUser({
-        email: "update-test@example.com",
+        email: `update-test-${Date.now()}@example.com`,
       });
       createdUserIds.push(user.id);
 
@@ -548,7 +561,7 @@ describe("Team Members API Integration Tests", () => {
 
       const updateData = {
         id: user.id,
-        email: "updated-email@example.com",
+        email: `updated-email-${Date.now()}@example.com`,
       };
 
       const request = createRequestWithBody("/api/team-members", updateData, {
@@ -558,13 +571,13 @@ describe("Team Members API Integration Tests", () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.email).toBe("updated-email@example.com");
+      expect(data.email).toBe(updateData.email);
     });
 
     it("should update clinician with all related data", async () => {
       // Create initial clinician
       const user = await createTestUser({
-        email: "update-clinician@example.com",
+        email: `update-clinician-${Date.now()}@example.com`,
       });
       createdUserIds.push(user.id);
 
@@ -645,7 +658,7 @@ describe("Team Members API Integration Tests", () => {
 
     it("should create clinician record when changing role to clinician", async () => {
       const user = await createTestUser({
-        email: "admin-to-clinician@example.com",
+        email: `admin-to-clinician-${Date.now()}@example.com`,
       });
       createdUserIds.push(user.id);
 
@@ -697,10 +710,10 @@ describe("Team Members API Integration Tests", () => {
 
     it("should return 409 if email already in use", async () => {
       const user1 = await createTestUser({
-        email: "user1@example.com",
+        email: `user1-${Date.now()}@example.com`,
       });
       const user2 = await createTestUser({
-        email: "user2@example.com",
+        email: `user2-${Date.now()}@example.com`,
       });
       createdUserIds.push(user1.id, user2.id);
 
@@ -723,7 +736,7 @@ describe("Team Members API Integration Tests", () => {
   describe("DELETE /api/team-members", () => {
     it("should soft delete a user", async () => {
       const user = await createTestUser({
-        email: "delete-test@example.com",
+        email: `delete-test-${Date.now()}@example.com`,
       });
       createdUserIds.push(user.id);
 
@@ -746,7 +759,7 @@ describe("Team Members API Integration Tests", () => {
 
     it("should mark clinician as inactive when deleting", async () => {
       const user = await createTestUser({
-        email: "delete-clinician@example.com",
+        email: `delete-clinician-${Date.now()}@example.com`,
       });
       createdUserIds.push(user.id);
 

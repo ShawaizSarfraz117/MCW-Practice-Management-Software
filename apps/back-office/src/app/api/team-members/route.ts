@@ -278,36 +278,34 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       });
       clinician = clinicianData;
 
-      // Create clinical info if specialty or NPI provided
-      if (specialty || npiNumber) {
-        const clinicalInfoData = await tx.clinicalInfo.create({
+      // Create clinical info for all clinicians
+      const clinicalInfoData = await tx.clinicalInfo.create({
+        data: {
+          user_id: newUser.id,
+          speciality: specialty || "",
+          taxonomy_code: "", // Default empty - can be updated later
+          NPI_number: npiNumber ? parseFloat(npiNumber) : 0,
+        },
+      });
+      clinicalInfo = clinicalInfoData;
+
+      // Create license if provided
+      if (
+        license &&
+        license.type &&
+        license.number &&
+        license.expirationDate &&
+        license.state
+      ) {
+        await tx.license.create({
           data: {
-            user_id: newUser.id,
-            speciality: specialty || "",
-            taxonomy_code: "", // Default empty - can be updated later
-            NPI_number: npiNumber ? parseFloat(npiNumber) : 0,
+            clinician_id: clinicianData.id,
+            license_type: license.type,
+            license_number: license.number,
+            expiration_date: new Date(license.expirationDate),
+            state: license.state,
           },
         });
-        clinicalInfo = clinicalInfoData;
-
-        // Create license if provided
-        if (
-          license &&
-          license.type &&
-          license.number &&
-          license.expirationDate &&
-          license.state
-        ) {
-          await tx.license.create({
-            data: {
-              clinician_id: clinicianData.id,
-              license_type: license.type,
-              license_number: license.number,
-              expiration_date: new Date(license.expirationDate),
-              state: license.state,
-            },
-          });
-        }
       }
 
       // Assign services if provided
@@ -409,6 +407,13 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
     license,
     services,
   } = validationResult.data;
+
+  // Validate UUID format first
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
   // Check if user exists with all related data
   const existingUser = await prisma.user.findUnique({
@@ -561,7 +566,10 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
 
       // Update license if provided
       if (license) {
-        const existingLicense = existingClinician?.License?.[0];
+        // Fetch license for the clinician (not from existingClinician which might be null)
+        const existingLicense = await tx.license.findFirst({
+          where: { clinician_id: clinicianId },
+        });
 
         if (existingLicense) {
           await tx.license.update({
@@ -681,6 +689,13 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
 
   if (!id) {
     return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+  }
+
+  // Validate UUID format first
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   // Check if user exists

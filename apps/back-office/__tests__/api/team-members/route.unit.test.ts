@@ -111,6 +111,16 @@ vi.mock("bcryptjs", () => ({
   hash: vi.fn(async () => "hashed_password"),
 }));
 
+// Mock ROLE_NAME_MAP from @mcw/types
+vi.mock("@mcw/types", () => ({
+  ROLE_NAME_MAP: {
+    Clinician: "Clinician",
+    Admin: "Admin",
+    "CLINICIAN.BASIC": "CLINICIAN.BASIC",
+    "CLINICIAN.FULL": "CLINICIAN.FULL",
+  },
+}));
+
 // Helper function to create a mock user with necessary relationship properties
 const mockUser = (overrides = {}): MockUser => ({
   id: "mock-user-id",
@@ -483,6 +493,7 @@ describe("Team Members API Unit Tests", () => {
           },
         ],
         Clinician: null,
+        clinicalInfos: [],
       } as MockUser);
 
       // Create request
@@ -535,6 +546,9 @@ describe("Team Members API Unit Tests", () => {
         prismaMock.user.create.mockResolvedValueOnce(mockNewUser);
         prismaMock.clinician.create.mockResolvedValueOnce(
           mockClinician({ user_id: newUserId }),
+        );
+        prismaMock.clinicalInfo.create.mockResolvedValueOnce(
+          mockClinicalInfo({ user_id: newUserId }),
         );
         return await callback(prismaMock);
       });
@@ -747,7 +761,7 @@ describe("Team Members API Unit Tests", () => {
         email: "invalid-email", // Invalid email format
         firstName: "", // Empty first name
         lastName: "User",
-        roleIds: ["role-admin"],
+        roles: ["Admin"], // Changed from roleIds to roles
       };
 
       const request = createRequestWithBody("/api/team-members", invalidUser);
@@ -762,7 +776,7 @@ describe("Team Members API Unit Tests", () => {
 
   describe("PUT /api/team-members", () => {
     it("should update a user's email", async () => {
-      const userId = "user-to-update";
+      const userId = "123e4567-e89b-12d3-a456-426614174000";
 
       // Mock existing user
       prismaMock.user.findUnique.mockResolvedValueOnce({
@@ -819,9 +833,9 @@ describe("Team Members API Unit Tests", () => {
     });
 
     it("should update clinician with services, license, and clinical info", async () => {
-      const userId = "update-clinician-id";
-      const clinicianId = "clinician-id";
-      const licenseId = "license-id";
+      const userId = "223e4567-e89b-12d3-a456-426614174001";
+      const clinicianId = "323e4567-e89b-12d3-a456-426614174002";
+      const licenseId = "423e4567-e89b-12d3-a456-426614174003";
 
       // Mock existing user with full data
       prismaMock.user.findUnique.mockResolvedValueOnce({
@@ -863,6 +877,10 @@ describe("Team Members API Unit Tests", () => {
         );
         prismaMock.clinicalInfo.update.mockResolvedValueOnce(
           mockClinicalInfo({ speciality: "Psychiatry" }),
+        );
+        // Mock the license.findFirst call that happens in the route
+        prismaMock.license.findFirst.mockResolvedValueOnce(
+          mockLicense({ id: licenseId, license_number: "OLD123" }),
         );
         prismaMock.license.update.mockResolvedValueOnce(
           mockLicense({ license_number: "NEW456" }),
@@ -974,7 +992,7 @@ describe("Team Members API Unit Tests", () => {
     });
 
     it("should create clinician record when updating non-clinician to clinician role", async () => {
-      const userId = "non-clinician-user";
+      const userId = "523e4567-e89b-12d3-a456-426614174004";
 
       // Mock existing non-clinician user
       prismaMock.user.findUnique.mockResolvedValueOnce({
@@ -1000,6 +1018,9 @@ describe("Team Members API Unit Tests", () => {
         prismaMock.userRole.createMany.mockResolvedValueOnce({ count: 1 });
         prismaMock.clinician.create.mockResolvedValueOnce(
           mockClinician({ user_id: userId }),
+        );
+        prismaMock.clinicalInfo.create.mockResolvedValueOnce(
+          mockClinicalInfo({ user_id: userId }),
         );
         return await callback(prismaMock);
       });
@@ -1048,9 +1069,26 @@ describe("Team Members API Unit Tests", () => {
       // Mock non-existent user
       prismaMock.user.findUnique.mockResolvedValueOnce(null);
 
-      // Create request
+      // Create request with valid UUID format
       const updateData = {
-        id: "non-existent-id",
+        id: "00000000-0000-0000-0000-000000000000",
+        email: "new-email@example.com",
+      };
+
+      const request = createRequestWithBody("/api/team-members", updateData, {
+        method: "PUT",
+      });
+      const response = await PUT(request);
+
+      expect(response.status).toBe(404);
+      const data = await response.json();
+      expect(data).toHaveProperty("error", "User not found");
+    });
+
+    it("should return 404 for invalid UUID format", async () => {
+      // Create request with invalid UUID format
+      const updateData = {
+        id: "invalid-uuid",
         email: "new-email@example.com",
       };
 
@@ -1067,7 +1105,7 @@ describe("Team Members API Unit Tests", () => {
 
   describe("DELETE /api/team-members", () => {
     it("should soft-delete a user", async () => {
-      const userId = "user-to-delete";
+      const userId = "623e4567-e89b-12d3-a456-426614174005";
 
       // Mock existing user
       prismaMock.user.findUnique.mockResolvedValueOnce({
@@ -1109,8 +1147,8 @@ describe("Team Members API Unit Tests", () => {
     });
 
     it("should mark associated clinician as inactive when deleting", async () => {
-      const userId = "clinician-to-delete";
-      const clinicianId = "clinician-id";
+      const userId = "723e4567-e89b-12d3-a456-426614174006";
+      const clinicianId = "823e4567-e89b-12d3-a456-426614174007";
 
       // Mock existing user with clinician
       prismaMock.user.findUnique.mockResolvedValueOnce({
@@ -1170,8 +1208,23 @@ describe("Team Members API Unit Tests", () => {
       // Mock non-existent user
       prismaMock.user.findUnique.mockResolvedValueOnce(null);
 
-      // Create request
-      const request = createRequest("/api/team-members?id=non-existent-id", {
+      // Create request with valid UUID format
+      const request = createRequest(
+        "/api/team-members?id=00000000-0000-0000-0000-000000000000",
+        {
+          method: "DELETE",
+        },
+      );
+      const response = await DELETE(request);
+
+      expect(response.status).toBe(404);
+      const data = await response.json();
+      expect(data).toHaveProperty("error", "User not found");
+    });
+
+    it("should return 404 for invalid UUID format", async () => {
+      // Create request with invalid UUID format
+      const request = createRequest("/api/team-members?id=invalid-uuid", {
         method: "DELETE",
       });
       const response = await DELETE(request);
@@ -1230,9 +1283,11 @@ describe("Team Members API Unit Tests", () => {
     });
 
     it("should handle database errors gracefully in PUT route", async () => {
+      const userId = "923e4567-e89b-12d3-a456-426614174008";
+
       // Mock the initial user check to succeed
       prismaMock.user.findUnique.mockResolvedValueOnce({
-        ...mockUser({ id: "test-id" }),
+        ...mockUser({ id: userId }),
         UserRole: [],
         Clinician: null,
         clinicalInfos: [],
@@ -1242,7 +1297,7 @@ describe("Team Members API Unit Tests", () => {
       prismaMock.$transaction.mockRejectedValueOnce(new Error("Update failed"));
 
       const updateData = {
-        id: "test-id",
+        id: userId,
         email: "updated@example.com",
       };
 
@@ -1258,15 +1313,17 @@ describe("Team Members API Unit Tests", () => {
     });
 
     it("should handle database errors gracefully in DELETE route", async () => {
+      const userId = "a23e4567-e89b-12d3-a456-426614174009";
+
       prismaMock.user.findUnique.mockResolvedValueOnce({
-        ...mockUser({ id: "test-id" }),
+        ...mockUser({ id: userId }),
         Clinician: null,
       } as MockUser);
 
       // Mock transaction error
       prismaMock.$transaction.mockRejectedValueOnce(new Error("Delete failed"));
 
-      const request = createRequest("/api/team-members?id=test-id", {
+      const request = createRequest(`/api/team-members?id=${userId}`, {
         method: "DELETE",
       });
       const response = await DELETE(request);
