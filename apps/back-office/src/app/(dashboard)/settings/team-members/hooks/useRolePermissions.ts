@@ -201,6 +201,22 @@ export const ROLE_PERMISSIONS: Record<RoleType, RolePermissions> = {
       "View practice settings",
     ],
   },
+  "CLINICIAN.SUPERVISOR": {
+    clientCare: [
+      "View and create chart notes",
+      "View completed questionnaires and scored measures",
+      "View and manage client documents",
+      "View and manage intake documents",
+      "Supervise other clinicians",
+      "Review supervised clinician work",
+    ],
+    operations: [
+      "View supervisee calendars",
+      "Review supervisee documentation",
+      "Access supervision reports",
+      "Schedule supervision sessions",
+    ],
+  },
   Clinician: {
     clientCare: [
       "View and create chart notes",
