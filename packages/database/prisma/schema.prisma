@@ -45,6 +45,7 @@ model Appointment {
   superbill_id             String?            @db.UniqueIdentifier
   /// Amount written off (not expected to be collected) in dollars.
   write_off                Decimal?
+  created_at               DateTime           @default(now()) @db.DateTime
   ClientGroup              ClientGroup?       @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_ClientGroup")
   Clinician                Clinician?         @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Clinician")
   Location                 Location?          @relation(fields: [location_id], references: [id], map: "FK_Appointment_Location")
@@ -266,6 +267,7 @@ model ClientGroupChartNote {
   text               String        @db.Text
   client_group_id    String        @db.UniqueIdentifier
   note_date          DateTime      @default(now())
+  created_at         DateTime      @default(now()) @db.DateTime
   ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupChartNote_ClientGroup")
 
   @@index([client_group_id], map: "IX_ClientGroupChartNote_client_group_id")
@@ -509,6 +511,7 @@ model SurveyAnswers {
   is_signed              Boolean?
   /// Whether this document is locked from further edits (e.g., after signing).
   is_locked              Boolean?
+  created_at             DateTime                 @default(now()) @db.DateTime
   AppointmentNotes       AppointmentNotes[]
   ClientFiles            ClientFiles[]
   DiagnosisTreatmentPlan DiagnosisTreatmentPlan[]
@@ -897,6 +900,7 @@ model GoodFaithEstimate {
   service_end_date      DateTime?           @db.Date
   /// Total estimated cost in dollars.
   total_cost            Int
+  created_at            DateTime            @default(now()) @db.DateTime
   notes                 String?             @db.Text
   Clinician             Clinician           @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Clinician")
   ClientGroup           ClientGroup?        @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_ClientGroup")
