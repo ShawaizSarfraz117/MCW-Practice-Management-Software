@@ -235,9 +235,12 @@ model ClientGroup {
   ClientGroupFile                ClientGroupFile[]
   ClientGroupMembership          ClientGroupMembership[]
   ClientGroupServices            ClientGroupServices[]
+  DiagnosisTreatmentPlan         DiagnosisTreatmentPlan[]
+  GoodFaithEstimate              GoodFaithEstimate[]
   Invoice                        Invoice[]
   Statement                      Statement[]
   Superbill                      Superbill[]
+  SurveyAnswers                  SurveyAnswers[]
   ClientGroupChartNote           ClientGroupChartNote[]
 }
 
@@ -490,6 +493,7 @@ model SurveyAnswers {
   id                     String                   @id(map: "PK_SurveyAnswers_ID") @default(dbgenerated("newid()"), map: "DF_SurveyAnswers_ID") @db.UniqueIdentifier
   template_id            String                   @db.UniqueIdentifier
   client_id              String                   @db.UniqueIdentifier
+  client_group_id        String?                  @db.UniqueIdentifier
   /// JSON content of the completed survey, storing answers to the questions from the template.
   content                String?                  @db.Text
   frequency              String?                  @db.NChar(10)
@@ -510,6 +514,7 @@ model SurveyAnswers {
   DiagnosisTreatmentPlan DiagnosisTreatmentPlan[]
   Appointment            Appointment?             @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_SurveyAnswers_Appointment")
   Client                 Client                   @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_SurveyAnswers_Client")
+  ClientGroup            ClientGroup?             @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_SurveyAnswers_ClientGroup")
   SurveyTemplate         SurveyTemplate           @relation(fields: [template_id], references: [id], onUpdate: NoAction, map: "FK_SurveyAnswers_SurveyTemplate")
 }
 
@@ -846,16 +851,19 @@ model Diagnosis {
 model DiagnosisTreatmentPlan {
   id                         String                       @id(map: "PK__Diagnosi__3213E83FDFE52E56") @default(dbgenerated("newid()"), map: "DF__DiagnosisTre__id__5244F976") @db.UniqueIdentifier
   client_id                  String                       @db.UniqueIdentifier
+  client_group_id            String?                      @db.UniqueIdentifier
   created_at                 DateTime                     @default(now(), map: "DF__Diagnosis__creat__53391DAF") @db.DateTime
   updated_at                 DateTime?                    @db.DateTime
   is_signed                  String?                      @default("0", map: "DF_DiagnosisTreatmentPlan_is_signed") @db.NChar(10)
   title                      String                       @db.VarChar(255)
   survey_answers_id          String?                      @db.UniqueIdentifier
   Client                     Client                       @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlan_Client")
+  ClientGroup                ClientGroup?                 @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlan_ClientGroup")
   SurveyAnswers              SurveyAnswers?               @relation(fields: [survey_answers_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlan_SurveyAnswers")
   DiagnosisTreatmentPlanItem DiagnosisTreatmentPlanItem[]
 
   @@index([client_id], map: "IX_DiagnosisTreatmentPlan_ClientId")
+  @@index([client_group_id], map: "IX_DiagnosisTreatmentPlan_ClientGroupId")
   @@index([survey_answers_id], map: "IX_DiagnosisTreatmentPlan_SurveyAnswersId")
 }
 
@@ -876,6 +884,7 @@ model DiagnosisTreatmentPlanItem {
 model GoodFaithEstimate {
   id                    String              @id(map: "PK_GoodFaithEstimate") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   clinician_id          String              @db.UniqueIdentifier
+  client_group_id       String?             @db.UniqueIdentifier
   clinician_npi         String?             @db.VarChar(100)
   clinician_tin         String?             @db.VarChar(100)
   clinician_location_id String              @db.UniqueIdentifier
@@ -890,6 +899,7 @@ model GoodFaithEstimate {
   total_cost            Int
   notes                 String?             @db.Text
   Clinician             Clinician           @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Clinician")
+  ClientGroup           ClientGroup?        @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_ClientGroup")
   Location              Location            @relation(fields: [clinician_location_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Location")
   GoodFaithServices     GoodFaithServices[]
   GoodFaithClients      GoodFaithClients[]

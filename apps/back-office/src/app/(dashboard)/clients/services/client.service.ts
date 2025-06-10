@@ -395,10 +395,52 @@ export const updateGoodFaithEstimate = async ({
   }
 };
 
-export const fetchDiagnosis = async () => {
+export const fetchDiagnosis = async (search?: string) => {
   try {
     const response: unknown = await FETCH.get({
       url: "/diagnosis",
+      searchParams: search ? { search } : {},
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const createDiagnosisTreatmentPlan = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/diagnosis-treatment-plan",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const fetchDiagnosisTreatmentPlans = async ({ searchParams = {} }) => {
+  try {
+    const response: unknown = await FETCH.get({
+      url: "/diagnosis-treatment-plan",
+      searchParams,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const updateDiagnosisTreatmentPlan = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: "/diagnosis-treatment-plan",
+      body,
+      isFormData: false,
     });
 
     return [response, null];

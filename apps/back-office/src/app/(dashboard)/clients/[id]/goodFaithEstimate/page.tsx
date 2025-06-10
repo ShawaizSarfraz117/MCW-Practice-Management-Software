@@ -356,6 +356,7 @@ const GoodFaithEstimatePage = () => {
       }));
 
       const body = {
+        client_group_id: clientGroupId,
         clinician_id: clinician.id,
         clinician_npi: providerData.npi.replace(/\s/g, ""), // Remove spaces for API
         clinician_tin: providerData.tin.replace(/-/g, ""), // Remove hyphens for API

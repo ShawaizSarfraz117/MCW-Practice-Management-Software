@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
       const estimate = await tx.goodFaithEstimate.create({
         data: {
           clinician_id: requestData.clinician_id,
+          client_group_id: requestData.client_group_id || null,
           clinician_npi: requestData.clinician_npi,
           clinician_tin: requestData.clinician_tin,
           clinician_location_id: requestData.clinician_location_id,
