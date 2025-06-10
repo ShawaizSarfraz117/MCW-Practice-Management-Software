@@ -207,15 +207,17 @@ export function LicenseInfoSection({
             license: primaryLicense
               ? {
                   type:
-                    primaryLicense.license_type || primaryLicense.type || "",
+                    "license_type" in primaryLicense
+                      ? primaryLicense.license_type
+                      : primaryLicense.type || "",
                   number:
-                    primaryLicense.license_number ||
-                    primaryLicense.number ||
-                    "",
+                    "license_number" in primaryLicense
+                      ? primaryLicense.license_number
+                      : primaryLicense.number || "",
                   expirationDate:
-                    primaryLicense.expiration_date ||
-                    primaryLicense.expirationDate ||
-                    "",
+                    "expiration_date" in primaryLicense
+                      ? primaryLicense.expiration_date
+                      : primaryLicense.expirationDate || "",
                   state: primaryLicense.state || "",
                 }
               : undefined,

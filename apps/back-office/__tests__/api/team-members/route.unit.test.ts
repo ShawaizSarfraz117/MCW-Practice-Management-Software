@@ -26,6 +26,7 @@ interface MockUserRole {
 
 interface MockLicense {
   id: string;
+  clinician_id: string;
   license_type: string;
   license_number: string;
   expiration_date: Date;
@@ -36,6 +37,19 @@ interface MockLicense {
 interface MockPracticeService {
   id: string;
   name: string;
+  rate: any; // Decimal type
+  type: string;
+  is_default: boolean;
+  code: string;
+  duration: number;
+  block_before: number;
+  block_after: number;
+  available_online: boolean;
+  allow_new_clients: boolean;
+  bill_in_units: boolean;
+  description: string | null;
+  require_call: boolean;
+  color: string | null;
   [key: string]: any;
 }
 
@@ -64,7 +78,7 @@ interface MockClinician {
 }
 
 interface MockClinicalInfo {
-  id: string;
+  id: number;
   user_id: string;
   speciality: string;
   taxonomy_code: string;
@@ -171,6 +185,7 @@ const mockClinician = (overrides = {}): MockClinician => ({
 // Helper function to create a mock license
 const mockLicense = (overrides = {}): MockLicense => ({
   id: "mock-license-id",
+  clinician_id: "mock-clinician-id",
   license_type: "Medical",
   license_number: "123456",
   expiration_date: new Date("2025-12-31"),
@@ -182,6 +197,19 @@ const mockLicense = (overrides = {}): MockLicense => ({
 const mockPracticeService = (overrides = {}): MockPracticeService => ({
   id: "mock-service-id",
   name: "Therapy",
+  rate: "100.00", // Decimal as string
+  type: "Therapy",
+  is_default: false,
+  code: "90834",
+  duration: 45,
+  block_before: 0,
+  block_after: 0,
+  available_online: true,
+  allow_new_clients: true,
+  bill_in_units: false,
+  description: null,
+  require_call: false,
+  color: null,
   ...overrides,
 });
 
@@ -195,7 +223,7 @@ const mockClinicianService = (overrides = {}): MockClinicianService => ({
 
 // Helper function to create a mock clinical info
 const mockClinicalInfo = (overrides = {}): MockClinicalInfo => ({
-  id: "mock-clinical-info-id",
+  id: 1, // Changed to number
   user_id: "mock-user-id",
   speciality: "Psychiatry",
   taxonomy_code: "2084P0800X",
@@ -856,7 +884,7 @@ describe("Team Members API Unit Tests", () => {
         }) as MockClinician,
         clinicalInfos: [
           mockClinicalInfo({
-            id: "clinical-info-id",
+            id: 2, // Changed to number
             speciality: "General",
             NPI_number: 9999999999,
           }),
@@ -969,7 +997,7 @@ describe("Team Members API Unit Tests", () => {
 
       // Verify clinical info was updated
       expect(prismaMock.clinicalInfo.update).toHaveBeenCalledWith({
-        where: { id: "clinical-info-id" },
+        where: { id: 2 }, // Changed to number
         data: expect.objectContaining({
           speciality: "Psychiatry",
           NPI_number: 1111111111,
