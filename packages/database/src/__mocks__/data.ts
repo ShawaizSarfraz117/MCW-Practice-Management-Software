@@ -393,7 +393,9 @@ export const SurveyTemplateFactory = {
 export const SurveyAnswersFactory = {
   build: <T extends Partial<SurveyAnswers>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    answers: JSON.stringify({
+    template_id: faker.string.uuid(),
+    client_id: faker.string.uuid(),
+    content: JSON.stringify({
       answers: [
         {
           question_id: faker.string.uuid(),
@@ -401,7 +403,16 @@ export const SurveyAnswersFactory = {
         },
       ],
     }),
-    submitted_at: faker.date.recent(),
+    status: faker.helpers.arrayElement([
+      "ASSIGNED",
+      "IN_PROGRESS",
+      "COMPLETED",
+      "EXPIRED",
+      "SUBMITTED",
+    ]),
+    assigned_at: faker.date.recent(),
+    completed_at: faker.date.recent(),
+    is_intake: false,
     ...overrides,
   }),
 };
@@ -546,12 +557,19 @@ export const SurveyTemplatePrismaFactory = defineSurveyTemplateFactory({
 
 // SurveyAnswers Prisma factory
 export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
-  defaultData: () => ({
-    ...SurveyAnswersFactory.build(),
-    Appointment: AppointmentPrismaFactory,
-    Client: ClientPrismaFactory,
-    SurveyTemplate: SurveyTemplatePrismaFactory,
-  }),
+  defaultData: () => {
+    const { template_id, client_id, appointment_id, ...surveyData } =
+      SurveyAnswersFactory.build();
+    return {
+      ...surveyData,
+      SurveyTemplate: {
+        connect: { id: template_id },
+      },
+      Client: {
+        connect: { id: client_id },
+      },
+    };
+  },
 });
 
 // Helper to create a valid invoice object with proper UUID formats
