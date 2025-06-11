@@ -72,43 +72,49 @@ npm run --workspace packages/database db:generate --silent
 check_result "Prisma client generated"
 echo ""
 
-# 4. Run TypeScript type checking
+# 4. Build email package (required for TypeScript checks)
+print_status "Building email package..."
+npm run build --workspace=@mcw/email
+check_result "Email package built"
+echo ""
+
+# 5. Run TypeScript type checking
 print_status "Running TypeScript type checking..."
 npm run typecheck
 check_result "TypeScript type checking passed"
 echo ""
 
-# 5. Run Prettier formatting check
+# 6. Run Prettier formatting check
 print_status "Checking code formatting with Prettier..."
 npm run format:check
 check_result "Prettier formatting check passed"
 echo ""
 
-# 6. Run ESLint
+# 7. Run ESLint
 print_status "Running ESLint..."
 npm run lint
 check_result "ESLint passed"
 echo ""
 
-# 7. Build the application
+# 8. Build the application
 print_status "Building the application..."
 npm run build
 check_result "Build successful"
 echo ""
 
-# 8. Run unit tests
+# 9. Run unit tests
 print_status "Running unit tests..."
 npm run test:unit
 check_result "Unit tests passed"
 echo ""
 
-# 9. Run UI tests
+# 10. Run UI tests
 print_status "Running UI tests..."
 npm run test:ui
 check_result "UI tests passed"
 echo ""
 
-# 10. Run integration tests (using local database from .env)
+# 11. Run integration tests (using local database from .env)
 print_status "Running integration tests with local database..."
 
 # Read DATABASE_URL from .env file
