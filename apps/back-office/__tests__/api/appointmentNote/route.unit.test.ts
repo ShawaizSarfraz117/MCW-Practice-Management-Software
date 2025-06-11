@@ -20,9 +20,9 @@ const mockSession = {
   user: {
     id: "test-user-id",
     email: "test@example.com",
-    practice_id: "test-practice-id",
     role: "ADMIN",
   },
+  expires: new Date(Date.now() + 86400000).toISOString(),
 };
 
 const mockTemplate = {
@@ -31,20 +31,30 @@ const mockTemplate = {
   type: "PROGRESS_NOTES",
   content: "{}",
   is_active: true,
-  practice_id: "987e6543-e21b-12d3-a456-426614174000",
   created_at: new Date(),
   updated_at: new Date(),
+  frequency_options: null,
+  description: null,
+  is_default: false,
+  requires_signature: false,
+  is_shareable: false,
 };
 
 const mockClient = {
   id: "456e7890-e89b-12d3-a456-426614174000",
-  first_name: "John",
-  last_name: "Doe",
-  email: "john@example.com",
-  phone_primary: "1234567890",
-  practice_id: "987e6543-e21b-12d3-a456-426614174000",
+  legal_first_name: "John",
+  legal_last_name: "Doe",
+  is_active: true,
+  is_waitlist: false,
+  primary_clinician_id: null,
+  primary_location_id: null,
+  allow_online_appointment: false,
+  access_billing_documents: false,
+  use_secure_messaging: false,
+  referred_by: null,
   created_at: new Date(),
-  updated_at: new Date(),
+  date_of_birth: null,
+  preferred_name: null,
 };
 
 const mockSurveyAnswer = {
@@ -63,8 +73,8 @@ const mockSurveyAnswer = {
   is_intake: false,
   created_at: new Date(),
   updated_at: new Date(),
-  template: mockTemplate,
-  client: mockClient,
+  SurveyTemplate: mockTemplate,
+  Client: mockClient,
 };
 
 describe("appointmentNote API - Unit Tests", () => {
@@ -87,7 +97,7 @@ describe("appointmentNote API - Unit Tests", () => {
 
     it("should fetch note by appointment_id", async () => {
       prismaMock.surveyAnswers.findFirst.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
 
       const request = createRequest(
@@ -101,15 +111,15 @@ describe("appointmentNote API - Unit Tests", () => {
       expect(prismaMock.surveyAnswers.findFirst).toHaveBeenCalledWith({
         where: { appointment_id: "abc12345-e89b-12d3-a456-426614174000" },
         include: {
-          template: true,
-          client: true,
+          SurveyTemplate: true,
+          Client: true,
         },
       });
     });
 
     it("should support legacy 'id' parameter as appointment_id", async () => {
       prismaMock.surveyAnswers.findFirst.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
 
       const request = createRequest(
@@ -121,8 +131,8 @@ describe("appointmentNote API - Unit Tests", () => {
       expect(prismaMock.surveyAnswers.findFirst).toHaveBeenCalledWith({
         where: { appointment_id: "abc12345-e89b-12d3-a456-426614174000" },
         include: {
-          template: true,
-          client: true,
+          SurveyTemplate: true,
+          Client: true,
         },
       });
     });
@@ -142,8 +152,8 @@ describe("appointmentNote API - Unit Tests", () => {
 
     it("should fetch all notes by client_id", async () => {
       prismaMock.surveyAnswers.findMany.mockResolvedValue([
-        mockSurveyAnswer,
-      ] as SurveyAnswerWithRelations);
+        mockSurveyAnswer as unknown as SurveyAnswers,
+      ]);
 
       const request = createRequest(
         "/api/appointmentNote?client_id=456e7890-e89b-12d3-a456-426614174000",
@@ -156,8 +166,8 @@ describe("appointmentNote API - Unit Tests", () => {
       expect(prismaMock.surveyAnswers.findMany).toHaveBeenCalledWith({
         where: { client_id: "456e7890-e89b-12d3-a456-426614174000" },
         include: {
-          template: true,
-          client: true,
+          SurveyTemplate: true,
+          Client: true,
         },
         orderBy: {
           created_at: "desc",
@@ -190,7 +200,7 @@ describe("appointmentNote API - Unit Tests", () => {
     it("should create a new note", async () => {
       prismaMock.surveyAnswers.findFirst.mockResolvedValue(null);
       prismaMock.surveyAnswers.create.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
 
       const request = createRequestWithBody(
@@ -211,15 +221,15 @@ describe("appointmentNote API - Unit Tests", () => {
           appointment_id: "abc12345-e89b-12d3-a456-426614174000",
         }),
         include: {
-          template: true,
-          client: true,
+          SurveyTemplate: true,
+          Client: true,
         },
       });
     });
 
     it("should return 409 if note already exists for appointment and template", async () => {
       prismaMock.surveyAnswers.findFirst.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
 
       const request = createRequestWithBody(
@@ -268,7 +278,7 @@ describe("appointmentNote API - Unit Tests", () => {
       const request = createRequestWithBody(
         "/api/appointmentNote",
         updatePayload,
-        "PUT",
+        { method: "PUT" },
       );
       const response = await PUT(request);
 
@@ -277,7 +287,7 @@ describe("appointmentNote API - Unit Tests", () => {
 
     it("should update existing note by appointment_id", async () => {
       prismaMock.surveyAnswers.findFirst.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
       prismaMock.surveyAnswers.update.mockResolvedValue({
         ...mockSurveyAnswer,
@@ -288,7 +298,7 @@ describe("appointmentNote API - Unit Tests", () => {
       const request = createRequestWithBody(
         "/api/appointmentNote",
         updatePayload,
-        "PUT",
+        { method: "PUT" },
       );
       const response = await PUT(request);
 
@@ -302,8 +312,8 @@ describe("appointmentNote API - Unit Tests", () => {
           status: "UPDATED",
         }),
         include: {
-          template: true,
-          client: true,
+          SurveyTemplate: true,
+          Client: true,
         },
       });
     });
@@ -315,16 +325,16 @@ describe("appointmentNote API - Unit Tests", () => {
       };
 
       prismaMock.surveyAnswers.findFirst.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
       prismaMock.surveyAnswers.update.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
 
       const request = createRequestWithBody(
         "/api/appointmentNote",
         payloadWithAppointmentId,
-        "PUT",
+        { method: "PUT" },
       );
       const response = await PUT(request);
 
@@ -345,7 +355,7 @@ describe("appointmentNote API - Unit Tests", () => {
       const request = createRequestWithBody(
         "/api/appointmentNote",
         updatePayload,
-        "PUT",
+        { method: "PUT" },
       );
       const response = await PUT(request);
 
@@ -358,7 +368,7 @@ describe("appointmentNote API - Unit Tests", () => {
       const request = createRequestWithBody(
         "/api/appointmentNote",
         { content: "test" },
-        "PUT",
+        { method: "PUT" },
       );
       const response = await PUT(request);
 
@@ -382,10 +392,10 @@ describe("appointmentNote API - Unit Tests", () => {
 
     it("should delete note by id", async () => {
       prismaMock.surveyAnswers.findFirst.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
       prismaMock.surveyAnswers.delete.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
 
       const request = createRequest(
@@ -404,10 +414,10 @@ describe("appointmentNote API - Unit Tests", () => {
 
     it("should delete note by appointment_id", async () => {
       prismaMock.surveyAnswers.findFirst.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
       prismaMock.surveyAnswers.delete.mockResolvedValue(
-        mockSurveyAnswer as SurveyAnswerWithRelations,
+        mockSurveyAnswer as unknown as SurveyAnswerWithRelations,
       );
 
       const request = createRequest(

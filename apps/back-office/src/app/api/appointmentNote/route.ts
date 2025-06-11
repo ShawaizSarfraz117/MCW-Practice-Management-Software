@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { prisma } from "@mcw/database";
 import { withErrorHandling } from "@mcw/utils";
 import { z } from "zod";
 import { getBackOfficeSession } from "@/utils/helpers";
-
-import { Prisma } from "@mcw/database";
+import { Prisma } from "@prisma/client";
 
 const surveyAnswerSchema = z.object({
   template_id: z.string().uuid(),
@@ -63,7 +61,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         Client: true,
       },
       orderBy: {
-        createdAt: "desc",
+        assigned_at: "desc",
       },
     });
 
@@ -82,7 +80,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       Client: true,
     },
     orderBy: {
-      created_at: "desc",
+      assigned_at: "desc",
     },
   });
 

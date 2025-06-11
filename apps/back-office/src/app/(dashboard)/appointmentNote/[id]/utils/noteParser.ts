@@ -56,9 +56,9 @@ export function getDisplayContent(
   parsedContent: ParsedContent,
 ): string | ParsedContent {
   const displayContent =
-    parsedContent.summary ||
-    parsedContent.content ||
-    parsedContent.description ||
+    (parsedContent.summary as string | undefined) ||
+    (parsedContent.content as string | undefined) ||
+    (parsedContent.description as string | undefined) ||
     "Content available but format not recognized";
 
   return displayContent;

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { DELETE } from "@/api/appointmentNote/route";
 import {
   prisma,
-  Practice,
   User,
   Client,
   Clinician,
@@ -19,7 +18,7 @@ import {
   SurveyAnswersPrismaFactory,
 } from "@mcw/database/mock-data";
 import { cleanupDatabase } from "@mcw/database/test-utils";
-import { createRequest } from "@mcw/utils";
+import { createRequest, generateUUID } from "@mcw/utils";
 import { getBackOfficeSession } from "@/utils/helpers";
 import type { Session } from "next-auth";
 
@@ -27,18 +26,8 @@ vi.mock("@/utils/helpers", () => ({
   getBackOfficeSession: vi.fn(),
 }));
 
-const mockSession = {
-  user: {
-    id: "test-user-id",
-    email: "test@example.com",
-    practice_id: "test-practice-id",
-    role: "ADMIN",
-  },
-};
-
 describe("appointmentNote API - DELETE Integration Tests", () => {
-  let testPractice: Practice;
-  let testUser: User;
+  let _testUser: User;
   let testClient: Client;
   let testClinician: Clinician;
   let testTemplate: SurveyTemplate;
@@ -46,47 +35,34 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
   let noteToDelete: SurveyAnswers;
 
   beforeEach(async () => {
-    vi.mocked(getBackOfficeSession).mockResolvedValue(mockSession as Session);
-
-    // Create test practice first (no factory available)
-    testPractice = await prisma.practice.create({
-      data: {
-        name: "Test Practice",
-        email: "practice@test.com",
-        phone: "1234567890",
-        city: "Test City",
-        state: "TS",
-        zip: "12345",
-        address_line_1: "123 Test St",
+    vi.mocked(getBackOfficeSession).mockResolvedValue({
+      user: {
+        id: "test-user-id",
+        email: "test@example.com",
+        role: "ADMIN",
       },
-    });
+      expires: new Date(Date.now() + 86400000).toISOString(),
+    } as Session);
 
     // Create test user using factory
-    testUser = await prisma.user.create({
-      data: {
-        ...UserFactory.build({
-          email: "test@example.com",
-          role: "ADMIN",
-        }),
-        practice_id: testPractice.id,
-      },
+    _testUser = await prisma.user.create({
+      data: UserFactory.build({
+        email: "test@example.com",
+        role: "ADMIN",
+      }),
     });
 
-    // Create test client using factory
+    // Create test client
     testClient = await prisma.client.create({
       data: {
-        ...ClientFactory.build({
-          email: "john.doe@example.com",
-        }),
-        practice_id: testPractice.id,
+        ...ClientFactory.build(),
+        legal_first_name: "John",
+        legal_last_name: "Doe",
       },
     });
 
     // Create test clinician using factory
-    testClinician = await ClinicianPrismaFactory.create({
-      user_id: testUser.id,
-      practice_id: testPractice.id,
-    });
+    testClinician = await ClinicianPrismaFactory.create();
 
     // Create test template using factory
     testTemplate = await SurveyTemplatePrismaFactory.create({
@@ -106,33 +82,55 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
         ],
       }),
       is_active: true,
-      practice_id: testPractice.id,
     });
 
     // Create test appointment using factory
     testAppointment = await AppointmentPrismaFactory.create({
       title: "Test Appointment",
       status: "SCHEDULED",
-      appointment_type_id: "90834",
-      clinician_id: testClinician.id,
-      practice_id: testPractice.id,
+      Clinician: {
+        connect: { id: testClinician.id },
+      },
     });
 
-    // Create appointment-client relationship
-    await prisma.appointmentClients.create({
+    // Create a client group and link appointment to it
+    const clientGroup = await prisma.clientGroup.create({
       data: {
-        appointment_id: testAppointment.id,
-        client_id: testClient.id,
+        id: generateUUID(),
+        type: "individual",
+        name: "Test Group",
+        clinician_id: testClinician.id,
       },
+    });
+
+    // Add client to the group
+    await prisma.clientGroupMembership.create({
+      data: {
+        client_group_id: clientGroup.id,
+        client_id: testClient.id,
+        role: "CLIENT",
+      },
+    });
+
+    // Update appointment with client group
+    testAppointment = await prisma.appointment.update({
+      where: { id: testAppointment.id },
+      data: { client_group_id: clientGroup.id },
     });
 
     // Create note to delete
     noteToDelete = await SurveyAnswersPrismaFactory.create({
-      template_id: testTemplate.id,
-      client_id: testClient.id,
+      SurveyTemplate: {
+        connect: { id: testTemplate.id },
+      },
+      Client: {
+        connect: { id: testClient.id },
+      },
       content: JSON.stringify({ question1: "To be deleted" }),
       status: "COMPLETED",
-      appointment_id: testAppointment.id,
+      Appointment: {
+        connect: { id: testAppointment.id },
+      },
     });
   });
 
@@ -144,7 +142,7 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
   it("should delete note by id", async () => {
     const request = createRequest(
       `/api/appointmentNote?id=${noteToDelete.id}`,
-      "DELETE",
+      { method: "DELETE" },
     );
     const response = await DELETE(request);
 
@@ -162,7 +160,7 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
   it("should delete note by appointment_id", async () => {
     const request = createRequest(
       `/api/appointmentNote?appointment_id=${testAppointment.id}`,
-      "DELETE",
+      { method: "DELETE" },
     );
     const response = await DELETE(request);
 
@@ -178,10 +176,9 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
   });
 
   it("should return 404 if note not found", async () => {
-    const request = createRequest(
-      `/api/appointmentNote?id=nonexistent-id`,
-      "DELETE",
-    );
+    const request = createRequest(`/api/appointmentNote?id=nonexistent-id`, {
+      method: "DELETE",
+    });
     const response = await DELETE(request);
 
     expect(response.status).toBe(404);
@@ -194,7 +191,7 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
 
     const request = createRequest(
       `/api/appointmentNote?id=${noteToDelete.id}`,
-      "DELETE",
+      { method: "DELETE" },
     );
     const response = await DELETE(request);
 
@@ -204,7 +201,7 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
   });
 
   it("should validate query parameters", async () => {
-    const request = createRequest("/api/appointmentNote", "DELETE");
+    const request = createRequest("/api/appointmentNote", { method: "DELETE" });
     const response = await DELETE(request);
 
     expect(response.status).toBe(400);
@@ -216,7 +213,7 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
     // First delete should succeed
     const request1 = createRequest(
       `/api/appointmentNote?id=${noteToDelete.id}`,
-      "DELETE",
+      { method: "DELETE" },
     );
     const response1 = await DELETE(request1);
     expect(response1.status).toBe(200);
@@ -224,7 +221,7 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
     // Second delete should return 404
     const request2 = createRequest(
       `/api/appointmentNote?id=${noteToDelete.id}`,
-      "DELETE",
+      { method: "DELETE" },
     );
     const response2 = await DELETE(request2);
     expect(response2.status).toBe(404);
