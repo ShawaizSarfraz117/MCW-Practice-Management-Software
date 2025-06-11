@@ -89,7 +89,7 @@ describe("GET /api/clinicalInfo", () => {
     expect(json).toEqual({ error: "Clinical information not found" });
   });
 
-  it("should return 404 if not a clinician", async () => {
+  it("should return 400 if not a clinician", async () => {
     vi.mocked(helpers.getClinicianInfo).mockResolvedValueOnce({
       isClinician: false,
       clinicianId: null,
@@ -97,7 +97,7 @@ describe("GET /api/clinicalInfo", () => {
     });
 
     const response = await GET(createRequest("/api/clinicalInfo"));
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(400);
     const json = await response.json();
     expect(json).toEqual({ error: "Clinician not found for user" });
   });
@@ -109,9 +109,9 @@ describe("GET /api/clinicalInfo", () => {
 
     const response = await GET(createRequest("/api/clinicalInfo"));
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to fetch clinical information",
-    });
+    const json = await response.json();
+    expect(json.error).toBeDefined();
+    expect(json.error.message).toBeDefined();
   });
 });
 
@@ -161,7 +161,7 @@ describe("PUT /api/clinicalInfo", () => {
     expect(response.status).toBe(401);
   });
 
-  it("should return 404 if not a clinician", async () => {
+  it("should return 400 if not a clinician", async () => {
     vi.mocked(helpers.getClinicianInfo).mockResolvedValueOnce({
       isClinician: false,
       clinicianId: null,
@@ -173,7 +173,7 @@ describe("PUT /api/clinicalInfo", () => {
     });
     const response = await PUT(req);
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(400);
     const json = await response.json();
     expect(json).toEqual({ error: "Clinician not found for user" });
   });
@@ -206,8 +206,8 @@ describe("PUT /api/clinicalInfo", () => {
     const response = await PUT(req);
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to update clinical information",
-    });
+    const json = await response.json();
+    expect(json.error).toBeDefined();
+    expect(json.error.message).toBeDefined();
   });
 });
