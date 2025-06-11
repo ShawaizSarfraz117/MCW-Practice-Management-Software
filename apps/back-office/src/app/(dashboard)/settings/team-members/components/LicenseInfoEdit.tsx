@@ -38,11 +38,25 @@ export default function LicenseInfoEdit({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const expirationDate = formData.get("expirationDate") as string;
+
+    // Validate expiration date is in the future
+    if (expirationDate) {
+      const selectedDate = new Date(expirationDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate <= today) {
+        alert("Expiration date must be in the future");
+        return;
+      }
+    }
+
     const data = {
       license: {
         type: (formData.get("type") as string) || "",
         number: (formData.get("number") as string) || "",
-        expirationDate: (formData.get("expirationDate") as string) || "",
+        expirationDate: expirationDate || "",
         state: (formData.get("state") as string) || "",
       },
     };
@@ -100,6 +114,7 @@ export default function LicenseInfoEdit({
           name="expirationDate"
           required
           type="date"
+          min={new Date().toISOString().split("T")[0]}
         />
       </div>
 

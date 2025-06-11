@@ -32,7 +32,15 @@ const teamMemberSchema = z.object({
     .object({
       type: z.string(),
       number: z.string(),
-      expirationDate: z.string(),
+      expirationDate: z.string().refine(
+        (date) => {
+          const selectedDate = new Date(date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return selectedDate > today;
+        },
+        { message: "Expiration date must be in the future" },
+      ),
       state: z.string(),
     })
     .optional(),
