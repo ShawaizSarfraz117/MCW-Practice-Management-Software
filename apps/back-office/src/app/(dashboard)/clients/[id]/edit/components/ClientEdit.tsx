@@ -320,15 +320,15 @@ export default function ClientEdit({
             {clientData && (
               <BillingInsuranceTab
                 clientGroupId={clientGroupId}
-                responsibleClientName={
-                  clientData.ClientGroupMembership.find(
-                    (m) => m.is_responsible_for_billing,
-                  )?.Client.legal_first_name +
-                    " " +
+                responsibleClientName={(() => {
+                  const responsibleClient =
                     clientData.ClientGroupMembership.find(
                       (m) => m.is_responsible_for_billing,
-                    )?.Client.legal_last_name || clientData.name
-                }
+                    )?.Client;
+                  return responsibleClient
+                    ? `${responsibleClient.legal_first_name || ""} ${responsibleClient.legal_last_name || ""}`.trim()
+                    : clientData.name;
+                })()}
               />
             )}
           </div>

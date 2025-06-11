@@ -96,12 +96,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const maxInvoice = await prisma.invoice.findFirst({
-        orderBy: { invoice_number: "desc" },
-      });
-      const nextInvoiceNumber = maxInvoice
-        ? Number(maxInvoice.invoice_number) + 1
-        : 1;
+      const nextInvoiceNumber = await getNextInvoiceNumber();
 
       const invoice = await prisma.invoice.create({
         data: {
@@ -136,12 +131,7 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json(invoice, { status: 201 });
     } else {
-      const maxInvoice = await prisma.invoice.findFirst({
-        orderBy: { invoice_number: "desc" },
-      });
-      const nextInvoiceNumber = maxInvoice
-        ? Number(maxInvoice.invoice_number) + 1
-        : 1;
+      const nextInvoiceNumber = await getNextInvoiceNumber();
       // Create new invoice
       const newInvoice = await prisma.invoice.create({
         data: {
@@ -197,4 +187,15 @@ export async function PATCH(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+async function getNextInvoiceNumber(): Promise<number> {
+  const maxInvoice = await prisma.invoice.findFirst({
+    orderBy: { invoice_number: "desc" },
+  });
+  const maxInvoiceNumber = maxInvoice?.invoice_number;
+  if (maxInvoiceNumber && isNaN(Number(maxInvoiceNumber))) {
+    throw new Error(`Invalid invoice number format: ${maxInvoiceNumber}`);
+  }
+  return maxInvoiceNumber ? Number(maxInvoiceNumber) + 1 : 1;
 }
