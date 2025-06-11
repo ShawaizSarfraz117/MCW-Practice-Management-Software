@@ -81,7 +81,16 @@ export function showErrorToast(toast: ToastFunction, error: unknown) {
 
   // Extract error details based on our API response format
   if (error && typeof error === "object" && "error" in error) {
-    const apiError = error as { error?: unknown };
+    const apiError = error as {
+      error?:
+        | string
+        | {
+            message?: string;
+            issueId?: string;
+            stack?: string;
+            [key: string]: unknown;
+          };
+    };
 
     // Handle both { error: "string" } and { error: { message: "string", issueId: "string" } }
     if (typeof apiError.error === "string") {
