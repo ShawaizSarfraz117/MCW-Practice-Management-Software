@@ -34,7 +34,9 @@ export const PUT = withErrorHandling(
 
     // Handle fee and service updates
     if (serviceId !== undefined) {
-      updateData.service_id = serviceId;
+      updateData.PracticeService = {
+        connect: { id: serviceId },
+      };
     }
 
     // Handle financial updates only if fee or writeOff are provided

@@ -11,9 +11,9 @@ import { withErrorHandling } from "@mcw/utils";
 import { getBackOfficeSession } from "@/utils/helpers";
 
 type AppointmentWithRelations = Appointment & {
-  service: PracticeService | null;
-  clinician: Clinician | null;
-  location: Location | null;
+  PracticeService: PracticeService | null;
+  Clinician: Clinician | null;
+  Location: Location | null;
 };
 
 type ClientAppointmentsResponse = {
@@ -53,9 +53,9 @@ export const GET = withErrorHandling(
         },
       },
       include: {
-        service: true,
-        clinician: true,
-        location: true,
+        PracticeService: true,
+        Clinician: true,
+        Location: true,
       },
       orderBy: {
         start_date: "desc",

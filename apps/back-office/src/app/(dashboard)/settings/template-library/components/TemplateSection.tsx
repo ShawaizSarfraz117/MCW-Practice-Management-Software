@@ -6,6 +6,7 @@ import { Copy } from "lucide-react";
 import { ViewTemplate } from "./ViewTemplate";
 import { DeleteTemplateDialog } from "./DeleteTemplateDialog";
 import { Template } from "../hooks/useTemplates";
+import { TemplateType } from "@/types/templateTypes";
 
 interface TemplateSectionProps {
   title: string;
@@ -79,7 +80,7 @@ export function TemplateSection({
               </div>
               <div className="flex items-center gap-1">
                 <ViewTemplate template={template} />
-                {template.type !== "SCORED_MEASURES" && (
+                {template.type !== TemplateType.SCORED_MEASURES && (
                   <Button
                     variant="ghost"
                     size="icon"
