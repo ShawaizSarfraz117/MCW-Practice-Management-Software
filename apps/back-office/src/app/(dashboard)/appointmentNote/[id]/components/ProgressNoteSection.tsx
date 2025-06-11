@@ -22,6 +22,8 @@ import {
 import { Edit2, Trash2 } from "lucide-react";
 import { SurveyPreview } from "@mcw/ui";
 import { Template } from "./../../hooks/useTemplates";
+import { SurveyContentDisplay } from "./SurveyContentDisplay";
+import { formatDate, parseSurveyContent } from "../utils/noteParser";
 
 interface SurveyNote {
   id: string;
@@ -61,16 +63,6 @@ export function ProgressNoteSection({
   createMutationStatus,
   updateMutationStatus,
 }: ProgressNoteSectionProps) {
-  const formatDate = (dateValue: Date | string | undefined) => {
-    if (!dateValue) return "Date not available";
-    try {
-      const date = new Date(dateValue);
-      return isNaN(date.getTime()) ? "Invalid date" : date.toLocaleString();
-    } catch {
-      return "Date formatting error";
-    }
-  };
-
   return (
     <Card className="mb-6">
       <CardContent className="p-6">
@@ -111,7 +103,7 @@ export function ProgressNoteSection({
                     }}
                     defaultAnswers={
                       progressNote?.content
-                        ? JSON.parse(progressNote.content)
+                        ? parseSurveyContent(progressNote.content) || undefined
                         : undefined
                     }
                   />
@@ -136,106 +128,16 @@ export function ProgressNoteSection({
               // Show saved content with edit option
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-700">
-                    {progressNote.content &&
-                      (() => {
-                        try {
-                          const parsedContent = JSON.parse(
-                            progressNote.content,
-                          );
-                          if (
-                            parsedContent &&
-                            typeof parsedContent === "object"
-                          ) {
-                            return (
-                              <div className="space-y-3">
-                                {Object.entries(parsedContent).map(
-                                  ([key, value]) => {
-                                    if (
-                                      !value ||
-                                      (typeof value === "string" &&
-                                        value.trim() === "")
-                                    ) {
-                                      return null;
-                                    }
-
-                                    return (
-                                      <div
-                                        key={key}
-                                        className="border-l-2 border-blue-200 pl-3"
-                                      >
-                                        <div className="font-medium text-gray-800 text-sm mb-1">
-                                          {key
-                                            .replace(/([A-Z])/g, " $1")
-                                            .replace(/^./, (str) =>
-                                              str.toUpperCase(),
-                                            )}
-                                          :
-                                        </div>
-                                        <div className="text-gray-700 text-sm">
-                                          {typeof value === "object" ? (
-                                            <pre className="whitespace-pre-wrap text-xs">
-                                              {JSON.stringify(value, null, 2)}
-                                            </pre>
-                                          ) : (
-                                            (() => {
-                                              const stringValue = String(value);
-                                              const hasHtmlTags =
-                                                /<[^>]*>/g.test(stringValue);
-
-                                              if (hasHtmlTags) {
-                                                return (
-                                                  <div
-                                                    dangerouslySetInnerHTML={{
-                                                      __html: stringValue,
-                                                    }}
-                                                  />
-                                                );
-                                              } else {
-                                                return <div>{stringValue}</div>;
-                                              }
-                                            })()
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  },
-                                )}
-                              </div>
-                            );
-                          }
-
-                          const displayContent =
-                            parsedContent?.summary ||
-                            parsedContent?.content ||
-                            parsedContent?.description ||
-                            "Content available but format not recognized";
-
-                          return typeof displayContent === "string" ? (
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: displayContent,
-                              }}
-                            />
-                          ) : (
-                            <pre className="whitespace-pre-wrap text-xs">
-                              {JSON.stringify(parsedContent, null, 2)}
-                            </pre>
-                          );
-                        } catch {
-                          return (
-                            <div>
-                              Error parsing content: {progressNote.content}
-                            </div>
-                          );
-                        }
-                      })()}
-                    <div className="mt-3 text-xs text-gray-500">
-                      Last updated:{" "}
-                      {formatDate(
-                        progressNote.updated_at || progressNote.created_at,
-                      )}
-                    </div>
+                  <SurveyContentDisplay
+                    content={progressNote.content}
+                    className="text-sm text-gray-700"
+                    borderColor="border-blue-200"
+                  />
+                  <div className="mt-3 text-xs text-gray-500">
+                    Last updated:{" "}
+                    {formatDate(
+                      progressNote.updated_at || progressNote.created_at,
+                    )}
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -291,7 +193,7 @@ export function ProgressNoteSection({
                   onComplete={handleSaveProgressNote}
                   defaultAnswers={
                     progressNote?.content
-                      ? JSON.parse(progressNote.content)
+                      ? parseSurveyContent(progressNote.content) || undefined
                       : undefined
                   }
                 />

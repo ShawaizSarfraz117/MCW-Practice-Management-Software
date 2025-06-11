@@ -11,14 +11,20 @@ import {
 interface SurveyContentDisplayProps {
   content: string | null | undefined;
   className?: string;
+  borderColor?: string;
 }
 
 interface FieldDisplayProps {
   fieldKey: string;
   value: unknown;
+  borderColor?: string;
 }
 
-function FieldDisplay({ fieldKey, value }: FieldDisplayProps) {
+function FieldDisplay({
+  fieldKey,
+  value,
+  borderColor = "border-purple-200",
+}: FieldDisplayProps) {
   if (isEmptyValue(value)) return null;
 
   const renderValue = () => {
@@ -39,7 +45,7 @@ function FieldDisplay({ fieldKey, value }: FieldDisplayProps) {
   };
 
   return (
-    <div className="border-l-2 border-purple-200 pl-3">
+    <div className={`border-l-2 ${borderColor} pl-3`}>
       <div className="font-medium text-gray-800 text-sm mb-1">
         {formatFieldName(fieldKey)}:
       </div>
@@ -48,11 +54,22 @@ function FieldDisplay({ fieldKey, value }: FieldDisplayProps) {
   );
 }
 
-function ParsedContentDisplay({ content }: { content: ParsedContent }) {
+function ParsedContentDisplay({
+  content,
+  borderColor,
+}: {
+  content: ParsedContent;
+  borderColor?: string;
+}) {
   return (
     <div className="space-y-3">
       {Object.entries(content).map(([key, value]) => (
-        <FieldDisplay key={key} fieldKey={key} value={value} />
+        <FieldDisplay
+          key={key}
+          fieldKey={key}
+          value={value}
+          borderColor={borderColor}
+        />
       ))}
     </div>
   );
@@ -75,6 +92,7 @@ function DefaultContentDisplay({ content }: { content: ParsedContent }) {
 export function SurveyContentDisplay({
   content,
   className = "",
+  borderColor,
 }: SurveyContentDisplayProps) {
   if (!content) {
     return <div className={className}>No content available</div>;
@@ -94,7 +112,10 @@ export function SurveyContentDisplay({
   return (
     <div className={className}>
       {hasMultipleFields ? (
-        <ParsedContentDisplay content={parsedContent} />
+        <ParsedContentDisplay
+          content={parsedContent}
+          borderColor={borderColor}
+        />
       ) : (
         <DefaultContentDisplay content={parsedContent} />
       )}
