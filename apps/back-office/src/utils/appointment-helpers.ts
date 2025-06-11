@@ -180,7 +180,7 @@ export function adjustDateForRecurringPattern(
   return { adjustedStartDate: startDate, adjustedEndDate: endDate };
 }
 
-export function getAppointmentIncludes() {
+export function getAppointmentIncludes(include?: string | null) {
   return {
     ClientGroup: {
       include: {
@@ -210,6 +210,7 @@ export function getAppointmentIncludes() {
         Tag: true,
       },
     },
+    ...(include === "Superbill" ? { Superbill: true } : {}),
   };
 }
 
@@ -289,13 +290,18 @@ export function createAppointmentWhereClause(params: {
   }
 
   if (params.status && params.status !== "undefined") {
-    whereClause.Invoice = {
-      some: {
-        status: params.status,
-      },
-    };
+    if (params.status === "UNINVOICED") {
+      whereClause.Invoice = {
+        none: {},
+      };
+    } else {
+      whereClause.Invoice = {
+        some: {
+          status: params.status,
+        },
+      };
+    }
   }
-
   return whereClause;
 }
 

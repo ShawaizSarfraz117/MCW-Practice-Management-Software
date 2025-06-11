@@ -9,7 +9,8 @@ import {
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { fetchAppointments } from "@/(dashboard)/clients/services/client.service";
-import { useQuery } from "@tanstack/react-query";
+import { createChartNote } from "@/(dashboard)/clients/services/documents.service";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DatePicker } from "@mcw/ui";
 import { TimePicker } from "@mcw/ui";
 import Loading from "@/components/Loading";
@@ -21,6 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@mcw/ui";
+import { toast } from "@mcw/ui";
 
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
@@ -45,6 +47,90 @@ function ChartNoteEditor() {
   );
   const [editorContent, setEditorContent] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("5:07 PM");
+  const [isLoading, setIsLoading] = useState(false);
+  const params = useParams();
+  const queryClient = useQueryClient();
+
+  // Strip HTML tags for validation
+  const stripHtmlTags = (html: string): string => {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div.textContent || div.innerText || "";
+  };
+
+  const handleAddNote = async () => {
+    // Validate that the note has content
+    const plainText = stripHtmlTags(editorContent).trim();
+
+    if (!plainText) {
+      toast({
+        description: "Please enter a note before adding",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedDate) {
+      toast({
+        description: "Please select a date for the note",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Combine date and time
+      const noteDate = new Date(selectedDate);
+      const [time, period] = selectedTime.split(" ");
+      const [hours, minutes] = time.split(":");
+      let hour = parseInt(hours);
+
+      if (period === "PM" && hour !== 12) {
+        hour += 12;
+      } else if (period === "AM" && hour === 12) {
+        hour = 0;
+      }
+
+      noteDate.setHours(hour, parseInt(minutes), 0, 0);
+
+      const [response, error] = await createChartNote({
+        body: {
+          client_group_id: params.id as string,
+          text: editorContent,
+          note_date: noteDate.toISOString(),
+        },
+      });
+
+      if (!error && response) {
+        toast({
+          description: "Chart note added successfully",
+          variant: "success",
+        });
+
+        // Clear the editor
+        setEditorContent("");
+
+        // Invalidate queries to refresh the timeline
+        queryClient.invalidateQueries({
+          queryKey: ["appointments"],
+        });
+      } else {
+        toast({
+          description: "Failed to add chart note",
+          variant: "destructive",
+        });
+      }
+    } catch (_error) {
+      toast({
+        description: "An error occurred while adding the note",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="mb-6 p-4 border border-[#e5e7eb] rounded-lg">
@@ -83,8 +169,12 @@ function ChartNoteEditor() {
             onChange={setSelectedTime}
           />
         </div>
-        <button className="text-blue-500 hover:underline ml-4">
-          + Add Note
+        <button
+          className="text-blue-500 hover:underline ml-4 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleAddNote}
+          disabled={isLoading}
+        >
+          {isLoading ? "Adding..." : "+ Add Note"}
         </button>
       </div>
     </div>

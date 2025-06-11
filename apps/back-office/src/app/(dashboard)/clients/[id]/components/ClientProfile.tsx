@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 "use client";
 import { useState, useEffect, useRef } from "react";
@@ -5,6 +6,7 @@ import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
 import AdministrativeNoteCard from "./AdministrativeNoteCard";
 import ShareModal from "./ShareModal";
+import { StatementModal } from "./StatementModal";
 
 import { Button } from "@mcw/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
@@ -26,9 +28,9 @@ import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
 import { useQuery } from "@tanstack/react-query";
 import { ClientInfoCard } from "./ClientInfoCard";
+import Link from "next/link";
 import { useToast } from "@mcw/ui";
 
-import Link from "next/link";
 export function getClientGroupInfo(client: unknown) {
   if (!client) return "";
   const name = (
@@ -71,6 +73,7 @@ export interface InvoiceWithPayments extends Invoice {
   };
 }
 
+type Tabs = "overview" | "billing" | "measures" | "files";
 interface AdministrativeNote {
   id: string;
   content: string;
@@ -82,7 +85,6 @@ interface AdministrativeNote {
 export default function ClientProfile({
   clientId: _clientId,
 }: ClientProfileProps) {
-  const [activeTab, setActiveTab] = useState("overview");
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -90,6 +92,7 @@ export default function ClientProfile({
   const [creditAmount, setCredit] = useState<number>(0);
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
   const [clientName, setClientName] = useState("");
+  const [superbillDialogOpen, setSuperbillDialogOpen] = useState(false);
   const [administrativeNotes, setAdministrativeNotes] = useState<
     AdministrativeNote[]
   >([]);
@@ -98,6 +101,9 @@ export default function ClientProfile({
   );
   const { id } = useParams();
   const searchParams = useSearchParams();
+
+  const currentTab = (searchParams.get("tab") as Tabs) || "overview";
+  const [activeTab, setActiveTab] = useState(currentTab);
   const router = useRouter();
   const filesTabRef = useRef<FilesTabRef>(null);
   const { toast } = useToast();
@@ -174,6 +180,7 @@ export default function ClientProfile({
   useEffect(() => {
     // Handle invoice related URL parameters
     const invoiceId = searchParams.get("invoiceId");
+    const superbillId = searchParams.get("superbillId");
     const type = searchParams.get("type");
     const appointmentId = searchParams.get("appointmentId");
 
@@ -183,6 +190,9 @@ export default function ClientProfile({
     if (invoiceId && type === "invoice") {
       setInvoiceDialogOpen(true);
     }
+    if (superbillId && type === "superbill") {
+      setSuperbillDialogOpen(true);
+    }
 
     // Handle tab URL parameter
     const tabParam = searchParams.get("tab");
@@ -190,13 +200,13 @@ export default function ClientProfile({
       tabParam &&
       ["overview", "billing", "measures", "files"].includes(tabParam)
     ) {
-      setActiveTab(tabParam);
+      setActiveTab(tabParam as Tabs);
     }
   }, [searchParams]);
 
   // Update URL when tab changes
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
+    setActiveTab(value as Tabs);
 
     const params = new URLSearchParams(searchParams.toString());
     // Set or update the tab parameter
@@ -304,6 +314,7 @@ export default function ClientProfile({
         onClose={() => setShareModalOpen(false)}
         onShare={handleShare}
       />
+      <StatementModal clientName={clientName} />
       {/* Client Header */}
       <div className="px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
@@ -429,6 +440,8 @@ export default function ClientProfile({
                 fetchInvoicesData={fetchInvoicesData}
                 invoiceDialogOpen={invoiceDialogOpen}
                 setInvoiceDialogOpen={setInvoiceDialogOpen}
+                superbillDialogOpen={superbillDialogOpen}
+                setSuperbillDialogOpen={setSuperbillDialogOpen}
               />
             </TabsContent>
 

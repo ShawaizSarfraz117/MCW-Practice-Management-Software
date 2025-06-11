@@ -10,6 +10,7 @@ import { fetchBillingDocument } from "@/(dashboard)/clients/services/client.serv
 interface BillingDocument {
   documentType: string;
   number: string;
+  id: string;
 }
 
 interface BillingDocumentsResponse {
@@ -32,6 +33,8 @@ export function InvoicesDocumentsCard({
     });
 
   const searchParams = useSearchParams();
+  const superbillId = searchParams.get("superbillId");
+  const statementId = searchParams.get("statementId");
 
   useEffect(() => {
     fetchBillingDocument({
@@ -41,7 +44,7 @@ export function InvoicesDocumentsCard({
         setBillingDocuments(res as BillingDocumentsResponse);
       }
     });
-  }, []);
+  }, [superbillId, statementId]);
 
   return (
     <div className="p-4 sm:p-6 border border-[#e5e7eb] rounded-md">
@@ -69,7 +72,7 @@ export function InvoicesDocumentsCard({
                       className="hover:underline"
                       href={`${window.location.pathname}?tab=${searchParams.get("tab")}&invoiceId=${invoice.id}&type=invoice`}
                     >
-                      {invoice.invoice_number}
+                      {`INV #${invoice.invoice_number}`}
                     </Link>
                   </div>
                   <div className="flex items-center gap-2">
@@ -101,10 +104,22 @@ export function InvoicesDocumentsCard({
         <div className="space-y-2">
           {billingDocuments?.data?.map((document, index) => (
             <div key={index} className="flex justify-between items-center">
-              <div className="text-sm text-blue-500 hover:underline cursor-pointer">
-                {document.documentType === "statement"
-                  ? `STMT #${document.number}`
-                  : `SB #${document.number}`}
+              <div className="text-sm text-blue-500">
+                {document.documentType === "superbill" ? (
+                  <Link
+                    className="hover:underline"
+                    href={`${window.location.pathname}?tab=${searchParams.get("tab")}&superbillId=${document.id}&type=superbill`}
+                  >
+                    SB #{document.number}
+                  </Link>
+                ) : (
+                  <Link
+                    className="hover:underline"
+                    href={`${window.location.pathname}?tab=${searchParams.get("tab")}&statementId=${document.id}&type=statement`}
+                  >
+                    STMT #{document.number}
+                  </Link>
+                )}
               </div>
               {/* <div className="text-xs text-gray-500">02/01 - 02/05/2025</div> */}
             </div>

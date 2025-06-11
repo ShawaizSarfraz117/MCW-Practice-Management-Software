@@ -126,14 +126,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const { client_group_id, start_date, end_date } = data;
+    const { client_group_id } = data;
+    let { start_date, end_date } = data;
 
     // Validate required parameters
-    if (!client_group_id || !start_date || !end_date) {
+    if (!client_group_id) {
       return NextResponse.json(
         {
-          error:
-            "Missing required parameters: client_group_id, start_date, end_date",
+          error: "Missing required parameters: client_group_id",
         },
         { status: 400 },
       );
@@ -164,21 +164,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse dates
-    const startDate = new Date(start_date);
-    const endDate = new Date(end_date);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return NextResponse.json(
-        { error: "Invalid date format" },
-        { status: 400 },
-      );
-    }
-
-    // Set end date to end of day
-    endDate.setHours(23, 59, 59, 999);
-
-    // Check if client group exists
     const clientGroup = await prisma.clientGroup.findUnique({
       where: { id: client_group_id },
       include: {
@@ -199,6 +184,27 @@ export async function POST(request: NextRequest) {
         { status: 404 },
       );
     }
+
+    if (!start_date || !end_date) {
+      start_date = clientGroup.created_at;
+      end_date = new Date();
+    }
+
+    // Parse dates
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid date format" },
+        { status: 400 },
+      );
+    }
+
+    // Set end date to end of day
+    endDate.setHours(23, 59, 59, 999);
+
+    // Check if client group exists
 
     // Get current user info
     const { clinicianId, clinician } = await getClinicianInfo();

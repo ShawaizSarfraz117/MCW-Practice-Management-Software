@@ -9,12 +9,15 @@ import { DateRange } from "react-day-picker";
 import { useFetchAppointments } from "@/(dashboard)/clients/services/client.service";
 import { format } from "date-fns";
 import Loading from "@/components/Loading";
-// import { useQueryClient } from "@tanstack/react-query";
+import { createSuperbill } from "@/(dashboard)/clients/services/documents.service";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@mcw/ui";
 
 interface SuperbillModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clientId: string;
+  onSave?: (superbillId: string) => void;
 }
 
 type Appointment = {
@@ -32,6 +35,7 @@ export function SuperbillModal({
   open,
   onOpenChange,
   clientId,
+  onSave,
 }: SuperbillModalProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(2025, 3, 4), // Apr 4, 2025
@@ -40,8 +44,8 @@ export function SuperbillModal({
   const [selectedAppointments, setSelectedAppointments] = useState<string[]>(
     [],
   );
-  const [isSubmitting, _setIsSubmitting] = useState(false);
-  // const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useFetchAppointments(
     ["superbillAppointments", dateRange, clientId],
@@ -78,47 +82,46 @@ export function SuperbillModal({
   const handleCreateSuperbill = async () => {
     if (selectedAppointments.length === 0 || !appointments) return;
 
-    // setIsSubmitting(true);
-    //   const selectedAppointmentsData = appointments
-    //     .filter((app) => selectedAppointments.includes(app.id))
-    //     .map((app) => ({
-    //       id: app.id,
-    //       fee: app.appointment_fee,
-    //     }));
+    setIsSubmitting(true);
 
-    //   const firstAppointment = appointments.find(
-    //     (app) => app.id === selectedAppointments[0],
-    //   );
+    const firstAppointment = appointments.find(
+      (app) => app.id === selectedAppointments[0],
+    );
 
-    //   if (!firstAppointment) {
-    //     throw new Error("No appointment found");
-    //   }
+    if (!firstAppointment) {
+      throw new Error("No appointment found");
+    }
 
-    //   const payload = {
-    //     body: {
-    //       client_group_id: clientId,
-    //       clinician_id: firstAppointment.clinician_id || null,
-    //       invoice_type: "SUPERBILL",
-    //       appointments: selectedAppointmentsData,
-    //     },
-    //   };
+    const payload = {
+      body: {
+        appointment_ids: selectedAppointments,
+      },
+    };
 
-    //   const [_result, error] = await createInvoice(payload);
+    const [result, error] = await createSuperbill(payload);
 
-    //   if (error) {
-    //     throw error;
-    //   }
+    if (error) {
+      toast({
+        description: "Error creating superbill",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
 
-    //   toast({
-    //     description: "Superbill created successfully",
-    //     variant: "success",
-    //   });
+    toast({
+      description: "Superbill created successfully",
+      variant: "success",
+    });
 
-    //   queryClient.invalidateQueries({
-    //     queryKey: ["appointments"],
-    //   });
+    queryClient.invalidateQueries({
+      queryKey: ["appointments"],
+    });
 
     onOpenChange(false);
+    if (result && typeof result === "object" && "id" in result) {
+      onSave?.(result.id as string);
+    }
   };
 
   return (

@@ -51,7 +51,7 @@ export default function Clients() {
       clientGroup.ClientGroupMembership &&
       clientGroup.ClientGroupMembership.length > 0
     ) {
-      router.push(`/clients/${clientGroup.id}`);
+      router.push(`/clients/${clientGroup.id}?tab=overview`);
     }
   };
 
