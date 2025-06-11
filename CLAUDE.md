@@ -745,6 +745,100 @@ import { Component } from "@/components/Component";      // ✅
 
 Error message: "Use @/ path aliases instead of relative imports with ../.. - see CLAUDE.md Import Conventions"
 
+## CRITICAL: Test Execution Guidelines
+
+**🚨 MANDATORY**: You MUST run ALL tests including integration tests, but follow these guidelines to avoid timeouts:
+
+### Running Tests Without Timeouts
+
+1. **Unit Tests** - Run directly with npm scripts:
+
+```bash
+npm run test:unit                    # All unit tests (fast, mocked)
+npm run test:back-office:unit        # Back-office unit tests only
+npm run test:front-office:unit       # Front-office unit tests only
+```
+
+2. **Integration Tests** - Must be run in smaller batches to avoid timeouts:
+
+```bash
+# DO NOT run all integration tests at once - it will timeout!
+# Instead, run by directory or file pattern:
+
+# Run tests for a specific API endpoint
+npm run test:back-office:integration -- __tests__/api/client/
+
+# Run tests for a specific feature
+npm run test:back-office:integration -- __tests__/api/appointment/
+
+# Run a single test file
+npx vitest run apps/back-office/__tests__/api/client/route.integration.test.ts
+```
+
+3. **When Docker is not available** - Use direct database connection:
+
+```bash
+# Get DATABASE_URL from root .env file, then:
+DATABASE_URL="<connection_string>" npx vitest run <test_file_path>
+```
+
+### Test Execution Strategy
+
+**For PR verification and after changes:**
+
+1. **First**: Run lint and typecheck (fast)
+
+```bash
+npm run lint && npm run typecheck
+```
+
+2. **Second**: Run unit tests (medium speed)
+
+```bash
+npm run test:unit
+```
+
+3. **Third**: Run integration tests in batches (slow)
+
+```bash
+# Pick relevant test directories based on your changes
+npm run test:back-office:integration -- __tests__/api/<feature>/
+```
+
+### Common Test Patterns to Avoid Timeouts
+
+**❌ DON'T DO THIS**:
+
+```bash
+npm test                          # Runs ALL tests - will timeout
+npm run test:integration          # Runs ALL integration tests - will timeout
+```
+
+**✅ DO THIS INSTEAD**:
+
+```bash
+# Run tests for specific features you changed
+npm run test:back-office:unit
+npm run test:back-office:integration -- __tests__/api/client/
+npm run test:back-office:integration -- __tests__/api/appointment/
+```
+
+### Test Failure Debugging
+
+If tests fail, debug systematically:
+
+1. **Check error messages** - They contain useful context
+2. **Run single test** - Isolate the failing test
+3. **Check test database** - Ensure migrations are applied
+4. **Look for race conditions** - Integration tests may have timing issues
+
+### Complete Testing Documentation
+
+For comprehensive testing patterns, factory usage, and cleanup utilities, see:
+
+- [TESTING_GUIDELINES.md](./Docs/TESTING_GUIDELINES.md)
+- [HOW_TO_RUN_TESTS.md](./Docs/HOW_TO_RUN_TESTS.md)
+
 ## Pre-commit Checks
 
 The project uses Husky and lint-staged for:
