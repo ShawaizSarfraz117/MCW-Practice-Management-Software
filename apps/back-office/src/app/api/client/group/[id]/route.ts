@@ -20,6 +20,9 @@ export async function GET(
         include: {
           Clinician: true,
           ClientGroupMembership: {
+            orderBy: {
+              created_at: "asc",
+            },
             where: {
               is_contact_only: isContactOnly === "true",
             },

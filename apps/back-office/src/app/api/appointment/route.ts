@@ -80,7 +80,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   const appointments = await prisma.appointment.findMany({
     where: whereClause,
     include: {
-      ...getAppointmentIncludes(),
+      ...getAppointmentIncludes(searchParams.get("include")),
       Invoice: {
         include: {
           Payment: true,

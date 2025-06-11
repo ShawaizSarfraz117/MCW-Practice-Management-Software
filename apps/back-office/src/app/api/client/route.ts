@@ -441,6 +441,11 @@ export async function POST(request: NextRequest) {
     const results = await prisma.$transaction(async (tx) => {
       const createdClients = [];
 
+      // Check if any client has isResponsibleForBilling set to true
+      const hasExplicitBillingResponsible = clientDataArray.some(
+        (client) => client.isResponsibleForBilling === true,
+      );
+
       const clientGroup = await tx.clientGroup.create({
         data: {
           id: uuidv4(),
@@ -481,7 +486,9 @@ export async function POST(request: NextRequest) {
               client_id: clientId,
               role: requestData.clientGroup || null,
               is_contact_only: data.is_contact_only || false,
-              is_responsible_for_billing: data.isResponsibleForBilling || false,
+              is_responsible_for_billing: hasExplicitBillingResponsible
+                ? data.isResponsibleForBilling === true
+                : data.clientId === clientDataArray[0].clientId,
             },
           });
 
@@ -568,7 +575,9 @@ export async function POST(request: NextRequest) {
               client_id: clientId,
               role: requestData.clientGroup || null,
               is_contact_only: data.is_contact_only || false,
-              is_responsible_for_billing: data.isResponsibleForBilling || false,
+              is_responsible_for_billing: hasExplicitBillingResponsible
+                ? data.isResponsibleForBilling === true
+                : clientDataArray.indexOf(data) === 0,
             },
           });
 
