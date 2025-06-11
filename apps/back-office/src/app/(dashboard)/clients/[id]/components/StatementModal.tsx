@@ -1,14 +1,13 @@
 /* eslint-disable max-lines-per-function */
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { X, Printer, Download, Mail, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent } from "@mcw/ui";
 import { Button } from "@mcw/ui";
 import { Separator } from "@mcw/ui";
-import { fetchSingleStatement } from "@/(dashboard)/clients/services/documents.service";
+import { useFetchStatement } from "@/(dashboard)/clients/services/documents.service";
 import { Loading } from "@/components";
 
 interface StatementModalProps {
@@ -65,37 +64,14 @@ export function StatementModal({
   const statementId = searchParams.get("statementId");
   const isOpen = !!statementId;
 
-  const [loading, setLoading] = useState(false);
-  const [statementData, setStatementData] = useState<StatementData | null>(
-    null,
-  );
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (statementId) {
-      fetchStatementData(statementId);
-    }
-  }, [statementId]);
-
-  const fetchStatementData = async (id: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [response, error] = await fetchSingleStatement({
-        searchParams: { id },
-      });
-
-      if (error) {
-        setError("Failed to load statement");
-        return;
-      }
-
-      setStatementData(response as StatementData);
-    } catch (_err) {
-      setError("Failed to load statement");
-    } finally {
-      setLoading(false);
-    }
+  const {
+    data: statementData,
+    isLoading: loading,
+    error,
+  } = useFetchStatement(statementId) as {
+    data: StatementData | null | undefined;
+    isLoading: boolean;
+    error: Error | null;
   };
 
   const handleClose = () => {
@@ -168,7 +144,11 @@ export function StatementModal({
             </div>
           ) : error ? (
             <div className="bg-white rounded-lg shadow-md max-w-4xl w-full p-8 flex justify-center items-center">
-              <p className="text-red-500">{error}</p>
+              <p className="text-red-500">
+                {error instanceof Error
+                  ? error.message
+                  : "Failed to load statement"}
+              </p>
             </div>
           ) : statementData ? (
             <div className="bg-white rounded-lg shadow-md h-max max-h-fit max-w-4xl w-full p-8 space-y-6">

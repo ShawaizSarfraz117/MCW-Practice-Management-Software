@@ -1,4 +1,5 @@
 import { FETCH } from "@mcw/utils";
+import { useQuery } from "@tanstack/react-query";
 
 export const fetchSingleStatement = async ({ searchParams = {} }) => {
   try {
@@ -93,4 +94,25 @@ export const deleteChartNote = async ({ id }: { id: string }) => {
   } catch (error) {
     return [null, error];
   }
+};
+
+export const useFetchStatement = (statementId: string | null) => {
+  return useQuery({
+    queryKey: ["statement", statementId],
+    queryFn: async () => {
+      if (!statementId) return null;
+
+      const [response, error] = await fetchSingleStatement({
+        searchParams: { id: statementId },
+      });
+
+      if (error) {
+        throw new Error("Failed to load statement");
+      }
+
+      return response;
+    },
+    enabled: !!statementId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 };
