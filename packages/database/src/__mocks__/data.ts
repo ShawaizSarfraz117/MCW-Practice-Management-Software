@@ -424,7 +424,8 @@ export const ClientGroupChartNoteFactory = {
 // ClientGroupChartNote Prisma factory
 export const ClientGroupChartNotePrismaFactory =
   defineClientGroupChartNoteFactory({
-    defaultData: async (options) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    defaultData: async (options: any) => {
       const { client_group_id, ...baseData } =
         ClientGroupChartNoteFactory.build(
           options.overrides as Partial<ClientGroupChartNote>,
