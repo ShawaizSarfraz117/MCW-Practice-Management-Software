@@ -33,7 +33,10 @@
     "test:ci": "./scripts/run-vitest-with-testdb.sh run",
     "prepare": "husky",
     "lint-staged": "lint-staged",
-    "prettier:write": "prettier --write src"
+    "prettier:write": "prettier --write src",
+    "check:local": "./scripts/local-check-test.sh",
+    "check:pre-push": "./scripts/pre-push-check.sh",
+    "format:check": "turbo run prettier:check"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
