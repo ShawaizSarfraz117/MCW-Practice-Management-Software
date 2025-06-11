@@ -227,6 +227,7 @@ describe("appointmentNote API - POST Integration Tests", () => {
       template_id: testTemplate.id,
       client_id: testClient.id,
       content: JSON.stringify({ question1: "Draft answer" }),
+      status: "DRAFT", // API requires status field
     };
 
     const request = createRequestWithBody("/api/appointmentNote", payload);

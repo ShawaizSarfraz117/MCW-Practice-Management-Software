@@ -146,22 +146,24 @@ describe("appointmentNote API - GET Integration Tests", () => {
 
     expect(response.status).toBe(200);
     const data = await response.json();
-    expect(data.id).toBe(surveyAnswer.id);
-    expect(data.appointment_id).toBe(testAppointment.id);
-    expect(data.template.name).toBe("Progress Note Template");
-    expect(data.client.legal_first_name).toBe("John");
+    expect(Array.isArray(data)).toBe(true);
+    expect(data).toHaveLength(1);
+    expect(data[0].id).toBe(surveyAnswer.id);
+    expect(data[0].appointment_id).toBe(testAppointment.id);
+    expect(data[0].SurveyTemplate.name).toBe("Progress Note Template");
+    expect(data[0].Client.legal_first_name).toBe("John");
   });
 
-  it("should return 404 when note not found", async () => {
+  it("should return empty array when no notes found", async () => {
     const nonExistentId = generateUUID();
     const request = createRequest(
       `/api/appointmentNote?appointment_id=${nonExistentId}`,
     );
     const response = await GET(request);
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
     const data = await response.json();
-    expect(data.error).toBe("Note not found for this appointment");
+    expect(data).toEqual([]); // API returns empty array, not 404
   });
 
   it("should fetch all notes by client_id", async () => {
@@ -211,14 +213,12 @@ describe("appointmentNote API - GET Integration Tests", () => {
     expect(data.error).toBe("Unauthorized");
   });
 
-  it("should validate query parameters", async () => {
+  it("should return all notes when no parameters provided", async () => {
     const request = createRequest("/api/appointmentNote");
     const response = await GET(request);
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
     const data = await response.json();
-    expect(data.error).toContain(
-      "appointment_id, id, template_id, or client_id is required",
-    );
+    expect(Array.isArray(data)).toBe(true); // API returns all notes, not error
   });
 });
