@@ -175,7 +175,8 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
   });
 
   it("should return 404 if note not found", async () => {
-    const request = createRequest(`/api/appointmentNote?id=nonexistent-id`, {
+    const nonExistentId = generateUUID();
+    const request = createRequest(`/api/appointmentNote?id=${nonExistentId}`, {
       method: "DELETE",
     });
     const response = await DELETE(request);
@@ -205,7 +206,7 @@ describe("appointmentNote API - DELETE Integration Tests", () => {
 
     expect(response.status).toBe(400);
     const data = await response.json();
-    expect(data.error).toBe("id or appointment_id is required");
+    expect(data.error).toBe("Note ID or appointment ID is required");
   });
 
   it("should handle concurrent deletes gracefully", async () => {

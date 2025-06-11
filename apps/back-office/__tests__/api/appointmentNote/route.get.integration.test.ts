@@ -153,8 +153,9 @@ describe("appointmentNote API - GET Integration Tests", () => {
   });
 
   it("should return 404 when note not found", async () => {
+    const nonExistentId = generateUUID();
     const request = createRequest(
-      "/api/appointmentNote?appointment_id=nonexistent-id",
+      `/api/appointmentNote?appointment_id=${nonExistentId}`,
     );
     const response = await GET(request);
 

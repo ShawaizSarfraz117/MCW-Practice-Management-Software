@@ -186,8 +186,9 @@ describe("appointmentNote API - PUT Integration Tests", () => {
   });
 
   it("should return 404 if note not found", async () => {
+    const nonExistentId = generateUUID();
     const updatePayload = {
-      id: "nonexistent-id",
+      id: nonExistentId,
       content: JSON.stringify({ question1: "Updated" }),
     };
 
@@ -238,6 +239,6 @@ describe("appointmentNote API - PUT Integration Tests", () => {
 
     expect(response.status).toBe(400);
     const data = await response.json();
-    expect(data.error).toBe("Invalid input");
+    expect(data.error).toBe("Note ID or appointment ID is required");
   });
 });
