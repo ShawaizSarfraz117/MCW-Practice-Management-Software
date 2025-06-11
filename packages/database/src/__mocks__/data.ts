@@ -418,7 +418,10 @@ export const TagPrismaFactory = defineTagFactory({
 
 // Appointment Prisma factory
 export const AppointmentPrismaFactory = defineAppointmentFactory({
-  defaultData: () => AppointmentFactory.build(),
+  defaultData: () => ({
+    ...AppointmentFactory.build(),
+    User: UserPrismaFactory,
+  }),
 });
 
 // AppointmentTag Prisma factory
