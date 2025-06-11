@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma, Prisma } from "@mcw/database";
-import { logger } from "@mcw/logger";
+import { withErrorHandling } from "@mcw/utils";
 
 // PUT - Update an existing appointment
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  try {
+export const PUT = withErrorHandling(
+  async (request: NextRequest, { params }: { params: { id: string } }) => {
     const data = await request.json();
     const id = params.id;
     const appointment = await prisma.appointment.findUnique({
@@ -73,11 +70,5 @@ export async function PUT(
     });
 
     return NextResponse.json(updatedAppointment);
-  } catch (error) {
-    logger.error(error as Error, "Failed to update appointment");
-    return NextResponse.json(
-      { error: "Failed to update appointment" },
-      { status: 500 },
-    );
-  }
-}
+  },
+);
