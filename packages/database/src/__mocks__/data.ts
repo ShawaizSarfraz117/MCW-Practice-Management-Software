@@ -165,12 +165,14 @@ export const TagFactory = {
 export const AppointmentFactory = {
   build: <T extends Partial<Appointment>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    User: UserPrismaFactory,
+    user_id: faker.string.uuid(),
     start_date: faker.date.future(),
     end_date: faker.date.future(),
     type: faker.helpers.arrayElement(["APPOINTMENT", "EVENT"]),
-    status: faker.helpers.arrayElement(["scheduled", "completed", "cancelled"]),
+    status: faker.helpers.arrayElement(["SCHEDULED", "COMPLETED", "CANCELLED"]),
     notes: faker.lorem.paragraph(),
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
     ...overrides,
   }),
 };
@@ -409,13 +411,7 @@ export const TagPrismaFactory = defineTagFactory({
 
 // Appointment Prisma factory
 export const AppointmentPrismaFactory = defineAppointmentFactory({
-  defaultData: () => ({
-    ...AppointmentFactory.build(),
-    Client: ClientPrismaFactory,
-    Clinician: ClinicianPrismaFactory,
-    User: UserPrismaFactory,
-    Location: LocationPrismaFactory,
-  }),
+  defaultData: () => AppointmentFactory.build(),
 });
 
 // AppointmentTag Prisma factory
