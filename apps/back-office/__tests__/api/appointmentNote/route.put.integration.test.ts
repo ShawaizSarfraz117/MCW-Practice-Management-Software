@@ -50,7 +50,6 @@ describe("appointmentNote API - PUT Integration Tests", () => {
     _testUser = await prisma.user.create({
       data: UserFactory.build({
         email: "test@example.com",
-        role: "ADMIN",
       }),
     });
 
