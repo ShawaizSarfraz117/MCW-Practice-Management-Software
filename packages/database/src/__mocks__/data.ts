@@ -165,14 +165,21 @@ export const TagFactory = {
 export const AppointmentFactory = {
   build: <T extends Partial<Appointment>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    user_id: faker.string.uuid(),
+    created_by: faker.string.uuid(),
     start_date: faker.date.future(),
     end_date: faker.date.future(),
     type: faker.helpers.arrayElement(["APPOINTMENT", "EVENT"]),
-    status: faker.helpers.arrayElement(["SCHEDULED", "COMPLETED", "CANCELLED"]),
-    notes: faker.lorem.paragraph(),
-    created_at: faker.date.past(),
-    updated_at: faker.date.recent(),
+    status: faker.helpers.arrayElement([
+      "SHOW",
+      "NO_SHOW",
+      "CANCELLED",
+      "LATE_CANCELLED",
+      "CLINICIAN_CANCELLED",
+    ]),
+    title: faker.lorem.words(3),
+    is_all_day: false,
+    is_recurring: false,
+    appointment_fee: faker.number.int({ min: 50, max: 300 }),
     ...overrides,
   }),
 };
