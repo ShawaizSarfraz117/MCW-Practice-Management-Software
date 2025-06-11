@@ -749,9 +749,21 @@ Error message: "Use @/ path aliases instead of relative imports with ../.. - see
 
 **🚨 MANDATORY**: You MUST run ALL tests including integration tests, but follow these guidelines to avoid timeouts:
 
-### Running Tests Without Timeouts
+### Quick Test Execution
 
-1. **Unit Tests** - Run directly with npm scripts:
+**Use the quick test script for interactive testing:**
+
+```bash
+./scripts/test-quick.sh
+# Or specify option directly:
+./scripts/test-quick.sh 1  # Quick checks (lint + typecheck)
+./scripts/test-quick.sh 2  # All unit tests
+./scripts/test-quick.sh 3  # Client integration tests
+```
+
+### Manual Test Execution
+
+1. **Unit Tests** - Run directly with npm scripts (safe to run all):
 
 ```bash
 npm run test:unit                    # All unit tests (fast, mocked)
@@ -763,23 +775,24 @@ npm run test:front-office:unit       # Front-office unit tests only
 
 ```bash
 # DO NOT run all integration tests at once - it will timeout!
-# Instead, run by directory or file pattern:
+# Get DATABASE_URL from .env first:
+cat .env | grep DATABASE_URL
 
-# Run tests for a specific API endpoint
-npm run test:back-office:integration -- __tests__/api/client/
-
-# Run tests for a specific feature
-npm run test:back-office:integration -- __tests__/api/appointment/
-
-# Run a single test file
-npx vitest run apps/back-office/__tests__/api/client/route.integration.test.ts
+# Then run specific tests with the DATABASE_URL:
+DATABASE_URL="<copy-from-env>" npx vitest run apps/back-office/__tests__/api/client/route.integration.test.ts
+DATABASE_URL="<copy-from-env>" npx vitest run apps/back-office/__tests__/api/appointment/
+DATABASE_URL="<copy-from-env>" npx vitest run apps/back-office/__tests__/api/service/route.integration.test.ts
 ```
 
-3. **When Docker is not available** - Use direct database connection:
+3. **Real Example** - This is exactly how to run integration tests:
 
 ```bash
-# Get DATABASE_URL from root .env file, then:
-DATABASE_URL="<connection_string>" npx vitest run <test_file_path>
+# Step 1: Get the DATABASE_URL
+cat .env | grep DATABASE_URL
+# Output: DATABASE_URL="sqlserver://192.168.1.114:1433;database=mcw-dev;user=sa;password=Zebra1234!;trustServerCertificate=true"
+
+# Step 2: Run a specific integration test
+DATABASE_URL="sqlserver://192.168.1.114:1433;database=mcw-dev;user=sa;password=Zebra1234!;trustServerCertificate=true" npx vitest run apps/back-office/__tests__/api/client/route.integration.test.ts
 ```
 
 ### Test Execution Strategy

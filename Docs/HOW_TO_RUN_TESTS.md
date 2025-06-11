@@ -5,11 +5,13 @@ This guide provides step-by-step instructions for running tests in the MCW Pract
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Test Types](#test-types)
-3. [Running Tests Without Timeouts](#running-tests-without-timeouts)
-4. [Environment Setup](#environment-setup)
-5. [Common Issues and Solutions](#common-issues-and-solutions)
-6. [CI/CD Test Execution](#cicd-test-execution)
+2. [Test Execution Order](#test-execution-order)
+3. [Test Types](#test-types)
+4. [Running Tests Without Timeouts](#running-tests-without-timeouts)
+5. [Environment Setup](#environment-setup)
+6. [Real-World Examples](#real-world-examples)
+7. [Common Issues and Solutions](#common-issues-and-solutions)
+8. [CI/CD Test Execution](#cicd-test-execution)
 
 ## Quick Start
 
@@ -24,6 +26,35 @@ npm run test:unit
 
 # 3. Run relevant integration tests (varies)
 npm run test:back-office:integration -- __tests__/api/client/
+```
+
+## Test Execution Order
+
+### 🎯 The Golden Rule: Fast → Slow, Broad → Specific
+
+Always run tests in this order to catch issues early:
+
+1. **Linting** (10-20 seconds) - Catches syntax and style issues
+2. **Type Checking** (30-60 seconds) - Catches type mismatches
+3. **Unit Tests** (1-3 minutes) - Tests business logic with mocks
+4. **Integration Tests** (varies) - Tests with real database
+
+### Example Workflow After Changes
+
+```bash
+# Step 1: Quick quality checks
+npm run lint                    # ~15 seconds
+npm run typecheck              # ~45 seconds
+
+# Step 2: Run all unit tests (safe to run all)
+npm run test:unit              # ~2 minutes
+
+# Step 3: Run ONLY affected integration tests
+# If you changed client APIs:
+DATABASE_URL="<from .env>" npx vitest run apps/back-office/__tests__/api/client/route.integration.test.ts
+
+# If you changed appointment logic:
+DATABASE_URL="<from .env>" npx vitest run apps/back-office/__tests__/api/appointment/
 ```
 
 ## Test Types
@@ -128,25 +159,32 @@ npx vitest run apps/back-office/__tests__/(dashboard)/clients/page.ui.test.tsx
 npm run test:integration
 ```
 
-### Without Docker (Direct Database)
+### Without Docker (Direct Database) - MOST COMMON
 
-1. Get DATABASE_URL from root `.env` file
-2. Run tests with environment variable:
+Since Docker is often not available in WSL2, use the direct database connection:
+
+1. Get DATABASE_URL from root `.env` file:
 
 ```bash
-# Single test
-DATABASE_URL="sqlserver://..." npx vitest run <test_file>
+# Check the .env file
+cat .env | grep DATABASE_URL
+# You'll see something like:
+# DATABASE_URL="sqlserver://192.168.1.114:1433;database=mcw-dev;user=sa;password=Zebra1234!;trustServerCertificate=true"
+```
 
-# Multiple tests in directory
-DATABASE_URL="sqlserver://..." npm run test:back-office:integration -- __tests__/api/client/
+2. Run tests with the DATABASE_URL:
+
+```bash
+# Copy the EXACT value from .env and use it:
+DATABASE_URL="sqlserver://192.168.1.114:1433;database=mcw-dev;user=sa;password=Zebra1234!;trustServerCertificate=true" npx vitest run <test_file>
 ```
 
 ### Required Environment Variables
 
-For integration tests to pass, ensure these are set:
+For integration tests to pass, ensure these are set in your `.env` file:
 
 ```bash
-# Database (required)
+# Database (required) - Already in .env
 DATABASE_URL="sqlserver://server:port;database=name;user=username;password=password;trustServerCertificate=true"
 
 # Azure Storage (required for file upload tests)
@@ -158,6 +196,48 @@ AZURE_STORAGE_CONTAINER_NAME="uploads"
 # Auth (required for protected routes)
 NEXTAUTH_URL="http://localhost:3001"
 NEXTAUTH_SECRET="your-secret"
+```
+
+## Real-World Examples
+
+### Example 1: After Changing Client APIs
+
+```bash
+# 1. Lint and typecheck
+npm run lint && npm run typecheck
+
+# 2. Run unit tests
+npm run test:unit
+
+# 3. Run ONLY client-related integration tests
+DATABASE_URL="sqlserver://192.168.1.114:1433;database=mcw-dev;user=sa;password=Zebra1234!;trustServerCertificate=true" npx vitest run apps/back-office/__tests__/api/client/route.integration.test.ts
+
+# Result: ✓ 9 tests passed in 184ms
+```
+
+### Example 2: After Refactoring Components
+
+```bash
+# 1. Quick checks
+npm run lint
+npm run typecheck
+
+# 2. Run UI tests for the component
+npx vitest run apps/back-office/__tests__/(dashboard)/clients/page.ui.test.tsx
+
+# 3. Run related unit tests
+npm run test:back-office:unit -- __tests__/(dashboard)/clients/
+```
+
+### Example 3: Testing Multiple Related Features
+
+```bash
+# Test all appointment-related functionality
+DATABASE_URL="<from .env>" npm run test:back-office:integration -- __tests__/api/appointment/
+
+# This runs:
+# - appointment-client-group.integration.test.ts (3 tests)
+# - new-client-tag.integration.test.ts (X tests)
 ```
 
 ## Common Issues and Solutions
@@ -326,6 +406,57 @@ find apps/back-office/__tests__ -name "*client*.unit.test.ts" -exec npx vitest r
 # All integration tests for API routes
 npm run test:back-office:integration -- __tests__/api/
 ```
+
+## Test Execution Cheat Sheet
+
+### 🚀 Copy-Paste Commands
+
+```bash
+# 1. ALWAYS START WITH THESE (Fast checks - 1 minute total)
+npm run lint && npm run typecheck
+
+# 2. RUN ALL UNIT TESTS (Safe - 2-3 minutes)
+npm run test:unit
+
+# 3. RUN INTEGRATION TESTS BY FEATURE (Pick what you changed)
+# Get DATABASE_URL from .env first:
+cat .env | grep DATABASE_URL
+
+# Client APIs
+DATABASE_URL="<paste-from-env>" npx vitest run apps/back-office/__tests__/api/client/route.integration.test.ts
+
+# Appointment APIs
+DATABASE_URL="<paste-from-env>" npx vitest run apps/back-office/__tests__/api/appointment/
+
+# Service APIs
+DATABASE_URL="<paste-from-env>" npx vitest run apps/back-office/__tests__/api/service/route.integration.test.ts
+
+# Analytics APIs
+DATABASE_URL="<paste-from-env>" npx vitest run apps/back-office/__tests__/api/analytics/
+
+# Settings pages
+DATABASE_URL="<paste-from-env>" npx vitest run apps/back-office/__tests__/(dashboard)/settings/
+```
+
+### 📊 Expected Results
+
+| Test Type                 | Time    | Safe to Run All?     | Example Output              |
+| ------------------------- | ------- | -------------------- | --------------------------- |
+| Lint                      | 10-20s  | ✅ Yes               | `✖ 0 errors, 148 warnings` |
+| TypeCheck                 | 30-60s  | ✅ Yes               | `Found 0 errors`            |
+| Unit Tests                | 1-3 min | ✅ Yes               | `38 passed (40)`            |
+| Integration (single file) | 5-30s   | ✅ Yes               | `✓ 9 tests passed`          |
+| Integration (all)         | 10+ min | ❌ NO - WILL TIMEOUT | Don't do this!              |
+
+### 🎯 What to Test Based on Changes
+
+| If You Changed... | Run These Tests                                      |
+| ----------------- | ---------------------------------------------------- |
+| API routes        | Unit test + specific integration test for that route |
+| React components  | UI tests + unit tests for that component             |
+| Database schema   | ALL integration tests (in batches!)                  |
+| Business logic    | Unit tests for affected modules                      |
+| Shared utilities  | Unit tests + all dependent tests                     |
 
 ## Summary
 
