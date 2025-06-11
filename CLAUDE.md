@@ -664,7 +664,19 @@ See [Type System Architecture](./Docs/TYPE_SYSTEM_ARCHITECTURE.md) for detailed 
 
 ## Fast Verification Commands
 
-For quick verification that changes haven't broken anything, use these commands in order of speed:
+**Recommended: Use the Local Testing Scripts**
+
+```bash
+# Interactive local check tool - choose what to test
+npm run check:local
+
+# Full pre-push verification - runs everything
+npm run check:pre-push
+```
+
+See [Local Testing Guide](./Docs/LOCAL_TESTING_GUIDE.md) for detailed usage of these scripts.
+
+For manual verification, use these commands in order of speed:
 
 ### 1. Fastest – Linting (10–20 seconds)
 
