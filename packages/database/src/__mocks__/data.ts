@@ -349,18 +349,34 @@ export const RoleFactory = {
 export const SurveyTemplateFactory = {
   build: <T extends Partial<SurveyTemplate>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    title: faker.lorem.words(3),
-    description: faker.lorem.sentence(),
-    questions: JSON.stringify([
-      {
-        question: faker.lorem.sentence(),
-        type: faker.helpers.arrayElement(["text", "multiple_choice", "rating"]),
-        options: faker.helpers.arrayElements(
-          ["option1", "option2", "option3"],
-          3,
-        ),
-      },
+    name: faker.lorem.words(3),
+    content: JSON.stringify({
+      pages: [
+        {
+          elements: [
+            {
+              type: "text",
+              name: "question1",
+              title: faker.lorem.sentence(),
+            },
+          ],
+        },
+      ],
+    }),
+    type: faker.helpers.arrayElement([
+      "INTAKE",
+      "CONSENT",
+      "ASSESSMENT",
+      "CUSTOM",
+      "PROGRESS_NOTES",
     ]),
+    is_active: true,
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
+    description: faker.lorem.sentence(),
+    is_default: false,
+    requires_signature: false,
+    is_shareable: false,
     ...overrides,
   }),
 };
