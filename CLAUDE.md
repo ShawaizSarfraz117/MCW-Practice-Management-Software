@@ -216,6 +216,8 @@ npx prisma migrate reset --schema=./packages/database/prisma/schema.prisma --for
 
 ## Testing Strategy
 
+**📚 Comprehensive testing documentation**: See [TESTING_GUIDELINES.md](./Docs/TESTING_GUIDELINES.md) for detailed patterns, factory usage, and cleanup utilities.
+
 ### Test Types
 
 - **Unit Tests** (`.unit.test.ts`): Mock all dependencies using `prismaMock`
@@ -229,6 +231,61 @@ npx prisma migrate reset --schema=./packages/database/prisma/schema.prisma --for
 - For unit tests: Use `prismaMock` from `@mcw/database/mock`
 - For integration tests: Use real `prisma` client with cleanup in `afterEach`
 - Use factory functions for test data generation
+
+### Factory Functions and Database Cleanup
+
+**IMPORTANT**: Always use existing factory functions and cleanup utilities instead of creating manual test data.
+
+#### Factory Functions
+
+The project uses auto-generated factories from `@mcw/database/mock-data`:
+
+- **Plain object factories**: `UserFactory.build()` - for unit tests with mocks
+- **Prisma factories**: `UserPrismaFactory.create()` - for integration tests with real database
+
+```typescript
+import { UserFactory, ClinicianPrismaFactory } from "@mcw/database/mock-data";
+
+// Unit test - use plain factories
+const mockUser = UserFactory.build();
+prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+// Integration test - use Prisma factories or plain factories with prisma.create
+const user = await prisma.user.create({
+  data: UserFactory.build(),
+});
+```
+
+#### Database Cleanup
+
+Use the centralized cleanup utilities from `@mcw/database/test-utils`:
+
+```typescript
+import { cleanupDatabase } from "@mcw/database/test-utils";
+
+// In integration tests
+afterEach(async () => {
+  // Clean specific tables if needed
+  await prisma.appointmentTag.deleteMany({});
+});
+
+afterAll(async () => {
+  // Use centralized cleanup - handles foreign key constraints
+  await cleanupDatabase(prisma, { verbose: false });
+});
+```
+
+**Available cleanup functions**:
+
+- `cleanupDatabase()` - Cleans all test data in correct order
+- `cleanupTestUserData()` - Targeted cleanup for specific user data
+- `safeCleanupDatabase()` - Wrapper with environment safety checks
+
+**Never**:
+
+- Create manual test data objects when factories exist
+- Write custom cleanup code that duplicates existing utilities
+- Use `eslint-disable max-lines-per-function` in test files - split tests instead
 
 ### Test Database
 
@@ -264,6 +321,108 @@ Integration tests use a separate SQL Server instance via Docker:
 - **Testing**: No feature complete without adequate test coverage
 - **Security**: HIPAA compliance, no secrets in code
 - **Consistency**: Follow existing patterns in codebase
+
+### File and Method Size Guidelines
+
+**Keep code readable and maintainable by following these size constraints:**
+
+#### File Size Limits
+
+- **Component files**: Max 300 lines (extract sub-components if larger)
+- **API route files**: Max 200 lines per route file
+- **Test files**: Max 400 lines (split into multiple test files if needed)
+- **Utility files**: Max 150 lines per file (group related utilities)
+
+#### Method/Function Guidelines
+
+- **Maximum lines**: 50 lines per function (ideal: 20-30 lines)
+- **Single responsibility**: Each function does ONE thing well
+- **Abstraction levels**: Don't mix high and low-level operations
+- **Indentation depth**: Max 3 levels (excluding function definition)
+
+#### Clean Code Patterns
+
+```typescript
+// ❌ BAD - Multiple abstraction levels, deep nesting
+async function processAppointment(id: string) {
+  const appointment = await prisma.appointment.findUnique({ where: { id } });
+  if (appointment) {
+    if (appointment.status === "pending") {
+      // Database query (low level)
+      const client = await prisma.client.findUnique({
+        where: { id: appointment.client_id },
+      });
+      if (client && client.email) {
+        // Business logic (high level)
+        const fee = appointment.base_fee * 1.1;
+        // Infrastructure concern (low level)
+        await sendEmail(
+          client.email,
+          "Appointment reminder",
+          `Your appointment is on ${appointment.date}`,
+        );
+        // More database operations...
+      }
+    }
+  }
+}
+
+// ✅ GOOD - Single abstraction level, minimal nesting
+async function processAppointment(id: string) {
+  const appointment = await getAppointmentWithClient(id);
+  if (!shouldProcessAppointment(appointment)) return;
+
+  await notifyClient(appointment);
+  await updateAppointmentFee(appointment);
+}
+
+// Extracted functions at consistent abstraction levels
+async function getAppointmentWithClient(id: string) {
+  return prisma.appointment.findUnique({
+    where: { id },
+    include: { client: true },
+  });
+}
+
+function shouldProcessAppointment(
+  appointment: AppointmentWithClient | null,
+): boolean {
+  return appointment?.status === "pending" && !!appointment.client?.email;
+}
+
+async function notifyClient(appointment: AppointmentWithClient) {
+  const message = createAppointmentMessage(appointment);
+  await sendEmail(appointment.client.email, "Appointment reminder", message);
+}
+```
+
+#### Refactoring Triggers
+
+- **Extract function** when:
+  - A comment explains what a code block does
+  - You see duplicate or similar code patterns
+  - Indentation goes beyond 3 levels
+  - A function exceeds 50 lines
+- **Extract component** when:
+
+  - A React component file exceeds 300 lines
+  - A component has multiple responsibilities
+  - You have large JSX blocks that could be named
+
+- **Extract utility** when:
+  - The same logic appears in multiple files
+  - Complex calculations or transformations exist
+  - Business rules need centralization
+
+#### ESLint Configuration
+
+The project enforces these rules - **never disable them**:
+
+- `max-lines-per-function: ["error", 50]`
+- `max-depth: ["error", 3]`
+- `complexity: ["error", 10]`
+
+Instead of disabling, refactor the code to comply.
 
 ### Error Visibility for Development
 
