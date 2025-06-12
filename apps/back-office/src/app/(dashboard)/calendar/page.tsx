@@ -361,7 +361,6 @@ const CalendarPage: React.FC = () => {
 
         // If the title contains "Appointment with Client" but we have client data
         if (title?.includes("Appointment with") && appointment.Client) {
-          console.log("appointment.Client", appointment.Client);
           const clientName =
             appointment.Client.legal_first_name &&
             appointment.Client.legal_last_name

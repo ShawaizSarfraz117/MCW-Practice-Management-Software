@@ -91,7 +91,7 @@ export default function BillingInvoicesSection({
           <label className="flex items-center gap-2">
             <input
               checked={formData.emailClientPastDue}
-              className="data-[state=checked]:bg-[#2D8467] data-[state=checked]:border-[#2D8467]"
+              className="checked:bg-[#2D8467] checked:border-[#2D8467]"
               type="checkbox"
               onChange={(e) =>
                 setFormData({

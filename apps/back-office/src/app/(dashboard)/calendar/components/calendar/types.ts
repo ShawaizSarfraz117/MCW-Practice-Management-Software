@@ -1,9 +1,16 @@
-import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
+import { EventClickArg, DateSelectArg, EventApi } from "@fullcalendar/core";
 import type {
   BaseAppointment,
   Clinician as BaseClinicianType,
   Location as BaseLocationType,
 } from "@/types/entities";
+
+// Extend EventApi to include internal _def property used by FullCalendar resource plugin
+export interface EventApiWithResourceIds extends EventApi {
+  _def?: {
+    resourceIds?: string[];
+  };
+}
 
 // Calendar component types
 /**

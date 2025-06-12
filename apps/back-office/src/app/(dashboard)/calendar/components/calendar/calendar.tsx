@@ -22,6 +22,7 @@ import {
   Location,
   AppointmentData,
   AvailabilityData,
+  EventApiWithResourceIds,
 } from "./types";
 import { EditAppointmentDialog } from "../EditAppointmentDialog";
 import { AvailabilitySidebar } from "../availability/AvailabilitySidebar";
@@ -113,7 +114,6 @@ export function CalendarView({
   // Get session data to check if user is admin
   const { data: session } = useSession();
   const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
-  const _isClinician = session?.user?.roles?.includes("CLINICIAN") || false;
   const userId = session?.user?.id;
 
   // Set the view based on user role and page type
@@ -184,7 +184,8 @@ export function CalendarView({
     filtered = filtered.filter((event) => {
       // For availability events, only check clinician
       if (event.extendedProps?.type === "availability") {
-        return event.resourceId;
+        return (event as unknown as EventApiWithResourceIds)._def
+          ?.resourceIds?.[0];
       }
       // For regular events, filter by location
       return event.location && selectedLocations.includes(event.location);
@@ -193,9 +194,9 @@ export function CalendarView({
     // For non-admin users, only show events related to their clinician ID
     if (!isAdmin && selectedClinicians.length > 0) {
       filtered = filtered.filter((event) => {
-        return (
-          event.resourceId && selectedClinicians.includes(event.resourceId)
-        );
+        const resourceId = (event as unknown as EventApiWithResourceIds)._def
+          ?.resourceIds?.[0];
+        return resourceId && selectedClinicians.includes(resourceId);
       });
     }
 
@@ -1003,8 +1004,7 @@ export function CalendarView({
     },
     enabled:
       isScheduledPage &&
-      (selectedClinicians.length > 0 || initialClinicians.length > 0) &&
-      !!calendarRef.current,
+      (selectedClinicians.length > 0 || initialClinicians.length > 0),
   });
 
   // Set appointment limits from query data when it changes
@@ -1580,12 +1580,14 @@ export function CalendarView({
               // Get clinician initials for week view
               const getClinicianInitials = () => {
                 const clinician = arg.event.extendedProps?.clinician;
-                if (clinician && clinician.first_name && clinician.last_name) {
+                if (clinician?.first_name && clinician?.last_name) {
                   return `${clinician.first_name.charAt(0)}${clinician.last_name.charAt(0)}`.toUpperCase();
                 }
-                // Fallback to finding in resources
+                const resourceId = (
+                  arg.event as unknown as EventApiWithResourceIds
+                )._def?.resourceIds?.[0];
                 const clinicianResource = resources.find(
-                  (r) => r.id === arg.event.resourceId,
+                  (r) => r.id === resourceId,
                 );
                 if (clinicianResource) {
                   const nameParts = clinicianResource.title.split(" ");
@@ -1643,7 +1645,10 @@ export function CalendarView({
                       className="availability-dotted-line"
                       data-event-end={arg.event.end?.toISOString()}
                       data-event-id={arg.event.id}
-                      data-event-resource={arg.event.resourceId}
+                      data-event-resource={
+                        (arg.event as unknown as EventApiWithResourceIds)._def
+                          ?.resourceIds?.[0]
+                      }
                       data-event-start={arg.event.start?.toISOString()}
                       data-event-title={arg.event.title}
                       data-event-time={arg.timeText}
@@ -1864,7 +1869,7 @@ export function CalendarView({
                 // Simple hover handlers directly on the event element
                 info.el.addEventListener("mouseenter", () => {
                   // Remove any existing tooltip
-                  if (tooltip && tooltip.parentNode) {
+                  if (tooltip?.parentNode) {
                     tooltip.parentNode.removeChild(tooltip);
                   }
 
@@ -1914,7 +1919,7 @@ export function CalendarView({
                     // Try to get from time element
                     const timeTextElement =
                       info.el.querySelector(".fc-event-time");
-                    if (timeTextElement && timeTextElement.textContent) {
+                    if (timeTextElement?.textContent) {
                       const timeText = timeTextElement.textContent;
                       const times = timeText.split(" - ");
                       if (times.length === 2) {
@@ -1959,8 +1964,11 @@ export function CalendarView({
                     clinicianName = `${clinician.first_name} ${clinician.last_name}`;
                   } else {
                     // Fallback to finding in resources
+                    const resourceId = (
+                      event as unknown as EventApiWithResourceIds
+                    )._def?.resourceIds?.[0];
                     const clinicianResource = resources.find(
-                      (r) => r.id === event.resourceId,
+                      (r) => r.id === resourceId,
                     );
                     clinicianName = clinicianResource
                       ? clinicianResource.title
@@ -2012,7 +2020,7 @@ export function CalendarView({
 
                 info.el.addEventListener("mouseleave", () => {
                   // Remove tooltip
-                  if (tooltip && tooltip.parentNode) {
+                  if (tooltip?.parentNode) {
                     tooltip.parentNode.removeChild(tooltip);
                     tooltip = null;
                   }

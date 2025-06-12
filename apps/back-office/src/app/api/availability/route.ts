@@ -5,6 +5,27 @@ import { z } from "zod";
 import { getServerSession } from "next-auth/next";
 import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 
+// Map of day codes to day indices (0 = Sunday, 1 = Monday, etc.)
+// Support both 2-letter (RFC5545 standard) and 3-letter codes
+const DAY_CODE_TO_INDEX: Record<string, number> = {
+  // 2-letter codes (RFC5545 standard)
+  SU: 0,
+  MO: 1,
+  TU: 2,
+  WE: 3,
+  TH: 4,
+  FR: 5,
+  SA: 6,
+  // 3-letter codes (common abbreviations)
+  SUN: 0,
+  MON: 1,
+  TUE: 2,
+  WED: 3,
+  THU: 4,
+  FRI: 5,
+  SAT: 6,
+};
+
 /**
  * Availability API Route
  *
@@ -208,27 +229,6 @@ export async function POST(request: NextRequest) {
         logger.info({ byDay }, "byDay array");
         logger.info(`byDay.length: ${byDay.length}`);
 
-        // Map of day codes to day indices (0 = Sunday, 1 = Monday, etc.)
-        // Support both 2-letter (RFC5545 standard) and 3-letter codes
-        const dayCodeToIndex: Record<string, number> = {
-          // 2-letter codes (RFC5545 standard)
-          SU: 0,
-          MO: 1,
-          TU: 2,
-          WE: 3,
-          TH: 4,
-          FR: 5,
-          SA: 6,
-          // 3-letter codes (common abbreviations)
-          SUN: 0,
-          MON: 1,
-          TUE: 2,
-          WED: 3,
-          THU: 4,
-          FRI: 5,
-          SAT: 6,
-        };
-
         const weekdays = [
           "Sunday",
           "Monday",
@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
           // Check if the master availability's day matches any of the selected days
           let masterMatchesSelectedDays = false;
           for (const dayCode of byDay) {
-            const dayIndex = dayCodeToIndex[dayCode.toUpperCase().trim()];
+            const dayIndex = DAY_CODE_TO_INDEX[dayCode.toUpperCase().trim()];
             if (dayIndex === startDayOfWeek) {
               masterMatchesSelectedDays = true;
               break;
@@ -301,13 +301,13 @@ export async function POST(request: NextRequest) {
               const targetCount = masterMatchesSelectedDays ? count - 1 : count;
               if (count > 0 && createdCount >= targetCount) break;
 
-              const dayIndex = dayCodeToIndex[dayCode.toUpperCase().trim()];
+              const dayIndex = DAY_CODE_TO_INDEX[dayCode.toUpperCase().trim()];
               if (dayIndex === undefined) {
                 logger.warn(
                   `Invalid day code: ${dayCode} (trimmed: ${dayCode.trim()}, uppercase: ${dayCode.toUpperCase()})`,
                 );
                 logger.warn(
-                  `Available day codes: ${Object.keys(dayCodeToIndex).join(", ")}`,
+                  `Available day codes: ${Object.keys(DAY_CODE_TO_INDEX).join(", ")}`,
                 );
                 continue; // Invalid day code
               }
@@ -538,7 +538,7 @@ export async function POST(request: NextRequest) {
 
           let masterMatchesSelectedDays = false;
           for (const dayCode of byDay) {
-            const dayIndex = dayCodeToIndex[dayCode.toUpperCase().trim()];
+            const dayIndex = DAY_CODE_TO_INDEX[dayCode.toUpperCase().trim()];
             if (dayIndex === startDayOfWeek) {
               masterMatchesSelectedDays = true;
               break;
@@ -839,24 +839,6 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Map of day codes to day indices for filtering
-    const dayCodeToIndex: Record<string, number> = {
-      SU: 0,
-      MO: 1,
-      TU: 2,
-      WE: 3,
-      TH: 4,
-      FR: 5,
-      SA: 6,
-      SUN: 0,
-      MON: 1,
-      TUE: 2,
-      WED: 3,
-      THU: 4,
-      FRI: 5,
-      SAT: 6,
-    };
-
     // Filter out master availabilities that don't match their recurring pattern
     const filteredAvailabilities = availabilities.filter((availability) => {
       // If it's not recurring, include it
@@ -881,7 +863,7 @@ export async function GET(request: NextRequest) {
 
         // Check if the availability's day matches any selected day
         for (const dayCode of selectedDays) {
-          const dayIndex = dayCodeToIndex[dayCode.toUpperCase().trim()];
+          const dayIndex = DAY_CODE_TO_INDEX[dayCode.toUpperCase().trim()];
           if (dayIndex === availabilityDayOfWeek) {
             return true; // Master matches pattern - include it
           }

@@ -1121,32 +1121,18 @@ export function AvailabilitySidebar({
                         onClick={async (e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          console.log("=== Add service button clicked ===");
-                          console.log(
-                            "Current showServiceDropdown:",
-                            showServiceDropdown,
-                          );
 
                           // Toggle dropdown
                           const newDropdownState = !showServiceDropdown;
                           setShowServiceDropdown(newDropdownState);
-                          console.log("New dropdown state:", newDropdownState);
 
                           // Fetch services when opening
                           if (newDropdownState === true) {
-                            console.log(
-                              "Dropdown opening, calling fetchServices...",
-                            );
                             try {
                               await fetchServices();
-                              console.log("fetchServices completed");
                             } catch (error) {
                               console.error("Error in fetchServices:", error);
                             }
-                          } else {
-                            console.log(
-                              "Dropdown closing, not fetching services",
-                            );
                           }
                         }}
                       >

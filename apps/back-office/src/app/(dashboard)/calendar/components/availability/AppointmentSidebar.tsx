@@ -540,9 +540,6 @@ export function AppointmentSidebar({
 
     const localISOTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
 
-    console.log("getDateTimeUTC input:", { date, timeStr });
-    console.log("getDateTimeUTC output:", localISOTime);
-
     return localISOTime;
   };
 
@@ -1179,17 +1176,11 @@ export function AppointmentSidebar({
                     onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log(
-                        "=== Add service button clicked in AppointmentSidebar ===",
-                      );
 
                       const newDropdownState = !showServiceDropdown;
                       setShowServiceDropdown(newDropdownState);
 
                       if (newDropdownState === true) {
-                        console.log(
-                          "Dropdown opening, fetching all practice services...",
-                        );
                         await fetchAllPracticeServices();
                       }
                     }}
