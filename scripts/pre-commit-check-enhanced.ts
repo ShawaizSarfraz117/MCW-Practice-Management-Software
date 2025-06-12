@@ -335,7 +335,7 @@ function generateEnhancedReport(
   const html = `<!DOCTYPE html>
 <html>
 <head>
-    <title>Ultra Pre-commit Check - ${new Date().toLocaleString()}</title>
+    <title>Pre-commit Check Report - ${new Date().toLocaleString()}</title>
     <meta charset="UTF-8">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f5f5f5; }
@@ -371,12 +371,12 @@ function generateEnhancedReport(
 </head>
 <body>
     <div class="header">
-        <h1>${hasErrors ? "❌ Ultra Pre-commit Check Failed" : "✅ Ultra Pre-commit Check Passed"}</h1>
+        <h1>${hasErrors ? "❌ Pre-commit Check Failed" : "✅ Pre-commit Check Passed"}</h1>
         <p>Total Duration: ${totalDuration.toFixed(2)}s${withIntegration ? " (with integration tests)" : ""}</p>
         <p style="font-size: 14px; opacity: 0.9;">
             CPU Cores: ${cpuCount} | Parallel Tasks: ${tasks.length} | 
             <span class="perf-badge ${totalDuration < 40 ? "perf-fast" : totalDuration < 60 ? "perf-medium" : "perf-slow"}">
-                ${totalDuration < 40 ? "⚡ Ultra Fast" : totalDuration < 60 ? "⏱️ Fast" : "🐌 Slow"}
+                ${totalDuration < 40 ? "⚡ Fast" : totalDuration < 60 ? "⏱️ Normal" : "🐌 Slow"}
             </span>
         </p>
     </div>
@@ -535,13 +535,13 @@ function generateEnhancedReport(
 
 async function runAllTasks() {
   console.log(
-    `🚀 Running ULTRA pre-commit checks${withIntegration ? " (with integration tests)" : ""}...`,
+    `🚀 Running pre-commit checks${withIntegration ? " (with integration tests)" : ""}...`,
   );
   console.log(
     `📍 CPU Cores: ${cpuCount} | Max Workers: ${maxWorkers} | Running ${tasks.length} parallel tasks`,
   );
   console.log(
-    `⚡ Thread pool size increased to ${maxWorkers} threads for maximum parallelization\n`,
+    `⚡ Thread pool size: ${maxWorkers} threads for parallel execution\n`,
   );
 
   const startTime = Date.now();
