@@ -12,14 +12,13 @@ describe("Appointment Tags API - Integration Tests", () => {
   let testLocationId: string;
   let testServiceId: string;
   let testClientGroupId: string;
-  let testClientId: string;
   let testAppointmentId: string;
   const testTags: Array<{ id: string; name: string }> = [];
 
   beforeEach(async () => {
     // Clean database before each test
     await cleanupDatabase(prisma, { verbose: false });
-    
+
     // Create test user
     const user = await prisma.user.create({
       data: {
@@ -73,7 +72,6 @@ describe("Appointment Tags API - Integration Tests", () => {
         legal_last_name: "Client",
       },
     });
-    testClientId = client.id;
 
     // Create test client group
     const clientGroup = await prisma.clientGroup.create({
