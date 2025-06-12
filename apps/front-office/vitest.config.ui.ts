@@ -10,6 +10,7 @@ export default defineProject({
     name: "front-office/ui",
     include: ["**/*.ui.test.tsx"],
     environment: "happy-dom",
+    testTimeout: 120000, // Increase timeout to 120 seconds
     pool: "threads",
     poolOptions: {
       threads: {

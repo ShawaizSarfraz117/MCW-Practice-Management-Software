@@ -34,14 +34,20 @@ const maxWorkers = Math.min(cpuCount - 1, 15);
 const uiTestCommand = `npm run test:back-office:ui -- --reporter=json --outputFile=test-results/ui.json --run --pool=threads --poolOptions.threads.maxThreads=${maxWorkers}`;
 
 // Read DATABASE_URL from .env file if integration tests are requested
-let integrationCommand = "npm run test:integration -- --reporter=json --outputFile=test-results/integration.json --run";
+let integrationCommand =
+  "npm run test:integration -- --reporter=json --outputFile=test-results/integration.json --run";
 if (withIntegration && existsSync(".env")) {
   const envContent = readFileSync(".env", "utf-8");
   const dbUrlMatch = envContent.match(/DATABASE_URL="([^"]+)"/);
   if (dbUrlMatch) {
     const dbUrl = dbUrlMatch[1];
-    integrationCommand = `DATABASE_URL="${dbUrl}" npx vitest --workspace vitest.workspace.ts .integration.test.ts --run --reporter=json --outputFile=test-results/integration.json --pool=threads --poolOptions.threads.maxThreads=${maxWorkers}`;
+    // CRITICAL: Integration tests MUST run sequentially (not in parallel) to avoid database conflicts
+    // Using --pool=forks with singleFork=true ensures tests run one at a time
+    integrationCommand = `DATABASE_URL="${dbUrl}" npx vitest --workspace vitest.workspace.ts .integration.test.ts --run --reporter=json --outputFile=test-results/integration.json --pool=forks --poolOptions.forks.singleFork=true`;
     console.log("📌 Using DATABASE_URL from .env for integration tests");
+    console.log(
+      "⚠️  Integration tests will run sequentially to avoid database conflicts",
+    );
   }
 }
 
@@ -101,7 +107,7 @@ function runTask(task: Task): Promise<TaskResult> {
 
       const errors: string[] = [];
       const warnings: string[] = [];
-      let failedTests: FailedTest[] = [];
+      const failedTests: FailedTest[] = [];
 
       // Parse linting output
       if (task.name === "Linting") {
@@ -111,7 +117,12 @@ function runTask(task: Task): Promise<TaskResult> {
         if (errorMatch && parseInt(errorMatch[1]) > 0) {
           const errorLines = fullOutput
             .split("\n")
-            .filter((line) => line.includes("error") && line.includes(":") && !line.includes("0 errors"));
+            .filter(
+              (line) =>
+                line.includes("error") &&
+                line.includes(":") &&
+                !line.includes("0 errors"),
+            );
           errors.push(...errorLines);
         }
 
@@ -136,51 +147,61 @@ function runTask(task: Task): Promise<TaskResult> {
       // Parse test failures from JSON output
       if (task.name.includes("Tests") && code !== 0) {
         try {
-          const jsonFile = task.name.includes("Unit") 
-            ? "unit.json" 
-            : task.name.includes("UI") 
-            ? "ui.json"
-            : "integration.json";
-          
+          const jsonFile = task.name.includes("Unit")
+            ? "unit.json"
+            : task.name.includes("UI")
+              ? "ui.json"
+              : "integration.json";
+
           const jsonPath = `./test-results/${jsonFile}`;
           if (existsSync(jsonPath)) {
             const testData = JSON.parse(readFileSync(jsonPath, "utf-8"));
-            
+
             // Extract failed tests
-            testData.testResults?.forEach((file: {
-              name: string;
-              status?: string;
-              message?: string;
-              assertionResults?: Array<{
+            testData.testResults?.forEach(
+              (file: {
+                name: string;
                 status?: string;
-                fullName?: string;
-                title?: string;
-                failureMessages?: string[];
-              }>;
-            }) => {
-              if (file.status === "failed") {
-                // Check for file-level failures (import errors)
-                if (file.message) {
-                  failedTests.push({
-                    name: `Failed to load: ${file.name}`,
-                    file: file.name.split("/").pop() || file.name,
-                    message: file.message,
-                  });
-                }
-                
-                // Check for individual test failures
-                file.assertionResults?.forEach((test: { status?: string; fullName?: string; title?: string; failureMessages?: string[] }) => {
-                  if (test.status === "failed") {
+                message?: string;
+                assertionResults?: Array<{
+                  status?: string;
+                  fullName?: string;
+                  title?: string;
+                  failureMessages?: string[];
+                }>;
+              }) => {
+                if (file.status === "failed") {
+                  // Check for file-level failures (import errors)
+                  if (file.message) {
                     failedTests.push({
-                      name: test.fullName || test.title || "Unknown test",
+                      name: `Failed to load: ${file.name}`,
                       file: file.name.split("/").pop() || file.name,
-                      message: test.failureMessages?.join("\n") || "Test failed",
-                      failureMessages: test.failureMessages,
+                      message: file.message,
                     });
                   }
-                });
-              }
-            });
+
+                  // Check for individual test failures
+                  file.assertionResults?.forEach(
+                    (test: {
+                      status?: string;
+                      fullName?: string;
+                      title?: string;
+                      failureMessages?: string[];
+                    }) => {
+                      if (test.status === "failed") {
+                        failedTests.push({
+                          name: test.fullName || test.title || "Unknown test",
+                          file: file.name.split("/").pop() || file.name,
+                          message:
+                            test.failureMessages?.join("\n") || "Test failed",
+                          failureMessages: test.failureMessages,
+                        });
+                      }
+                    },
+                  );
+                }
+              },
+            );
           }
         } catch (e) {
           console.error(`Failed to parse test results for ${task.name}:`, e);

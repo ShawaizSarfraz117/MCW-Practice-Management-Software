@@ -16,9 +16,13 @@ describe("New Client Tag - Integration Tests", () => {
   let createdClientIds: string[] = [];
 
   beforeEach(async () => {
-    // Clean database before each test
-    await cleanupDatabase(prisma, { verbose: false });
-    
+    // Clean only test-specific data before each test (not full database)
+    await prisma.appointmentTag.deleteMany({});
+    await prisma.appointment.deleteMany({});
+    await prisma.clientGroupMembership.deleteMany({});
+    await prisma.clientGroup.deleteMany({});
+    await prisma.client.deleteMany({});
+
     // Create test user with unique email
     const timestamp = Date.now();
     const testUser = await prisma.user.create({
@@ -112,9 +116,22 @@ describe("New Client Tag - Integration Tests", () => {
   }, 30000);
 
   afterEach(async () => {
-    // Clean up all test data
-    await cleanupDatabase(prisma, { verbose: false });
-    
+    // Clean up test-specific data
+    await prisma.appointmentTag.deleteMany({});
+    await prisma.appointment.deleteMany({});
+    await prisma.clientGroupMembership.deleteMany({});
+    await prisma.clientGroup.deleteMany({});
+    await prisma.clientContact.deleteMany({});
+    await prisma.client.deleteMany({});
+
+    // Clean up test clinician and user if they exist
+    if (testClinicianId) {
+      await prisma.clinician.deleteMany({ where: { id: testClinicianId } });
+    }
+    if (testUserId) {
+      await prisma.user.deleteMany({ where: { id: testUserId } });
+    }
+
     // Reset tracking arrays
     createdAppointmentIds = [];
     createdClientGroupIds = [];
