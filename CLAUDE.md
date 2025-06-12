@@ -15,6 +15,13 @@ See @README for project overview and @package.json for available npm commands.
 - Ask clarifying questions instead of making assumptions
 - Present ideas for feedback, don't just execute
 
+**PRE-COMMIT VERIFICATION REQUIREMENTS**:
+
+- **ALWAYS run pre-commit checks before pushing**: `npm run check:enhanced:full`
+- **ALL tests MUST pass** - CI will fail otherwise, causing delays
+- See @Docs/verification-commands.md for detailed instructions
+- Pre-commit checks are MANDATORY to avoid time-consuming iteration cycles
+
 ## Project Overview
 
 MCW Practice Management Software is a HIPAA-compliant healthcare practice management system built as a Turborepo-based monorepo with two main applications:
