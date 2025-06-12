@@ -31,6 +31,8 @@
     "check": "tsx scripts/pre-commit-check.ts",
     "check:full": "tsx scripts/pre-commit-check.ts --with-integration",
     "check:ultra:full": "tsx scripts/pre-commit-check-ultra.ts --with-integration",
+    "check:enhanced": "tsx scripts/pre-commit-check-ultra-enhanced.ts",
+    "check:enhanced:full": "tsx scripts/pre-commit-check-ultra-enhanced.ts --with-integration",
     "db:migrate": "turbo run db:migrate",
     "db:deploy": "turbo run db:deploy",
     "db:seed": "turbo run db:seed",
@@ -43,8 +45,6 @@
     "prepare": "husky",
     "lint-staged": "lint-staged",
     "prettier:write": "prettier --write src",
-    "check:local": "./scripts/local-check-test.sh",
-    "check:pre-push": "./scripts/pre-push-check.sh",
     "format:check": "turbo run prettier:check"
   },
   "lint-staged": {
