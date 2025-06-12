@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest";
 import { prisma } from "@mcw/database";
+import { cleanupDatabase } from "@mcw/database/test-utils";
 import { POST } from "@/api/appointment/route";
 import { createRequestWithBody } from "@mcw/utils";
 import { AppointmentTagName } from "@/types/entities/appointment";
@@ -15,6 +16,9 @@ describe("New Client Tag - Integration Tests", () => {
   let createdClientIds: string[] = [];
 
   beforeEach(async () => {
+    // Clean database before each test
+    await cleanupDatabase(prisma, { verbose: false });
+    
     // Create test user with unique email
     const timestamp = Date.now();
     const testUser = await prisma.user.create({
@@ -108,52 +112,18 @@ describe("New Client Tag - Integration Tests", () => {
   }, 30000);
 
   afterEach(async () => {
-    // Clean up created data
-    if (createdAppointmentIds.length > 0) {
-      await prisma.appointmentTag.deleteMany({
-        where: { appointment_id: { in: createdAppointmentIds } },
-      });
-      await prisma.appointment.deleteMany({
-        where: { id: { in: createdAppointmentIds } },
-      });
-    }
-
-    if (createdClientGroupIds.length > 0) {
-      await prisma.clientGroupMembership.deleteMany({
-        where: { client_group_id: { in: createdClientGroupIds } },
-      });
-      await prisma.clientGroup.deleteMany({
-        where: { id: { in: createdClientGroupIds } },
-      });
-    }
-
-    if (createdClientIds.length > 0) {
-      // Delete client contacts first to avoid FK constraint
-      await prisma.clientContact.deleteMany({
-        where: { client_id: { in: createdClientIds } },
-      });
-      await prisma.client.deleteMany({
-        where: { id: { in: createdClientIds } },
-      });
-    }
-
-    // Clean up test data
-    if (testServiceId) {
-      await prisma.practiceService.delete({ where: { id: testServiceId } });
-    }
-    if (testLocationId) {
-      await prisma.location.delete({ where: { id: testLocationId } });
-    }
-    if (testClinicianId) {
-      await prisma.clinician.delete({ where: { id: testClinicianId } });
-    }
-    if (testUserId) {
-      await prisma.user.delete({ where: { id: testUserId } });
-    }
-
+    // Clean up all test data
+    await cleanupDatabase(prisma, { verbose: false });
+    
+    // Reset tracking arrays
     createdAppointmentIds = [];
     createdClientGroupIds = [];
     createdClientIds = [];
+  });
+
+  afterAll(async () => {
+    // Final cleanup
+    await cleanupDatabase(prisma, { verbose: false });
   });
 
   describe("New Client Detection", () => {

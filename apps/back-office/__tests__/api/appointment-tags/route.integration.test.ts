@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest";
 import { prisma } from "@mcw/database";
+import { cleanupDatabase } from "@mcw/database/test-utils";
 import { GET, DELETE as _DELETE } from "@/api/appointment-tags/route";
 import { POST as createAppointment } from "@/api/appointment/route";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
@@ -16,6 +17,9 @@ describe("Appointment Tags API - Integration Tests", () => {
   const testTags: Array<{ id: string; name: string }> = [];
 
   beforeEach(async () => {
+    // Clean database before each test
+    await cleanupDatabase(prisma, { verbose: false });
+    
     // Create test user
     const user = await prisma.user.create({
       data: {
@@ -126,37 +130,13 @@ describe("Appointment Tags API - Integration Tests", () => {
   });
 
   afterEach(async () => {
-    // Clean up in reverse order of creation
-    await prisma.appointmentTag.deleteMany({
-      where: { appointment_id: testAppointmentId },
-    });
-    await prisma.appointment.deleteMany({
-      where: { id: testAppointmentId },
-    });
-    await prisma.clientGroupMembership.deleteMany({
-      where: { client_group_id: testClientGroupId },
-    });
-    await prisma.clientGroup.deleteMany({
-      where: { id: testClientGroupId },
-    });
-    await prisma.client.deleteMany({
-      where: { id: testClientId },
-    });
-    await prisma.practiceService.deleteMany({
-      where: { id: testServiceId },
-    });
-    await prisma.location.deleteMany({
-      where: { id: testLocationId },
-    });
-    await prisma.clinician.deleteMany({
-      where: { id: testClinicianId },
-    });
-    await prisma.user.deleteMany({
-      where: { id: testUserId },
-    });
-    await prisma.tag.deleteMany({
-      where: { id: { in: testTags.map((t) => t.id) } },
-    });
+    // Clean up all test data
+    await cleanupDatabase(prisma, { verbose: false });
+  });
+
+  afterAll(async () => {
+    // Final cleanup
+    await cleanupDatabase(prisma, { verbose: false });
   });
 
   describe("GET /api/appointment-tags", () => {
@@ -307,23 +287,6 @@ describe("Appointment Tags API - Integration Tests", () => {
 
       const tagNames = tags.map((at: { Tag: { name: string } }) => at.Tag.name);
       expect(tagNames).toContain("New Client");
-
-      // Cleanup
-      await prisma.appointmentTag.deleteMany({
-        where: { appointment_id: appointment.id },
-      });
-      await prisma.appointment.deleteMany({
-        where: { id: appointment.id },
-      });
-      await prisma.clientGroupMembership.deleteMany({
-        where: { client_group_id: newClientGroup.id },
-      });
-      await prisma.clientGroup.deleteMany({
-        where: { id: newClientGroup.id },
-      });
-      await prisma.client.deleteMany({
-        where: { id: newClient.id },
-      });
     });
   });
 });
