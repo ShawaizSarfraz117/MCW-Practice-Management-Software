@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { spawn } from 'child_process';
-import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs';
-import * as os from 'os';
+import { spawn } from "child_process";
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from "fs";
+import * as os from "os";
 
 interface TaskResult {
   name: string;
@@ -19,23 +19,34 @@ interface TestDetail {
   file: string;
 }
 
-const withIntegration = process.argv.includes('--with-integration');
+const withIntegration = process.argv.includes("--with-integration");
 const cpuCount = os.cpus().length;
 
 // Use multiple UI test commands with proper thread allocation
 const maxWorkers = Math.min(cpuCount - 1, 15);
 
-// For now, run all UI tests together since splitting isn't working properly
-const uiTestGroups = [
-  { name: 'UI Tests (Back Office)', command: `npm run test:back-office:ui -- --reporter=json --outputFile=test-results/ui-bo.json --run --pool=threads --poolOptions.threads.maxThreads=${maxWorkers}`, emoji: '🖥️' },
-];
+// Use the main UI test command but with maxed out parallelization
+const uiTestCommand = `npm run test:back-office:ui -- --reporter=json --outputFile=test-results/ui.json --run --pool=threads --poolOptions.threads.maxThreads=${maxWorkers}`;
 
 const tasks = [
-  { name: 'Type Checking', command: 'npm run typecheck', emoji: '📝' },
-  { name: 'Linting', command: 'npm run lint', emoji: '🔍' },
-  { name: 'Unit Tests', command: `npm run test:unit -- --reporter=json --outputFile=test-results/unit.json --run --pool=threads --poolOptions.threads.maxThreads=${maxWorkers}`, emoji: '⚡' },
-  ...uiTestGroups,
-  ...(withIntegration ? [{ name: 'Integration Tests', command: 'npm run test:integration -- --reporter=json --outputFile=test-results/integration.json --run', emoji: '🔗' }] : [])
+  { name: "Type Checking", command: "npm run typecheck", emoji: "📝" },
+  { name: "Linting", command: "npm run lint", emoji: "🔍" },
+  {
+    name: "Unit Tests",
+    command: `npm run test:unit -- --reporter=json --outputFile=test-results/unit.json --run --pool=threads --poolOptions.threads.maxThreads=${maxWorkers}`,
+    emoji: "⚡",
+  },
+  { name: "UI Tests", command: uiTestCommand, emoji: "🎨" },
+  ...(withIntegration
+    ? [
+        {
+          name: "Integration Tests",
+          command:
+            "npm run test:integration -- --reporter=json --outputFile=test-results/integration.json --run",
+          emoji: "🔗",
+        },
+      ]
+    : []),
 ];
 
 interface Task {
@@ -48,64 +59,72 @@ function runTask(task: Task): Promise<TaskResult> {
   return new Promise((resolve) => {
     const startTime = Date.now();
     console.log(`🚀 Starting ${task.emoji} ${task.name}...`);
-    
+
     const child = spawn(task.command, [], {
       shell: true,
-      stdio: 'pipe',
-      env: { ...process.env, FORCE_COLOR: '0' }
+      stdio: "pipe",
+      env: { ...process.env, FORCE_COLOR: "0" },
     });
 
-    let output = '';
-    let errorOutput = '';
-    
-    child.stdout?.on('data', (data) => { output += data.toString(); });
-    child.stderr?.on('data', (data) => { errorOutput += data.toString(); });
+    let output = "";
+    let errorOutput = "";
 
-    child.on('close', (code) => {
+    child.stdout?.on("data", (data) => {
+      output += data.toString();
+    });
+    child.stderr?.on("data", (data) => {
+      errorOutput += data.toString();
+    });
+
+    child.on("close", (code) => {
       const duration = (Date.now() - startTime) / 1000;
       const fullOutput = output + errorOutput;
-      console.log(`${code === 0 ? '✅' : '❌'} ${task.name} completed in ${duration.toFixed(1)}s`);
-      
+      console.log(
+        `${code === 0 ? "✅" : "❌"} ${task.name} completed in ${duration.toFixed(1)}s`,
+      );
+
       const errors: string[] = [];
       const warnings: string[] = [];
-      
+
       // Parse linting output
-      if (task.name === 'Linting') {
+      if (task.name === "Linting") {
         const errorMatch = fullOutput.match(/(\d+)\s+error/);
         const warningMatch = fullOutput.match(/(\d+)\s+warning/);
-        
+
         if (errorMatch) {
-          const errorLines = fullOutput.split('\n').filter(line => 
-            line.includes('error') && line.includes(':')
-          );
+          const errorLines = fullOutput
+            .split("\n")
+            .filter((line) => line.includes("error") && line.includes(":"));
           errors.push(...errorLines);
         }
-        
+
         if (warningMatch) {
-          const warningLines = fullOutput.split('\n').filter(line => 
-            line.includes('warning') && line.includes(':')
-          );
+          const warningLines = fullOutput
+            .split("\n")
+            .filter((line) => line.includes("warning") && line.includes(":"));
           warnings.push(...warningLines.slice(0, 50));
         }
       }
-      
+
       // Parse TypeScript errors
-      if (task.name === 'Type Checking' && code !== 0) {
-        const tsErrors = fullOutput.split('\n').filter(line => 
-          line.includes('error TS') || line.includes('Error:')
-        );
+      if (task.name === "Type Checking" && code !== 0) {
+        const tsErrors = fullOutput
+          .split("\n")
+          .filter(
+            (line) => line.includes("error TS") || line.includes("Error:"),
+          );
         errors.push(...tsErrors);
       }
 
       // Count tests from JSON output if available
       let testCount = 0;
-      if (task.name.includes('Tests') && code === 0) {
+      if (task.name.includes("Tests") && code === 0) {
         try {
           const jsonMatch = fullOutput.match(/numTotalTests["\s:]+(\d+)/);
           if (jsonMatch) {
             testCount = parseInt(jsonMatch[1], 10);
           }
-        } catch (e) {
+        } catch (_e) {
           // Ignore parsing errors
         }
       }
@@ -117,7 +136,7 @@ function runTask(task: Task): Promise<TaskResult> {
         errors,
         warnings,
         output: fullOutput,
-        testCount
+        testCount,
       });
     });
   });
@@ -125,80 +144,93 @@ function runTask(task: Task): Promise<TaskResult> {
 
 async function parseTestResults(): Promise<TestDetail[]> {
   const allTests: TestDetail[] = [];
-  
+
   try {
     // Parse all test result files
     const testFiles = [
-      'unit.json',
-      'ui-bo.json',
-      ...(withIntegration ? ['integration.json'] : [])
+      "unit.json",
+      "ui.json",
+      ...(withIntegration ? ["integration.json"] : []),
     ];
-    
+
     for (const file of testFiles) {
       const filePath = `./test-results/${file}`;
       if (existsSync(filePath)) {
-        const data = JSON.parse(readFileSync(filePath, 'utf-8'));
-        data.testResults?.forEach((file: { name: string; assertionResults?: Array<{ fullName?: string; title?: string; duration?: number }> }) => {
-          file.assertionResults?.forEach((test) => {
-            allTests.push({
-              name: test.fullName || test.title,
-              duration: test.duration || 0,
-              file: file.name.split('/').pop()
+        const data = JSON.parse(readFileSync(filePath, "utf-8"));
+        data.testResults?.forEach(
+          (file: {
+            name: string;
+            assertionResults?: Array<{
+              fullName?: string;
+              title?: string;
+              duration?: number;
+            }>;
+          }) => {
+            file.assertionResults?.forEach((test) => {
+              allTests.push({
+                name: test.fullName || test.title,
+                duration: test.duration || 0,
+                file: file.name.split("/").pop(),
+              });
             });
-          });
-        });
+          },
+        );
       }
     }
-  } catch (e) {
-    console.error('Error parsing test results:', e);
+  } catch (e: unknown) {
+    console.error("Error parsing test results:", e);
   }
-  
+
   return allTests.sort((a, b) => b.duration - a.duration);
 }
 
 async function getTestCountsFromResults(): Promise<{ [key: string]: number }> {
   const counts: { [key: string]: number } = {};
-  
+
   try {
     const testFiles = [
-      { file: 'unit.json', name: 'Unit Tests' },
-      { file: 'ui-bo.json', name: 'UI Tests (Back Office)' },
-      { file: 'integration.json', name: 'Integration Tests' }
+      { file: "unit.json", name: "Unit Tests" },
+      { file: "ui.json", name: "UI Tests" },
+      { file: "integration.json", name: "Integration Tests" },
     ];
-    
+
     for (const { file, name } of testFiles) {
       const filePath = `./test-results/${file}`;
       if (existsSync(filePath)) {
-        const data = JSON.parse(readFileSync(filePath, 'utf-8'));
+        const data = JSON.parse(readFileSync(filePath, "utf-8"));
         counts[name] = data.numTotalTests || 0;
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore errors
   }
-  
+
   return counts;
 }
 
 async function generateReport(results: TaskResult[], totalDuration: number) {
-  const allErrors = results.flatMap(r => r.errors.map(e => ({ task: r.name, error: e })));
-  const allWarnings = results.flatMap(r => r.warnings.map(w => ({ task: r.name, warning: w })));
+  const allErrors = results.flatMap((r) =>
+    r.errors.map((e) => ({ task: r.name, error: e })),
+  );
+  const allWarnings = results.flatMap((r) =>
+    r.warnings.map((w) => ({ task: r.name, warning: w })),
+  );
   const hasErrors = allErrors.length > 0;
-  
+
   // Get test details
   const testDetails = await parseTestResults();
-  const slowTests = testDetails.filter(t => t.duration > 500);
-  
+  const slowTests = testDetails.filter((t) => t.duration > 500);
+
   // Get test counts
   const testCounts = await getTestCountsFromResults();
-  
+
   // Update results with test counts
-  results.forEach(r => {
+  results.forEach((r) => {
     if (testCounts[r.name]) {
       r.testCount = testCounts[r.name];
     }
   });
-  
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -206,7 +238,7 @@ async function generateReport(results: TaskResult[], totalDuration: number) {
     <meta charset="UTF-8">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f5f5f5; }
-        .header { background: ${hasErrors ? 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)' : 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)'}; color: white; padding: 30px; }
+        .header { background: ${hasErrors ? "linear-gradient(135deg, #f44336 0%, #d32f2f 100%)" : "linear-gradient(135deg, #4caf50 0%, #388e3c 100%)"}; color: white; padding: 30px; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -235,12 +267,12 @@ async function generateReport(results: TaskResult[], totalDuration: number) {
 </head>
 <body>
     <div class="header">
-        <h1>${hasErrors ? '❌ Ultra Pre-commit Check Failed' : '✅ Ultra Pre-commit Check Passed'}</h1>
-        <p>Total Duration: ${totalDuration.toFixed(2)}s${withIntegration ? ' (with integration tests)' : ''}</p>
+        <h1>${hasErrors ? "❌ Ultra Pre-commit Check Failed" : "✅ Ultra Pre-commit Check Passed"}</h1>
+        <p>Total Duration: ${totalDuration.toFixed(2)}s${withIntegration ? " (with integration tests)" : ""}</p>
         <p style="font-size: 14px; opacity: 0.9;">
             CPU Cores: ${cpuCount} | Parallel Tasks: ${tasks.length} | 
-            <span class="perf-badge ${totalDuration < 60 ? 'perf-fast' : totalDuration < 90 ? 'perf-medium' : 'perf-slow'}">
-                ${totalDuration < 60 ? '⚡ Fast' : totalDuration < 90 ? '⏱️ Normal' : '🐌 Slow'}
+            <span class="perf-badge ${totalDuration < 60 ? "perf-fast" : totalDuration < 90 ? "perf-medium" : "perf-slow"}">
+                ${totalDuration < 60 ? "⚡ Fast" : totalDuration < 90 ? "⏱️ Normal" : "🐌 Slow"}
             </span>
         </p>
     </div>
@@ -260,21 +292,23 @@ async function generateReport(results: TaskResult[], totalDuration: number) {
                 <div>Total Time</div>
             </div>
             <div class="card">
-                <div class="metric-value">${results.filter(r => r.success).length}/${results.length}</div>
+                <div class="metric-value">${results.filter((r) => r.success).length}/${results.length}</div>
                 <div>Tasks Passed</div>
             </div>
         </div>
 
         <div class="card">
             <h2>Task Execution Timeline</h2>
-            ${results.sort((a, b) => b.duration - a.duration).map(r => {
+            ${results
+              .sort((a, b) => b.duration - a.duration)
+              .map((r) => {
                 const percentage = (r.duration / totalDuration) * 100;
                 return `
                 <div class="phase-item">
                     <div style="display: flex; align-items: center; flex: 1;">
-                        <span class="phase-status">${r.success ? '✅' : '❌'}</span>
+                        <span class="phase-status">${r.success ? "✅" : "❌"}</span>
                         <div class="phase-name">
-                            <strong>${r.name}${r.testCount ? ` (${r.testCount} tests)` : ''}</strong>
+                            <strong>${r.name}${r.testCount ? ` (${r.testCount} tests)` : ""}</strong>
                             <div class="phase-bar">
                                 <div class="phase-progress" style="width: ${percentage}%;"></div>
                             </div>
@@ -282,37 +316,58 @@ async function generateReport(results: TaskResult[], totalDuration: number) {
                     </div>
                     <span class="phase-duration">${r.duration.toFixed(2)}s (${percentage.toFixed(1)}%)</span>
                 </div>
-            `}).join('')}
+            `;
+              })
+              .join("")}
         </div>
 
-        ${allErrors.length > 0 ? `
+        ${
+          allErrors.length > 0
+            ? `
             <div class="card">
                 <h2>Errors (${allErrors.length})</h2>
-                ${allErrors.map(e => `
+                ${allErrors
+                  .map(
+                    (e) => `
                     <div class="error-item">
                         <strong>${e.task}:</strong>
                         ${e.error}
                     </div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
             </div>
-        ` : ''}
+        `
+            : ""
+        }
 
-        ${allWarnings.length > 0 ? `
+        ${
+          allWarnings.length > 0
+            ? `
             <div class="card">
                 <h2>Warnings (${allWarnings.length})</h2>
-                ${allWarnings.slice(0, 50).map(w => `
+                ${allWarnings
+                  .slice(0, 50)
+                  .map(
+                    (w) => `
                     <div class="warning-item">
                         <strong>${w.task}:</strong>
                         ${w.warning}
                     </div>
-                `).join('')}
-                ${allWarnings.length > 50 ? `<p>... and ${allWarnings.length - 50} more warnings</p>` : ''}
+                `,
+                  )
+                  .join("")}
+                ${allWarnings.length > 50 ? `<p>... and ${allWarnings.length - 50} more warnings</p>` : ""}
             </div>
-        ` : ''}
+        `
+            : ""
+        }
 
         <div class="card">
             <h2>Slowest Tests (>500ms)</h2>
-            ${slowTests.length > 0 ? `
+            ${
+              slowTests.length > 0
+                ? `
                 <table>
                     <thead>
                         <tr>
@@ -322,43 +377,57 @@ async function generateReport(results: TaskResult[], totalDuration: number) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${slowTests.slice(0, 30).map(t => `
+                        ${slowTests
+                          .slice(0, 30)
+                          .map(
+                            (t) => `
                             <tr>
                                 <td>${t.name}</td>
                                 <td>${t.file}</td>
                                 <td class="test-duration">${(t.duration / 1000).toFixed(1)}s</td>
                             </tr>
-                        `).join('')}
+                        `,
+                          )
+                          .join("")}
                     </tbody>
                 </table>
                 <p>Showing ${Math.min(30, slowTests.length)} of ${slowTests.length} slow tests</p>
-            ` : '<p>No tests slower than 500ms 🎉</p>'}
+            `
+                : "<p>No tests slower than 500ms 🎉</p>"
+            }
         </div>
     </div>
 </body>
 </html>`;
 
-  if (!existsSync('./test-results/reports')) {
-    mkdirSync('./test-results/reports', { recursive: true });
+  if (!existsSync("./test-results/reports")) {
+    mkdirSync("./test-results/reports", { recursive: true });
   }
-  
-  writeFileSync('./test-results/reports/pre-commit-report.html', html);
+
+  writeFileSync("./test-results/reports/pre-commit-report.html", html);
   console.log(`\n📊 Report: test-results/reports/pre-commit-report.html`);
 }
 
 async function runAllTasks() {
-  console.log(`🚀 Running ULTRA pre-commit checks${withIntegration ? ' (with integration tests)' : ''}...`);
-  console.log(`📍 CPU Cores: ${cpuCount} | Max Workers: ${maxWorkers} | Running ${tasks.length} parallel tasks\n`);
-  
+  console.log(
+    `🚀 Running ULTRA pre-commit checks${withIntegration ? " (with integration tests)" : ""}...`,
+  );
+  console.log(
+    `📍 CPU Cores: ${cpuCount} | Max Workers: ${maxWorkers} | Running ${tasks.length} parallel tasks`,
+  );
+  console.log(
+    `⚡ Thread pool size increased to ${maxWorkers} threads for maximum parallelization\n`,
+  );
+
   const startTime = Date.now();
   const results = await Promise.all(tasks.map(runTask));
   const totalDuration = (Date.now() - startTime) / 1000;
-  
+
   console.log(`\n✨ All tasks completed in ${totalDuration.toFixed(2)}s`);
-  
+
   await generateReport(results, totalDuration);
-  
-  const hasErrors = results.some(r => !r.success);
+
+  const hasErrors = results.some((r) => !r.success);
   process.exit(hasErrors ? 1 : 0);
 }
 
