@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
             data: {
               good_faith_id: estimate.id,
               service_id: service.service_id,
-              diagnosis_id: service.diagnosis_id,
+              diagnosis_id: service.diagnosis_id || null,
               location_id: service.location_id,
               quantity: service.quantity,
               fee: service.fee,

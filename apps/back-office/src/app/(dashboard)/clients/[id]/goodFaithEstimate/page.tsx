@@ -34,6 +34,7 @@ import ProviderCard from "./components/ProviderCard";
 import { toast } from "@mcw/ui";
 import { Loading } from "@/components";
 import { ClientGroupFromAPI } from "@/(dashboard)/clients/types";
+
 interface Client {
   id: string;
   legal_first_name: string;
@@ -55,6 +56,9 @@ interface Clinician {
   last_name: string;
   NPI_number: string | null;
   address: string;
+  ClinicianLocation: Array<{
+    location_id: string;
+  }>;
 }
 
 interface ClientGroupData {
@@ -110,6 +114,10 @@ interface Diagnosis {
   id: string;
   code: string;
   description?: string;
+}
+
+interface GoodFaithEstimateData {
+  id: string;
 }
 
 const GoodFaithEstimatePage = () => {
@@ -188,10 +196,8 @@ const GoodFaithEstimatePage = () => {
       if (error) {
         throw error;
       }
-      // Extract the data array from the response
-      const diagnosisArray = (data as { data: Diagnosis[] })
-        ?.data as Diagnosis[];
-      return diagnosisArray;
+      // The API returns a direct array, not wrapped in a data property
+      return data as Diagnosis[];
     },
   });
 
@@ -378,8 +384,7 @@ const GoodFaithEstimatePage = () => {
         services: servicesApiData,
       };
 
-      const [_, error] = await createGoodFaithEstimate({ body });
-      router.push(`/clients/${clientGroupId}`);
+      const [response, error] = await createGoodFaithEstimate({ body });
       if (error) {
         toast({
           title: "Error saving estimate",
@@ -387,6 +392,9 @@ const GoodFaithEstimatePage = () => {
           variant: "destructive",
         });
       } else {
+        router.push(
+          `/clients/${clientGroupId}/goodFaithEstimate/${(response as GoodFaithEstimateData).id}`,
+        );
         toast({
           title: "Good Faith Estimate saved successfully!",
           description: "Good Faith Estimate saved successfully!",
@@ -468,7 +476,7 @@ const GoodFaithEstimatePage = () => {
               name: `${clinician.first_name} ${clinician.last_name}`,
               npi: clinician.NPI_number || "",
               tin: "",
-              location: "",
+              location: clinician?.ClinicianLocation[0]?.location_id || "",
               address: clinician.address || "",
               contactPerson: clinician.id,
               phone: "",

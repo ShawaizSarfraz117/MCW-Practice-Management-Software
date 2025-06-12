@@ -363,7 +363,7 @@ export const fetchGoodFaithEstimate = async (id: string) => {
 
 export const createGoodFaithEstimate = async ({ body = {} }) => {
   try {
-    const response: unknown = await FETCH.post({
+    const response = await FETCH.post({
       url: "/good-faith-estimates",
       body,
       isFormData: false,
