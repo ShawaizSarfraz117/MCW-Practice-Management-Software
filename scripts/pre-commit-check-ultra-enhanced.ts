@@ -51,9 +51,17 @@ if (withIntegration && existsSync(".env")) {
   }
 }
 
+// Match CI exactly: checks = typecheck + prettier:check + lint
+const checksTask = {
+  name: "Checks (TypeScript + Prettier + Lint)",
+  command: "npm run checks",
+  emoji: "✅",
+};
+
 const tasks = [
-  { name: "Type Checking", command: "npm run typecheck", emoji: "📝" },
-  { name: "Linting", command: "npm run lint", emoji: "🔍" },
+  // First run checks exactly like CI
+  checksTask,
+  // Then run tests
   {
     name: "Unit Tests",
     command: `npm run test:unit -- --reporter=json --outputFile=test-results/unit.json --run --pool=threads --poolOptions.threads.maxThreads=${maxWorkers}`,
