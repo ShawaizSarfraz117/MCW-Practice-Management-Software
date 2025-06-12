@@ -9,7 +9,6 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
-import { DayHeaderContentArg } from "@fullcalendar/core";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { AppointmentDialog } from "../AppointmentDialog";
@@ -99,7 +98,8 @@ export function CalendarView({
     open: boolean;
     anchor: HTMLElement | null;
     date: Date | null;
-  }>({ open: false, anchor: null, date: null });
+    clinicianId?: string | null;
+  }>({ open: false, anchor: null, date: null, clinicianId: null });
   const addLimitDropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{
     top: number;
@@ -113,11 +113,12 @@ export function CalendarView({
   // Get session data to check if user is admin
   const { data: session } = useSession();
   const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
+  const _isClinician = session?.user?.roles?.includes("CLINICIAN") || false;
   const userId = session?.user?.id;
 
-  // Set the view based on user role
+  // Set the view based on user role and page type
   const [currentView, setCurrentView] = useState(
-    isAdmin ? "resourceTimeGridDay" : "timeGridDay",
+    isScheduledPage ? "resourceTimeGridDay" : "timeGridDay",
   );
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -175,15 +176,14 @@ export function CalendarView({
       if (isScheduledPage) {
         return eventType === "availability";
       }
-      // On calendar page, only show appointments
-      return eventType !== "availability";
+      // On calendar page, show both appointments and availabilities
+      return true;
     });
 
     // Then filter by location and clinician
     filtered = filtered.filter((event) => {
       // For availability events, only check clinician
       if (event.extendedProps?.type === "availability") {
-        return event.resourceId;
         return event.resourceId;
       }
       // For regular events, filter by location
@@ -906,11 +906,12 @@ export function CalendarView({
           end: availability.end_date,
           location: availability.location || "",
           extendedProps: {
-            type: "availability",
+            type: "availability" as const,
             clinician_id: availability.clinician_id,
             allow_online_requests: availability.allow_online_requests,
             is_recurring: availability.is_recurring,
             recurring_rule: availability.recurring_rule,
+            clinician: availability.Clinician,
           },
         }),
       );
@@ -939,14 +940,24 @@ export function CalendarView({
     queryFn: async () => {
       if (
         !isScheduledPage ||
-        selectedClinicians.length === 0 ||
+        (selectedClinicians.length === 0 && initialClinicians.length === 0) ||
         !calendarRef.current
       ) {
         return {};
       }
 
       const { startDate, endDate } = getDateRange();
-      const clinicianId = selectedClinicians[0];
+
+      // Check if we have valid dates
+      if (!startDate || !endDate) {
+        return {};
+      }
+
+      // Get clinicians to fetch limits for
+      const cliniciansToFetch =
+        selectedClinicians.length > 0
+          ? selectedClinicians
+          : initialClinicians.slice(0, 3).map((c) => c.value);
 
       // Get all dates in range
       const dates: string[] = [];
@@ -957,26 +968,43 @@ export function CalendarView({
         d.setDate(d.getDate() + 1);
       }
 
-      // Fetch all limits in parallel
-      const results = await Promise.all(
-        dates.map((date) =>
-          fetch(
-            `/api/appointment-limit?clinicianId=${clinicianId}&date=${date}`,
-          )
-            .then((res) => res.json())
-            .then((data) => ({ date, limit: data.limit ?? null }))
-            .catch(() => ({ date, limit: null })),
-        ),
-      );
+      // Fetch all limits for all clinicians and dates in parallel
+      const fetchPromises: Promise<{
+        clinicianId: string;
+        date: string;
+        limit: number | null;
+      }>[] = [];
+
+      cliniciansToFetch.forEach((clinicianId) => {
+        dates.forEach((date) => {
+          fetchPromises.push(
+            fetch(
+              `/api/appointment-limit?clinicianId=${clinicianId}&date=${date}`,
+            )
+              .then((res) => res.json())
+              .then((data) => ({
+                clinicianId,
+                date,
+                limit: data.limit ?? null,
+              }))
+              .catch(() => ({ clinicianId, date, limit: null })),
+          );
+        });
+      });
+
+      const results = await Promise.all(fetchPromises);
 
       const limits: Record<string, number | null> = {};
-      results.forEach(({ date, limit }) => {
-        limits[date] = limit;
+      results.forEach(({ clinicianId, date, limit }) => {
+        const limitKey = `${clinicianId}-${date}`;
+        limits[limitKey] = limit;
       });
       return limits;
     },
     enabled:
-      isScheduledPage && selectedClinicians.length > 0 && !!calendarRef.current,
+      isScheduledPage &&
+      (selectedClinicians.length > 0 || initialClinicians.length > 0) &&
+      !!calendarRef.current,
   });
 
   // Set appointment limits from query data when it changes
@@ -986,9 +1014,10 @@ export function CalendarView({
     }
   }, [limitsData]);
 
-  // Function to handle adding a limit
-  function handleAddLimit(
+  // Function to handle adding a limit for specific clinician
+  function handleAddLimitForClinician(
     date: Date,
+    clinicianId: string,
     event: React.MouseEvent<HTMLButtonElement>,
   ) {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -996,7 +1025,12 @@ export function CalendarView({
       top: rect.bottom + window.scrollY,
       left: rect.left + rect.width / 2 + window.scrollX,
     });
-    setAddLimitDropdown({ open: true, anchor: event.currentTarget, date });
+    setAddLimitDropdown({
+      open: true,
+      anchor: event.currentTarget,
+      date,
+      clinicianId,
+    });
   }
 
   // Mutation for setting appointment limit
@@ -1028,10 +1062,11 @@ export function CalendarView({
       return response.json();
     },
     onSuccess: (_, variables) => {
-      // Update the local state
+      // Update the local state with the correct key format
+      const limitKey = `${variables.clinicianId}-${variables.date}`;
       setAppointmentLimits((prev) => ({
         ...prev,
-        [variables.date]: variables.maxLimit,
+        [limitKey]: variables.maxLimit,
       }));
 
       // Invalidate the related query to refetch data
@@ -1048,28 +1083,46 @@ export function CalendarView({
     },
   });
 
-  // Update only the selected date's limit
-  async function handleSelectLimit(limit: number | null) {
-    if (!addLimitDropdown.date || selectedClinicians.length === 0) {
-      console.log("Missing date or clinician:", {
+  // Update limit for specific clinician
+  async function handleSelectLimitForClinician(
+    limit: number | null,
+    targetClinicianId: string,
+  ) {
+    if (!addLimitDropdown.date || !targetClinicianId) {
+      console.log("Missing date or clinician for limit:", {
         date: addLimitDropdown.date,
-        clinicians: selectedClinicians,
+        clinicianId: targetClinicianId,
       });
       return;
     }
 
-    const clinicianId = selectedClinicians[0];
-    const date = addLimitDropdown.date.toISOString().split("T")[0];
+    // Use local date to ensure consistency
+    const year = addLimitDropdown.date.getFullYear();
+    const month = String(addLimitDropdown.date.getMonth() + 1).padStart(2, "0");
+    const day = String(addLimitDropdown.date.getDate()).padStart(2, "0");
+    const date = `${year}-${month}-${day}`;
     const apiLimit = limit === null ? 0 : limit;
 
     try {
       await setLimitMutation.mutateAsync({
-        clinicianId,
+        clinicianId: targetClinicianId,
         date,
         maxLimit: apiLimit,
       });
+
+      // Update the local state with clinician-specific key
+      const limitKey = `${targetClinicianId}-${date}`;
+      setAppointmentLimits((prev) => ({
+        ...prev,
+        [limitKey]: apiLimit,
+      }));
     } finally {
-      setAddLimitDropdown({ open: false, anchor: null, date: null });
+      setAddLimitDropdown({
+        open: false,
+        anchor: null,
+        date: null,
+        clinicianId: null,
+      });
     }
   }
 
@@ -1081,7 +1134,12 @@ export function CalendarView({
         addLimitDropdownRef.current &&
         !addLimitDropdownRef.current.contains(event.target as Node)
       ) {
-        setAddLimitDropdown({ open: false, anchor: null, date: null });
+        setAddLimitDropdown({
+          open: false,
+          anchor: null,
+          date: null,
+          clinicianId: null,
+        });
         setDropdownPosition(null);
       }
     }
@@ -1095,10 +1153,15 @@ export function CalendarView({
 
   // Effect to handle availability refresh
   useEffect(() => {
-    const handleAvailabilityRefresh = () => {
-      // Invalidate the events query to refresh data
-      queryClient.invalidateQueries({
-        queryKey: ["calendarEvents"],
+    const handleAvailabilityRefresh = async () => {
+      // Invalidate and refetch all calendar events queries to refresh data
+      await queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "calendarEvents",
+      });
+
+      // Force refetch to ensure immediate update
+      await queryClient.refetchQueries({
+        predicate: (query) => query.queryKey[0] === "calendarEvents",
       });
     };
 
@@ -1118,18 +1181,47 @@ export function CalendarView({
   // Handle event click to view appointment details
   const handleEventClick = async (clickInfo: EventClickArg) => {
     if (clickInfo.event.extendedProps?.type === "availability") {
-      const availabilityId = clickInfo.event.id;
+      if (isScheduledPage) {
+        // On scheduled page, open availability sidebar
+        const availabilityId = clickInfo.event.id;
+        try {
+          const response = await fetch(
+            `/api/availability?id=${availabilityId}`,
+          );
+          if (!response.ok)
+            throw new Error("Failed to fetch availability details");
+          const availabilityData = await response.json();
 
-      try {
-        const response = await fetch(`/api/availability?id=${availabilityId}`);
-        if (!response.ok)
-          throw new Error("Failed to fetch availability details");
-        const availabilityData = await response.json();
+          setSelectedAvailability(availabilityData);
+          setShowAvailabilitySidebar(true);
+        } catch (error) {
+          console.error("Error fetching availability:", error);
+        }
+      } else {
+        // On calendar page, open appointment dialog
+        setSelectedDate(clickInfo.event.start || new Date());
+        setSelectedResource(
+          clickInfo.event.extendedProps?.clinician_id || null,
+        );
 
-        setSelectedAvailability(availabilityData);
-        setShowAvailabilitySidebar(true);
-      } catch (error) {
-        console.error("Error fetching availability:", error);
+        // Set up the time slot information
+        const startTime = format(clickInfo.event.start || new Date(), "h:mm a");
+        const endTime = format(clickInfo.event.end || new Date(), "h:mm a");
+
+        const eventData = {
+          startTime,
+          endTime,
+          startDate:
+            clickInfo.event.start?.toISOString() || new Date().toISOString(),
+          endDate:
+            clickInfo.event.end?.toISOString() || new Date().toISOString(),
+        };
+
+        window.sessionStorage.setItem(
+          "selectedTimeSlot",
+          JSON.stringify(eventData),
+        );
+        setIsDialogOpen(true);
       }
       return;
     }
@@ -1209,9 +1301,26 @@ export function CalendarView({
 
   // View handling functions
   const handleViewChange = (newView: string) => {
-    // For non-admin users, don't allow resourceTimeGrid views
-    if (newView.startsWith("resourceTimeGrid")) {
-      newView = newView.replace("resourceTimeGrid", "timeGrid");
+    // Close any open dropdowns when view changes
+    setAddLimitDropdown({
+      open: false,
+      anchor: null,
+      date: null,
+      clinicianId: null,
+    });
+    setDropdownPosition(null);
+
+    // On scheduled page, use resource view only for day view
+    if (isScheduledPage) {
+      if (newView === "timeGridDay") {
+        newView = "resourceTimeGridDay";
+      }
+      // Keep week view as regular timeGridWeek (no resource view)
+    } else {
+      // On regular calendar page, non-admin users don't use resource views
+      if (!isAdmin && newView.startsWith("resourceTimeGrid")) {
+        newView = newView.replace("resourceTimeGrid", "timeGrid");
+      }
     }
 
     setCurrentView(newView);
@@ -1251,14 +1360,16 @@ export function CalendarView({
   };
 
   // Filter resources based on selected clinicians
-  const resources = initialClinicians
-    .filter((clinician: Clinician) =>
-      selectedClinicians.includes(clinician.value),
-    )
-    .map((clinician: Clinician) => ({
-      id: clinician.value,
-      title: clinician.label,
-    }));
+  const resources = useMemo(() => {
+    return initialClinicians
+      .filter((clinician: Clinician) =>
+        selectedClinicians.includes(clinician.value),
+      )
+      .map((clinician: Clinician) => ({
+        id: clinician.value,
+        title: clinician.label,
+      }));
+  }, [initialClinicians, selectedClinicians]);
 
   return (
     <div className="flex h-full bg-background">
@@ -1273,6 +1384,7 @@ export function CalendarView({
           initialClinicians={initialClinicians}
           initialLocations={initialLocations}
           isAdmin={isAdmin}
+          isScheduledPage={isScheduledPage}
           selectedClinicians={selectedClinicians}
           selectedLocations={selectedLocations}
           setSelectedClinicians={setSelectedClinicians}
@@ -1283,105 +1395,161 @@ export function CalendarView({
           ref={calendarRef}
           allDaySlot={true}
           allDayText="All day"
-          dayHeaderContent={
-            isScheduledPage
-              ? (args: DayHeaderContentArg) => {
-                  const dateStr = args.date.toISOString().split("T")[0];
-                  const limit = appointmentLimits[dateStr];
-                  const isDropdownOpen =
-                    addLimitDropdown.open &&
-                    addLimitDropdown.date &&
-                    dropdownPosition &&
-                    addLimitDropdown.date.toDateString() ===
-                      args.date.toDateString();
-                  let buttonText = "+ Appt Limit";
-                  if (limit === 0) buttonText = "No Availability";
-                  else if (limit !== undefined && limit !== null)
-                    buttonText = `${limit} max appts`;
-                  return (
-                    <div className="flex flex-col items-center relative">
-                      <span>{args.text}</span>
-                      <Button
-                        className="w-full text-[0.7rem] font-medium text-gray-700 mt-1 mb-1"
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => handleAddLimit(args.date, e)}
-                      >
-                        {buttonText}
-                      </Button>
-                      {isDropdownOpen && (
-                        <Card
-                          ref={addLimitDropdownRef}
-                          className="fixed bg-white z-50 min-w-[170px] overflow-hidden p-0"
-                          style={{
-                            top: dropdownPosition.top,
-                            left: dropdownPosition.left,
-                            transform: "translate(-50%, 0)",
-                            marginTop: "4px",
-                          }}
-                        >
-                          <CardHeader className="p-[10px_10px_6px_10px] border-b border-gray-100">
-                            <div className="font-bold text-[0.6rem] text-gray-800">
-                              Appt limit per day
-                            </div>
-                            <div className="font-medium text-[0.5rem] text-gray-400 mt-0.5">
-                              {addLimitDropdown.date
-                                ? `All ${addLimitDropdown.date.toLocaleDateString(undefined, { weekday: "long" })}s`
-                                : ""}
-                            </div>
-                          </CardHeader>
-                          <CardContent className="py-2 px-0 max-h-60 overflow-y-auto">
-                            <div
-                              className={`px-4 py-3 text-left cursor-pointer text-gray-800 font-bold text-[0.7rem] rounded-lg mx-2 mb-1 ${
-                                appointmentLimits[dateStr] === 0
-                                  ? "bg-gray-100"
-                                  : ""
-                              }`}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                console.log("Selecting no limit");
-                                handleSelectLimit(null);
+          resourceLabelContent={
+            isScheduledPage && initialClinicians.length > 0
+              ? (args) => {
+                  const resourceId = args.resource.id;
+                  const clinician = initialClinicians.find(
+                    (c) => c.value === resourceId,
+                  );
+
+                  // For day view, show appointment limit controls
+                  if (currentView === "resourceTimeGridDay") {
+                    // Use local date to match how we store the keys
+                    const year = currentDate.getFullYear();
+                    const month = String(currentDate.getMonth() + 1).padStart(
+                      2,
+                      "0",
+                    );
+                    const day = String(currentDate.getDate()).padStart(2, "0");
+                    const dateStr = `${year}-${month}-${day}`;
+                    const limitKey = `${resourceId}-${dateStr}`;
+                    const limit = appointmentLimits[limitKey];
+
+                    const isDropdownOpen =
+                      addLimitDropdown.open &&
+                      addLimitDropdown.date &&
+                      addLimitDropdown.date.toDateString() ===
+                        currentDate.toDateString() &&
+                      addLimitDropdown.clinicianId === resourceId;
+
+                    let buttonText = "+ Appt Limit";
+                    if (limit !== undefined && limit !== null) {
+                      if (limit === 0) {
+                        buttonText = "No Availability";
+                      } else {
+                        buttonText = `${limit} max`;
+                      }
+                    }
+
+                    return (
+                      <div className="flex flex-col items-center w-full py-2">
+                        {isAdmin && (
+                          <div className="text-sm font-medium text-gray-900 mb-2 text-center">
+                            {clinician ? clinician.label : args.resource.title}
+                          </div>
+                        )}
+                        <div className="relative">
+                          <Button
+                            className="text-xs px-2 py-1 w-full max-w-[100px]"
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAddLimitForClinician(
+                                currentDate,
+                                resourceId,
+                                e,
+                              );
+                            }}
+                          >
+                            {buttonText}
+                          </Button>
+                          {isDropdownOpen && (
+                            <Card
+                              ref={addLimitDropdownRef}
+                              className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-white z-[9999] min-w-[170px] overflow-hidden p-0 shadow-lg border"
+                              style={{
+                                position: "fixed",
+                                top: dropdownPosition?.top,
+                                left: dropdownPosition?.left,
+                                transform: "translate(-50%, 0)",
+                                zIndex: 9999,
                               }}
-                              onMouseDown={(e) => e.preventDefault()}
                             >
-                              No appt limit
-                            </div>
-                            {[...Array(20)].map((_, i: number) => {
-                              const num = i + 1;
-                              return (
+                              <CardHeader className="p-[10px_10px_6px_10px] border-b border-gray-100">
+                                <div className="font-bold text-[0.6rem] text-gray-800">
+                                  Appt limit per day
+                                </div>
+                                <div className="font-medium text-[0.5rem] text-gray-400 mt-0.5">
+                                  {clinician?.label || "Clinician"} - All{" "}
+                                  {currentDate.toLocaleDateString(undefined, {
+                                    weekday: "long",
+                                  })}
+                                  s
+                                </div>
+                              </CardHeader>
+                              <CardContent className="py-2 px-0 max-h-60 overflow-y-auto">
                                 <div
-                                  key={num}
-                                  className={`px-4 py-2.5 text-left cursor-pointer text-gray-800 font-medium text-[0.7rem] rounded-lg mx-2 mb-1 transition-colors ${
-                                    appointmentLimits[dateStr] === num
-                                      ? "bg-gray-100"
-                                      : ""
+                                  className={`px-4 py-3 text-left cursor-pointer text-gray-800 font-bold text-[0.7rem] rounded-lg mx-2 mb-1 ${
+                                    limit === 0 ? "bg-gray-100" : ""
                                   }`}
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    console.log("Selecting limit:", num);
-                                    handleSelectLimit(num);
+                                    handleSelectLimitForClinician(
+                                      null,
+                                      resourceId,
+                                    );
                                   }}
                                   onMouseDown={(e) => e.preventDefault()}
                                 >
-                                  {num}
+                                  No appt limit
                                 </div>
-                              );
-                            })}
-                          </CardContent>
-                        </Card>
-                      )}
+                                {[...Array(20)].map((_, i: number) => {
+                                  const num = i + 1;
+                                  return (
+                                    <div
+                                      key={num}
+                                      className={`px-4 py-2.5 text-left cursor-pointer text-gray-800 font-medium text-[0.7rem] rounded-lg mx-2 mb-1 transition-colors ${
+                                        limit === num ? "bg-gray-100" : ""
+                                      }`}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleSelectLimitForClinician(
+                                          num,
+                                          resourceId,
+                                        );
+                                      }}
+                                      onMouseDown={(e) => e.preventDefault()}
+                                    >
+                                      {num}
+                                    </div>
+                                  );
+                                })}
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Default - show clinician name only for admins
+                  return (
+                    <div className="text-sm font-medium text-gray-900 text-center py-2">
+                      {isAdmin && clinician ? clinician.label : ""}
                     </div>
                   );
                 }
               : undefined
           }
-          dayHeaderFormat={{
-            weekday: "short",
-            month: "numeric",
-            day: "numeric",
-            omitCommas: true,
+          dayHeaderContent={(args) => {
+            const date = args.date;
+            const weekday = date.toLocaleDateString("en-US", {
+              weekday: "short",
+            });
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return (
+              <div className="text-center">
+                <div className="font-medium">
+                  {weekday} {month}/{day}
+                </div>
+              </div>
+            );
           }}
           eventClick={handleEventClick}
           eventContent={(arg) => {
@@ -1406,15 +1574,94 @@ export function CalendarView({
 
             // Handle Availability events separately
             if (type === "availability") {
-              const title = arg.event.title || "Available";
+              const _title = arg.event.title || "Available";
+              const startTime = arg.timeText;
 
-              return (
-                <div className="p-1">
-                  <div className="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
-                    {title}
+              // Get clinician initials for week view
+              const getClinicianInitials = () => {
+                const clinician = arg.event.extendedProps?.clinician;
+                if (clinician && clinician.first_name && clinician.last_name) {
+                  return `${clinician.first_name.charAt(0)}${clinician.last_name.charAt(0)}`.toUpperCase();
+                }
+                // Fallback to finding in resources
+                const clinicianResource = resources.find(
+                  (r) => r.id === arg.event.resourceId,
+                );
+                if (clinicianResource) {
+                  const nameParts = clinicianResource.title.split(" ");
+                  if (nameParts.length >= 2) {
+                    return `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(0)}`.toUpperCase();
+                  }
+                }
+                return "AN"; // Default fallback
+              };
+
+              // Different display for calendar vs scheduled page
+              if (isScheduledPage) {
+                // Full display on scheduled page with initials in week view (only for admins)
+                if (isWeekView) {
+                  return (
+                    <div className="px-3 py-2 flex flex-col h-full">
+                      <div className="text-xs text-gray-600 mb-1">
+                        {startTime}
+                      </div>
+                      <div className="text-sm font-medium text-gray-800">
+                        {isAdmin ? `${getClinicianInitials()}: ` : ""}
+                        Availability
+                      </div>
+                    </div>
+                  );
+                } else {
+                  // Day view - no initials, Month view - with initials (only for admins)
+                  const isDayView = currentView.includes("Day");
+                  return (
+                    <div className="px-3 py-2 flex flex-col h-full">
+                      <div className="text-xs text-gray-600 mb-1">
+                        {startTime}
+                      </div>
+                      <div className="text-sm font-medium text-gray-800">
+                        {isDayView
+                          ? "Availability"
+                          : isAdmin
+                            ? `${getClinicianInitials()}: Availability`
+                            : "Availability"}
+                      </div>
+                    </div>
+                  );
+                }
+              } else {
+                // Only dotted line on calendar page - no time display
+                return (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      position: "relative",
+                    }}
+                  >
+                    <div
+                      className="availability-dotted-line"
+                      data-event-end={arg.event.end?.toISOString()}
+                      data-event-id={arg.event.id}
+                      data-event-resource={arg.event.resourceId}
+                      data-event-start={arg.event.start?.toISOString()}
+                      data-event-title={arg.event.title}
+                      data-event-time={arg.timeText}
+                      style={{
+                        width: "12px",
+                        height: "100%",
+                        borderLeft: "3px dotted #3B82F6",
+                        backgroundColor: "rgba(59, 130, 246, 0.1)",
+                        minHeight: "20px",
+                        position: "absolute",
+                        left: "0",
+                        top: "0",
+                        cursor: "pointer",
+                      }}
+                    />
                   </div>
-                </div>
-              );
+                );
+              }
             }
 
             // Handle regular Appointment events
@@ -1516,65 +1763,297 @@ export function CalendarView({
             const event = info.event;
             const type = event.extendedProps?.type;
 
-            // Add cursor pointer for all events
-            info.el.classList.add("cursor-pointer");
+            // Add cursor pointer for all events except appointment limits
+            if (type !== "appointmentLimit") {
+              info.el.classList.add("cursor-pointer");
+            }
 
             if (type === "availability") {
               const allowRequests = event.extendedProps?.allow_online_requests;
-              const isRecurring = event.extendedProps?.is_recurring;
+              const _isRecurring = event.extendedProps?.is_recurring;
 
-              // Apply Tailwind equivalent classes directly
-              info.el.classList.add(
-                "bg-[#2d84671a]",
-                "border-0",
-                "opacity-85",
-                "pointer-events-auto",
-                "z-10",
-                "relative",
-                "pl-4",
-              );
-
-              // Create the colored bar for the left side
-              const leftBar = document.createElement("div");
-              leftBar.classList.add(
-                "absolute",
-                "left-0",
-                "top-0",
-                "bottom-0",
-                "w-1",
-              );
-
-              // Set the color based on allowRequests
-              if (allowRequests) {
-                leftBar.classList.add("bg-green-500");
-              } else {
-                leftBar.classList.add("bg-red-500");
-              }
-
-              info.el.appendChild(leftBar);
-
-              // Add recurring symbol if needed
-              if (isRecurring) {
-                const recurringSymbol = document.createElement("div");
-                recurringSymbol.classList.add(
-                  "absolute",
-                  "top-1",
-                  "right-1",
-                  "text-xs",
-                  "text-gray-500",
+              // Different styling based on page type
+              if (isScheduledPage) {
+                // On scheduled page, show with background
+                info.el.classList.add(
+                  "bg-[#2d84671a]",
+                  "border-0",
+                  "opacity-85",
+                  "pointer-events-auto",
+                  "z-10",
+                  "relative",
+                  "pl-4",
                 );
-                recurringSymbol.textContent = "↻";
-                info.el.appendChild(recurringSymbol);
+
+                // Create the colored bar for the left side
+                const leftBar = document.createElement("div");
+                leftBar.classList.add(
+                  "absolute",
+                  "left-0",
+                  "top-0",
+                  "bottom-0",
+                  "w-1",
+                );
+
+                // Set the color based on allowRequests
+                if (allowRequests) {
+                  leftBar.classList.add("bg-green-500");
+                } else {
+                  leftBar.classList.add("bg-red-500");
+                }
+
+                info.el.appendChild(leftBar);
+
+                // Remove recurring symbol - commented out as requested
+                // if (isRecurring) {
+                //   const recurringSymbol = document.createElement("div");
+                //   recurringSymbol.classList.add(
+                //     "absolute",
+                //     "top-1",
+                //     "right-1",
+                //     "text-xs",
+                //     "text-gray-500",
+                //   );
+                //   recurringSymbol.textContent = "↻";
+                //   info.el.appendChild(recurringSymbol);
+                // }
+
+                // Apply hover effect
+                info.el.addEventListener("mouseenter", () => {
+                  info.el.classList.replace("opacity-85", "opacity-100");
+                });
+
+                info.el.addEventListener("mouseleave", () => {
+                  info.el.classList.replace("opacity-100", "opacity-85");
+                });
+              } else {
+                // On calendar page, minimal styling - transparent background
+                info.el.style.setProperty(
+                  "background-color",
+                  "transparent",
+                  "important",
+                );
+                info.el.style.setProperty("border", "none", "important");
+                info.el.style.setProperty("box-shadow", "none", "important");
+                info.el.classList.add("availability-event-calendar");
+
+                // Set a data attribute to identify this event
+                info.el.setAttribute("data-event-type", "availability");
+
+                // Remove all inner styling
+                const allInnerElements = info.el.querySelectorAll("*");
+                allInnerElements.forEach((el) => {
+                  if (el instanceof HTMLElement) {
+                    el.style.setProperty(
+                      "background-color",
+                      "transparent",
+                      "important",
+                    );
+                    el.style.setProperty(
+                      "background",
+                      "transparent",
+                      "important",
+                    );
+                    el.style.setProperty("border", "none", "important");
+                  }
+                });
+
+                // Create tooltip element for hover
+                let tooltip: HTMLDivElement | null = null;
+
+                // Simple hover handlers directly on the event element
+                info.el.addEventListener("mouseenter", () => {
+                  // Remove any existing tooltip
+                  if (tooltip && tooltip.parentNode) {
+                    tooltip.parentNode.removeChild(tooltip);
+                  }
+
+                  // Create and show tooltip
+                  tooltip = document.createElement("div");
+                  tooltip.style.cssText = `
+                    position: fixed;
+                    background: white;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    padding: 12px 16px;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                    min-width: 220px;
+                    z-index: 99999;
+                    pointer-events: none;
+                  `;
+
+                  // Get event details
+                  // Format the times from the event dates
+                  let startTime = "";
+                  let endTime = "";
+
+                  // First try to get the time from the data attribute we set
+                  const availabilityElement = info.el.querySelector(
+                    ".availability-dotted-line",
+                  );
+                  const eventTimeData =
+                    availabilityElement?.getAttribute("data-event-time");
+
+                  if (eventTimeData) {
+                    // Use the pre-formatted time from FullCalendar
+                    const times = eventTimeData.split(" - ");
+                    if (times.length === 2) {
+                      startTime = times[0]
+                        .replace("a", " AM")
+                        .replace("p", " PM");
+                      endTime = times[1]
+                        .replace("a", " AM")
+                        .replace("p", " PM");
+                    } else {
+                      startTime = eventTimeData
+                        .replace("a", " AM")
+                        .replace("p", " PM");
+                      endTime = "";
+                    }
+                  } else {
+                    // Try to get from time element
+                    const timeTextElement =
+                      info.el.querySelector(".fc-event-time");
+                    if (timeTextElement && timeTextElement.textContent) {
+                      const timeText = timeTextElement.textContent;
+                      const times = timeText.split(" - ");
+                      if (times.length === 2) {
+                        startTime = times[0]
+                          .replace("a", " AM")
+                          .replace("p", " PM");
+                        endTime = times[1]
+                          .replace("a", " AM")
+                          .replace("p", " PM");
+                      } else {
+                        startTime = timeText
+                          .replace("a", " AM")
+                          .replace("p", " PM");
+                        endTime = "";
+                      }
+                    } else {
+                      // Last fallback - format the dates
+                      if (event.start && event.end) {
+                        const startDate =
+                          typeof event.start === "string"
+                            ? new Date(event.start)
+                            : event.start;
+                        const endDate =
+                          typeof event.end === "string"
+                            ? new Date(event.end)
+                            : event.end;
+                        startTime = format(startDate, "h:mm a");
+                        endTime = format(endDate, "h:mm a");
+                      } else {
+                        startTime = "Time not available";
+                        endTime = "";
+                      }
+                    }
+                  }
+                  const title = event.title || "Availability";
+
+                  // Get clinician name from event extended props or resources
+                  let clinicianName = "Unknown";
+                  if (event.extendedProps?.clinician) {
+                    // If clinician data is in extended props
+                    const clinician = event.extendedProps.clinician;
+                    clinicianName = `${clinician.first_name} ${clinician.last_name}`;
+                  } else {
+                    // Fallback to finding in resources
+                    const clinicianResource = resources.find(
+                      (r) => r.id === event.resourceId,
+                    );
+                    clinicianName = clinicianResource
+                      ? clinicianResource.title
+                      : "Unknown";
+                  }
+
+                  tooltip.innerHTML = `
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">
+                      ${endTime ? `${startTime} - ${endTime}` : startTime}
+                    </div>
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px; color: #111827;">
+                      ${title}
+                    </div>
+                    ${
+                      isAdmin
+                        ? `<div style="color: #6b7280; font-size: 13px;">
+                      ${clinicianName}
+                    </div>`
+                        : ""
+                    }
+                  `;
+
+                  document.body.appendChild(tooltip);
+
+                  // Position the tooltip
+                  const rect = info.el.getBoundingClientRect();
+
+                  // Calculate position
+                  let left = rect.right + 10;
+                  let top = rect.top + rect.height / 2 - 30; // Approximate center
+
+                  // Adjust if tooltip goes off screen
+                  const tooltipWidth = 220; // min-width
+                  const tooltipHeight = 80; // approximate height
+
+                  if (left + tooltipWidth > window.innerWidth) {
+                    left = rect.left - tooltipWidth - 10;
+                  }
+
+                  if (top < 10) {
+                    top = 10;
+                  } else if (top + tooltipHeight > window.innerHeight - 10) {
+                    top = window.innerHeight - tooltipHeight - 10;
+                  }
+
+                  tooltip.style.left = `${left}px`;
+                  tooltip.style.top = `${top}px`;
+                });
+
+                info.el.addEventListener("mouseleave", () => {
+                  // Remove tooltip
+                  if (tooltip && tooltip.parentNode) {
+                    tooltip.parentNode.removeChild(tooltip);
+                    tooltip = null;
+                  }
+                });
+
+                // Also inject global CSS if not already present
+                if (
+                  !document.head.querySelector(
+                    "style[data-availability-styles]",
+                  )
+                ) {
+                  const style = document.createElement("style");
+                  style.setAttribute("data-availability-styles", "true");
+                  style.textContent = `
+                    .fc-event[data-event-type="availability"],
+                    .fc-event[data-event-type="availability"] .fc-event-main,
+                    .fc-event[data-event-type="availability"] .fc-event-main-frame,
+                    .fc-event[data-event-type="availability"] .fc-event-title-container,
+                    .fc-event[data-event-type="availability"] .fc-event-title,
+                    .fc-event[data-event-type="availability"] .fc-event-time {
+                      background: transparent !important;
+                      background-color: transparent !important;
+                      border: none !important;
+                    }
+                    
+                    .fc-event[data-event-type="availability"] {
+                      background-color: transparent !important;
+                    }
+                    
+                    .fc-event[data-event-type="availability"]:hover {
+                      background-color: transparent !important;
+                    }
+                    
+                    .fc-event[data-event-type="availability"]:hover * {
+                      background: transparent !important;
+                      background-color: transparent !important;
+                    }
+                  `;
+                  document.head.appendChild(style);
+                }
               }
-
-              // Apply hover effect
-              info.el.addEventListener("mouseenter", () => {
-                info.el.classList.replace("opacity-85", "opacity-100");
-              });
-
-              info.el.addEventListener("mouseleave", () => {
-                info.el.classList.replace("opacity-100", "opacity-85");
-              });
             } else {
               // Style regular appointments with greenish background
               info.el.style.backgroundColor = "#e6f4ea";
@@ -1601,7 +2080,11 @@ export function CalendarView({
             dayGridPlugin,
             interactionPlugin,
           ]}
-          resources={isAdmin ? resources : undefined}
+          resources={
+            isScheduledPage && currentView === "resourceTimeGridDay"
+              ? resources
+              : undefined
+          }
           select={handleDateSelect}
           selectable={true}
           slotEventOverlap={true}
@@ -1624,19 +2107,9 @@ export function CalendarView({
               duration: { days: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "2-digit",
+                hour: "numeric",
                 minute: "2-digit",
-                hour12: false,
-              },
-            },
-            resourceTimeGridWeek: {
-              type: "resourceTimeGrid",
-              duration: { weeks: 1 },
-              slotDuration: "01:00:00",
-              slotLabelFormat: {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
+                hour12: true,
               },
             },
             timeGridWeek: {
@@ -1644,9 +2117,19 @@ export function CalendarView({
               duration: { weeks: 1 },
               slotDuration: "01:00:00",
               slotLabelFormat: {
-                hour: "2-digit",
+                hour: "numeric",
                 minute: "2-digit",
-                hour12: false,
+                hour12: true,
+              },
+            },
+            resourceTimeGridWeek: {
+              type: "resourceTimeGrid",
+              duration: { weeks: 1 },
+              slotDuration: "01:00:00",
+              slotLabelFormat: {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
               },
             },
             dayGridMonth: {
@@ -1693,7 +2176,6 @@ export function CalendarView({
             : new Date()
         }
         selectedResource={selectedAvailability?.clinician_id || null}
-        onClose={() => setShowAvailabilitySidebar(false)}
         onOpenChange={setShowAvailabilitySidebar}
       />
 

@@ -296,10 +296,10 @@ export default function ClientProfile({
     <div className="flex flex-col h-full mt-2">
       {/* Breadcrumb */}
       <AdministrativeNoteDrawer
-        open={adminNoteModalOpen}
-        onOpenChange={handleNoteModalClose}
-        onNoteSaved={handleNoteSaved}
         editingNote={editingNote}
+        open={adminNoteModalOpen}
+        onNoteSaved={handleNoteSaved}
+        onOpenChange={handleNoteModalClose}
       />
       {addPaymentModalOpen && (
         <AddPaymentModal
@@ -370,8 +370,8 @@ export default function ClientProfile({
               <div className="flex justify-end p-2">
                 <Button
                   className="text-blue-500 hover:bg-blue-50"
-                  variant="ghost"
                   size="sm"
+                  variant="ghost"
                   onClick={handleAddNote}
                 >
                   <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
@@ -384,11 +384,11 @@ export default function ClientProfile({
               {administrativeNotes.map((note) => (
                 <AdministrativeNoteCard
                   key={note.id}
-                  note={note}
                   clientName={clientName}
                   dateOfBirth="09/15/1995"
-                  onEdit={handleEditNote}
+                  note={note}
                   onDelete={handleDeleteNote}
+                  onEdit={handleEditNote}
                 />
               ))}
             </div>

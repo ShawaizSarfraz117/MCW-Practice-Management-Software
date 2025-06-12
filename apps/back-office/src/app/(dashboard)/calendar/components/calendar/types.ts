@@ -60,11 +60,17 @@ export interface AvailabilityData {
   title: string;
   start_date: string;
   end_date: string;
-  location: string;
+  location?: string;
+  location_id?: string;
   clinician_id: string;
   allow_online_requests: boolean;
   is_recurring: boolean;
   recurring_rule: string | null;
+  Clinician?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
 }
 
 export interface CalendarViewProps {
@@ -116,6 +122,7 @@ export interface CalendarToolbarProps {
   currentDate: Date;
   currentView: string;
   isAdmin: boolean;
+  isScheduledPage?: boolean;
   initialClinicians: Clinician[];
   initialLocations: Location[];
   selectedLocations: string[];

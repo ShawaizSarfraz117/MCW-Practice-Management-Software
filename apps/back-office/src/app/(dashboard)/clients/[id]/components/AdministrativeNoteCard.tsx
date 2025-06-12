@@ -28,9 +28,9 @@ function DeleteConfirmationModal({
             Delete Administrative Note
           </h2>
           <Button
-            variant="ghost"
-            size="sm"
             className="p-1 h-auto"
+            size="sm"
+            variant="ghost"
             onClick={onClose}
           >
             <X className="h-5 w-5 text-gray-400" />
@@ -42,18 +42,18 @@ function DeleteConfirmationModal({
             When you delete an Administrative Note, it is deleted for all team
             members too.
           </p>
-          <a href="#" className="text-blue-500 hover:underline text-sm">
+          <a className="text-blue-500 hover:underline text-sm" href="#">
             Learn more
           </a>
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose} className="px-4 py-2">
+          <Button className="px-4 py-2" variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button
-            onClick={onConfirm}
             className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white"
+            onClick={onConfirm}
           >
             Delete now
           </Button>
@@ -243,9 +243,9 @@ export default function AdministrativeNoteCard({
               ADMINISTRATIVE NOTE
             </h3>
             <Button
-              variant="ghost"
-              size="sm"
               className="p-1 h-auto"
+              size="sm"
+              variant="ghost"
               onClick={() => setIsExpanded(!isExpanded)}
             >
               {isExpanded ? (
@@ -258,29 +258,29 @@ export default function AdministrativeNoteCard({
           {isExpanded && (
             <div className="flex items-center gap-1">
               <Button
-                variant="ghost"
-                size="sm"
                 className="p-1 h-auto text-blue-500 hover:text-blue-700"
-                onClick={handleEdit}
+                size="sm"
                 title="Edit"
+                variant="ghost"
+                onClick={handleEdit}
               >
                 <Edit className="h-4 w-4" />
               </Button>
               <Button
-                variant="ghost"
-                size="sm"
                 className="p-1 h-auto text-blue-500 hover:text-blue-700"
-                onClick={handlePrint}
+                size="sm"
                 title="Print"
+                variant="ghost"
+                onClick={handlePrint}
               >
                 <Printer className="h-4 w-4" />
               </Button>
               <Button
-                variant="ghost"
-                size="sm"
                 className="p-1 h-auto text-red-500 hover:text-red-700"
-                onClick={handleDelete}
+                size="sm"
                 title="Delete"
+                variant="ghost"
+                onClick={handleDelete}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

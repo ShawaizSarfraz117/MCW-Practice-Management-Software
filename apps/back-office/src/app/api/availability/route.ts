@@ -197,7 +197,8 @@ export async function POST(request: NextRequest) {
         if (freq === "YEAR") freq = "YEARLY";
 
         const interval = parseInt(ruleParts.INTERVAL || "1");
-        const count = parseInt(ruleParts.COUNT || "1");
+        // Only use COUNT if it's explicitly set, otherwise 0 for unlimited (until UNTIL date)
+        const count = ruleParts.COUNT ? parseInt(ruleParts.COUNT) : 0;
         const byDay = ruleParts.BYDAY?.split(",") || [];
         const until = ruleParts.UNTIL;
 
@@ -207,39 +208,40 @@ export async function POST(request: NextRequest) {
         logger.info({ byDay }, "byDay array");
         logger.info(`byDay.length: ${byDay.length}`);
 
+        // Map of day codes to day indices (0 = Sunday, 1 = Monday, etc.)
+        // Support both 2-letter (RFC5545 standard) and 3-letter codes
+        const dayCodeToIndex: Record<string, number> = {
+          // 2-letter codes (RFC5545 standard)
+          SU: 0,
+          MO: 1,
+          TU: 2,
+          WE: 3,
+          TH: 4,
+          FR: 5,
+          SA: 6,
+          // 3-letter codes (common abbreviations)
+          SUN: 0,
+          MON: 1,
+          TUE: 2,
+          WED: 3,
+          THU: 4,
+          FRI: 5,
+          SAT: 6,
+        };
+
+        const weekdays = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+
         // For weekly recurrence with specific days
         if (freq === "WEEKLY" && byDay.length > 0) {
           logger.info(`Entering WEEKLY recurrence logic`);
-          // Map of day codes to day indices (0 = Sunday, 1 = Monday, etc.)
-          // Support both 2-letter (RFC5545 standard) and 3-letter codes
-          const dayCodeToIndex: Record<string, number> = {
-            // 2-letter codes (RFC5545 standard)
-            SU: 0,
-            MO: 1,
-            TU: 2,
-            WE: 3,
-            TH: 4,
-            FR: 5,
-            SA: 6,
-            // 3-letter codes (common abbreviations)
-            SUN: 0,
-            MON: 1,
-            TUE: 2,
-            WED: 3,
-            THU: 4,
-            FRI: 5,
-            SAT: 6,
-          };
-
-          const weekdays = [
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-          ];
 
           const startDate = new Date(data.start_date!);
           const endDate = new Date(data.end_date!);
@@ -266,16 +268,38 @@ export async function POST(request: NextRequest) {
             `Master availability created on ${startDate.toISOString().split("T")[0]} (${weekdays[startDayOfWeek]})`,
           );
 
-          // Create availabilities for each specified day for several weeks
-          for (let week = 0; week < Math.ceil(count > 0 ? count : 52); week++) {
+          // Check if the master availability's day matches any of the selected days
+          let masterMatchesSelectedDays = false;
+          for (const dayCode of byDay) {
+            const dayIndex = dayCodeToIndex[dayCode.toUpperCase().trim()];
+            if (dayIndex === startDayOfWeek) {
+              masterMatchesSelectedDays = true;
+              break;
+            }
+          }
+
+          // If master doesn't match selected days, we'll need to exclude it later
+          if (!masterMatchesSelectedDays) {
             logger.info(
-              `Processing week ${week}, createdCount: ${createdCount}, target: ${count - 1}`,
+              `Master availability day (${weekdays[startDayOfWeek]}) does not match selected days (${byDay.join(",")})`,
+            );
+          }
+
+          // Create availabilities for each specified day for several weeks
+          // For "never" end type (no count or until), create 104 weeks (2 years) of availabilities
+          const maxWeeks =
+            count > 0 ? Math.ceil(count / byDay.length) : until ? 52 : 104;
+          for (let week = 0; week < maxWeeks; week++) {
+            logger.info(
+              `Processing week ${week}, createdCount: ${createdCount}, target: ${count > 0 ? (masterMatchesSelectedDays ? count - 1 : count) : "unlimited (until date)"}`,
             );
 
             // For each day specified in BYDAY
             for (const dayCode of byDay) {
-              // Skip if we've reached the maximum count (count - 1 because master already exists)
-              if (count > 0 && createdCount >= count - 1) break;
+              // Skip if we've reached the maximum count
+              // If master doesn't match selected days, we need full count, otherwise count - 1
+              const targetCount = masterMatchesSelectedDays ? count - 1 : count;
+              if (count > 0 && createdCount >= targetCount) break;
 
               const dayIndex = dayCodeToIndex[dayCode.toUpperCase().trim()];
               if (dayIndex === undefined) {
@@ -317,10 +341,26 @@ export async function POST(request: NextRequest) {
 
               // If UNTIL is specified, check if we've passed the end date
               if (until) {
-                const untilDate = new Date(
-                  `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`,
-                );
-                if (availabilityDate > untilDate) break;
+                // Handle both YYYYMMDD and YYYYMMDDTHHMMSSZ formats
+                let untilDate: Date;
+                if (until.includes("T")) {
+                  // Full datetime format (e.g., 20240131T235959Z)
+                  const dateOnly = until.slice(0, 8);
+                  untilDate = new Date(
+                    `${dateOnly.slice(0, 4)}-${dateOnly.slice(4, 6)}-${dateOnly.slice(6, 8)}`,
+                  );
+                } else {
+                  // Simple date format (e.g., 20240131)
+                  untilDate = new Date(
+                    `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`,
+                  );
+                }
+                if (availabilityDate > untilDate) {
+                  logger.info(
+                    `  Skipping - after until date ${untilDate.toISOString()}`,
+                  );
+                  break;
+                }
               }
 
               // Calculate end date for this occurrence
@@ -372,16 +412,74 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            // Break outer loop if we've created enough
-            if (count > 0 && createdCount >= count - 1) break;
+            // Break outer loop if we've created enough or passed until date
+            const targetCount = masterMatchesSelectedDays ? count - 1 : count;
+            if (count > 0 && createdCount >= targetCount) break;
+
+            // Also break if we have an until date and all days in this week would be past it
+            if (until) {
+              // Calculate the last day of this week to check
+              const lastDayOfWeek = new Date(startOfWeek);
+              lastDayOfWeek.setDate(
+                startOfWeek.getDate() + 6 + week * 7 * interval,
+              );
+
+              // Parse until date
+              let untilDate: Date;
+              if (until.includes("T")) {
+                const dateOnly = until.slice(0, 8);
+                untilDate = new Date(
+                  `${dateOnly.slice(0, 4)}-${dateOnly.slice(4, 6)}-${dateOnly.slice(6, 8)}`,
+                );
+              } else {
+                untilDate = new Date(
+                  `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`,
+                );
+              }
+
+              if (lastDayOfWeek > untilDate) {
+                logger.info(
+                  `Breaking weekly loop - week ${week} is past until date`,
+                );
+                break;
+              }
+            }
           }
         }
-        // For monthly and yearly recurrence (simplified for now)
-        else if ((freq === "MONTHLY" || freq === "YEARLY") && count > 1) {
+        // For monthly and yearly recurrence
+        else if (freq === "MONTHLY" || freq === "YEARLY") {
           const startDate = new Date(data.start_date!);
           const endDate = new Date(data.end_date!);
 
-          for (let i = 1; i < count; i++) {
+          // Determine max iterations based on end type
+          let maxIterations: number;
+          if (count > 0) {
+            maxIterations = count - 1; // Subtract 1 because master already exists
+          } else if (until) {
+            // Calculate based on until date
+            maxIterations = freq === "MONTHLY" ? 24 : 5; // 2 years for monthly, 5 years for yearly
+          } else {
+            // "never" case - create reasonable amount
+            maxIterations = freq === "MONTHLY" ? 24 : 5; // 2 years for monthly, 5 years for yearly
+          }
+
+          // Parse until date if specified
+          let untilDate: Date | null = null;
+          if (until) {
+            // Handle both YYYYMMDD and YYYYMMDDTHHMMSSZ formats
+            if (until.includes("T")) {
+              const dateOnly = until.slice(0, 8);
+              untilDate = new Date(
+                `${dateOnly.slice(0, 4)}-${dateOnly.slice(4, 6)}-${dateOnly.slice(6, 8)}`,
+              );
+            } else {
+              untilDate = new Date(
+                `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`,
+              );
+            }
+          }
+
+          for (let i = 1; i <= maxIterations; i++) {
             const newStartDate = new Date(startDate);
             const newEndDate = new Date(endDate);
 
@@ -391,6 +489,14 @@ export async function POST(request: NextRequest) {
             } else {
               newStartDate.setFullYear(startDate.getFullYear() + i * interval);
               newEndDate.setFullYear(endDate.getFullYear() + i * interval);
+            }
+
+            // Check if we've passed the until date
+            if (untilDate && newStartDate > untilDate) {
+              logger.info(
+                `Stopping monthly/yearly recurrence - passed until date ${untilDate.toISOString()}`,
+              );
+              break;
             }
 
             // Create the recurring availability instance
@@ -424,6 +530,34 @@ export async function POST(request: NextRequest) {
         logger.info(
           `Finished creating recurring availabilities. Total created: ${allAvailabilities.length} (1 master + ${allAvailabilities.length - 1} children)`,
         );
+
+        // For weekly recurring with specific days, remove master if it doesn't match selected days
+        if (freq === "WEEKLY" && byDay.length > 0) {
+          const startDate = new Date(data.start_date!);
+          const startDayOfWeek = startDate.getDay();
+
+          let masterMatchesSelectedDays = false;
+          for (const dayCode of byDay) {
+            const dayIndex = dayCodeToIndex[dayCode.toUpperCase().trim()];
+            if (dayIndex === startDayOfWeek) {
+              masterMatchesSelectedDays = true;
+              break;
+            }
+          }
+
+          if (!masterMatchesSelectedDays) {
+            // Remove the master availability from the list (but keep in DB for foreign key integrity)
+            const masterIndex = allAvailabilities.findIndex(
+              (a) => a.id === masterAvailability.id,
+            );
+            if (masterIndex > -1) {
+              allAvailabilities.splice(masterIndex, 1);
+              logger.info(
+                `Excluded master availability from results as it doesn't match selected days`,
+              );
+            }
+          }
+        }
       }
 
       // Now add services to all created availabilities
@@ -633,6 +767,13 @@ export async function GET(request: NextRequest) {
               address: true,
             },
           },
+          Clinician: {
+            select: {
+              id: true,
+              first_name: true,
+              last_name: true,
+            },
+          },
         },
       });
 
@@ -678,6 +819,7 @@ export async function GET(request: NextRequest) {
         allow_online_requests: true,
         is_recurring: true,
         recurring_rule: true,
+        recurring_availability_id: true,
         created_at: true,
         updated_at: true,
         Location: {
@@ -687,10 +829,73 @@ export async function GET(request: NextRequest) {
             address: true,
           },
         },
+        Clinician: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json(availabilities);
+    // Map of day codes to day indices for filtering
+    const dayCodeToIndex: Record<string, number> = {
+      SU: 0,
+      MO: 1,
+      TU: 2,
+      WE: 3,
+      TH: 4,
+      FR: 5,
+      SA: 6,
+      SUN: 0,
+      MON: 1,
+      TUE: 2,
+      WED: 3,
+      THU: 4,
+      FRI: 5,
+      SAT: 6,
+    };
+
+    // Filter out master availabilities that don't match their recurring pattern
+    const filteredAvailabilities = availabilities.filter((availability) => {
+      // If it's not recurring, include it
+      if (!availability.is_recurring || !availability.recurring_rule) {
+        return true;
+      }
+
+      // If it has a recurring_availability_id, it's a child - include it
+      if (availability.recurring_availability_id) {
+        return true;
+      }
+
+      // It's a master availability - check if it matches the recurring pattern
+      const recurringRule = availability.recurring_rule;
+      const byDayMatch = recurringRule.match(/BYDAY=([^;]+)/);
+
+      if (byDayMatch) {
+        const selectedDays = byDayMatch[1].split(",");
+        const availabilityDayOfWeek = new Date(
+          availability.start_date,
+        ).getDay();
+
+        // Check if the availability's day matches any selected day
+        for (const dayCode of selectedDays) {
+          const dayIndex = dayCodeToIndex[dayCode.toUpperCase().trim()];
+          if (dayIndex === availabilityDayOfWeek) {
+            return true; // Master matches pattern - include it
+          }
+        }
+
+        // Master doesn't match pattern - exclude it
+        return false;
+      }
+
+      // No BYDAY rule - include it
+      return true;
+    });
+
+    return NextResponse.json(filteredAvailabilities);
   } catch (error) {
     logger.error({ error }, "Error fetching availabilities");
     return NextResponse.json(
