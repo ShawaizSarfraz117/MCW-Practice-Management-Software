@@ -33,7 +33,7 @@ export default function ScoredMeasure({ searchParams }: PageProps) {
       {/* Breadcrumb and Message Button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
         <div className="text-sm text-gray-500 flex flex-wrap items-center gap-1">
-          <Link href="/clients" className="hover:underline">
+          <Link className="hover:underline" href="/clients">
             Clients and contacts
           </Link>
           <span>/</span>
@@ -42,8 +42,8 @@ export default function ScoredMeasure({ searchParams }: PageProps) {
           </span>
         </div>
         <Button
-          variant="outline"
           className="mt-2 sm:mt-0 flex items-center gap-2"
+          variant="outline"
         >
           <MessageCircle className="h-4 w-4" />
           Message
@@ -57,11 +57,11 @@ export default function ScoredMeasure({ searchParams }: PageProps) {
         <span className="text-gray-300">|</span>
         07/12/2024 (0)
         <span className="text-gray-300">|</span>
-        <Link href="#" className="text-[#2d8467] hover:underline">
+        <Link className="text-[#2d8467] hover:underline" href="#">
           Schedule appointment
         </Link>
         <span className="text-gray-300">|</span>
-        <Link href="#" className="text-[#2d8467] hover:underline">
+        <Link className="text-[#2d8467] hover:underline" href="#">
           Edit
         </Link>
       </div>
@@ -71,7 +71,7 @@ export default function ScoredMeasure({ searchParams }: PageProps) {
         <h2 className="text-xl font-semibold">Scored measure</h2>
         <div className="text-sm text-gray-600">
           Completing on behalf of Jamie. For client completion,{" "}
-          <Link href="#" className="text-[#2d8467] hover:underline">
+          <Link className="text-[#2d8467] hover:underline" href="#">
             share now.
           </Link>
         </div>
@@ -94,16 +94,16 @@ export default function ScoredMeasure({ searchParams }: PageProps) {
         {measure === "GAD-7" && (
           <GAD7Form
             answers={gad7Answers}
-            setAnswers={setGad7Answers}
             difficulty={gad7Difficulty}
+            setAnswers={setGad7Answers}
             setDifficulty={setGad7Difficulty}
           />
         )}
         {measure === "PHQ-9" && (
           <PHQ9Form
             answers={phq9Answers}
-            setAnswers={setPhq9Answers}
             difficulty={phq9Difficulty}
+            setAnswers={setPhq9Answers}
             setDifficulty={setPhq9Difficulty}
           />
         )}
@@ -118,25 +118,25 @@ export default function ScoredMeasure({ searchParams }: PageProps) {
               Date and time of completion
             </label>
             <Input
+              className="w-full"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full"
             />
           </div>
           <div className="flex items-end">
             <Input
+              className="w-full"
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="w-full"
             />
           </div>
         </div>
 
         {/* Buttons */}
         <div className="flex gap-2 mt-4">
-          <Button variant="outline" type="button">
+          <Button type="button" variant="outline">
             Cancel
           </Button>
           <Button

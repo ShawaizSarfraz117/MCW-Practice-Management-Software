@@ -60,12 +60,12 @@ export default function PHQ9Form({
                 className="flex items-center gap-2 text-gray-700"
               >
                 <input
-                  type="radio"
-                  name={`phq9q${idx}`}
-                  value={opt}
                   checked={answers[idx] === opt}
-                  onChange={() => handleAnswer(idx, opt)}
                   className="accent-[#2d8467]"
+                  name={`phq9q${idx}`}
+                  type="radio"
+                  value={opt}
+                  onChange={() => handleAnswer(idx, opt)}
                 />
                 {opt}
               </label>
@@ -85,12 +85,12 @@ export default function PHQ9Form({
           {DIFFICULTY_OPTIONS.map((opt) => (
             <label key={opt} className="flex items-center gap-2 text-gray-700">
               <input
-                type="radio"
-                name="phq9difficulty"
-                value={opt}
                 checked={difficulty === opt}
-                onChange={() => setDifficulty(opt)}
                 className="accent-[#2d8467]"
+                name="phq9difficulty"
+                type="radio"
+                value={opt}
+                onChange={() => setDifficulty(opt)}
               />
               {opt}
             </label>

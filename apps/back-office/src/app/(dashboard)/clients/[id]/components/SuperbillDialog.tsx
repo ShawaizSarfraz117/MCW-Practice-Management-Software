@@ -5,53 +5,75 @@ import { Button } from "@mcw/ui";
 import { Dialog, DialogContent } from "@mcw/ui";
 import { format } from "date-fns";
 import { useRef, useState, useEffect } from "react";
-import { useParams, useSearchParams } from "next/navigation";
-import { fetchInvoices } from "@/(dashboard)/clients/services/client.service";
+import { useSearchParams } from "next/navigation";
+import { fetchSingleSuperbill } from "@/(dashboard)/clients/services/documents.service";
 import Loading from "@/components/Loading";
 
 interface Appointment {
   id: string;
-  start_date?: string | Date;
-  title?: string;
-  fee?: number;
-  appointment_fee?: number | string;
-  paid?: string;
-}
-
-interface Provider {
-  name: string;
-  address1: string;
-  address2: string;
-  email: string;
-  license: string;
+  type: string;
+  title?: string | null;
+  is_all_day: boolean;
+  start_date: string;
+  end_date: string;
+  location_id: string;
+  created_by: string;
+  status: string;
+  clinician_id: string;
+  appointment_fee: string;
+  service_id: string;
+  is_recurring: boolean;
+  recurring_rule?: string | null;
+  cancel_appointments?: string | null;
+  notify_cancellation?: string | null;
+  recurring_appointment_id?: string | null;
+  client_group_id: string;
+  adjustable_amount: string;
+  superbill_id: string;
+  write_off?: string | null;
+  PracticeService: {
+    id: string;
+    type: string;
+    rate: string;
+    code: string;
+    description: string;
+    duration: number;
+    color?: string | null;
+    allow_new_clients: boolean;
+    available_online: boolean;
+    bill_in_units: boolean;
+    block_after: number;
+    block_before: number;
+    is_default: boolean;
+    require_call: boolean;
+  };
+  Location: {
+    id: string;
+    name: string;
+    address: string;
+    is_active: boolean;
+    city?: string | null;
+    color?: string | null;
+    state?: string | null;
+    street?: string | null;
+    zip?: string | null;
+  };
 }
 
 interface Superbill {
   id: string;
-  invoice_number: string;
-  amount: number | string;
+  superbill_number: number;
+  client_group_id: string;
+  issued_date: string;
+  provider_name: string;
+  provider_email: string;
+  provider_license?: string | null;
+  client_name: string;
   status: string;
-  type: string;
-  created_at?: string | Date;
-  paid_amount?: number | string;
-  appointments?: Appointment[];
-  provider?: Provider;
-  ClientGroup?: {
-    name?: string;
-    ClientGroupMembership: Array<{
-      Client: {
-        legal_first_name?: string;
-        legal_last_name?: string;
-      };
-    }>;
-  };
-  Clinician?: {
-    first_name?: string;
-    last_name?: string;
-    User?: {
-      email?: string;
-    };
-  };
+  created_at: string;
+  created_by?: string | null;
+  is_exported: boolean;
+  Appointment: Appointment[];
 }
 
 interface SuperbillDialogProps {
@@ -64,18 +86,17 @@ export function SuperbillDialog({ open, onOpenChange }: SuperbillDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const superbillContentRef = useRef<HTMLDivElement>(null);
-  const params = useParams();
   const searchParams = useSearchParams();
-  const invoiceId = searchParams.get("invoiceId");
+  const superbillId = searchParams.get("superbillId");
 
   // Fetch superbill data when the dialog opens
   useEffect(() => {
-    if (open && invoiceId) {
+    if (open && superbillId) {
       const fetchSuperbillData = async () => {
         setIsLoading(true);
         try {
-          const [data, err] = await fetchInvoices({
-            searchParams: { id: invoiceId, clientGroupId: params.id },
+          const [data, err] = await fetchSingleSuperbill({
+            searchParams: { id: superbillId },
           });
           if (err instanceof Error) {
             setError(err);
@@ -93,23 +114,18 @@ export function SuperbillDialog({ open, onOpenChange }: SuperbillDialogProps) {
 
       fetchSuperbillData();
     }
-  }, [open, invoiceId, params.id]);
+  }, [open, superbillId]);
 
   // Create client name from the data
-  const clientName = superbill?.ClientGroup?.ClientGroupMembership[0]?.Client
-    ?.legal_first_name
-    ? `${superbill.ClientGroup.ClientGroupMembership[0].Client.legal_first_name || ""} ${superbill.ClientGroup.ClientGroupMembership[0].Client.legal_last_name || ""}`.trim()
-    : "Client";
+  const clientName = superbill?.client_name || "Client";
 
   // Provider details
-  const provider = superbill?.provider || {
-    name: superbill?.Clinician?.first_name
-      ? `${superbill.Clinician.first_name || ""} ${superbill.Clinician.last_name || ""}`.trim()
-      : "Provider",
+  const provider = {
+    name: superbill?.provider_name || "Provider",
     address1: "Va 13",
     address2: "Carolina, PR 00983-232323",
-    email: superbill?.Clinician?.User?.email || "provider@example.com",
-    license: "LMFT #1234",
+    email: superbill?.provider_email || "provider@example.com",
+    license: superbill?.provider_license || "LMFT #1234",
   };
 
   const handlePrint = () => {
@@ -219,12 +235,12 @@ export function SuperbillDialog({ open, onOpenChange }: SuperbillDialogProps) {
                 <div>
                   <p className="text-gray-600 mb-1">Statement</p>
                   <p className="font-medium">
-                    #{superbill.invoice_number || "0018"}
+                    #{superbill.superbill_number || "0018"}
                   </p>
                   <p>
                     Issued:{" "}
-                    {superbill.created_at
-                      ? format(new Date(superbill.created_at), "MM/dd/yyyy")
+                    {superbill.issued_date
+                      ? format(new Date(superbill.issued_date), "MM/dd/yyyy")
                       : "05/03/2025"}
                   </p>
 
@@ -252,55 +268,80 @@ export function SuperbillDialog({ open, onOpenChange }: SuperbillDialogProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {superbill.appointments?.map((appointment, index) => (
-                    <tr key={index} className="border-b border-gray-200">
-                      <td className="py-2 px-4">
-                        {appointment.start_date
-                          ? format(
-                              new Date(appointment.start_date),
-                              "MM/dd/yyyy",
-                            )
-                          : "--"}
-                      </td>
-                      <td className="py-2 px-4">02</td>
-                      <td className="py-2 px-4">90834</td>
-                      <td className="py-2 px-4">-</td>
-                      <td className="py-2 px-4">
-                        {appointment.title || "Psychotherapy, 45 min"}
-                      </td>
-                      <td className="text-right py-2 px-4">1</td>
-                      <td className="text-right py-2 px-4">
-                        ${appointment.fee || appointment.appointment_fee || 150}
-                      </td>
-                      <td className="text-right py-2 px-4">
-                        ${appointment.paid || "100.00 CR"}
-                      </td>
-                    </tr>
-                  ))}
+                  {superbill.Appointment?.map((appointment) => {
+                    const totalPaid =
+                      Number(appointment.appointment_fee) -
+                      Number(appointment.adjustable_amount || 0);
+                    return (
+                      <tr
+                        key={appointment.id}
+                        className="border-b border-gray-200"
+                      >
+                        <td className="py-2 px-4">
+                          {format(
+                            new Date(appointment.start_date),
+                            "MM/dd/yyyy",
+                          )}
+                        </td>
+                        <td className="py-2 px-4">
+                          {appointment.Location?.name?.includes("Telehealth")
+                            ? "02"
+                            : "11"}
+                        </td>
+                        <td className="py-2 px-4">
+                          {appointment.PracticeService?.code || "90834"}
+                        </td>
+                        <td className="py-2 px-4">-</td>
+                        <td className="py-2 px-4">
+                          {appointment.PracticeService?.description ||
+                            appointment.PracticeService?.type ||
+                            "Psychotherapy"}
+                        </td>
+                        <td className="text-right py-2 px-4">1</td>
+                        <td className="text-right py-2 px-4">
+                          ${appointment.appointment_fee}
+                        </td>
+                        <td className="text-right py-2 px-4">
+                          ${totalPaid.toFixed(2)} CR
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={5}></td>
+                    <td colSpan={5} />
                     <td
-                      colSpan={2}
                       className="text-right py-2 px-4 font-medium"
+                      colSpan={2}
                     >
                       Total Fees
                     </td>
                     <td className="text-right py-2 px-4">
-                      ${superbill.amount || "150.00"}
+                      $
+                      {superbill.Appointment?.reduce(
+                        (sum, app) => sum + Number(app.appointment_fee),
+                        0,
+                      ).toFixed(2) || "0.00"}
                     </td>
                   </tr>
                   <tr>
-                    <td colSpan={5}></td>
+                    <td colSpan={5} />
                     <td
-                      colSpan={2}
                       className="text-right py-2 px-4 font-medium"
+                      colSpan={2}
                     >
                       Total Paid
                     </td>
                     <td className="text-right py-2 px-4">
-                      -${superbill.paid_amount || "100.00"}
+                      -$
+                      {superbill.Appointment?.reduce(
+                        (sum, app) =>
+                          sum +
+                          (Number(app.appointment_fee) -
+                            Number(app.adjustable_amount || 0)),
+                        0,
+                      ).toFixed(2) || "0.00"}
                     </td>
                   </tr>
                 </tfoot>

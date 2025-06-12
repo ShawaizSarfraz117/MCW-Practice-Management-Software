@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+See @README for project overview and @package.json for available npm commands.
+
 ## CRITICAL INSTRUCTIONS - MUST NEVER BE IGNORED
 
 **DISCUSSION AND COLLABORATION REQUIREMENTS**:
@@ -22,76 +24,32 @@ MCW Practice Management Software is a HIPAA-compliant healthcare practice manage
 
 The project prioritizes **safety, security, and privacy** as it handles medical records. The codebase follows AI-first development principles where 95% of code is AI-generated while maintaining strict quality standards for security, privacy, and testing.
 
-## Architecture
+## Architecture and Development
 
-### Monorepo Structure
-
-- **apps/back-office**: Admin/clinician dashboard (Next.js 14 App Router) - port 3001
-- **apps/front-office**: Client-facing portal (Next.js 14 App Router) - port 3000
-- **packages/database**: Shared Prisma ORM schema with MS SQL Server
-- **packages/ui**: Shared ShadCN-based UI components
-- **packages/logger**: Centralized Pino-based logging with request context
-- **packages/utils**: Shared utilities and helpers
-- **packages/types**: Shared TypeScript types
-- **Build System**: Turborepo for orchestrating builds and tasks
-
-### Technology Stack
-
-- **Framework**: Next.js 14 with App Router and TypeScript
-- **UI**: React + Tailwind CSS + ShadCN UI components (`packages/ui/`)
-- **Database**: MS SQL Server with Prisma ORM
-- **Authentication**: NextAuth.js with role-based access control (ADMIN, CLINICIAN)
-- **State Management**: TanStack Query for server state, React state for forms
-- **Testing**: Vitest with comprehensive integration and unit testing
-- **Logging**: Unified Pino-based logging system with request context and file rotation
-
-### Key Patterns
-
-- **API Routes**: Next.js Route Handlers in `src/app/api/` following feature-based grouping
-- **Database Access**: Shared Prisma client from `@mcw/database` package
-- **Component Reuse**: Shared UI components in `packages/ui/` using ShadCN patterns
-- **Type Safety**: Strict TypeScript with shared types in `@mcw/types`
-
-### API Development Pattern
-
-All API routes follow this structure in `src/app/api/[feature]/route.ts`:
-
-```typescript
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@mcw/database";
-import { logger } from "@mcw/logger";
-
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    // Implementation
-    return NextResponse.json(data);
-  } catch (error: unknown) {
-    logger.error(`Operation failed: ${error?.message || error}`);
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
-  }
-}
-```
+- @Docs/architecture.md
+- @Docs/api-patterns.md
+- @Docs/code-quality-conventions.md
+- @Docs/TYPE_SYSTEM_ARCHITECTURE.md
 
 ## Development Commands
 
-### Setup
+- @Docs/development-commands.md
+- @Docs/verification-commands.md
 
-```bash
-# Install dependencies
-npm install
+## Environment and Testing
 
-# Setup environment
-cp .env.example .env.local
-# Update DATABASE_URL in .env.local
+- @Docs/environment-setup.md
+- @Docs/testing-guidelines.md
+- @Docs/error-handling.md
 
-# Generate Prisma client and run migrations
-npx prisma generate --schema=./packages/database/prisma/schema.prisma
-npx prisma migrate dev
-```
+## Domain-Specific Documentation
 
-### Development
+- @Docs/appointment-tags.md
+- @Docs/API_INTEGRATION_ANALYSIS.md
+- @Docs/REPOSITORY_PATTERN_PROPOSAL.md
+- @Docs/schema_notes.md
 
+<<<<<<< HEAD
 ```bash
 # Start all apps in development mode
 npm run dev
@@ -563,7 +521,7 @@ This automatically:
 - Mock boundaries at repository level for unit tests
 - Integration tests use real database interactions
 
-**Type Safety Rules**:
+## Type Safety Rules
 
 We follow a strict three-layer type hierarchy. Types flow DOWN, never UP:
 
@@ -571,9 +529,7 @@ We follow a strict three-layer type hierarchy. Types flow DOWN, never UP:
 2. **Shared types** (`@mcw/types`) → All shared business types
 3. **App types** (`apps/*/src/types/`) → UI-specific only
 
-See [Type System Architecture](./Docs/TYPE_SYSTEM_ARCHITECTURE.md) for detailed rules and examples.
-
-**Validation**: Co-locate validation schemas with type definitions (see Architecture doc)
+See @Docs/TYPE_SYSTEM_ARCHITECTURE.md for detailed rules and examples.
 
 **Key Rules**:
 
@@ -581,20 +537,12 @@ See [Type System Architecture](./Docs/TYPE_SYSTEM_ARCHITECTURE.md) for detailed 
 - **Use Prisma types from `@mcw/database`** only when creating new shared types in `@mcw/types`
 - **NEVER create duplicate type definitions** in individual components or pages
 - **Follow naming conventions**: snake_case for API/DB, camelCase for UI
-- Import order:
-  1. First check `@mcw/types` for existing shared types
-  2. If not found, create in `@mcw/types` using Prisma types from `@mcw/database`
-  3. Never create local interfaces for data that comes from the database
-- Example:
 
-  ```typescript
-  // Good - use shared types
-  import { SafeUserWithRelations, TeamMembersResponse } from "@mcw/types";
+## Individual Developer Preferences
 
-  // Good - creating new shared types in packages/types
-  import { User, Clinician } from "@mcw/database";
-  export type SafeUser = Omit<User, "password_hash">;
+Add your personal preferences file:
 
+<<<<<<< HEAD
   // Bad - creating local types in components
   interface TeamMember {
     id: string;

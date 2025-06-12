@@ -38,7 +38,7 @@ export default function ServicesEdit({ member, onSubmit }: ServicesEditProps) {
   };
 
   return (
-    <form id="services-edit-form" className="space-y-4" onSubmit={handleSubmit}>
+    <form className="space-y-4" id="services-edit-form" onSubmit={handleSubmit}>
       <div>
         <Label>Available Services</Label>
         {isLoading ? (

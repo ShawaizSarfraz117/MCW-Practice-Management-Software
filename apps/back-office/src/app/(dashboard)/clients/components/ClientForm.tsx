@@ -94,7 +94,7 @@ export function ClientForm({
   }, []);
 
   const isContactTab = tabId === "client-2" && clientType === "minor";
-  const shouldShowClinicianAndLocation = clientType === "minor" && isContactTab;
+  const isPrimaryClientTab = tabId === "client-1";
 
   // Helper to handle input changes with validation clearing
   const handleInputChange = (fieldName: string, newValue: string) => {
@@ -225,6 +225,60 @@ export function ClientForm({
         )}
       </div>
 
+      {isPrimaryClientTab && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div className="space-y-2">
+            <Label>Primary Clinician</Label>
+            <Select
+              value={value.primaryClinicianId || ""}
+              onValueChange={(newValue) =>
+                field.setValue({
+                  ...value,
+                  primaryClinicianId: newValue,
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={isLoading ? "Loading..." : "Select clinician"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {clinicians.map((clinician) => (
+                  <SelectItem key={clinician.id} value={clinician.id}>
+                    {clinician.first_name} {clinician.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Location</Label>
+            <Select
+              value={value.locationId || ""}
+              onValueChange={(newValue) =>
+                field.setValue({
+                  ...value,
+                  locationId: newValue,
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={isLoading ? "Loading..." : "Select location"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
       {/* Contact Details Section */}
       <ContactDetailsSection
         clearValidationError={clearValidationError}
@@ -281,68 +335,11 @@ export function ClientForm({
             </div>
           </div>
         </div>
-
-        {/* Clinician and Location */}
-        {shouldShowClinicianAndLocation && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="space-y-2">
-              <Label>Primary Clinician</Label>
-              <Select
-                value={value.primaryClinicianId || ""}
-                onValueChange={(newValue) =>
-                  field.setValue({
-                    ...value,
-                    primaryClinicianId: newValue,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={isLoading ? "Loading..." : "Select clinician"}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {clinicians.map((clinician) => (
-                    <SelectItem key={clinician.id} value={clinician.id}>
-                      {clinician.first_name} {clinician.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Select
-                value={value.locationId || ""}
-                onValueChange={(newValue) =>
-                  field.setValue({
-                    ...value,
-                    locationId: newValue,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={isLoading ? "Loading..." : "Select location"}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Notification Preferences Section */}
       <NotificationPreferencesSection
         emails={value.emails || []}
-        phones={value.phones || []}
         notificationOptions={
           value.notificationOptions || {
             upcomingAppointments: {
@@ -365,6 +362,7 @@ export function ClientForm({
             },
           }
         }
+        phones={value.phones || []}
         onNotificationOptionsChange={(newOptions) =>
           field.setValue({
             ...value,

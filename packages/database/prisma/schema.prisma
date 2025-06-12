@@ -111,8 +111,12 @@ model Availability {
   /// Whether clients can request appointments during this time via portal.
   allow_online_requests Boolean                @default(false, map: "DF_Availability_AllowOnlineRequests")
   location_id           String                 @db.UniqueIdentifier
+  /// For recurring availabilities: NULL if this is the parent/template, or parent's ID if this is a child instance.
+  recurring_availability_id String?            @db.UniqueIdentifier
   Clinician             Clinician              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Clinician")
   Location              Location               @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Location")
+  Availability          Availability?         @relation("AvailabilityToAvailability", fields: [recurring_availability_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Availability_RecurringAvailability")
+  other_Availability    Availability[]        @relation("AvailabilityToAvailability")
   AvailabilityServices  AvailabilityServices[]
 
   @@index([clinician_id], map: "IX_Availability_clinician_id")
@@ -154,8 +158,8 @@ model Client {
   ClinicianClient          ClinicianClient[]
   CreditCard               CreditCard[]
   DiagnosisTreatmentPlan   DiagnosisTreatmentPlan[]
-  GoodFaithEstimate        GoodFaithEstimate[]
   SurveyAnswers            SurveyAnswers[]
+  GoodFaithClients         GoodFaithClients[]
 }
 
 /// Extended demographic and personal information for a client.
@@ -224,6 +228,7 @@ model ClientGroup {
   auto_monthly_superbill_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_superbill_enabled")
   first_seen_at                  DateTime?                  @default(now(), map: "ClientGroup_first_seen_at")
   notes                          String?                    @db.Text
+  administrative_notes           String?                    @db.Text
   Appointment                    Appointment[]
   ClientBillingPreferences       ClientBillingPreferences[]
   Clinician                      Clinician?                 @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
@@ -233,6 +238,7 @@ model ClientGroup {
   Invoice                        Invoice[]
   Statement                      Statement[]
   Superbill                      Superbill[]
+  ClientGroupChartNote           ClientGroupChartNote[]
 }
 
 /// Junction table linking clients to groups with role information.
@@ -250,6 +256,16 @@ model ClientGroupMembership {
 
   @@id([client_group_id, client_id], map: "PK_ClientGroupMembership_ID")
   @@index([client_id], map: "IX_ClientGroupMembership_client_id")
+}
+
+model ClientGroupChartNote {
+  id                 String        @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  text               String        @db.Text
+  client_group_id    String        @db.UniqueIdentifier
+  note_date          DateTime      @default(now())
+  ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupChartNote_ClientGroup")
+
+  @@index([client_group_id], map: "IX_ClientGroupChartNote_client_group_id")
 }
 
 /// Client preferences for appointment reminders and notifications.
@@ -321,7 +337,7 @@ model ClinicianClient {
   is_primary    Boolean   @default(false, map: "DF_ClinicianClient_IsPrimary")
   assigned_date DateTime  @default(now(), map: "DF__Clinician__assig__430CD787")
   Client        Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Client")
-  Clinician     Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Clinician")
+  Clinician     Clinician  @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Clinician")
 
   @@id([client_id, clinician_id], map: "PK_ClinicianClient_ID")
 }
@@ -858,17 +874,8 @@ model DiagnosisTreatmentPlanItem {
 
 /// Good faith estimates for uninsured clients (No Surprises Act compliance).
 model GoodFaithEstimate {
-  id                    String              @id(map: "PK_GoodFaithEstimate") @db.UniqueIdentifier
-  client_id             String              @db.UniqueIdentifier
+  id                    String              @id(map: "PK_GoodFaithEstimate") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   clinician_id          String              @db.UniqueIdentifier
-  client_name           String?             @db.VarChar(100)
-  client_dob            DateTime?           @db.Date
-  client_address        String?             @db.VarChar(250)
-  client_city           String?             @db.VarChar(100)
-  client_state          String?             @db.VarChar(100)
-  client_zip_code       Int?
-  client_phone          String?             @db.VarChar(50)
-  client_email          String?             @db.VarChar(100)
   clinician_npi         String?             @db.VarChar(100)
   clinician_tin         String?             @db.VarChar(100)
   clinician_location_id String              @db.UniqueIdentifier
@@ -881,15 +888,36 @@ model GoodFaithEstimate {
   service_end_date      DateTime?           @db.Date
   /// Total estimated cost in dollars.
   total_cost            Int
-  Client                Client              @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Client")
+  notes                 String?             @db.Text
   Clinician             Clinician           @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Clinician")
   Location              Location            @relation(fields: [clinician_location_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Location")
   GoodFaithServices     GoodFaithServices[]
+  GoodFaithClients      GoodFaithClients[]
+}
+
+model GoodFaithClients {
+  id                String            @id(map: "PK_GoodFaithClients") @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  client_id         String            @db.UniqueIdentifier
+  good_faith_id     String            @db.UniqueIdentifier
+  name              String            @db.VarChar(100)
+  dob               DateTime          @db.Date 
+  address           String?           @db.VarChar(250)
+  city              String?           @db.VarChar(100)
+  state             String?           @db.VarChar(100)
+  zip_code          String?           @db.VarChar(50)
+  phone             String?           @db.VarChar(50)
+  email             String?           @db.VarChar(100)
+  should_voice      Boolean           @default(false, map: "DF_GoodFaithClients_should_voice")
+  should_text       Boolean           @default(false, map: "DF_GoodFaithClients_should_text")
+  should_email      Boolean           @default(false, map: "DF_GoodFaithClients_should_email")
+ 
+  Client            Client            @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithClients_Client")
+  GoodFaithEstimate GoodFaithEstimate @relation(fields: [good_faith_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithClients_GoodFaithEstimate")
 }
 
 /// Services included in a good faith estimate.
 model GoodFaithServices {
-  id                String            @id(map: "PK_GoodFaithServices") @db.UniqueIdentifier
+  id                String            @id(map: "PK_GoodFaithServices") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   good_faith_id     String            @db.UniqueIdentifier
   service_id        String            @db.UniqueIdentifier
   diagnosis_id      String            @db.UniqueIdentifier
@@ -973,7 +1001,7 @@ model PracticeSettings {
 
 /// SMS/text reminder templates.
 model ReminderTextTemplates {
-  id      String @id(map: "PK_ReminderTextTemplates") @db.UniqueIdentifier
+  id      String @id @default(dbgenerated("newid()"), map: "PK_ReminderTextTemplates") @db.UniqueIdentifier
   type    String @db.VarChar(250)
   content String @db.Text
 }

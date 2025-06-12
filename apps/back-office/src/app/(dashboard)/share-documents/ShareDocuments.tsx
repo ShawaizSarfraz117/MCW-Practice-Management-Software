@@ -136,8 +136,8 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
         frequency: false,
         isTemplate: false,
         isShared: file.isShared,
-        sharedOn: file.sharedAt,
-        status: "Not sent",
+        sharedOn: file.sharedAt || undefined,
+        status: file.status || "Not sent",
       }));
 
     return {
@@ -229,16 +229,16 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
     return (
       <div className="fixed inset-0 bg-white z-50 overflow-auto">
         <ReviewAndSend
-          clientName={clientName}
+          appointmentId={appointmentId}
           clientEmail={clientEmail}
-          selectedDocuments={selectedDocuments}
+          clientGroupId={clientGroupId}
+          clientId={clientId}
+          clientName={clientName}
+          context={context}
           emailContent={emailContent}
+          selectedDocuments={selectedDocuments}
           onBack={() => setCurrentStep("email")}
           onComplete={handleComplete}
-          context={context}
-          appointmentId={appointmentId}
-          clientId={clientId}
-          clientGroupId={clientGroupId}
         />
       </div>
     );
@@ -249,13 +249,13 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
       <div className="fixed inset-0 bg-white z-50 overflow-auto">
         <ComposeEmail
           clientName={clientName}
+          emailContent={emailContent}
           selectedDocuments={selectedDocuments}
           onBack={() => setCurrentStep("documents")}
           onContinue={(content?: string) => {
             if (content) setEmailContent(content);
             setCurrentStep("review");
           }}
-          emailContent={emailContent}
         />
       </div>
     );
@@ -280,7 +280,7 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
         <div className="text-center">
           <AlertCircle className="h-8 w-8 text-red-500 mx-auto" />
           <p className="mt-4 text-red-600">Failed to load documents</p>
-          <Button variant="outline" onClick={onClose} className="mt-4">
+          <Button className="mt-4" variant="outline" onClick={onClose}>
             Close
           </Button>
         </div>
@@ -334,8 +334,8 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
                 </span>
               </div>
               <Button
-                variant="link"
                 className="text-blue-600 hover:text-blue-700 text-sm"
+                variant="link"
                 onClick={() => {
                   // Navigate to edit client page to add email
                   window.location.href = `/clients/${clientId}/edit`;
@@ -353,37 +353,37 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
 
           <div className="space-y-8">
             <DocumentSection
-              items={documentCategories.consentDocuments}
-              title="Consent Documents"
-              selectedDocuments={selectedDocuments}
-              onToggle={handleDocumentToggle}
-              onFrequencyChange={handleFrequencyChange}
               context={context}
               emptyMessage="No consent documents available"
+              items={documentCategories.consentDocuments}
+              selectedDocuments={selectedDocuments}
+              title="Consent Documents"
+              onFrequencyChange={handleFrequencyChange}
+              onToggle={handleDocumentToggle}
             />
             <DocumentSection
+              context={context}
               items={documentCategories.scoredMeasures}
+              selectedDocuments={selectedDocuments}
               title="Scored measures"
-              selectedDocuments={selectedDocuments}
-              onToggle={handleDocumentToggle}
               onFrequencyChange={handleFrequencyChange}
-              context={context}
+              onToggle={handleDocumentToggle}
             />
             <DocumentSection
+              context={context}
               items={documentCategories.questionnaires}
-              title="Questionnaires"
               selectedDocuments={selectedDocuments}
-              onToggle={handleDocumentToggle}
+              title="Questionnaires"
               onFrequencyChange={handleFrequencyChange}
-              context={context}
+              onToggle={handleDocumentToggle}
             />
             <DocumentSection
-              items={documentCategories.uploadedFiles}
-              title="Uploaded Files"
-              selectedDocuments={selectedDocuments}
-              onToggle={handleDocumentToggle}
-              onFrequencyChange={handleFrequencyChange}
               context={context}
+              items={documentCategories.uploadedFiles}
+              selectedDocuments={selectedDocuments}
+              title="Uploaded Files"
+              onFrequencyChange={handleFrequencyChange}
+              onToggle={handleDocumentToggle}
             />
           </div>
         </div>
@@ -394,8 +394,8 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
           </Button>
           <Button
             className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => setCurrentStep("email")}
             disabled={!clientEmail}
+            onClick={() => setCurrentStep("email")}
           >
             Continue to Email
           </Button>

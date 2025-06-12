@@ -104,7 +104,7 @@ describe("Appointment Tags API - Integration Tests", () => {
 
     // Create test appointment
     const appointmentData = {
-      type: "APPOINTMENT",
+      type: "appointment",
       title: "Test Appointment",
       start_date: new Date().toISOString(),
       end_date: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
@@ -279,7 +279,7 @@ describe("Appointment Tags API - Integration Tests", () => {
 
       // Create first appointment for this client
       const appointmentData = {
-        type: "APPOINTMENT",
+        type: "appointment",
         title: "First Appointment",
         start_date: new Date().toISOString(),
         end_date: new Date(Date.now() + 45 * 60 * 1000).toISOString(),

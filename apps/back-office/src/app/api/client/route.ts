@@ -210,7 +210,22 @@ export async function PUT(request: NextRequest) {
     if (!existingClient) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
-
+    if (data.userType === "contact") {
+      await prisma.clientGroupMembership.update({
+        where: {
+          client_group_id_client_id: {
+            client_group_id: data.client_group_id,
+            client_id: id,
+          },
+        },
+        data: {
+          role: data.relationship_type,
+          is_contact_only: data.is_contact_only || true,
+          is_responsible_for_billing: data.isResponsibleForBilling || false,
+          is_emergency_contact: data.is_emergency_contact || false,
+        },
+      });
+    }
     // Update client basic info first
     await prisma.client.update({
       where: { id },
@@ -426,6 +441,11 @@ export async function POST(request: NextRequest) {
     const results = await prisma.$transaction(async (tx) => {
       const createdClients = [];
 
+      // Check if any client has isResponsibleForBilling set to true
+      const hasExplicitBillingResponsible = clientDataArray.some(
+        (client) => client.isResponsibleForBilling === true,
+      );
+
       const clientGroup = await tx.clientGroup.create({
         data: {
           id: uuidv4(),
@@ -466,7 +486,9 @@ export async function POST(request: NextRequest) {
               client_id: clientId,
               role: requestData.clientGroup || null,
               is_contact_only: data.is_contact_only || false,
-              is_responsible_for_billing: data.isResponsibleForBilling || false,
+              is_responsible_for_billing: hasExplicitBillingResponsible
+                ? data.isResponsibleForBilling === true
+                : data.clientId === clientDataArray[0].clientId,
             },
           });
 
@@ -553,7 +575,9 @@ export async function POST(request: NextRequest) {
               client_id: clientId,
               role: requestData.clientGroup || null,
               is_contact_only: data.is_contact_only || false,
-              is_responsible_for_billing: data.isResponsibleForBilling || false,
+              is_responsible_for_billing: hasExplicitBillingResponsible
+                ? data.isResponsibleForBilling === true
+                : clientDataArray.indexOf(data) === 0,
             },
           });
 
@@ -712,6 +736,59 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deactivating client:", error);
     return NextResponse.json(
       { error: "Failed to deactivate client" },
+      { status: 500 },
+    );
+  }
+}
+
+// PATCH - Update client status
+export async function PATCH(request: NextRequest) {
+  try {
+    const data = await request.json();
+    const { id, status } = data;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Client ID is required" },
+        { status: 400 },
+      );
+    }
+
+    if (status === undefined) {
+      return NextResponse.json(
+        { error: "Status is required" },
+        { status: 400 },
+      );
+    }
+
+    // Check if client exists
+    const existingClient = await prisma.client.findUnique({
+      where: { id },
+    });
+
+    if (!existingClient) {
+      return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    // Update client status
+    const updatedClient = await prisma.client.update({
+      where: { id },
+      data: {
+        is_active: status === "active",
+      },
+    });
+
+    return NextResponse.json({
+      message: "Client status updated successfully",
+      client: updatedClient,
+    });
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error(String(error)),
+      "Error updating client status",
+    );
+    return NextResponse.json(
+      { error: "Failed to update client status" },
       { status: 500 },
     );
   }

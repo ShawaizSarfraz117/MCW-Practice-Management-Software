@@ -70,3 +70,15 @@ export interface PhoneEntry {
   permission: string;
   is_primary?: boolean;
 }
+
+export interface ClientGroupFromAPI {
+  id: string;
+  name: string;
+  type: string;
+  status?: string;
+  notes?: string;
+  is_active?: boolean;
+  first_seen_at?: string;
+  referred_by?: string;
+  ClientGroupMembership: ClientMembership[];
+}

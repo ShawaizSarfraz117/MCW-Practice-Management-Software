@@ -62,12 +62,14 @@ interface EditClientDrawerProps {
   onSave: (data: ClientFormValues) => Promise<void>;
   title?: string;
   drawerType: "edit" | "reminders";
+  type?: "client" | "contact";
 }
 
 export function EditClientDrawer({
   isOpen,
   onClose,
   drawerType,
+  type,
   clientData,
   onSave,
   title = "Create New Contact",
@@ -343,7 +345,11 @@ export function EditClientDrawer({
           </SheetHeader>
           {drawerType === "edit" && isOpen && (
             <div className="overflow-y-auto flex-1 h-full">
-              <EditClientForm clientData={clientData} onSave={handleSave} />
+              <EditClientForm
+                clientData={clientData}
+                type={type}
+                onSave={handleSave}
+              />
             </div>
           )}
           {drawerType === "reminders" && isOpen && (

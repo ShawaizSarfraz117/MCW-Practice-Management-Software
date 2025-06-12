@@ -9,7 +9,8 @@ import {
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { fetchAppointments } from "@/(dashboard)/clients/services/client.service";
-import { useQuery } from "@tanstack/react-query";
+import { createChartNote } from "@/(dashboard)/clients/services/documents.service";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DatePicker } from "@mcw/ui";
 import { TimePicker } from "@mcw/ui";
 import Loading from "@/components/Loading";
@@ -21,6 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@mcw/ui";
+import { toast } from "@mcw/ui";
 
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
@@ -45,15 +47,96 @@ function ChartNoteEditor() {
   );
   const [editorContent, setEditorContent] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("5:07 PM");
+  const [isLoading, setIsLoading] = useState(false);
+  const params = useParams();
+  const queryClient = useQueryClient();
+
+  // Strip HTML tags for validation
+  const stripHtmlTags = (html: string): string => {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div.textContent || div.innerText || "";
+  };
+
+  const handleAddNote = async () => {
+    // Validate that the note has content
+    const plainText = stripHtmlTags(editorContent).trim();
+
+    if (!plainText) {
+      toast({
+        description: "Please enter a note before adding",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedDate) {
+      toast({
+        description: "Please select a date for the note",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Combine date and time
+      const noteDate = new Date(selectedDate);
+      const [time, period] = selectedTime.split(" ");
+      const [hours, minutes] = time.split(":");
+      let hour = parseInt(hours);
+
+      if (period === "PM" && hour !== 12) {
+        hour += 12;
+      } else if (period === "AM" && hour === 12) {
+        hour = 0;
+      }
+
+      noteDate.setHours(hour, parseInt(minutes), 0, 0);
+
+      const [response, error] = await createChartNote({
+        body: {
+          client_group_id: params.id as string,
+          text: editorContent,
+          note_date: noteDate.toISOString(),
+        },
+      });
+
+      if (!error && response) {
+        toast({
+          description: "Chart note added successfully",
+          variant: "success",
+        });
+
+        // Clear the editor
+        setEditorContent("");
+
+        // Invalidate queries to refresh the timeline
+        queryClient.invalidateQueries({
+          queryKey: ["appointments"],
+        });
+      } else {
+        toast({
+          description: "Failed to add chart note",
+          variant: "destructive",
+        });
+      }
+    } catch (_error) {
+      toast({
+        description: "An error occurred while adding the note",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="mb-6 p-4 border border-[#e5e7eb] rounded-lg">
       <div className="mb-6">
         <ReactQuill
-          theme="snow"
-          value={editorContent}
-          onChange={setEditorContent}
-          placeholder="Add Chart Note: include notes from a call with a client or copy & paste the contents of a document"
+          formats={["bold", "italic", "underline", "list", "bullet", "link"]}
           modules={{
             toolbar: [
               ["bold", "italic", "underline"],
@@ -62,11 +145,14 @@ function ChartNoteEditor() {
               ["clean"],
             ],
           }}
-          formats={["bold", "italic", "underline", "list", "bullet", "link"]}
+          placeholder="Add Chart Note: include notes from a call with a client or copy & paste the contents of a document"
           style={{
             height: "120px",
             marginBottom: "50px",
           }}
+          theme="snow"
+          value={editorContent}
+          onChange={setEditorContent}
         />
       </div>
 
@@ -83,8 +169,12 @@ function ChartNoteEditor() {
             onChange={setSelectedTime}
           />
         </div>
-        <button className="text-blue-500 hover:underline ml-4">
-          + Add Note
+        <button
+          className="text-blue-500 hover:underline ml-4 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleAddNote}
+          disabled={isLoading}
+        >
+          {isLoading ? "Adding..." : "+ Add Note"}
         </button>
       </div>
     </div>
@@ -116,7 +206,6 @@ function DateRangeFilterControls({
       </div>
       <DateRangePicker
         isOpen={dateRangePickerOpen}
-        onClose={() => setDateRangePickerOpen(false)}
         onApply={(_startDate, _endDate, displayOption) => {
           setSelectedDateRangeDisplay(displayOption);
           if (displayOption === "Custom Range") {
@@ -125,6 +214,7 @@ function DateRangeFilterControls({
           setDateRangePickerOpen(false);
         }}
         onCancel={() => setDateRangePickerOpen(false)}
+        onClose={() => setDateRangePickerOpen(false)}
       />
       <Select defaultValue={filterType} onValueChange={setFilterType}>
         <SelectTrigger className="w-full sm:w-[150px] h-9 bg-white border-[#e5e7eb]">
@@ -142,7 +232,7 @@ function DateRangeFilterControls({
 }
 
 // Navigation Dropdown Component
-function NavigationDropdown({ clientName }: { clientName: string }) {
+function NavigationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const params = useParams();
@@ -160,46 +250,30 @@ function NavigationDropdown({ clientName }: { clientName: string }) {
       <DropdownMenuContent>
         <DropdownMenuItem
           onSelect={() =>
-            router.push(
-              `/clients/${params.id}/diagnosisAndTreatmentPlan?clientName=${encodeURIComponent(clientName)}`,
-            )
+            router.push(`/clients/${params.id}/diagnosisAndTreatmentPlan`)
           }
         >
           Diagnosis and treatment plan
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() =>
-            router.push(
-              `/clients/${params.id}/goodFaithEstimate?clientName=${encodeURIComponent(clientName)}`,
-            )
+            router.push(`/clients/${params.id}/goodFaithEstimate`)
           }
         >
           Good faith estimate
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
-            router.push(
-              `/clients/${params.id}/mentalStatusExam?clientName=${encodeURIComponent(clientName)}`,
-            )
-          }
+          onSelect={() => router.push(`/clients/${params.id}/mentalStatusExam`)}
         >
           Mental Status Exam
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
-            router.push(
-              `/clients/${params.id}/scoredMeasure?clientName=${encodeURIComponent(clientName)}`,
-            )
-          }
+          onSelect={() => router.push(`/clients/${params.id}/scoredMeasure`)}
         >
           Scored Measure
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
-            router.push(
-              `/clients/${params.id}/otherDocuments?clientName=${encodeURIComponent(clientName)}`,
-            )
-          }
+          onSelect={() => router.push(`/clients/${params.id}/otherDocuments`)}
         >
           Other document
         </DropdownMenuItem>
@@ -208,7 +282,7 @@ function NavigationDropdown({ clientName }: { clientName: string }) {
   );
 }
 
-export default function OverviewTab({ clientName }: { clientName: string }) {
+export default function OverviewTab() {
   const [selectedDate] = useState<Date | undefined>(
     new Date(2025, 0, 8), // Jan 8, 2025
   );
@@ -240,7 +314,7 @@ export default function OverviewTab({ clientName }: { clientName: string }) {
           filterType={filterType}
           setFilterType={setFilterType}
         />
-        <NavigationDropdown clientName={clientName} />
+        <NavigationDropdown />
       </div>
 
       {/* Timeline */}

@@ -60,12 +60,12 @@ export default function GAD7Form({
                 className="flex items-center gap-2 text-gray-700"
               >
                 <input
-                  type="radio"
-                  name={`q${idx}`}
-                  value={opt}
                   checked={answers[idx] === opt}
-                  onChange={() => handleAnswer(idx, opt)}
                   className="accent-[#2d8467]"
+                  name={`q${idx}`}
+                  type="radio"
+                  value={opt}
+                  onChange={() => handleAnswer(idx, opt)}
                 />
                 {opt}
               </label>
@@ -84,12 +84,12 @@ export default function GAD7Form({
           {DIFFICULTY_OPTIONS.map((opt) => (
             <label key={opt} className="flex items-center gap-2 text-gray-700">
               <input
-                type="radio"
-                name="difficulty"
-                value={opt}
                 checked={difficulty === opt}
-                onChange={() => setDifficulty(opt)}
                 className="accent-[#2d8467]"
+                name="difficulty"
+                type="radio"
+                value={opt}
+                onChange={() => setDifficulty(opt)}
               />
               {opt}
             </label>

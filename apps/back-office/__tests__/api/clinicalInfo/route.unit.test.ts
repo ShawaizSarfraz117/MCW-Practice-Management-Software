@@ -110,8 +110,10 @@ describe("GET /api/clinicalInfo", () => {
     const response = await GET(createRequest("/api/clinicalInfo"));
     expect(response.status).toBe(500);
     const json = await response.json();
+    // withErrorHandling returns detailed error in development
     expect(json.error).toBeDefined();
-    expect(json.error.message).toBeDefined();
+    expect(json.error.message).toBe("DB error");
+    expect(json.error.issueId).toBeDefined();
   });
 });
 
@@ -207,7 +209,9 @@ describe("PUT /api/clinicalInfo", () => {
 
     expect(response.status).toBe(500);
     const json = await response.json();
+    // withErrorHandling returns detailed error in development
     expect(json.error).toBeDefined();
-    expect(json.error.message).toBeDefined();
+    expect(json.error.message).toBe("DB error");
+    expect(json.error.issueId).toBeDefined();
   });
 });

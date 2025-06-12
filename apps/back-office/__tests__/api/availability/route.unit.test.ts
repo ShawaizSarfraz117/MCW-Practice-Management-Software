@@ -192,6 +192,13 @@ describe("Availability API Unit Tests", () => {
 
     const req = createAuthRequest("/api/availability", "POST", availData);
     const response = await POST(req);
+
+    // Log error if not 200
+    if (response.status !== 200) {
+      const errorData = await response.json();
+      console.error("POST error:", errorData);
+    }
+
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json).toHaveProperty("id", newAvail.id);
@@ -203,7 +210,25 @@ describe("Availability API Unit Tests", () => {
   it("PUT /api/availability should update an existing availability", async () => {
     const existing = mockAvailability();
     const updated = mockAvailability({ title: "Updated Slot" });
-    (prisma.availability.update as unknown as Mock).mockResolvedValue(updated);
+
+    // Mock findUnique to return an existing availability
+    (prisma.availability.findUnique as Mock).mockResolvedValue(existing);
+
+    // Mock transaction for non-recurring update
+    (prisma.$transaction as unknown as Mock).mockImplementation(
+      async (callback) => {
+        const tx = {
+          availability: {
+            update: vi.fn().mockResolvedValue(updated),
+          },
+          availabilityServices: {
+            deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+            createMany: vi.fn().mockResolvedValue({ count: 0 }),
+          },
+        };
+        return callback(tx);
+      },
+    );
 
     const updateData = {
       title: "Updated Slot",
@@ -220,6 +245,11 @@ describe("Availability API Unit Tests", () => {
   });
 
   it("DELETE /api/availability/?id=<id> should delete an availability", async () => {
+    // Mock findUnique to return an availability
+    (prisma.availability.findUnique as Mock).mockResolvedValue(
+      mockAvailability(),
+    );
+
     // Mock the transaction for delete
     (prisma.$transaction as unknown as Mock).mockImplementation(
       async (callback) => {

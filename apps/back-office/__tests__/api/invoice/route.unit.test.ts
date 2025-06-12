@@ -50,7 +50,7 @@ const mockInvoice = (overrides = {}) => {
 
   return {
     id: MOCK_UUID,
-    invoice_number: "INV #1234",
+    invoice_number: "1234",
     client_group_id: MOCK_UUID,
     appointment_id: null,
     clinician_id: MOCK_UUID,
@@ -224,8 +224,8 @@ describe("Invoice API", () => {
     const membershipId = MOCK_UUID;
     const issuedDate = new Date();
 
-    // Mock the findFirst to return the max invoice
-    const maxInvoice = mockInvoice({ invoice_number: "INV #999" });
+    // Mock the findFirst to return the max invoice with numeric invoice number
+    const maxInvoice = mockInvoice({ invoice_number: "999" });
     (prisma.invoice.findFirst as unknown as Mock).mockResolvedValue(maxInvoice);
 
     const newInvoiceData = {
@@ -239,7 +239,7 @@ describe("Invoice API", () => {
 
     const createdInvoice = {
       id: MOCK_UUID,
-      invoice_number: "INV #1000",
+      invoice_number: "1000",
       client_group_id: membershipId,
       appointment_id: null,
       clinician_id: clinicianId,

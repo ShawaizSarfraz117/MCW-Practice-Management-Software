@@ -15,6 +15,7 @@ import { useFormContext } from "./context/FormContext";
 import { DateTimeControls } from "./components/FormControls";
 import { EditConfirmationModal } from "./EditConfirmationModal";
 import { DeleteConfirmationModal } from "./components/DeleteConfirmationModal";
+import { AppointmentLockedModal } from "./components/AppointmentLockedModal";
 import { RecurringSettings } from "./components/RecurringSettings";
 import { RecurringHeader } from "./components/RecurringHeader";
 import { useAppointmentUpdate } from "./hooks/useAppointmentUpdate";
@@ -61,6 +62,7 @@ export function EditAppointmentTab({
   const [isRecurringExpanded, setIsRecurringExpanded] = useState(false);
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
   const [clientBalance, setClientBalance] = useState<number>(0);
+  const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -158,6 +160,7 @@ export function EditAppointmentTab({
     onDone,
     setGeneralError,
     appointmentId: appointmentData?.id,
+    onLockedByInvoice: () => setIsLockedModalOpen(true),
   });
 
   const selectedServices = form.getFieldValue<
@@ -480,6 +483,11 @@ export function EditAppointmentTab({
         onConfirm={handleDeleteConfirm}
         onOpenChange={setIsDeleteModalOpen}
         onOptionChange={setSelectedDeleteOption}
+      />
+
+      <AppointmentLockedModal
+        open={isLockedModalOpen}
+        onOpenChange={setIsLockedModalOpen}
       />
     </>
   );

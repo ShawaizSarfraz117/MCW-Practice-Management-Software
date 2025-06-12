@@ -314,7 +314,7 @@ describe("Team Members API Unit Tests", () => {
 
       // Mock role finding
       prismaMock.role.findMany.mockResolvedValueOnce([
-        mockRole({ id: "role-admin", name: "Admin" }),
+        mockRole({ id: "role-admin", name: "Admin", description: null }),
       ]);
 
       prismaMock.$transaction.mockImplementationOnce(async (callback) => {
@@ -372,7 +372,11 @@ describe("Team Members API Unit Tests", () => {
 
       // Mock role finding
       prismaMock.role.findMany.mockResolvedValueOnce([
-        mockRole({ id: "role-clinician", name: "Clinician" }),
+        mockRole({
+          id: "role-clinician",
+          name: "Clinician",
+          description: null,
+        }),
       ]);
 
       prismaMock.$transaction.mockImplementationOnce(async (callback) => {
@@ -435,7 +439,7 @@ describe("Team Members API Unit Tests", () => {
 
       // Mock role finding (even though it won't be used due to existing user)
       prismaMock.role.findMany.mockResolvedValueOnce([
-        mockRole({ id: "role-admin", name: "Admin" }),
+        mockRole({ id: "role-admin", name: "Admin", description: null }),
       ]);
 
       // Create request
@@ -557,7 +561,7 @@ describe("Team Members API Unit Tests", () => {
 
       // Mock role finding for the update
       prismaMock.role.findMany.mockResolvedValueOnce([
-        mockRole({ id: "role-admin", name: "Admin" }),
+        mockRole({ id: "role-admin", name: "Admin", description: null }),
       ]);
 
       // Mock transaction

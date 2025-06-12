@@ -15,7 +15,7 @@ import Loading from "@/components/Loading";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Clients() {
-  const [sortBy, setSortBy] = useState("legal_last_name");
+  const [sortBy, setSortBy] = useState("");
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [createClientOpen, setCreateClientOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string[]>(["all"]);
@@ -25,7 +25,7 @@ export default function Clients() {
   const router = useRouter();
 
   const {
-    data: clients,
+    data: clients = { data: [], pagination: { page: 1, limit: 20, total: 0 } },
     isLoading,
     refetch,
   } = useQuery({
@@ -43,7 +43,6 @@ export default function Clients() {
       }
       return response;
     },
-    initialData: { data: [], pagination: { page: 1, limit: 20, total: 0 } },
   });
 
   const handleRedirect = (row: unknown) => {
@@ -52,7 +51,7 @@ export default function Clients() {
       clientGroup.ClientGroupMembership &&
       clientGroup.ClientGroupMembership.length > 0
     ) {
-      router.push(`/clients/${clientGroup.id}`);
+      router.push(`/clients/${clientGroup.id}?tab=overview`);
     }
   };
 
@@ -75,6 +74,7 @@ export default function Clients() {
   };
 
   const sortOptions = [
+    { id: "", label: "None" },
     { id: "first_name", label: "First Name" },
     { id: "last_name", label: "Last Name" },
   ];

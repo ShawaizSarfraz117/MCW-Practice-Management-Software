@@ -48,12 +48,12 @@ export default function ARM5Form({
                 className="flex items-center gap-2 text-gray-700"
               >
                 <input
-                  type="radio"
-                  name={`arm5q${idx}`}
-                  value={opt}
                   checked={answers[idx] === opt}
-                  onChange={() => handleAnswer(idx, opt)}
                   className="accent-[#2d8467]"
+                  name={`arm5q${idx}`}
+                  type="radio"
+                  value={opt}
+                  onChange={() => handleAnswer(idx, opt)}
                 />
                 {opt}
               </label>

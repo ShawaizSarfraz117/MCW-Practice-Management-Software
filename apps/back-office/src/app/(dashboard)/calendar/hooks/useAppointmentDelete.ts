@@ -4,12 +4,14 @@ interface UseAppointmentDeleteProps {
   appointmentId?: string;
   onDone?: () => void;
   setGeneralError?: (error: string) => void;
+  onLockedByInvoice?: () => void;
 }
 
 export function useAppointmentDelete({
   appointmentId,
   onDone,
   setGeneralError,
+  onLockedByInvoice,
 }: UseAppointmentDeleteProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteOption, setSelectedDeleteOption] = useState<
@@ -34,6 +36,16 @@ export function useAppointmentDelete({
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Check if the error is due to attached invoices
+        if (response.status === 409 && errorData.hasInvoices) {
+          setIsDeleteModalOpen(false);
+          if (onLockedByInvoice) {
+            onLockedByInvoice();
+          }
+          return;
+        }
+
         throw new Error(errorData.error || "Failed to delete appointment");
       }
 

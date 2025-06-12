@@ -117,7 +117,7 @@ export default function PendingRequestView() {
           >
             <h3 className="text-gray-600 text-sm">{item.title}</h3>
             <p className="text-4xl font-bold my-3">{item.count}</p>
-            <a href="#" className="text-blue-600 text-sm font-medium">
+            <a className="text-blue-600 text-sm font-medium" href="#">
               View
             </a>
           </Card>
@@ -154,7 +154,7 @@ export default function PendingRequestView() {
               <TableHead>Appointment details</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date received</TableHead>
-              <TableHead></TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>

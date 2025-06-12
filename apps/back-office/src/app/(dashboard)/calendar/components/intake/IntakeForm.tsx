@@ -18,13 +18,13 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
 }) => {
   return (
     <ShareDocuments
-      clientName={clientName}
       clientEmail={clientEmail}
-      clientId={clientId}
       clientGroupId={clientGroupId}
-      onClose={onClose}
+      clientId={clientId}
+      clientName={clientName}
       context="appointment"
       showReminders={true}
+      onClose={onClose}
     />
   );
 };

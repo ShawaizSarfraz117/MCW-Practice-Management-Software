@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mockDeep } from "vitest-mock-extended";
 import nodemailer from "nodemailer";
-import { EmailService } from "@/email.service";
-import type { EmailServiceConfig, EmailOptions } from "@/types";
+import { EmailService } from "../src/email.service";
+import type { EmailServiceConfig, EmailOptions } from "../src/types";
 
 // Mock nodemailer
 vi.mock("nodemailer");

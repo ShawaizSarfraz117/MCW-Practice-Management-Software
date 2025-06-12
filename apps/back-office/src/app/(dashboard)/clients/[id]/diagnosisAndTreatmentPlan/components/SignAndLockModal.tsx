@@ -69,7 +69,7 @@ const SignAndLockModal: React.FC<SignAndLockModalProps> = ({
       </div>
       <div className="text-xs text-gray-500 mt-4">
         Signed and locked notes are uneditable.{" "}
-        <a href="#" className="text-blue-600 underline">
+        <a className="text-blue-600 underline" href="#">
           Learn about signing and locking
         </a>
       </div>

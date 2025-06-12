@@ -88,6 +88,16 @@ describe("Appointment Client Group Integration Tests", () => {
 
   afterEach(async () => {
     // Clean up in reverse order of dependencies
+    // First delete appointment tags to avoid foreign key constraint
+    const appointments = await prisma.appointment.findMany({
+      where: { created_by: testUser.id },
+    });
+    const appointmentIds = appointments.map((a) => a.id);
+
+    await prisma.appointmentTag.deleteMany({
+      where: { appointment_id: { in: appointmentIds } },
+    });
+
     await prisma.appointment.deleteMany({
       where: { created_by: testUser.id },
     });
@@ -264,7 +274,10 @@ describe("Appointment Client Group Integration Tests", () => {
       "Appointment with Sarah Thompson Individual Therapy",
     );
 
-    // Clean up
+    // Clean up - delete appointment tags first
+    await prisma.appointmentTag.deleteMany({
+      where: { appointment_id: appt2.id },
+    });
     await prisma.appointment.delete({ where: { id: appt2.id } });
     await prisma.clientGroup.delete({ where: { id: secondClientGroup.id } });
   });

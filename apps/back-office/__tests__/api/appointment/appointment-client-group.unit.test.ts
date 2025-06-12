@@ -4,10 +4,17 @@ import { createRequestWithBody } from "@mcw/utils";
 import { POST } from "@/api/appointment/route";
 import prismaMock from "@mcw/database/mock";
 import { Decimal } from "@prisma/client/runtime/library";
+import { Appointment, AppointmentTag, Invoice } from "@prisma/client";
 import {
   createAppointmentWithRelations,
   createEventWithRelations,
 } from "@mcw/database/mock-data";
+
+// Type for appointment with relations that includes Invoice
+type AppointmentWithFullRelations = Appointment & {
+  AppointmentTag: AppointmentTag[];
+  Invoice: Invoice[];
+};
 
 // Mock data
 const mockUser = {
@@ -32,6 +39,7 @@ const mockClientGroup = {
   auto_monthly_superbill_enabled: false,
   first_seen_at: new Date(),
   notes: null,
+  administrative_notes: null,
 };
 
 const mockClinician = {
@@ -93,6 +101,7 @@ describe("Appointment Client Group Name Tests", () => {
       adjustable_amount: new Decimal(0),
       write_off: new Decimal(0),
       superbill_id: null,
+      notes: null,
     };
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);
@@ -170,9 +179,17 @@ describe("Appointment Client Group Name Tests", () => {
       adjustable_amount: new Decimal(0),
       write_off: new Decimal(0),
       superbill_id: null,
+      notes: null,
     };
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedEvent);
+
+    // Mock the findUnique call after create
+    prismaMock.appointment.findUnique.mockResolvedValueOnce({
+      ...(expectedEvent as Appointment),
+      AppointmentTag: [],
+      Invoice: [],
+    } as AppointmentWithFullRelations);
 
     // Mock the re-query that happens after creation using factory helper
     const eventWithRelations = createEventWithRelations(expectedEvent, {
@@ -232,9 +249,17 @@ describe("Appointment Client Group Name Tests", () => {
       adjustable_amount: new Decimal(0),
       write_off: new Decimal(0),
       superbill_id: null,
+      notes: null,
     };
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);
+
+    // Mock the findUnique call after create
+    prismaMock.appointment.findUnique.mockResolvedValueOnce({
+      ...(expectedAppointment as Appointment),
+      AppointmentTag: [],
+      Invoice: [],
+    } as AppointmentWithFullRelations);
 
     // Mock the re-query that happens after creation using factory helper
     const appointmentWithRelations2 = createAppointmentWithRelations(

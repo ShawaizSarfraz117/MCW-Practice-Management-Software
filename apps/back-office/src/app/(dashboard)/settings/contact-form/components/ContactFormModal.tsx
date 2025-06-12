@@ -14,9 +14,9 @@ export default function ContactFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-8 relative">
         <button
+          aria-label="Close"
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
           onClick={onClose}
-          aria-label="Close"
         >
           ×
         </button>
@@ -30,13 +30,13 @@ export default function ContactFormModal({
                 <label className="block text-sm font-medium mb-1">
                   First name<span className="text-red-500">*</span>
                 </label>
-                <input className="w-full border rounded px-3 py-2" required />
+                <input required className="w-full border rounded px-3 py-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Last name<span className="text-red-500">*</span>
                 </label>
-                <input className="w-full border rounded px-3 py-2" required />
+                <input required className="w-full border rounded px-3 py-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -58,9 +58,9 @@ export default function ContactFormModal({
                   Email<span className="text-red-500">*</span>
                 </label>
                 <input
+                  required
                   className="w-full border rounded px-3 py-2"
                   type="email"
-                  required
                 />
               </div>
               <div>
@@ -68,9 +68,9 @@ export default function ContactFormModal({
                   Phone<span className="text-red-500">*</span>
                 </label>
                 <input
+                  required
                   className="w-full border rounded px-3 py-2"
                   type="tel"
-                  required
                 />
               </div>
               <div>

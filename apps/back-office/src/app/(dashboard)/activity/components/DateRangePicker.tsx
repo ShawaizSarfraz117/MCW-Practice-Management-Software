@@ -303,12 +303,12 @@ export default function DateRangePicker({
           </div>
 
           <DateRangeCalendar
-            months={calendarMonths}
             currentMonth={currentMonth}
-            onNavigateMonth={navigateMonth}
-            onDateSelect={handleDateSelect}
-            onDateHover={handleDateHover}
             getDateStatus={getDateStatus}
+            months={calendarMonths}
+            onDateHover={handleDateHover}
+            onDateSelect={handleDateSelect}
+            onNavigateMonth={navigateMonth}
           />
         </div>
 
@@ -342,15 +342,15 @@ export default function DateRangePicker({
         <div className="flex px-4">
           <div className="flex items-center gap-2">
             <Button
-              variant="default"
               className="bg-[#2D8467] hover:bg-[#236e53] h-8 text-[12px] px-4"
+              variant="default"
               onClick={applyDateRange}
             >
               Apply
             </Button>
             <Button
-              variant="ghost"
               className="h-8 text-[12px] px-4 text-[#4B5563]"
+              variant="ghost"
               onClick={handleCancel}
             >
               Cancel

@@ -1,11 +1,12 @@
+/* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 "use client";
-
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
-import ShareDocumentsModal from "./ShareDocumentsModal";
+import AdministrativeNoteCard from "./AdministrativeNoteCard";
+import ShareModal from "./ShareModal";
+import { StatementModal } from "./StatementModal";
 
 import { Button } from "@mcw/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
@@ -18,7 +19,8 @@ import FilesTab, { FilesTabRef } from "./tabs/FilesTab";
 import { AddPaymentModal } from "./AddPaymentModal";
 import {
   fetchInvoices,
-  fetchClientGroups,
+  fetchSingleClientGroup,
+  ClientGroupWithMembership,
 } from "@/(dashboard)/clients/services/client.service";
 import { Invoice, Payment } from "@prisma/client";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
@@ -26,9 +28,11 @@ import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
 import { useQuery } from "@tanstack/react-query";
 import { ClientInfoCard } from "./ClientInfoCard";
-import { ContactType } from "@mcw/types";
+import Link from "next/link";
+import { useToast } from "@mcw/ui";
 
 export function getClientGroupInfo(client: unknown) {
+  if (!client) return "";
   const name = (
     client as {
       ClientGroupMembership: {
@@ -69,10 +73,18 @@ export interface InvoiceWithPayments extends Invoice {
   };
 }
 
+type Tabs = "overview" | "billing" | "measures" | "files";
+interface AdministrativeNote {
+  id: string;
+  content: string;
+  createdBy: string;
+  createdAt: string | Date;
+  authorName: string;
+}
+
 export default function ClientProfile({
   clientId: _clientId,
 }: ClientProfileProps) {
-  const [activeTab, setActiveTab] = useState("overview");
   const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -80,12 +92,21 @@ export default function ClientProfile({
   const [creditAmount, setCredit] = useState<number>(0);
   const [adminNoteModalOpen, setAdminNoteModalOpen] = useState(false);
   const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientId, setClientId] = useState("");
+  const [superbillDialogOpen, setSuperbillDialogOpen] = useState(false);
+  const [administrativeNotes, setAdministrativeNotes] = useState<
+    AdministrativeNote[]
+  >([]);
+  const [editingNote, setEditingNote] = useState<AdministrativeNote | null>(
+    null,
+  );
   const { id } = useParams();
   const searchParams = useSearchParams();
+
+  const currentTab = (searchParams.get("tab") as Tabs) || "overview";
+  const [activeTab, setActiveTab] = useState(currentTab);
   const router = useRouter();
   const filesTabRef = useRef<FilesTabRef>(null);
+  const { toast } = useToast();
 
   // Helper function to get the next appointment date
   const getNextAppointmentDate = (): string | null => {
@@ -102,43 +123,34 @@ export default function ClientProfile({
     return null;
   };
 
+  // Fetch administrative notes
+  const fetchAdministrativeNotes = async () => {
+    try {
+      const response = await fetch(`/api/clients/${id}/administrative-notes`);
+      if (response.ok) {
+        const data = await response.json();
+        setAdministrativeNotes(data.notes || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch administrative notes:", error);
+    }
+  };
+
   const { data: clientGroup } = useQuery({
     queryKey: ["clientGroup", id],
     queryFn: async () => {
-      const [response, error] = await fetchClientGroups({
-        searchParams: { id: Array.isArray(id) ? id[0] : id },
-      });
-      if (error) throw error;
-      if (response && response.data && response.data.length > 0) {
-        const clientGroupData = response.data[0];
+      const response = (await fetchSingleClientGroup({
+        id: id as string,
+        searchParams: {},
+      })) as { data: ClientGroupWithMembership } | null;
+
+      if (response?.data) {
+        const clientGroupData = response.data;
         setCredit(Number(clientGroupData.available_credit) || 0);
 
         if (clientGroupData.ClientGroupMembership?.length) {
           const name = getClientGroupInfo(clientGroupData);
           setClientName(name || "");
-
-          // Extract email and ID from the first client's contacts
-          const firstMember = clientGroupData.ClientGroupMembership[0];
-          if (firstMember?.Client) {
-            setClientId(firstMember.Client.id);
-
-            if (
-              firstMember.Client.ClientContact &&
-              firstMember.Client.ClientContact.length > 0
-            ) {
-              // Check for email contact - handle different case variations
-              const emailContact = firstMember.Client.ClientContact.find(
-                (contact) =>
-                  contact.contact_type === ContactType.EMAIL ||
-                  contact.contact_type === "EMAIL" ||
-                  contact.contact_type?.toLowerCase() === "email",
-              );
-
-              if (emailContact && emailContact.value) {
-                setClientEmail(emailContact.value);
-              }
-            }
-          }
         }
         return clientGroupData;
       }
@@ -162,11 +174,13 @@ export default function ClientProfile({
 
   useEffect(() => {
     fetchInvoicesData();
+    fetchAdministrativeNotes();
   }, [id]);
 
   useEffect(() => {
     // Handle invoice related URL parameters
     const invoiceId = searchParams.get("invoiceId");
+    const superbillId = searchParams.get("superbillId");
     const type = searchParams.get("type");
     const appointmentId = searchParams.get("appointmentId");
 
@@ -176,6 +190,9 @@ export default function ClientProfile({
     if (invoiceId && type === "invoice") {
       setInvoiceDialogOpen(true);
     }
+    if (superbillId && type === "superbill") {
+      setSuperbillDialogOpen(true);
+    }
 
     // Handle tab URL parameter
     const tabParam = searchParams.get("tab");
@@ -183,13 +200,13 @@ export default function ClientProfile({
       tabParam &&
       ["overview", "billing", "measures", "files"].includes(tabParam)
     ) {
-      setActiveTab(tabParam);
+      setActiveTab(tabParam as Tabs);
     }
   }, [searchParams]);
 
   // Update URL when tab changes
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
+    setActiveTab(value as Tabs);
 
     const params = new URLSearchParams(searchParams.toString());
     // Set or update the tab parameter
@@ -200,6 +217,12 @@ export default function ClientProfile({
     });
   };
 
+  const handleShare = (
+    selectedUsers: { id: string; name: string; initials: string }[],
+  ) => {
+    console.log("Sharing with users:", selectedUsers);
+  };
+
   const handleUpload = () => {
     setActiveTab("files");
     // Small delay to ensure tab is switched before triggering upload
@@ -208,12 +231,75 @@ export default function ClientProfile({
     }, 100);
   };
 
+  const handleNoteSaved = () => {
+    fetchAdministrativeNotes();
+  };
+
+  const handleEditNote = (note: AdministrativeNote) => {
+    setEditingNote(note);
+    setAdminNoteModalOpen(true);
+  };
+
+  const handleNoteModalClose = (open: boolean) => {
+    setAdminNoteModalOpen(open);
+    if (!open) {
+      setEditingNote(null);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      const response = await fetch(
+        `/api/clients/${id}/administrative-notes/${noteId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (response.ok) {
+        setAdministrativeNotes((prev) =>
+          prev.filter((note) => note.id !== noteId),
+        );
+        toast({
+          title: "Success",
+          description: "Administrative note deleted successfully.",
+          variant: "success",
+        });
+      } else {
+        throw new Error("Failed to delete note");
+      }
+    } catch (error) {
+      console.error("Failed to delete note:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete administrative note.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddNote = () => {
+    // Prevent adding more than 1 note
+    if (administrativeNotes.length >= 1) {
+      toast({
+        title: "Limit Reached",
+        description:
+          "You can only have one administrative note. Please edit or delete the existing note.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setAdminNoteModalOpen(true);
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full mt-2">
       {/* Breadcrumb */}
       <AdministrativeNoteDrawer
         open={adminNoteModalOpen}
-        onOpenChange={setAdminNoteModalOpen}
+        onOpenChange={handleNoteModalClose}
+        onNoteSaved={handleNoteSaved}
+        editingNote={editingNote}
       />
       {addPaymentModalOpen && (
         <AddPaymentModal
@@ -223,45 +309,35 @@ export default function ClientProfile({
           onOpenChange={setAddPaymentModalOpen}
         />
       )}
-      <ShareDocumentsModal
+      <ShareModal
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
-        clientName={clientName}
-        clientEmail={clientEmail || ""}
-        clientId={clientId}
-        clientGroupId={Array.isArray(id) ? id[0] : id}
+        onShare={handleShare}
       />
-      <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
-        <Link className="hover:text-gray-700" href="/clients">
-          Clients and contacts
-        </Link>
-        <span className="mx-1">/</span>
-        <span>{clientName}&apos;s profile</span>
-      </div>
+      <StatementModal clientName={clientName} />
       {/* Client Header */}
       <div className="px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold mb-1">
-            {clientName}
-          </h1>
-          <div className="text-sm text-gray-600 flex flex-wrap items-center gap-2">
-            <span>{invoices[0]?.ClientGroup?.type}</span>
-            <span className="text-gray-300 hidden sm:inline">•</span>
-            <span>
-              {invoices.length && invoices[0]?.Appointment?.start_date
-                ? format(invoices[0].Appointment.start_date, "MM/dd/yyyy")
-                : "-"}
-            </span>
-            <span className="text-gray-300 hidden sm:inline">•</span>
+          <h1 className="text-2xl font-semibold mb-1">{clientName}</h1>
+          <div className="text-sm text-gray-500 mb-2 flex flex-wrap gap-2 items-center">
+            {clientGroup && "type" in clientGroup ? clientGroup.type : ""}
             {getNextAppointmentDate() && (
-              <span>Next Appt: {getNextAppointmentDate()}</span>
+              <>
+                <span className="text-gray-300">|</span>
+                <span>Next Appt: {getNextAppointmentDate()}</span>
+                <span className="text-gray-300">|</span>
+              </>
             )}
-            <button
-              className="text-blue-500 hover:underline"
-              onClick={() => router.push(`/clients/${id}/edit`)}
+            <Link className="text-[#2d8467] hover:underline" href="/calendar">
+              Schedule appointment
+            </Link>
+            <span className="text-gray-300">|</span>
+            <Link
+              className="text-[#2d8467] hover:underline"
+              href={`/clients/${id}/edit`}
             >
               Edit
-            </button>
+            </Link>
           </div>
         </div>
         <div className="flex gap-2">
@@ -288,18 +364,36 @@ export default function ClientProfile({
       <div className="grid grid-cols-12 flex-1">
         {/* Left Side - Tabs */}
         <div className="col-span-12 lg:col-span-8 border-t lg:border-r border-[#e5e7eb]">
-          {/* Add Administrative Note Button - Fixed at the top */}
-          <div className="hidden lg:block sticky top-0 z-10">
-            <div className="absolute right-4 top-1">
-              <Button
-                className="text-blue-500 hover:bg-blue-50"
-                variant="ghost"
-                onClick={() => setAdminNoteModalOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
-              </Button>
+          {administrativeNotes.length === 0 ? (
+            /* Add Administrative Note Button - Only when no notes */
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+              <div className="flex justify-end p-2">
+                <Button
+                  className="text-blue-500 hover:bg-blue-50"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddNote}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Administrative Notes Section - Replaces button when notes exist */
+            <div className="p-4 sm:p-6">
+              {administrativeNotes.map((note) => (
+                <AdministrativeNoteCard
+                  key={note.id}
+                  note={note}
+                  clientName={clientName}
+                  dateOfBirth="09/15/1995"
+                  onEdit={handleEditNote}
+                  onDelete={handleDeleteNote}
+                />
+              ))}
+            </div>
+          )}
+
           <Tabs
             className="w-full"
             defaultValue="measures"
@@ -337,7 +431,7 @@ export default function ClientProfile({
               </div>
             </div>
             <TabsContent value="overview">
-              <OverviewTab clientName={clientName} />
+              <OverviewTab />
             </TabsContent>
 
             <TabsContent value="billing">
@@ -346,6 +440,8 @@ export default function ClientProfile({
                 fetchInvoicesData={fetchInvoicesData}
                 invoiceDialogOpen={invoiceDialogOpen}
                 setInvoiceDialogOpen={setInvoiceDialogOpen}
+                superbillDialogOpen={superbillDialogOpen}
+                setSuperbillDialogOpen={setSuperbillDialogOpen}
               />
             </TabsContent>
 
@@ -354,13 +450,7 @@ export default function ClientProfile({
             </TabsContent>
 
             <TabsContent value="files">
-              <FilesTab
-                ref={filesTabRef}
-                onShareFile={(file) => {
-                  console.log("Sharing file:", file);
-                  setShareModalOpen(true);
-                }}
-              />
+              <FilesTab ref={filesTabRef} />
             </TabsContent>
           </Tabs>
         </div>
@@ -387,7 +477,7 @@ export default function ClientProfile({
           <Button
             className="text-blue-500 hover:bg-blue-50 w-full justify-center"
             variant="ghost"
-            onClick={() => setAdminNoteModalOpen(true)}
+            onClick={handleAddNote}
           >
             <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
           </Button>

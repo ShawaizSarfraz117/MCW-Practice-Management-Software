@@ -146,3 +146,9 @@ dist
 /.specstory/history
 # SpecStory explanation file
 .specstory/.what-is-this.md
+
+# Test results and reports
+test-results/
+*.test-results.json
+*.test-report.html
+/test-results
