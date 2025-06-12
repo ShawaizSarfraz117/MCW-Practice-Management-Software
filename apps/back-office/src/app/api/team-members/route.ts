@@ -249,11 +249,21 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
   // Determine if user has any clinician role
   const hasClinicianRole = roles.some((role) => role.startsWith("CLINICIAN."));
+  const hasAdminRole = roles.some((role) => role.startsWith("ADMIN."));
 
-  // Hash password
-  const passwordHash = password
-    ? await hash(password, 10)
-    : await hash(generateRandomPassword(), 10);
+  // Hash password - use provided password or role-based default
+  let defaultPassword: string;
+  if (password) {
+    defaultPassword = password;
+  } else if (hasClinicianRole) {
+    defaultPassword = "clinician123";
+  } else if (hasAdminRole) {
+    defaultPassword = "admin123";
+  } else {
+    defaultPassword = "admin123";
+  }
+
+  const passwordHash = await hash(defaultPassword, 10);
 
   // Create user with all related data in a transaction
   const result = await prisma.$transaction(async (tx) => {
@@ -746,14 +756,3 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
 
   return NextResponse.json({ success: true });
 });
-
-// Helper function to generate a random password
-function generateRandomPassword() {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-  let password = "";
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
