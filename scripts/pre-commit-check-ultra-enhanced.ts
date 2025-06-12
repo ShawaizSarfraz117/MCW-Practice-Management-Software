@@ -33,6 +33,18 @@ const maxWorkers = Math.min(cpuCount - 1, 15);
 
 const uiTestCommand = `npm run test:back-office:ui -- --reporter=json --outputFile=test-results/ui.json --run --pool=threads --poolOptions.threads.maxThreads=${maxWorkers}`;
 
+// Read DATABASE_URL from .env file if integration tests are requested
+let integrationCommand = "npm run test:integration -- --reporter=json --outputFile=test-results/integration.json --run";
+if (withIntegration && existsSync(".env")) {
+  const envContent = readFileSync(".env", "utf-8");
+  const dbUrlMatch = envContent.match(/DATABASE_URL="([^"]+)"/);
+  if (dbUrlMatch) {
+    const dbUrl = dbUrlMatch[1];
+    integrationCommand = `DATABASE_URL="${dbUrl}" npx vitest --workspace vitest.workspace.ts .integration.test.ts --run --reporter=json --outputFile=test-results/integration.json --pool=threads --poolOptions.threads.maxThreads=${maxWorkers}`;
+    console.log("📌 Using DATABASE_URL from .env for integration tests");
+  }
+}
+
 const tasks = [
   { name: "Type Checking", command: "npm run typecheck", emoji: "📝" },
   { name: "Linting", command: "npm run lint", emoji: "🔍" },
@@ -46,8 +58,7 @@ const tasks = [
     ? [
         {
           name: "Integration Tests",
-          command:
-            "npm run test:integration -- --reporter=json --outputFile=test-results/integration.json --run",
+          command: integrationCommand,
           emoji: "🔗",
         },
       ]
