@@ -19,6 +19,7 @@ interface SurveyPreviewProps {
   mode?: SurveyMode;
   showInstructions?: boolean;
   onComplete?: (result: Record<string, unknown>) => void;
+  defaultAnswers?: Record<string, unknown>;
 }
 
 export function SurveyPreview({
@@ -28,6 +29,7 @@ export function SurveyPreview({
   mode = "display",
   showInstructions = true,
   onComplete,
+  defaultAnswers,
 }: SurveyPreviewProps) {
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +68,12 @@ export function SurveyPreview({
           });
         }
 
+        // Set default answers if provided
+        if (defaultAnswers && typeof defaultAnswers === "object") {
+          console.log("Setting default answers:", defaultAnswers);
+          model.data = defaultAnswers;
+        }
+
         setSurveyModel(model);
         setError(null);
       } catch (err) {
@@ -80,7 +88,7 @@ export function SurveyPreview({
     };
 
     setupSurvey();
-  }, [content, title, type, mode, onComplete]);
+  }, [content, title, type, mode, onComplete, defaultAnswers]);
 
   if (!surveyModel) {
     return (

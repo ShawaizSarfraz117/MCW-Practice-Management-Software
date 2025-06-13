@@ -162,8 +162,8 @@ describe("Client Files Upload API - Integration Tests", () => {
       });
       // Check uploaded_by_id exists but don't check exact value since it's created by the API
       expect(savedFile).toBeDefined();
-      expect(savedFile!.uploaded_by_id).toBeDefined();
-      expect(savedFile!.uploaded_by_id).toHaveLength(36); // UUID length
+      expect(savedFile?.uploaded_by_id).toBeDefined();
+      expect(savedFile?.uploaded_by_id).toHaveLength(36); // UUID length
 
       // Verify Azure storage was called
       expect(uploadToAzureStorage).toHaveBeenCalledWith(

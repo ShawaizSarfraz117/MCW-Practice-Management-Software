@@ -48,6 +48,11 @@ describe("Appointment [id] API", () => {
       expect(prismaMock.appointment.update).toHaveBeenCalledWith({
         where: { id: appointmentId },
         data: {
+          PracticeService: {
+            connect: {
+              id: "service-123",
+            },
+          },
           appointment_fee: 150,
           write_off: 10,
           adjustable_amount: 40, // (150-100) - (10-0) = 40
@@ -90,7 +95,11 @@ describe("Appointment [id] API", () => {
       expect(prismaMock.appointment.update).toHaveBeenCalledWith({
         where: { id: appointmentId },
         data: {
-          service_id: "new-service",
+          PracticeService: {
+            connect: {
+              id: "new-service",
+            },
+          },
         },
       });
 
@@ -130,6 +139,11 @@ describe("Appointment [id] API", () => {
       expect(prismaMock.appointment.update).toHaveBeenCalledWith({
         where: { id: appointmentId },
         data: {
+          PracticeService: {
+            connect: {
+              id: "service-123",
+            },
+          },
           appointment_fee: 150,
           write_off: 20,
           adjustable_amount: 60, // 20 + (150-100) - (20-10) = 60
@@ -227,6 +241,11 @@ describe("Appointment [id] API", () => {
       expect(prismaMock.appointment.update).toHaveBeenCalledWith({
         where: { id: appointmentId },
         data: {
+          PracticeService: {
+            connect: {
+              id: "service-123",
+            },
+          },
           appointment_fee: 149.99,
           write_off: 19.99,
           adjustable_amount: expect.closeTo(40, 5),
@@ -268,6 +287,11 @@ describe("Appointment [id] API", () => {
       expect(prismaMock.appointment.update).toHaveBeenCalledWith({
         where: { id: appointmentId },
         data: {
+          PracticeService: {
+            connect: {
+              id: "service-123",
+            },
+          },
           appointment_fee: 150,
           write_off: 10,
           adjustable_amount: expect.closeTo(40, 5),

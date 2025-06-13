@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest";
 import { createRequestWithBody, createRequest } from "@mcw/utils";
 import { POST, GET } from "@/api/appointment/route";
 import { prisma } from "@mcw/database";
+import { cleanupDatabase } from "@mcw/database/test-utils";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 
@@ -13,6 +14,9 @@ describe("Appointment Client Group Integration Tests", () => {
   let testService: { id: string };
 
   beforeEach(async () => {
+    // Clean database before each test
+    await cleanupDatabase(prisma, { verbose: false });
+    
     // Create test user
     testUser = await prisma.user.create({
       data: {
@@ -87,45 +91,13 @@ describe("Appointment Client Group Integration Tests", () => {
   });
 
   afterEach(async () => {
-    // Clean up in reverse order of dependencies
-    // First delete appointment tags to avoid foreign key constraint
-    const appointments = await prisma.appointment.findMany({
-      where: { created_by: testUser.id },
-    });
-    const appointmentIds = appointments.map((a) => a.id);
+    // Clean up all test data
+    await cleanupDatabase(prisma, { verbose: false });
+  });
 
-    await prisma.appointmentTag.deleteMany({
-      where: { appointment_id: { in: appointmentIds } },
-    });
-
-    await prisma.appointment.deleteMany({
-      where: { created_by: testUser.id },
-    });
-    await prisma.practiceService
-      .delete({
-        where: { id: testService.id },
-      })
-      .catch(() => {});
-    await prisma.clientGroup
-      .delete({
-        where: { id: testClientGroup.id },
-      })
-      .catch(() => {});
-    await prisma.location
-      .delete({
-        where: { id: testLocation.id },
-      })
-      .catch(() => {});
-    await prisma.clinician
-      .delete({
-        where: { id: testClinician.id },
-      })
-      .catch(() => {});
-    await prisma.user
-      .delete({
-        where: { id: testUser.id },
-      })
-      .catch(() => {});
+  afterAll(async () => {
+    // Final cleanup
+    await cleanupDatabase(prisma, { verbose: false });
   });
 
   it("should create an appointment with the correct client group name in the title", async () => {
@@ -273,12 +245,5 @@ describe("Appointment Client Group Integration Tests", () => {
     expect(appt2.title).toBe(
       "Appointment with Sarah Thompson Individual Therapy",
     );
-
-    // Clean up - delete appointment tags first
-    await prisma.appointmentTag.deleteMany({
-      where: { appointment_id: appt2.id },
-    });
-    await prisma.appointment.delete({ where: { id: appt2.id } });
-    await prisma.clientGroup.delete({ where: { id: secondClientGroup.id } });
   });
 });
