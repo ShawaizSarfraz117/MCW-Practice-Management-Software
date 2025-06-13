@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { Edit, Printer, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import {
@@ -383,9 +384,12 @@ export default function TimelineItem({ document }: TimelineItemProps) {
               </>
             )}
             {document.documentType === "appointments" && (
-              <button className="text-blue-500 hover:underline text-sm mt-2">
+              <Link
+                href={`/appointmentNote/${document.clientGroupId}`}
+                className="text-blue-500 hover:underline text-sm mt-2"
+              >
                 + Progress Note
-              </button>
+              </Link>
             )}
           </div>
         </div>
