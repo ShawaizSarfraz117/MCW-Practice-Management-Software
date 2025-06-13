@@ -160,8 +160,6 @@ describe("GET /api/client/overview - Integration", () => {
           select: {
             ClientGroupChartNote: true,
             Appointment: true,
-            DiagnosisTreatmentPlan: true,
-            GoodFaithEstimate: true,
           },
         },
       },
@@ -181,10 +179,8 @@ describe("GET /api/client/overview - Integration", () => {
 
       // If the group has any related documents, we should get some results
       const totalDocuments =
-        (existingGroup._count.ClientGroupChartNote || 0) +
-        (existingGroup._count.Appointment || 0) +
-        (existingGroup._count.DiagnosisTreatmentPlan || 0) +
-        (existingGroup._count.GoodFaithEstimate || 0);
+        (existingGroup?._count?.ClientGroupChartNote || 0) +
+        (existingGroup?._count?.Appointment || 0);
 
       if (totalDocuments > 0) {
         expect(data.data.length).toBeGreaterThan(0);

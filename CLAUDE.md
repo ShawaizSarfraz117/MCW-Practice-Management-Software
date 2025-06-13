@@ -17,8 +17,11 @@ See @README for project overview and @package.json for available npm commands.
 
 **PRE-COMMIT VERIFICATION REQUIREMENTS**:
 
-- **ALWAYS run pre-commit checks before pushing**: `npm run check:enhanced:full`
-- **ALL tests MUST pass** - CI will fail otherwise, causing delays
+- **NEVER COMMIT IF ANY TEST OR CHECK IS FAILING** - This is a complete waste of time and breaks CI/CD
+- **ALL means ALL**: Unit tests, UI tests, integration tests, linting, type checking, and formatting MUST ALL PASS
+- **NO EXCEPTIONS**: If even ONE test fails, DO NOT COMMIT - fix it first
+- **ALWAYS run pre-commit checks before committing**: `npm run check:enhanced:full`
+- **CI will fail** if you commit with failing tests, causing delays and wasted time
 - Pre-commit checks are MANDATORY to avoid time-consuming iteration cycles
 - For quick iterations: `npm run check:enhanced` (without integration tests)
 - For comprehensive checks: `npm run check:enhanced:full` (with integration tests)

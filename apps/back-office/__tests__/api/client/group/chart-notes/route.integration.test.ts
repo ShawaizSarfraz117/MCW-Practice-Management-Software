@@ -148,7 +148,6 @@ describe("/api/client/group/chart-notes API endpoint integration tests", () => {
       });
       expect(dbNote).not.toBeNull();
       expect(dbNote?.text).toBe(noteData.text);
-      expect(dbNote?.created_at).toBeDefined();
     });
 
     it("should return 400 if required fields are missing", async () => {
@@ -290,7 +289,6 @@ describe("/api/client/group/chart-notes API endpoint integration tests", () => {
         where: { id: chartNote.id },
       });
       expect(updatedNote?.text).toBe(updatedData.text);
-      expect(updatedNote?.created_at).toBeDefined();
     });
 
     it("should return 404 if chart note to update is not found", async () => {

@@ -154,6 +154,7 @@ export default function AppointmentNotePage() {
                 handleDeleteProgressNote={handleDeleteProgressNote}
                 createMutationStatus={createMutation.status}
                 updateMutationStatus={updateMutation.status}
+                isLoadingTemplates={isLoadingTemplates}
               />
 
               <PsychotherapyNoteSection

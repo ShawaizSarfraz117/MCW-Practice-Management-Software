@@ -23,6 +23,8 @@ import { SurveyPreview } from "@mcw/ui";
 import { Template } from "./../../hooks/useTemplates";
 import { SurveyContentDisplay } from "./SurveyContentDisplay";
 import { formatDate, parseSurveyContent } from "../utils/noteParser";
+import { useState, useEffect, useRef } from "react";
+import type { SurveyPreviewRef } from "@mcw/ui";
 
 interface SurveyNote {
   id: string;
@@ -56,6 +58,34 @@ export function PsychotherapyNoteSection({
   createMutationStatus,
   updateMutationStatus,
 }: PsychotherapyNoteSectionProps) {
+  // Track if we're waiting for a save to complete
+  const isSaving =
+    createMutationStatus === "pending" || updateMutationStatus === "pending";
+  const [fallbackTemplate, setFallbackTemplate] = useState<string | null>(null);
+  const surveyRef = useRef<SurveyPreviewRef>(null);
+
+  // Load fallback template if no database template exists
+  useEffect(() => {
+    if (!psychoTemplate && showPsychotherapyNote) {
+      fetch("/surveys/psycho.json")
+        .then((response) => response.json())
+        .then((data) => {
+          setFallbackTemplate(JSON.stringify(data));
+        })
+        .catch((error) => {
+          console.error("Failed to load fallback template:", error);
+          // Try the original physco.json as fallback
+          fetch("/surveys/physco.json")
+            .then((response) => response.json())
+            .then((data) => {
+              setFallbackTemplate(JSON.stringify(data));
+            })
+            .catch((err) => {
+              console.error("Failed to load any fallback template:", err);
+            });
+        });
+    }
+  }, [psychoTemplate, showPsychotherapyNote]);
   return (
     <Card>
       <CardContent className="p-6">
@@ -149,36 +179,55 @@ export function PsychotherapyNoteSection({
         ) : showPsychotherapyNote ? (
           <div className="space-y-4">
             <div className="border rounded-lg">
-              {psychoTemplate && (
+              {psychoTemplate || fallbackTemplate ? (
                 <SurveyPreview
-                  content={psychoTemplate.content || ""}
+                  ref={surveyRef}
+                  content={psychoTemplate?.content || fallbackTemplate || ""}
                   mode="edit"
                   showInstructions={false}
                   title=""
-                  type={psychoTemplate.type}
-                  onComplete={handleSavePsychotherapyNote}
+                  type={psychoTemplate?.type || "progress_notes"}
+                  onComplete={(result) => {
+                    handleSavePsychotherapyNote(result);
+                  }}
                   defaultAnswers={
                     psychoNote?.content
                       ? parseSurveyContent(psychoNote.content) || undefined
                       : undefined
                   }
                 />
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <p>Loading psychotherapy template...</p>
+                </div>
               )}
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleCancelPsychotherapyNote}>
+              <Button
+                variant="outline"
+                onClick={handleCancelPsychotherapyNote}
+                disabled={isSaving}
+              >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={
-                  createMutationStatus === "pending" ||
-                  updateMutationStatus === "pending"
-                }
-              >
-                {psychoNote ? "Update" : "Save"}
-              </Button>
+              {!psychoTemplate && fallbackTemplate && (
+                <p className="text-sm text-amber-600 mr-auto">
+                  Preview mode: Create a "Physco" template to save notes.
+                </p>
+              )}
+              {psychoTemplate && (
+                <Button
+                  type="button"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isSaving}
+                  onClick={() => {
+                    // Trigger form submission using the ref
+                    surveyRef.current?.submit();
+                  }}
+                >
+                  {isSaving ? "Saving..." : psychoNote ? "Update" : "Save"}
+                </Button>
+              )}
             </div>
           </div>
         ) : !psychoNote && !isLoadingPsychoNote ? (

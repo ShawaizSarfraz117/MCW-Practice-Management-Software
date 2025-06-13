@@ -29,12 +29,12 @@ describe("Client Group Chart Notes API Unit Tests", () => {
     clinician_id: faker.string.uuid(),
     available_credit: new Decimal(0),
     is_active: true,
-    created_at: faker.date.recent(),
     auto_monthly_statement_enabled: false,
     auto_monthly_superbill_enabled: false,
     first_seen_at: faker.date.recent(),
     notes: null,
     administrative_notes: null,
+    created_at: faker.date.recent(),
     ...overrides,
   });
 
