@@ -34,8 +34,8 @@ export function TemplateSection({
           <h2 className="text-base font-semibold text-gray-900">{title}</h2>
           {showBadge && (
             <Badge
-              variant="secondary"
               className="bg-orange-100 text-orange-700 hover:bg-orange-100"
+              variant="secondary"
             >
               New
             </Badge>
@@ -45,8 +45,8 @@ export function TemplateSection({
           <p className="mt-1 text-sm text-gray-600">
             {description}{" "}
             <a
-              href="/settings/shareable-documents"
               className="text-blue-600 hover:text-blue-800"
+              href="/settings/shareable-documents"
             >
               Shareable documents
             </a>
@@ -65,13 +65,13 @@ export function TemplateSection({
             >
               <div className="flex items-center gap-3">
                 <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
                   checked={template.is_shareable}
+                  className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  disabled={template.is_default}
+                  type="checkbox"
                   onChange={(e) =>
                     onShareableChange(template, e.target.checked)
                   }
-                  disabled={template.is_default}
                 />
                 <span className="text-sm font-medium text-gray-900">
                   {template.name}
@@ -82,9 +82,9 @@ export function TemplateSection({
                 <ViewTemplate template={template} />
                 {template.type !== TemplateType.SCORED_MEASURES && (
                   <Button
-                    variant="ghost"
-                    size="icon"
                     className="h-8 w-8 hover:bg-gray-100"
+                    size="icon"
+                    variant="ghost"
                     onClick={() => onDuplicateTemplate(template)}
                   >
                     <Copy className="h-4 w-4 text-gray-500" />

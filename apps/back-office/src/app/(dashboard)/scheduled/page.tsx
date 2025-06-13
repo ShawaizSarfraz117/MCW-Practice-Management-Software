@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -182,48 +182,73 @@ const Scheduled = () => {
     }));
   }, [cliniciansData]);
 
-  const formattedLocations = Array.isArray(locationsData)
-    ? locationsData.map((location) => ({
-        value: location.id,
-        label: location.name,
-        type: determineLocationType(location.address),
-      }))
-    : [];
+  const formattedLocations = useMemo(
+    () =>
+      Array.isArray(locationsData)
+        ? locationsData.map((location) => ({
+            value: location.id,
+            label: location.name,
+            type: determineLocationType(location.address),
+          }))
+        : [],
+    [locationsData],
+  );
 
-  // Format availabilities for the calendar
-  const formattedAvailabilities = Array.isArray(availabilitiesData)
-    ? availabilitiesData.map((availability) => ({
-        id: availability.id,
-        title: availability.title || "Available",
-        start: new Date(availability.start_date).toISOString(),
-        end: new Date(availability.end_date).toISOString(),
-        resourceId: availability.clinician_id,
-        allDay: availability.is_all_day,
-        backgroundColor: "#E6F3FF",
-        borderColor: "#E6F3FF",
-        textColor: "#1E40AF",
-        display: "block",
-      }))
-    : [];
+  // Format availabilities for the calendar - MEMOIZED
+  const formattedAvailabilities = useMemo(
+    () =>
+      Array.isArray(availabilitiesData)
+        ? availabilitiesData.map((availability) => ({
+            id: availability.id,
+            title: availability.title || "Available",
+            start: new Date(availability.start_date).toISOString(),
+            end: new Date(availability.end_date).toISOString(),
+            resourceId: availability.clinician_id,
+            allDay: availability.is_all_day,
+            backgroundColor: "#E6F3FF",
+            borderColor: "#E6F3FF",
+            textColor: "#1E40AF",
+            display: "block",
+            extendedProps: {
+              type: "availability",
+              clinician_id: availability.clinician_id,
+              allow_online_requests: availability.allow_online_requests,
+              is_recurring: availability.is_recurring,
+              recurring_rule: availability.recurring_rule,
+            },
+          }))
+        : [],
+    [availabilitiesData],
+  );
 
-  // Format appointments with consistent styling
-  const formattedAppointments = Array.isArray(appointmentsData)
-    ? appointmentsData.map((appointment) => ({
-        id: appointment.id,
-        title: appointment.title,
-        start: new Date(appointment.start_date).toISOString(),
-        end: new Date(appointment.end_date).toISOString(),
-        resourceId: appointment.clinician_id,
-        allDay: appointment.is_all_day,
-        backgroundColor: "#E6F3FF",
-        borderColor: "#E6F3FF",
-        textColor: "#1E40AF",
-        display: "block",
-      }))
-    : [];
+  // Format appointments with consistent styling - MEMOIZED
+  const formattedAppointments = useMemo(
+    () =>
+      Array.isArray(appointmentsData)
+        ? appointmentsData.map((appointment) => ({
+            id: appointment.id,
+            title: appointment.title,
+            start: new Date(appointment.start_date).toISOString(),
+            end: new Date(appointment.end_date).toISOString(),
+            resourceId: appointment.clinician_id,
+            allDay: appointment.is_all_day,
+            backgroundColor: "#E6F3FF",
+            borderColor: "#E6F3FF",
+            textColor: "#1E40AF",
+            display: "block",
+            extendedProps: {
+              type: "appointment",
+            },
+          }))
+        : [],
+    [appointmentsData],
+  );
 
-  // Combine all events
-  const allEvents = [...formattedAvailabilities, ...formattedAppointments];
+  // Combine all events - MEMOIZED
+  const allEvents = useMemo(
+    () => [...formattedAvailabilities, ...formattedAppointments],
+    [formattedAvailabilities, formattedAppointments],
+  );
   // Handle appointment creation completion
   const handleAppointmentDone = () => {
     // Refresh appointments data
@@ -301,27 +326,20 @@ const Scheduled = () => {
     const localStart = adjustForTimezone(selectInfo.start);
     const localEnd = adjustForTimezone(selectInfo.end);
 
-    // Extract the local time directly from the adjusted Date objects
-    const startHours = localStart.getHours().toString().padStart(2, "0");
-    const startMinutes = localStart.getMinutes().toString().padStart(2, "0");
-    const endHours = localEnd.getHours().toString().padStart(2, "0");
-    const endMinutes = localEnd.getMinutes().toString().padStart(2, "0");
-
-    // Save the selected time info for the availability sidebar using 24-hour format
-    const eventData = {
-      startTime: `${startHours}:${startMinutes}`,
-      endTime: `${endHours}:${endMinutes}`,
+    // Format times in 12-hour format
+    const formatTime12Hour = (date: Date) => {
+      return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
     };
 
-    console.log("Original selectInfo times:", {
-      start: selectInfo.start.toISOString(),
-      end: selectInfo.end.toISOString(),
-    });
-    console.log("Adjusted local times:", {
-      localStart: localStart.toISOString(),
-      localEnd: localEnd.toISOString(),
-    });
-    console.log("Storing time slot in session storage:", eventData);
+    // Save the selected time info for the availability sidebar using 12-hour format
+    const eventData = {
+      startTime: formatTime12Hour(localStart),
+      endTime: formatTime12Hour(localEnd),
+    };
 
     // Store this data to be accessed by the form
     window.sessionStorage.setItem(
@@ -396,9 +414,15 @@ const Scheduled = () => {
           onClose={() => setIsSidebarOpen(false)}
           onDone={() => {
             setIsSidebarOpen(false);
+            // Refresh data after successful operation
             handleAppointmentDone();
           }}
-          onOpenChange={setIsSidebarOpen}
+          onOpenChange={(open) => {
+            // Prevent unnecessary re-renders
+            if (open !== isSidebarOpen) {
+              setIsSidebarOpen(open);
+            }
+          }}
         />
 
         {showCreateClient && (

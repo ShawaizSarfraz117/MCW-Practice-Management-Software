@@ -141,32 +141,32 @@ export default function AppointmentNotePage() {
           <div className="flex-1 p-6">
             <div className="max-w-5xl">
               <ProgressNoteSection
-                progressNotes={progressNotes}
-                selectedNote={selectedNote}
-                setSelectedNote={setSelectedNote}
-                selectedTemplate={selectedTemplate}
-                progressNote={progressNote}
-                isLoadingProgressNote={isLoadingProgressNote}
-                showEditProgressNote={showEditProgressNote}
-                setShowEditProgressNote={setShowEditProgressNote}
-                handleSaveProgressNote={handleSaveProgressNote}
+                createMutationStatus={createMutation.status}
                 handleCancelProgressNote={handleCancelProgressNote}
                 handleDeleteProgressNote={handleDeleteProgressNote}
-                createMutationStatus={createMutation.status}
-                updateMutationStatus={updateMutation.status}
+                handleSaveProgressNote={handleSaveProgressNote}
+                isLoadingProgressNote={isLoadingProgressNote}
                 isLoadingTemplates={isLoadingTemplates}
+                progressNote={progressNote}
+                progressNotes={progressNotes}
+                selectedNote={selectedNote}
+                selectedTemplate={selectedTemplate}
+                setSelectedNote={setSelectedNote}
+                setShowEditProgressNote={setShowEditProgressNote}
+                showEditProgressNote={showEditProgressNote}
+                updateMutationStatus={updateMutation.status}
               />
 
               <PsychotherapyNoteSection
-                psychoTemplate={psychoTemplate}
-                psychoNote={psychoNote}
-                isLoadingPsychoNote={isLoadingPsychoNote}
-                showPsychotherapyNote={showPsychotherapyNote}
-                setShowPsychotherapyNote={setShowPsychotherapyNote}
-                handleSavePsychotherapyNote={handleSavePsychotherapyNote}
+                createMutationStatus={createMutation.status}
                 handleCancelPsychotherapyNote={handleCancelPsychotherapyNote}
                 handleDeletePsychotherapyNote={handleDeletePsychotherapyNote}
-                createMutationStatus={createMutation.status}
+                handleSavePsychotherapyNote={handleSavePsychotherapyNote}
+                isLoadingPsychoNote={isLoadingPsychoNote}
+                psychoNote={psychoNote}
+                psychoTemplate={psychoTemplate}
+                setShowPsychotherapyNote={setShowPsychotherapyNote}
+                showPsychotherapyNote={showPsychotherapyNote}
                 updateMutationStatus={updateMutation.status}
               />
             </div>
@@ -174,21 +174,21 @@ export default function AppointmentNotePage() {
 
           <AppointmentSidebar
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
             appointment={appointment}
             clientAppointments={clientAppointments}
-            isLoadingClientAppointments={isLoadingClientAppointments}
             clientId={clientId}
+            isLoadingClientAppointments={isLoadingClientAppointments}
+            setActiveTab={setActiveTab}
             onEditClick={() => setShowEditAppointment(true)}
           />
         </div>
 
         <EditAppointmentDialog
+          appointment={appointment}
+          isSaving={updateAppointmentMutation.status === "pending"}
           open={showEditAppointment}
           onOpenChange={setShowEditAppointment}
-          appointment={appointment}
           onSave={handleSaveAppointment}
-          isSaving={updateAppointmentMutation.status === "pending"}
         />
       </div>
     </>

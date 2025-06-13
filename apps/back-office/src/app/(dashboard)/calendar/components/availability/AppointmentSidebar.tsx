@@ -89,22 +89,26 @@ export function AppointmentSidebar({
   // State for user's clinician ID
   const [userClinicianId, setUserClinicianId] = useState<string | null>(null);
 
-  // Fetch clinician ID for non-admin users using React Query
-  const { data: clinicianData } = useQuery({
-    queryKey: ["clinician", userId],
-    queryFn: async () => {
-      const response = await fetch(`/api/clinician?userId=${userId}`);
-      if (!response.ok) throw new Error("Failed to fetch clinician");
-      return response.json();
-    },
-    enabled: !!userId && isClinician && !isAdmin,
-  });
-
+  // Fetch clinician ID for non-admin users
   useEffect(() => {
-    if (clinicianData?.id) {
-      setUserClinicianId(clinicianData.id);
-    }
-  }, [clinicianData]);
+    const fetchClinicianId = async () => {
+      if (isClinician && !isAdmin && userId) {
+        try {
+          const response = await fetch(`/api/clinician?userId=${userId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data?.id) {
+              setUserClinicianId(data.id);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching clinician ID:", error);
+        }
+      }
+    };
+
+    fetchClinicianId();
+  }, [isClinician, isAdmin, userId]);
 
   // Use user's clinician ID if they're a clinician, otherwise use selectedResource
   const effectiveClinicianId =
@@ -136,7 +140,7 @@ export function AppointmentSidebar({
   const {
     data: servicesData,
     isLoading: isLoadingServicesQuery,
-    refetch: refetchServices,
+    refetch: _refetchServices,
   } = useQuery({
     queryKey: ["practiceServices"],
     queryFn: async () => {
@@ -186,7 +190,58 @@ export function AppointmentSidebar({
 
   // Function to fetch all practice services
   const fetchAllPracticeServices = async () => {
-    await refetchServices();
+    setIsLoadingPracticeServices(true);
+
+    try {
+      const response = await fetch("/api/service", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Map to DetailedService format
+        let services: DetailedService[] = [];
+        if (Array.isArray(data)) {
+          services = data.map((service: unknown) => {
+            const svc = service as Record<string, unknown>;
+            return {
+              id: svc.id as string,
+              type: svc.type as string,
+              code: svc.code as string,
+              duration: svc.duration as number,
+              description: svc.description as string,
+              rate: svc.rate as number,
+              defaultRate: svc.rate as number,
+              customRate: undefined,
+              effectiveRate: svc.rate as number,
+              color: svc.color as string,
+              isActive: true,
+              isDefault: (svc.is_default as boolean) ?? false,
+              billInUnits: (svc.bill_in_units as boolean) ?? false,
+              availableOnline: (svc.available_online as boolean) ?? false,
+              allowNewClients: (svc.allow_new_clients as boolean) ?? false,
+              requireCall: (svc.require_call as boolean) ?? false,
+              blockBefore: (svc.block_before as number) ?? 0,
+              blockAfter: (svc.block_after as number) ?? 0,
+            };
+          });
+        }
+
+        setFetchedServices(services);
+      } else {
+        console.error("Failed to fetch services:", response.status);
+        setFetchedServices([]);
+      }
+    } catch (error) {
+      console.error("Error fetching practice services:", error);
+      setFetchedServices([]);
+    } finally {
+      setIsLoadingPracticeServices(false);
+    }
   };
 
   // Add all services to availability (like AvailabilitySidebar)
@@ -303,7 +358,21 @@ export function AppointmentSidebar({
         const byDayMatch =
           availabilityData.recurring_rule.match(/BYDAY=([^;]+)/);
         if (byDayMatch) {
-          setSelectedDays(byDayMatch[1].split(","));
+          // Convert 2-letter RFC5545 codes to 3-letter codes for UI
+          const twoLetterToThreeLetter: Record<string, string> = {
+            SU: "SUN",
+            MO: "MON",
+            TU: "TUE",
+            WE: "WED",
+            TH: "THU",
+            FR: "FRI",
+            SA: "SAT",
+          };
+          const twoLetterDays = byDayMatch[1].split(",");
+          const threeLetterDays = twoLetterDays.map(
+            (day: string) => twoLetterToThreeLetter[day] || day,
+          );
+          setSelectedDays(threeLetterDays);
         }
 
         // Parse INTERVAL
@@ -480,7 +549,20 @@ export function AppointmentSidebar({
     }
 
     if (period === "week" && selectedDays.length > 0) {
-      parts.push(`BYDAY=${selectedDays.join(",")}`);
+      // Convert 3-letter codes to 2-letter RFC5545 codes
+      const threeLetterToTwoLetter: Record<string, string> = {
+        SUN: "SU",
+        MON: "MO",
+        TUE: "TU",
+        WED: "WE",
+        THU: "TH",
+        FRI: "FR",
+        SAT: "SA",
+      };
+      const twoLetterDays = selectedDays.map(
+        (day: string) => threeLetterToTwoLetter[day] || day,
+      );
+      parts.push(`BYDAY=${twoLetterDays.join(",")}`);
     }
 
     if (endType === "occurrences" && endValue) {

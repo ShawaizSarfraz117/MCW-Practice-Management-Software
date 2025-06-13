@@ -48,6 +48,7 @@ export function AppointmentTab({
   } = useFormContext();
 
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
+  const [isRecurringState, setIsRecurringState] = useState(false);
 
   const [selectedServices, setSelectedServices] = useState<
     Array<{ serviceId: string; fee: number }>
@@ -107,6 +108,12 @@ export function AppointmentTab({
       ? selectedClientRaw.id
       : selectedClientRaw;
   const isRecurring = form.getFieldValue<boolean>("recurring");
+
+  // Sync React state with form value to ensure re-rendering
+  useEffect(() => {
+    const formRecurringValue = form.getFieldValue<boolean>("recurring");
+    setIsRecurringState(!!formRecurringValue);
+  }, [form, isRecurring]);
 
   // API data fetching
   const { data: servicesData = [], isLoading: isLoadingServices } = useQuery<
@@ -479,7 +486,7 @@ export function AppointmentTab({
             label="Recurring"
           />
 
-          {isRecurring && (
+          {isRecurringState && (
             <RecurringControl
               open={true}
               startDate={form.getFieldValue<Date>("startDate") || new Date()}

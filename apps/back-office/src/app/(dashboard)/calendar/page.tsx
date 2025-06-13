@@ -6,7 +6,7 @@ import type React from "react";
 import { CalendarView } from "./components/calendar/calendar";
 
 import { useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { CreateClientDrawer } from "../clients/components/CreateClientDrawer";
 import {
@@ -46,7 +46,7 @@ function useClinicianData() {
         const response = await fetch(`/api/clinician?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
-          if (data && data.id) {
+          if (data?.id) {
             setUserClinicianId(data.id);
           } else {
             setError("Clinician record found but missing ID");
@@ -96,6 +96,7 @@ function determineLocationType(
 }
 
 const CalendarPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [_appointmentDate, setAppointmentDate] = useState("");
 
@@ -226,6 +227,55 @@ const CalendarPage: React.FC = () => {
       },
       enabled: shouldFetchData, // Only run query when session is loaded
     });
+
+  // Add event listener to refresh availabilities when AppointmentSidebar saves
+  useEffect(() => {
+    const handleRefreshAvailabilities = () => {
+      // Invalidate and refetch the availabilities query
+      queryClient.invalidateQueries({
+        queryKey: [
+          "availabilities",
+          effectiveClinicianId,
+          isAdmin,
+          isClinician,
+          apiStartDate,
+          apiEndDate,
+        ],
+      });
+      // Also invalidate appointments in case they were affected
+      queryClient.invalidateQueries({
+        queryKey: [
+          "appointments",
+          effectiveClinicianId,
+          isAdmin,
+          isClinician,
+          apiStartDate,
+          apiEndDate,
+        ],
+      });
+    };
+
+    // Listen for the refresh event
+    window.addEventListener(
+      "refreshAvailabilities",
+      handleRefreshAvailabilities,
+    );
+
+    // Cleanup
+    return () => {
+      window.removeEventListener(
+        "refreshAvailabilities",
+        handleRefreshAvailabilities,
+      );
+    };
+  }, [
+    queryClient,
+    effectiveClinicianId,
+    isAdmin,
+    isClinician,
+    apiStartDate,
+    apiEndDate,
+  ]);
 
   // Transform API data to match the format expected by CalendarView
   const formattedClinicians = Array.isArray(cliniciansData)

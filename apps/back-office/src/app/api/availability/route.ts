@@ -4,27 +4,7 @@ import { logger } from "@mcw/logger";
 import { z } from "zod";
 import { getServerSession } from "next-auth/next";
 import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
-
-// Map of day codes to day indices (0 = Sunday, 1 = Monday, etc.)
-// Support both 2-letter (RFC5545 standard) and 3-letter codes
-const DAY_CODE_TO_INDEX: Record<string, number> = {
-  // 2-letter codes (RFC5545 standard)
-  SU: 0,
-  MO: 1,
-  TU: 2,
-  WE: 3,
-  TH: 4,
-  FR: 5,
-  SA: 6,
-  // 3-letter codes (common abbreviations)
-  SUN: 0,
-  MON: 1,
-  TUE: 2,
-  WED: 3,
-  THU: 4,
-  FRI: 5,
-  SAT: 6,
-};
+import { DAY_CODE_TO_INDEX } from "@/utils/appointment-helpers";
 
 /**
  * Availability API Route

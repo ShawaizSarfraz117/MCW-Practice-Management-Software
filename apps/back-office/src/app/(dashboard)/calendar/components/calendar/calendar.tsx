@@ -122,6 +122,11 @@ export function CalendarView({
   );
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  // Update events when initialEvents changes (for reactive updates)
+  useEffect(() => {
+    setEvents(initialEvents);
+  }, [initialEvents]);
+
   // Initialize selected clinicians based on user role
   const [selectedClinicians, setSelectedClinicians] = useState<string[]>([]);
 
@@ -150,6 +155,10 @@ export function CalendarView({
   const [selectedLocations, setSelectedLocations] = useState<string[]>(
     initialLocations.map((loc: Location) => loc.value),
   );
+
+  useEffect(() => {
+    setEvents(initialEvents);
+  }, [initialEvents]);
 
   // Intake form state
   const [showIntakeForm, setShowIntakeForm] = useState(false);
@@ -184,8 +193,17 @@ export function CalendarView({
     filtered = filtered.filter((event) => {
       // For availability events, only check clinician
       if (event.extendedProps?.type === "availability") {
-        return (event as unknown as EventApiWithResourceIds)._def
-          ?.resourceIds?.[0];
+        // Availabilities use resourceId for clinician, not location
+        const resourceId =
+          event.resourceId ||
+          (event as unknown as EventApiWithResourceIds)._def?.resourceIds?.[0];
+
+        // If we have selected clinicians, filter by them
+        if (selectedClinicians.length > 0) {
+          return resourceId && selectedClinicians.includes(resourceId);
+        }
+        // Otherwise show all availabilities
+        return true;
       }
       // For regular events, filter by location
       return event.location && selectedLocations.includes(event.location);
@@ -304,8 +322,15 @@ export function CalendarView({
           }),
         );
 
-        // Update calendar events
-        setEvents(formattedAppointments);
+        // Update calendar events - PRESERVE AVAILABILITIES
+        setEvents((prevEvents) => {
+          // Keep all availability events
+          const availabilities = prevEvents.filter(
+            (event) => event.extendedProps?.type === "availability",
+          );
+          // Combine with new appointments
+          return [...availabilities, ...formattedAppointments];
+        });
       } catch (error) {
         console.error("Error refreshing appointments:", error);
       }
@@ -348,7 +373,7 @@ export function CalendarView({
     try {
       // Process the appointment submission and update the calendar
       const newEvents = await handleCreateAppointment();
-      if (newEvents && newEvents.length > 0) {
+      if (newEvents?.length > 0) {
         setEvents((prevEvents) => [...prevEvents, ...newEvents]);
       }
 
@@ -530,18 +555,13 @@ export function CalendarView({
         },
       );
 
-      console.log("Has new client tag:", hasNewClientTag);
-      console.log("First appointment full data:", firstAppointment);
-
       // If it's a new client appointment, show the intake form
       if (hasNewClientTag && firstAppointment) {
         const clientGroup = firstAppointment.ClientGroup;
-        console.log("Client group:", clientGroup);
 
-        if (clientGroup && clientGroup.ClientGroupMembership?.length > 0) {
+        if (clientGroup?.ClientGroupMembership?.length > 0) {
           const firstMember = clientGroup.ClientGroupMembership[0];
           const client = firstMember.Client;
-          console.log("Client data:", client);
 
           if (client) {
             // Get client email from contacts
@@ -1395,147 +1415,6 @@ export function CalendarView({
           ref={calendarRef}
           allDaySlot={true}
           allDayText="All day"
-          resourceLabelContent={
-            isScheduledPage && initialClinicians.length > 0
-              ? (args) => {
-                  const resourceId = args.resource.id;
-                  const clinician = initialClinicians.find(
-                    (c) => c.value === resourceId,
-                  );
-
-                  // For day view, show appointment limit controls
-                  if (currentView === "resourceTimeGridDay") {
-                    // Use local date to match how we store the keys
-                    const year = currentDate.getFullYear();
-                    const month = String(currentDate.getMonth() + 1).padStart(
-                      2,
-                      "0",
-                    );
-                    const day = String(currentDate.getDate()).padStart(2, "0");
-                    const dateStr = `${year}-${month}-${day}`;
-                    const limitKey = `${resourceId}-${dateStr}`;
-                    const limit = appointmentLimits[limitKey];
-
-                    const isDropdownOpen =
-                      addLimitDropdown.open &&
-                      addLimitDropdown.date &&
-                      addLimitDropdown.date.toDateString() ===
-                        currentDate.toDateString() &&
-                      addLimitDropdown.clinicianId === resourceId;
-
-                    let buttonText = "+ Appt Limit";
-                    if (limit !== undefined && limit !== null) {
-                      if (limit === 0) {
-                        buttonText = "No Availability";
-                      } else {
-                        buttonText = `${limit} max`;
-                      }
-                    }
-
-                    return (
-                      <div className="flex flex-col items-center w-full py-2">
-                        {isAdmin && (
-                          <div className="text-sm font-medium text-gray-900 mb-2 text-center">
-                            {clinician ? clinician.label : args.resource.title}
-                          </div>
-                        )}
-                        <div className="relative">
-                          <Button
-                            className="text-xs px-2 py-1 w-full max-w-[100px]"
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleAddLimitForClinician(
-                                currentDate,
-                                resourceId,
-                                e,
-                              );
-                            }}
-                          >
-                            {buttonText}
-                          </Button>
-                          {isDropdownOpen && (
-                            <Card
-                              ref={addLimitDropdownRef}
-                              className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-white z-[9999] min-w-[170px] overflow-hidden p-0 shadow-lg border"
-                              style={{
-                                position: "fixed",
-                                top: dropdownPosition?.top,
-                                left: dropdownPosition?.left,
-                                transform: "translate(-50%, 0)",
-                                zIndex: 9999,
-                              }}
-                            >
-                              <CardHeader className="p-[10px_10px_6px_10px] border-b border-gray-100">
-                                <div className="font-bold text-[0.6rem] text-gray-800">
-                                  Appt limit per day
-                                </div>
-                                <div className="font-medium text-[0.5rem] text-gray-400 mt-0.5">
-                                  {clinician?.label || "Clinician"} - All{" "}
-                                  {currentDate.toLocaleDateString(undefined, {
-                                    weekday: "long",
-                                  })}
-                                  s
-                                </div>
-                              </CardHeader>
-                              <CardContent className="py-2 px-0 max-h-60 overflow-y-auto">
-                                <div
-                                  className={`px-4 py-3 text-left cursor-pointer text-gray-800 font-bold text-[0.7rem] rounded-lg mx-2 mb-1 ${
-                                    limit === 0 ? "bg-gray-100" : ""
-                                  }`}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleSelectLimitForClinician(
-                                      null,
-                                      resourceId,
-                                    );
-                                  }}
-                                  onMouseDown={(e) => e.preventDefault()}
-                                >
-                                  No appt limit
-                                </div>
-                                {[...Array(20)].map((_, i: number) => {
-                                  const num = i + 1;
-                                  return (
-                                    <div
-                                      key={num}
-                                      className={`px-4 py-2.5 text-left cursor-pointer text-gray-800 font-medium text-[0.7rem] rounded-lg mx-2 mb-1 transition-colors ${
-                                        limit === num ? "bg-gray-100" : ""
-                                      }`}
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        handleSelectLimitForClinician(
-                                          num,
-                                          resourceId,
-                                        );
-                                      }}
-                                      onMouseDown={(e) => e.preventDefault()}
-                                    >
-                                      {num}
-                                    </div>
-                                  );
-                                })}
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // Default - show clinician name only for admins
-                  return (
-                    <div className="text-sm font-medium text-gray-900 text-center py-2">
-                      {isAdmin && clinician ? clinician.label : ""}
-                    </div>
-                  );
-                }
-              : undefined
-          }
           dayHeaderContent={(args) => {
             const date = args.date;
             const weekday = date.toLocaleDateString("en-US", {
@@ -1650,8 +1529,8 @@ export function CalendarView({
                           ?.resourceIds?.[0]
                       }
                       data-event-start={arg.event.start?.toISOString()}
-                      data-event-title={arg.event.title}
                       data-event-time={arg.timeText}
+                      data-event-title={arg.event.title}
                       style={{
                         width: "12px",
                         height: "100%",
@@ -2088,6 +1967,147 @@ export function CalendarView({
             dayGridPlugin,
             interactionPlugin,
           ]}
+          resourceLabelContent={
+            isScheduledPage && initialClinicians.length > 0
+              ? (args) => {
+                  const resourceId = args.resource.id;
+                  const clinician = initialClinicians.find(
+                    (c) => c.value === resourceId,
+                  );
+
+                  // For day view, show appointment limit controls
+                  if (currentView === "resourceTimeGridDay") {
+                    // Use local date to match how we store the keys
+                    const year = currentDate.getFullYear();
+                    const month = String(currentDate.getMonth() + 1).padStart(
+                      2,
+                      "0",
+                    );
+                    const day = String(currentDate.getDate()).padStart(2, "0");
+                    const dateStr = `${year}-${month}-${day}`;
+                    const limitKey = `${resourceId}-${dateStr}`;
+                    const limit = appointmentLimits[limitKey];
+
+                    const isDropdownOpen =
+                      addLimitDropdown.open &&
+                      addLimitDropdown.date &&
+                      addLimitDropdown.date.toDateString() ===
+                        currentDate.toDateString() &&
+                      addLimitDropdown.clinicianId === resourceId;
+
+                    let buttonText = "+ Appt Limit";
+                    if (limit !== undefined && limit !== null) {
+                      if (limit === 0) {
+                        buttonText = "No Availability";
+                      } else {
+                        buttonText = `${limit} max`;
+                      }
+                    }
+
+                    return (
+                      <div className="flex flex-col items-center w-full py-2">
+                        {isAdmin && (
+                          <div className="text-sm font-medium text-gray-900 mb-2 text-center">
+                            {clinician ? clinician.label : args.resource.title}
+                          </div>
+                        )}
+                        <div className="relative">
+                          <Button
+                            className="text-xs px-2 py-1 w-full max-w-[100px]"
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAddLimitForClinician(
+                                currentDate,
+                                resourceId,
+                                e,
+                              );
+                            }}
+                          >
+                            {buttonText}
+                          </Button>
+                          {isDropdownOpen && (
+                            <Card
+                              ref={addLimitDropdownRef}
+                              className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-white z-[9999] min-w-[170px] overflow-hidden p-0 shadow-lg border"
+                              style={{
+                                position: "fixed",
+                                top: dropdownPosition?.top,
+                                left: dropdownPosition?.left,
+                                transform: "translate(-50%, 0)",
+                                zIndex: 9999,
+                              }}
+                            >
+                              <CardHeader className="p-[10px_10px_6px_10px] border-b border-gray-100">
+                                <div className="font-bold text-[0.6rem] text-gray-800">
+                                  Appt limit per day
+                                </div>
+                                <div className="font-medium text-[0.5rem] text-gray-400 mt-0.5">
+                                  {clinician?.label || "Clinician"} - All{" "}
+                                  {currentDate.toLocaleDateString(undefined, {
+                                    weekday: "long",
+                                  })}
+                                  s
+                                </div>
+                              </CardHeader>
+                              <CardContent className="py-2 px-0 max-h-60 overflow-y-auto">
+                                <div
+                                  className={`px-4 py-3 text-left cursor-pointer text-gray-800 font-bold text-[0.7rem] rounded-lg mx-2 mb-1 ${
+                                    limit === 0 ? "bg-gray-100" : ""
+                                  }`}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleSelectLimitForClinician(
+                                      null,
+                                      resourceId,
+                                    );
+                                  }}
+                                  onMouseDown={(e) => e.preventDefault()}
+                                >
+                                  No appt limit
+                                </div>
+                                {[...Array(20)].map((_, i: number) => {
+                                  const num = i + 1;
+                                  return (
+                                    <div
+                                      key={num}
+                                      className={`px-4 py-2.5 text-left cursor-pointer text-gray-800 font-medium text-[0.7rem] rounded-lg mx-2 mb-1 transition-colors ${
+                                        limit === num ? "bg-gray-100" : ""
+                                      }`}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleSelectLimitForClinician(
+                                          num,
+                                          resourceId,
+                                        );
+                                      }}
+                                      onMouseDown={(e) => e.preventDefault()}
+                                    >
+                                      {num}
+                                    </div>
+                                  );
+                                })}
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Default - show clinician name only for admins
+                  return (
+                    <div className="text-sm font-medium text-gray-900 text-center py-2">
+                      {isAdmin && clinician ? clinician.label : ""}
+                    </div>
+                  );
+                }
+              : undefined
+          }
           resources={
             isScheduledPage && currentView === "resourceTimeGridDay"
               ? resources

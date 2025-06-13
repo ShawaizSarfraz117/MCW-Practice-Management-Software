@@ -250,8 +250,8 @@ export function BillingInsuranceTab({
         <div className="space-y-3">
           <div className="flex items-center">
             <Checkbox
-              id="auto-statements"
               checked={autogenerateBilling.statements}
+              id="auto-statements"
               onCheckedChange={(checked) =>
                 setAutogenerateBilling((prev) => ({
                   ...prev,
@@ -259,14 +259,14 @@ export function BillingInsuranceTab({
                 }))
               }
             />
-            <label htmlFor="auto-statements" className="ml-2 text-sm">
+            <label className="ml-2 text-sm" htmlFor="auto-statements">
               Automatically create monthly Statements for this client
             </label>
           </div>
           <div className="flex items-center">
             <Checkbox
-              id="auto-superbills"
               checked={autogenerateBilling.superbills}
+              id="auto-superbills"
               onCheckedChange={(checked) =>
                 setAutogenerateBilling((prev) => ({
                   ...prev,
@@ -274,7 +274,7 @@ export function BillingInsuranceTab({
                 }))
               }
             />
-            <label htmlFor="auto-superbills" className="ml-2 text-sm">
+            <label className="ml-2 text-sm" htmlFor="auto-superbills">
               Automatically create monthly Superbills for this client
             </label>
           </div>
@@ -319,8 +319,8 @@ export function BillingInsuranceTab({
           <div className="space-y-3 ml-6">
             <div className="flex items-center">
               <Checkbox
-                id="email-invoices"
                 checked={billingPreferences.email_generated_invoices}
+                id="email-invoices"
                 onCheckedChange={(checked) =>
                   setBillingPreferences((prev) => ({
                     ...prev,
@@ -328,14 +328,14 @@ export function BillingInsuranceTab({
                   }))
                 }
               />
-              <label htmlFor="email-invoices" className="ml-2 text-sm">
+              <label className="ml-2 text-sm" htmlFor="email-invoices">
                 Email generated Invoices to this client
               </label>
             </div>
             <div className="flex items-center">
               <Checkbox
-                id="email-statements"
                 checked={billingPreferences.email_generated_statements}
+                id="email-statements"
                 onCheckedChange={(checked) =>
                   setBillingPreferences((prev) => ({
                     ...prev,
@@ -343,14 +343,14 @@ export function BillingInsuranceTab({
                   }))
                 }
               />
-              <label htmlFor="email-statements" className="ml-2 text-sm">
+              <label className="ml-2 text-sm" htmlFor="email-statements">
                 Email generated Statements to this client
               </label>
             </div>
             <div className="flex items-center">
               <Checkbox
-                id="email-superbills"
                 checked={billingPreferences.email_generated_superbills}
+                id="email-superbills"
                 onCheckedChange={(checked) =>
                   setBillingPreferences((prev) => ({
                     ...prev,
@@ -358,7 +358,7 @@ export function BillingInsuranceTab({
                   }))
                 }
               />
-              <label htmlFor="email-superbills" className="ml-2 text-sm">
+              <label className="ml-2 text-sm" htmlFor="email-superbills">
                 Email generated Superbills to this client
               </label>
             </div>
@@ -369,8 +369,8 @@ export function BillingInsuranceTab({
           <div className="space-y-3 ml-6">
             <div className="flex items-center">
               <Checkbox
-                id="notify-invoices"
                 checked={billingPreferences.notify_new_invoices}
+                id="notify-invoices"
                 onCheckedChange={(checked) =>
                   setBillingPreferences((prev) => ({
                     ...prev,
@@ -378,14 +378,14 @@ export function BillingInsuranceTab({
                   }))
                 }
               />
-              <label htmlFor="notify-invoices" className="ml-2 text-sm">
+              <label className="ml-2 text-sm" htmlFor="notify-invoices">
                 Notify client when new Invoices are available
               </label>
             </div>
             <div className="flex items-center">
               <Checkbox
-                id="notify-statements"
                 checked={billingPreferences.notify_new_statements}
+                id="notify-statements"
                 onCheckedChange={(checked) =>
                   setBillingPreferences((prev) => ({
                     ...prev,
@@ -393,14 +393,14 @@ export function BillingInsuranceTab({
                   }))
                 }
               />
-              <label htmlFor="notify-statements" className="ml-2 text-sm">
+              <label className="ml-2 text-sm" htmlFor="notify-statements">
                 Notify client when new Statements are available
               </label>
             </div>
             <div className="flex items-center">
               <Checkbox
-                id="notify-superbills"
                 checked={billingPreferences.notify_new_superbills}
+                id="notify-superbills"
                 onCheckedChange={(checked) =>
                   setBillingPreferences((prev) => ({
                     ...prev,
@@ -408,7 +408,7 @@ export function BillingInsuranceTab({
                   }))
                 }
               />
-              <label htmlFor="notify-superbills" className="ml-2 text-sm">
+              <label className="ml-2 text-sm" htmlFor="notify-superbills">
                 Notify client when new Superbills are available
               </label>
             </div>
@@ -423,7 +423,7 @@ export function BillingInsuranceTab({
           <div className="grid grid-cols-[1fr_150px_auto] gap-4 items-center">
             <Label>Service Code</Label>
             <Label>Rate Per Unit</Label>
-            <div></div>
+            <div />
           </div>
 
           {defaultServices.map((service, index) => (
@@ -449,18 +449,18 @@ export function BillingInsuranceTab({
               <div className="flex items-center gap-2">
                 <span>$</span>
                 <input
-                  type="number"
-                  value={service.rate}
-                  onChange={(e) => handleRateChange(index, e.target.value)}
                   className="w-full border rounded px-2 py-1.5"
                   min="0"
                   step="0.01"
+                  type="number"
+                  value={service.rate}
+                  onChange={(e) => handleRateChange(index, e.target.value)}
                 />
               </div>
               <button
-                onClick={() => handleRemoveService(index)}
                 className="p-1 hover:bg-gray-100 rounded"
                 type="button"
+                onClick={() => handleRemoveService(index)}
               >
                 <Trash2 className="h-4 w-4 text-gray-500" />
               </button>
@@ -495,8 +495,8 @@ export function BillingInsuranceTab({
           Cancel
         </Button>
         <Button
-          onClick={handleSave}
           disabled={saveBillingPreferencesMutation.isPending}
+          onClick={handleSave}
         >
           {saveBillingPreferencesMutation.isPending
             ? "Saving..."

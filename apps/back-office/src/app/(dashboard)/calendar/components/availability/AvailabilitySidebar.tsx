@@ -131,8 +131,8 @@ export function AvailabilitySidebar({
               setUserClinicianId(data.id);
             }
           }
-        } catch (error) {
-          console.error("Error fetching clinician ID:", error);
+        } catch (_error) {
+          // Error fetching clinician ID
         }
       }
     };
@@ -164,8 +164,7 @@ export function AvailabilitySidebar({
           return Array.isArray(data) ? data : data.services || [];
         }
         return [];
-      } catch (error) {
-        console.error("Error fetching availability services:", error);
+      } catch (_error) {
         return [];
       }
     },
@@ -324,7 +323,21 @@ export function AvailabilitySidebar({
         const byDayMatch =
           availabilityData.recurring_rule.match(/BYDAY=([^;]+)/);
         if (byDayMatch) {
-          setSelectedDays(byDayMatch[1].split(","));
+          // Convert 2-letter RFC5545 codes to 3-letter codes for UI
+          const twoLetterToThreeLetter: Record<string, string> = {
+            SU: "SUN",
+            MO: "MON",
+            TU: "TUE",
+            WE: "WED",
+            TH: "THU",
+            FR: "FRI",
+            SA: "SAT",
+          };
+          const twoLetterDays = byDayMatch[1].split(",");
+          const threeLetterDays = twoLetterDays.map(
+            (day: string) => twoLetterToThreeLetter[day] || day,
+          );
+          setSelectedDays(threeLetterDays);
         }
 
         // Parse INTERVAL
@@ -493,7 +506,20 @@ export function AvailabilitySidebar({
     }
 
     if (period === "week" && selectedDays.length > 0) {
-      parts.push(`BYDAY=${selectedDays.join(",")}`);
+      // Convert 3-letter codes to 2-letter RFC5545 codes
+      const threeLetterToTwoLetter: Record<string, string> = {
+        SUN: "SU",
+        MON: "MO",
+        TUE: "TU",
+        WED: "WE",
+        THU: "TH",
+        FRI: "FR",
+        SAT: "SA",
+      };
+      const twoLetterDays = selectedDays.map(
+        (day: string) => threeLetterToTwoLetter[day] || day,
+      );
+      parts.push(`BYDAY=${twoLetterDays.join(",")}`);
     }
 
     if (endType === "occurrences" && endValue) {
@@ -528,8 +554,8 @@ export function AvailabilitySidebar({
           const [hours, minutes] = timeStr.split(":").map(Number);
           newDate.setHours(hours, minutes, 0, 0);
         }
-      } catch (error) {
-        console.error("Error converting date/time:", error);
+      } catch (_error) {
+        // Error converting date/time
       }
     }
 
@@ -629,7 +655,6 @@ export function AvailabilitySidebar({
       // Additional safety: invalidate all queries as a final step
       await queryClient.invalidateQueries();
     } catch (error) {
-      console.error("Error deleting availability:", error);
       setGeneralError(
         error instanceof Error
           ? error.message
@@ -1108,8 +1133,8 @@ export function AvailabilitySidebar({
                           if (newDropdownState === true) {
                             try {
                               await fetchServices();
-                            } catch (error) {
-                              console.error("Error in fetchServices:", error);
+                            } catch (_error) {
+                              // Error in fetchServices
                             }
                           }
                         }}

@@ -112,6 +112,12 @@ export function ProgressNoteSection({
                     <SurveyPreview
                       ref={surveyRef}
                       content={selectedTemplate.content!}
+                      defaultAnswers={
+                        progressNote?.content
+                          ? parseSurveyContent(progressNote.content) ||
+                            undefined
+                          : undefined
+                      }
                       mode="edit"
                       showInstructions={false}
                       title=""
@@ -120,12 +126,6 @@ export function ProgressNoteSection({
                         handleSaveProgressNote(result);
                         setShowEditProgressNote(false);
                       }}
-                      defaultAnswers={
-                        progressNote?.content
-                          ? parseSurveyContent(progressNote.content) ||
-                            undefined
-                          : undefined
-                      }
                     />
                   ) : (
                     <div className="text-center py-8 text-gray-400">
@@ -179,8 +179,8 @@ export function ProgressNoteSection({
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="outline"
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        variant="outline"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
@@ -217,6 +217,12 @@ export function ProgressNoteSection({
                     <SurveyPreview
                       ref={surveyRef}
                       content={selectedTemplate.content!}
+                      defaultAnswers={
+                        progressNote?.content
+                          ? parseSurveyContent(progressNote.content) ||
+                            undefined
+                          : undefined
+                      }
                       mode="edit"
                       showInstructions={false}
                       title=""
@@ -224,12 +230,6 @@ export function ProgressNoteSection({
                       onComplete={(result) => {
                         handleSaveProgressNote(result);
                       }}
-                      defaultAnswers={
-                        progressNote?.content
-                          ? parseSurveyContent(progressNote.content) ||
-                            undefined
-                          : undefined
-                      }
                     />
                   ) : (
                     <div className="text-center py-8 text-gray-400">
@@ -245,12 +245,12 @@ export function ProgressNoteSection({
                     Cancel
                   </Button>
                   <Button
-                    type="submit"
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     disabled={
                       createMutationStatus === "pending" ||
                       updateMutationStatus === "pending"
                     }
+                    type="submit"
                   >
                     Save
                   </Button>

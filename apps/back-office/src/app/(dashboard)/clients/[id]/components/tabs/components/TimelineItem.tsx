@@ -385,8 +385,8 @@ export default function TimelineItem({ document }: TimelineItemProps) {
             )}
             {document.documentType === "appointments" && (
               <Link
-                href={`/appointmentNote/${document.clientGroupId}`}
                 className="text-blue-500 hover:underline text-sm mt-2"
+                href={`/appointmentNote/${document.clientGroupId}`}
               >
                 + Progress Note
               </Link>

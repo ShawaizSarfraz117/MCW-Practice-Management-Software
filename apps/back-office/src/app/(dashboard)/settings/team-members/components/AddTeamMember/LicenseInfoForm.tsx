@@ -225,9 +225,9 @@ const LicenseInfoForm = forwardRef<LicenseInfoFormRef, LicenseInfoFormProps>(
                       field.state.meta.errors.length ? "border-red-500" : ""
                     }
                     id={field.name}
+                    min={new Date().toISOString().split("T")[0]}
                     name={field.name}
                     type="date"
-                    min={new Date().toISOString().split("T")[0]}
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
