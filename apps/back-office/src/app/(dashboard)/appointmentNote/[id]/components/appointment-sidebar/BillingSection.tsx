@@ -51,8 +51,8 @@ export function BillingSection({ appointment }: BillingSectionProps) {
         </div>
       </div>
       <Button
-        variant="link"
         className="text-blue-600 p-0 h-auto text-sm mt-3 flex items-center"
+        variant="link"
       >
         <ExternalLink className="h-3 w-3 mr-1" />
         Open billing

@@ -118,7 +118,7 @@ export default function AppointmentNotePage() {
     progressNoteError &&
     progressNoteError.message !== "Failed to fetch note"
   ) {
-    return <AppointmentNoteErrorState type="error" error={progressNoteError} />;
+    return <AppointmentNoteErrorState error={progressNoteError} type="error" />;
   }
 
   if (!appointment) {
@@ -127,7 +127,7 @@ export default function AppointmentNotePage() {
 
   if (!clientId) {
     return (
-      <AppointmentNoteErrorState type="noClient" appointment={appointment} />
+      <AppointmentNoteErrorState appointment={appointment} type="noClient" />
     );
   }
 

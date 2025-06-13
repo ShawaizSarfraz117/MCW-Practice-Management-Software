@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect } from "react";
 import { Button, Input, toast } from "@mcw/ui";
-import Link from "next/link";
 import "react-quill/dist/quill.snow.css";
 import dynamic from "next/dynamic";
 import { AutocompleteInput } from "./components/AutocompleteInput";
@@ -12,7 +11,7 @@ import { createMentalStatusExamAnswer } from "./services/surveyAnswer.service";
 import { fetchSingleClientGroup } from "@/(dashboard)/clients/services/client.service";
 import { fetchSurveyTemplateByType } from "@/(dashboard)/clients/services/surveyTemplate.service";
 import { ClientGroupFromAPI } from "../edit/components/ClientEdit";
-import { getClientGroupInfo } from "../components/ClientProfile";
+import { ClientInfoHeader } from "../components/ClientInfoHeader";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
@@ -220,6 +219,7 @@ export default function MentalStatusExam() {
         template_id: templateId,
         content,
         status: "COMPLETED",
+        client_group_id: clientGroupId,
       });
 
       if (error || !response) {
@@ -251,40 +251,8 @@ export default function MentalStatusExam() {
   };
 
   return (
-    <div className="px-4 w-full max-w-6xl mx-auto">
-      {/* Client Info */}
-      <h1 className="text-2xl font-semibold mt-4 mb-1">
-        {clientInfo ? getClientGroupInfo(clientInfo) : "Loading..."}
-      </h1>
-      <div className="text-sm text-gray-500 mb-4 flex flex-wrap gap-2 items-center">
-        {clientInfo?.ClientGroupMembership[0]?.Client?.date_of_birth && (
-          <>
-            {clientInfo.type}
-            <span className="text-gray-300">|</span>
-          </>
-        )}
-        {clientInfo?.ClientGroupMembership[0]?.Client?.date_of_birth && (
-          <>
-            {new Date(
-              clientInfo.ClientGroupMembership[0]?.Client?.date_of_birth,
-            ).toLocaleDateString()}
-            <span className="text-gray-300">|</span>
-          </>
-        )}
-        <Link
-          className="text-[#2d8467] hover:underline"
-          href={`/scheduled?client_id=${clientGroupId}`}
-        >
-          Schedule appointment
-        </Link>
-        <span className="text-gray-300">|</span>
-        <Link
-          className="text-[#2d8467] hover:underline"
-          href={`/clients/${clientGroupId}/edit`}
-        >
-          Edit
-        </Link>
-      </div>
+    <div className="px-4 w-full max-w-6xl mx-auto mt-4">
+      <ClientInfoHeader clientInfo={clientInfo} clientGroupId={clientGroupId} />
 
       {/* Section Title and All Normal */}
       <div className="flex items-center justify-between mt-8 mb-2 max-w-2xl">

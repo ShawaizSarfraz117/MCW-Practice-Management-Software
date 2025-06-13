@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       appointment_id,
       content,
       status = "PENDING",
+      client_group_id,
     } = requestData;
 
     // Validate required fields
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
       data: {
         template_id,
         client_id,
+        client_group_id: client_group_id || null,
         appointment_id: appointment_id || null,
         content: content ? JSON.stringify(content) : null,
         status,

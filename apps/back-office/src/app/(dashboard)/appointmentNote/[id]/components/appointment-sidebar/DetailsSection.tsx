@@ -35,8 +35,8 @@ export function DetailsSection({
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-900">Details</h3>
         <Button
-          variant="link"
           className="text-blue-600 p-0 h-auto text-sm"
+          variant="link"
           onClick={onEditClick}
         >
           <Edit2 className="h-3 w-3 mr-1" />
@@ -76,8 +76,8 @@ export function DetailsSection({
         </div>
       </div>
       <Button
-        variant="link"
         className="text-blue-600 p-0 h-auto text-sm mt-3 flex items-center"
+        variant="link"
       >
         <ExternalLink className="h-3 w-3 mr-1" />
         Open in calendar
