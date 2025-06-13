@@ -24,14 +24,22 @@ export function useAppointmentNoteMutations({
 
   const createMutation = useMutation({
     mutationFn: (data: SurveyAnswerInput) => createSurveyAnswer(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate all survey answer queries for this appointment
       queryClient.invalidateQueries({
         queryKey: ["surveyAnswer", appointmentId],
       });
+      // Also invalidate with the specific template ID
+      if (variables.template_id) {
+        queryClient.invalidateQueries({
+          queryKey: ["surveyAnswer", appointmentId, variables.template_id],
+        });
+      }
       toast({
         title: "Success",
         description: "Note created successfully",
       });
+      onEditComplete?.();
     },
     onError: (error: unknown) => {
       showErrorToast(toast, error);
@@ -47,13 +55,15 @@ export function useAppointmentNoteMutations({
       data: Partial<SurveyAnswerInput>;
     }) => updateSurveyAnswer(noteId, data),
     onSuccess: () => {
+      // Invalidate all survey answer queries
       queryClient.invalidateQueries({
-        queryKey: ["surveyAnswer", appointmentId],
+        queryKey: ["surveyAnswer"],
       });
       toast({
         title: "Success",
         description: "Note updated successfully",
       });
+      onEditComplete?.();
     },
     onError: (error: unknown) => {
       showErrorToast(toast, error);

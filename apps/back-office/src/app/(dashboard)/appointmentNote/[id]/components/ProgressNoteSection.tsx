@@ -46,6 +46,7 @@ interface ProgressNoteSectionProps {
   handleDeleteProgressNote: () => void;
   createMutationStatus: "idle" | "pending" | "error" | "success";
   updateMutationStatus: "idle" | "pending" | "error" | "success";
+  isLoadingTemplates?: boolean;
 }
 
 export function ProgressNoteSection({
@@ -63,6 +64,18 @@ export function ProgressNoteSection({
   createMutationStatus,
   updateMutationStatus,
 }: ProgressNoteSectionProps) {
+  // Validate template content is valid JSON
+  const isValidTemplateContent = (
+    content: string | null | undefined,
+  ): boolean => {
+    if (!content) return false;
+    try {
+      JSON.parse(content);
+      return true;
+    } catch {
+      return false;
+    }
+  };
   return (
     <Card className="mb-6">
       <CardContent className="p-6">
@@ -71,11 +84,11 @@ export function ProgressNoteSection({
           <div className="flex items-center gap-2">
             <Select value={selectedNote} onValueChange={setSelectedNote}>
               <SelectTrigger className="w-64 bg-white">
-                <SelectValue />
+                <SelectValue placeholder="Select a progress note template" />
               </SelectTrigger>
               <SelectContent>
                 {progressNotes.map((template: Template) => (
-                  <SelectItem key={template.id} value={template.name}>
+                  <SelectItem key={template.id} value={template.id}>
                     {template.name}
                   </SelectItem>
                 ))}
@@ -85,28 +98,38 @@ export function ProgressNoteSection({
         </div>
 
         {/* Progress Note Content */}
-        {selectedTemplate && (
+        {selectedTemplate ? (
           <div>
             {showEditProgressNote ? (
               // Show edit form
               <div className="space-y-4">
                 <div className="border rounded-lg bg-white">
-                  <SurveyPreview
-                    content={selectedTemplate.content || ""}
-                    mode="edit"
-                    showInstructions={false}
-                    title=""
-                    type={selectedTemplate.type}
-                    onComplete={(result) => {
-                      handleSaveProgressNote(result);
-                      setShowEditProgressNote(false);
-                    }}
-                    defaultAnswers={
-                      progressNote?.content
-                        ? parseSurveyContent(progressNote.content) || undefined
-                        : undefined
-                    }
-                  />
+                  {isValidTemplateContent(selectedTemplate.content) ? (
+                    <SurveyPreview
+                      content={selectedTemplate.content!}
+                      mode="edit"
+                      showInstructions={false}
+                      title=""
+                      type={selectedTemplate.type}
+                      onComplete={(result) => {
+                        handleSaveProgressNote(result);
+                        setShowEditProgressNote(false);
+                      }}
+                      defaultAnswers={
+                        progressNote?.content
+                          ? parseSurveyContent(progressNote.content) ||
+                            undefined
+                          : undefined
+                      }
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <p>Template content is not available or invalid.</p>
+                      <p className="text-sm mt-2">
+                        Please check the template configuration in Settings.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={handleCancelProgressNote}>
@@ -184,21 +207,39 @@ export function ProgressNoteSection({
             ) : (
               // Show form for new note
               <div className="border rounded-lg bg-white">
-                <SurveyPreview
-                  content={selectedTemplate.content || ""}
-                  mode="edit"
-                  showInstructions={false}
-                  title=""
-                  type={selectedTemplate.type}
-                  onComplete={handleSaveProgressNote}
-                  defaultAnswers={
-                    progressNote?.content
-                      ? parseSurveyContent(progressNote.content) || undefined
-                      : undefined
-                  }
-                />
+                {isValidTemplateContent(selectedTemplate.content) ? (
+                  <SurveyPreview
+                    content={selectedTemplate.content!}
+                    mode="edit"
+                    showInstructions={false}
+                    title=""
+                    type={selectedTemplate.type}
+                    onComplete={handleSaveProgressNote}
+                    defaultAnswers={
+                      progressNote?.content
+                        ? parseSurveyContent(progressNote.content) || undefined
+                        : undefined
+                    }
+                  />
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>Template content is not available or invalid.</p>
+                    <p className="text-sm mt-2">
+                      Please check the template configuration in Settings.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
+          </div>
+        ) : progressNotes.length > 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            Please select a progress note template from the dropdown above.
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-400">
+            No progress note templates available. Please configure templates in
+            Settings.
           </div>
         )}
       </CardContent>
