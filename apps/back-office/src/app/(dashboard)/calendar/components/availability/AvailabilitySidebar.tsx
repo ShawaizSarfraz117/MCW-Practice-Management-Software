@@ -552,7 +552,9 @@ export function AvailabilitySidebar({
   // Add all services to availability
   const handleAddAllServices = () => {
     const availableServices = allServices.filter(
-      (service: Service) => !localSelectedServices.includes(service.id),
+      (service: Service) =>
+        !localSelectedServices.includes(service.id) &&
+        service.availableOnline === true,
     );
 
     setLocalSelectedServices((prev) => [
@@ -687,9 +689,6 @@ export function AvailabilitySidebar({
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to save availability");
       }
-
-      // Ensure API has processed the changes
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Invalidate all availability-related queries FIRST
       await queryClient.invalidateQueries({
@@ -1169,7 +1168,9 @@ export function AvailabilitySidebar({
                                 {/* Add all services option */}
                                 {allServices.filter(
                                   (service: Service) =>
-                                    !localSelectedServices.includes(service.id),
+                                    !localSelectedServices.includes(
+                                      service.id,
+                                    ) && service.availableOnline === true,
                                 ).length > 0 && (
                                   <div className="px-4 py-2 bg-[#2D84671A] border-b border-blue-100">
                                     <button
@@ -1202,16 +1203,23 @@ export function AvailabilitySidebar({
                                   {allServices
                                     .filter(
                                       (service: Service) =>
-                                        searchTerm === "" ||
-                                        service.code
-                                          ?.toLowerCase()
-                                          .includes(searchTerm.toLowerCase()) ||
-                                        service.type
-                                          ?.toLowerCase()
-                                          .includes(searchTerm.toLowerCase()) ||
-                                        service.description
-                                          ?.toLowerCase()
-                                          .includes(searchTerm.toLowerCase()),
+                                        service.availableOnline === true &&
+                                        (searchTerm === "" ||
+                                          service.code
+                                            ?.toLowerCase()
+                                            .includes(
+                                              searchTerm.toLowerCase(),
+                                            ) ||
+                                          service.type
+                                            ?.toLowerCase()
+                                            .includes(
+                                              searchTerm.toLowerCase(),
+                                            ) ||
+                                          service.description
+                                            ?.toLowerCase()
+                                            .includes(
+                                              searchTerm.toLowerCase(),
+                                            )),
                                     )
                                     .map((service: Service) => {
                                       const isAlreadyAdded =
@@ -1291,13 +1299,14 @@ export function AvailabilitySidebar({
                                 {/* No results message */}
                                 {allServices.filter(
                                   (service: Service) =>
-                                    searchTerm === "" ||
-                                    service.code
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()) ||
-                                    service.type
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()),
+                                    service.availableOnline === true &&
+                                    (searchTerm === "" ||
+                                      service.code
+                                        .toLowerCase()
+                                        .includes(searchTerm.toLowerCase()) ||
+                                      service.type
+                                        .toLowerCase()
+                                        .includes(searchTerm.toLowerCase())),
                                 ).length === 0 &&
                                   searchTerm !== "" && (
                                     <div className="px-4 py-8 text-center">

@@ -345,14 +345,21 @@ export async function POST(request: NextRequest) {
                 let untilDate: Date;
                 if (until.includes("T")) {
                   // Full datetime format (e.g., 20240131T235959Z)
-                  const dateOnly = until.slice(0, 8);
+                  // Parse the full ISO format to preserve timezone
+                  const year = until.slice(0, 4);
+                  const month = until.slice(4, 6);
+                  const day = until.slice(6, 8);
+                  const hour = until.slice(9, 11);
+                  const minute = until.slice(11, 13);
+                  const second = until.slice(13, 15);
                   untilDate = new Date(
-                    `${dateOnly.slice(0, 4)}-${dateOnly.slice(4, 6)}-${dateOnly.slice(6, 8)}`,
+                    `${year}-${month}-${day}T${hour}:${minute}:${second}Z`,
                   );
                 } else {
                   // Simple date format (e.g., 20240131)
+                  // Set to end of day in UTC to match RRULE spec
                   untilDate = new Date(
-                    `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`,
+                    `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}T23:59:59Z`,
                   );
                 }
                 if (availabilityDate > untilDate) {
@@ -427,13 +434,22 @@ export async function POST(request: NextRequest) {
               // Parse until date
               let untilDate: Date;
               if (until.includes("T")) {
-                const dateOnly = until.slice(0, 8);
+                // Full datetime format (e.g., 20240131T235959Z)
+                // Parse the full ISO format to preserve timezone
+                const year = until.slice(0, 4);
+                const month = until.slice(4, 6);
+                const day = until.slice(6, 8);
+                const hour = until.slice(9, 11);
+                const minute = until.slice(11, 13);
+                const second = until.slice(13, 15);
                 untilDate = new Date(
-                  `${dateOnly.slice(0, 4)}-${dateOnly.slice(4, 6)}-${dateOnly.slice(6, 8)}`,
+                  `${year}-${month}-${day}T${hour}:${minute}:${second}Z`,
                 );
               } else {
+                // Simple date format (e.g., 20240131)
+                // Set to end of day in UTC to match RRULE spec
                 untilDate = new Date(
-                  `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`,
+                  `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}T23:59:59Z`,
                 );
               }
 
