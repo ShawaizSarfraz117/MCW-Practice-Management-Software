@@ -30,7 +30,9 @@ describe("GET /api/client/overview", () => {
   });
 
   it("should return empty results when no documents exist", async () => {
-    const request = createRequest("/api/client/overview");
+    const request = createRequest(
+      "/api/client/overview?clientGroupId=123e4567-e89b-12d3-a456-426614174000",
+    );
 
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([{ total: 0 }]);
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([]);
@@ -50,7 +52,7 @@ describe("GET /api/client/overview", () => {
 
   it("should filter by date range", async () => {
     const request = createRequest(
-      "/api/client/overview?startDate=2024-01-01&endDate=2024-12-31",
+      "/api/client/overview?clientGroupId=123e4567-e89b-12d3-a456-426614174000&startDate=2024-01-01&endDate=2024-12-31",
     );
 
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([{ total: 1 }]);
@@ -84,7 +86,7 @@ describe("GET /api/client/overview", () => {
 
   it("should filter by itemType", async () => {
     const request = createRequest(
-      "/api/client/overview?itemType=good_faith_estimate",
+      "/api/client/overview?clientGroupId=123e4567-e89b-12d3-a456-426614174000&itemType=good_faith_estimate",
     );
 
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([{ total: 2 }]);
@@ -128,8 +130,9 @@ describe("GET /api/client/overview", () => {
   });
 
   it("should filter by clientGroupId", async () => {
+    const clientGroupId = "a1b2c3d4-e5f6-7890-1234-567890abcdef";
     const request = createRequest(
-      "/api/client/overview?clientGroupId=group-123",
+      `/api/client/overview?clientGroupId=${clientGroupId}`,
     );
 
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([{ total: 3 }]);
@@ -142,7 +145,7 @@ describe("GET /api/client/overview", () => {
         status: "SHOW",
         clientName: "John Doe",
         clientId: "client-1",
-        clientGroupId: "group-123",
+        clientGroupId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
         clientGroupName: "John Doe Individual",
         content: null,
       },
@@ -154,7 +157,7 @@ describe("GET /api/client/overview", () => {
         status: "COMPLETED",
         clientName: "John Doe",
         clientId: "client-1",
-        clientGroupId: "group-123",
+        clientGroupId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
         clientGroupName: "John Doe Individual",
         content: "Session notes here",
       },
@@ -166,7 +169,7 @@ describe("GET /api/client/overview", () => {
         status: "COMPLETED",
         clientName: "John Doe",
         clientId: "client-1",
-        clientGroupId: "group-123",
+        clientGroupId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
         clientGroupName: "John Doe Individual",
         content: "{}",
       },
@@ -179,13 +182,15 @@ describe("GET /api/client/overview", () => {
     expect(data.data).toHaveLength(3);
     expect(
       data.data.every(
-        (doc: ClientDocument) => doc.clientGroupId === "group-123",
+        (doc: ClientDocument) => doc.clientGroupId === clientGroupId,
       ),
     ).toBe(true);
   });
 
   it("should handle pagination", async () => {
-    const request = createRequest("/api/client/overview?page=2&limit=10");
+    const request = createRequest(
+      "/api/client/overview?clientGroupId=123e4567-e89b-12d3-a456-426614174000&page=2&limit=10",
+    );
 
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([{ total: 25 }]);
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([
@@ -225,7 +230,9 @@ describe("GET /api/client/overview", () => {
   });
 
   it("should return all document types when itemType is 'all'", async () => {
-    const request = createRequest("/api/client/overview?itemType=all");
+    const request = createRequest(
+      "/api/client/overview?clientGroupId=123e4567-e89b-12d3-a456-426614174000&itemType=all",
+    );
 
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([{ total: 8 }]);
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([
@@ -348,7 +355,9 @@ describe("GET /api/client/overview", () => {
   });
 
   it("should apply clinician filter only to appointments", async () => {
-    const request = createRequest("/api/client/overview?itemType=appointments");
+    const request = createRequest(
+      "/api/client/overview?clientGroupId=123e4567-e89b-12d3-a456-426614174000&itemType=appointments",
+    );
 
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([{ total: 2 }]);
     prismaMock.$queryRawUnsafe.mockResolvedValueOnce([
