@@ -9,11 +9,11 @@
           "title": "Appearance",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Normal",
               "text": "Normal"
             },
             {
-              "value": "Item 2",
+              "value": "Disheveled",
               "text": "Disheveled"
             }
           ],
@@ -25,11 +25,11 @@
           "title": "Dress",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Appropriate",
               "text": "Appropriate"
             },
             {
-              "value": "Item 2",
+              "value": "Eccentric",
               "text": "Eccentric"
             }
           ],
@@ -41,11 +41,11 @@
           "title": "Motor Activity",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Normal",
               "text": "Normal"
             },
             {
-              "value": "Item 2",
+              "value": "Agitation",
               "text": "Agitation"
             }
           ],
@@ -57,11 +57,11 @@
           "title": "Insight",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Good",
               "text": "Good"
             },
             {
-              "value": "Item 2",
+              "value": "Fair",
               "text": "Fair"
             }
           ],
@@ -73,27 +73,11 @@
           "title": "Judgement",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Good",
               "text": "Good"
             },
             {
-              "value": "Item 2",
-              "text": "Fair"
-            }
-          ],
-          "showOtherItem": true
-        },
-        {
-          "type": "dropdown",
-          "name": "question1",
-          "title": "Judgement",
-          "choices": [
-            {
-              "value": "Item 1",
-              "text": "Good"
-            },
-            {
-              "value": "Item 2",
+              "value": "Fair",
               "text": "Fair"
             }
           ],
@@ -105,11 +89,11 @@
           "title": "Affect",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Appropriate",
               "text": "Appropriate"
             },
             {
-              "value": "Item 2",
+              "value": "Inappropriate",
               "text": "Inappropriate"
             }
           ],
@@ -121,11 +105,11 @@
           "title": "Mood",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Euthymic",
               "text": "Euthymic"
             },
             {
-              "value": "Item 2",
+              "value": "Depressed",
               "text": "Depressed"
             }
           ],
@@ -137,27 +121,11 @@
           "title": "Orientation",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "X3: Oriented to person, place and time",
               "text": "X3: Oriented to person, place and time"
             },
             {
-              "value": "Item 2",
-              "text": "X2: Oriented to person, place; Impaired to time"
-            }
-          ],
-          "showOtherItem": true
-        },
-        {
-          "type": "dropdown",
-          "name": "question2",
-          "title": "Orientation",
-          "choices": [
-            {
-              "value": "Item 1",
-              "text": "X3: Oriented to person, place and time"
-            },
-            {
-              "value": "Item 2",
+              "value": "X2: Oriented to person, place; Impaired to time",
               "text": "X2: Oriented to person, place; Impaired to time"
             }
           ],
@@ -169,11 +137,11 @@
           "title": "Memory",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Intact",
               "text": "Intact"
             },
             {
-              "value": "Item 2",
+              "value": "Poor remote",
               "text": "Poor remote"
             }
           ],
@@ -185,11 +153,11 @@
           "title": "Attention",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Good",
               "text": "Good"
             },
             {
-              "value": "Item 2",
+              "value": "Variable",
               "text": "Variable"
             }
           ],
@@ -201,12 +169,12 @@
           "title": "Thought Content",
           "choices": [
             {
-              "value": "Item 1",
-              "text": "Intact"
+              "value": "Normal",
+              "text": "Normal"
             },
             {
-              "value": "Item 2",
-              "text": "Poor remote"
+              "value": "Abnormal",
+              "text": "Abnormal"
             }
           ],
           "showOtherItem": true
@@ -217,11 +185,11 @@
           "title": "Thought Process",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Normal",
               "text": "Normal"
             },
             {
-              "value": "Item 2",
+              "value": "Blocking",
               "text": "Blocking"
             }
           ],
@@ -233,12 +201,12 @@
           "title": "Perception",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Normal",
               "text": "Normal"
             },
             {
-              "value": "Item 2",
-              "text": "Blocking"
+              "value": "Abnormal",
+              "text": "Abnormal"
             }
           ],
           "showOtherItem": true
@@ -249,11 +217,11 @@
           "title": "Interview Behavior",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Appropriate",
               "text": "Appropriate"
             },
             {
-              "value": "Item 2",
+              "value": "Aggressive",
               "text": "Aggressive"
             }
           ],
@@ -265,15 +233,21 @@
           "title": "Speech",
           "choices": [
             {
-              "value": "Item 1",
+              "value": "Normal",
               "text": "Normal"
             },
             {
-              "value": "Item 2",
+              "value": "Hesitant",
               "text": "Hesitant"
             }
           ],
           "showOtherItem": true
+        },
+        {
+          "type": "reactquill",
+          "name": "recommendations",
+          "title": "Recommendations",
+          "placeholder": "Begin typing..."
         },
         {
           "type": "text",

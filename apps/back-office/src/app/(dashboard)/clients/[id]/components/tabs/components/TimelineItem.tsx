@@ -95,6 +95,26 @@ export default function TimelineItem({ document }: TimelineItemProps) {
     return format(date, "h:mm a");
   };
 
+  // Function to render HTML content safely
+  const renderHtmlContent = (htmlContent: string): JSX.Element => {
+    if (typeof htmlContent !== "string")
+      return <span>{String(htmlContent)}</span>;
+
+    // Check if content contains HTML tags
+    const hasHtmlTags = /<[^>]*>/g.test(htmlContent);
+
+    if (hasHtmlTags) {
+      return (
+        <span
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+          style={{ display: "inline" }}
+        />
+      );
+    }
+
+    return <span>{htmlContent}</span>;
+  };
+
   // Function to parse and display JSON content
   const renderJsonContent = (content: string, documentType?: DocumentType) => {
     // Handle special formatting for good faith estimate first
@@ -120,11 +140,25 @@ export default function TimelineItem({ document }: TimelineItemProps) {
 
       return (
         <div className="text-sm text-gray-600 mt-1">
-          {displayEntries.map(([key, value], index) => (
-            <div key={index} className="mb-1">
-              <span className="font-medium">{key}:</span> {String(value)}
-            </div>
-          ))}
+          {displayEntries.map(([key, value], index) => {
+            // Special handling for fields that might contain HTML
+            const valueStr = String(value);
+            const hasHtmlTags = /<[^>]*>/g.test(valueStr);
+            const isHtmlField =
+              key === "recommendations" ||
+              key === "chart_notes" ||
+              key === "text" ||
+              key === "note" ||
+              key === "content" ||
+              hasHtmlTags;
+
+            return (
+              <div key={index} className="mb-1">
+                <span className="font-medium">{key}:</span>{" "}
+                {isHtmlField ? renderHtmlContent(valueStr) : valueStr}
+              </div>
+            );
+          })}
           {entries.length > 2 && (
             <button
               className="text-blue-500 hover:underline text-sm mt-1"
@@ -136,8 +170,13 @@ export default function TimelineItem({ document }: TimelineItemProps) {
         </div>
       );
     } catch {
+      // If it's not JSON, check if it might be HTML content (like chart notes)
+      const hasHtmlTags = /<[^>]*>/g.test(content);
+
       return (
-        <div className="text-sm text-gray-600 mt-1 line-clamp-2">{content}</div>
+        <div className="text-sm text-gray-600 mt-1 line-clamp-2">
+          {hasHtmlTags ? renderHtmlContent(content) : content}
+        </div>
       );
     }
   };
