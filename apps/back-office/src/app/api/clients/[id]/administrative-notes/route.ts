@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { backofficeAuthOptions } from "../../../auth/[...nextauth]/auth-options";
+import { backofficeAuthOptions } from "@/api/auth/[...nextauth]/auth-options";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 

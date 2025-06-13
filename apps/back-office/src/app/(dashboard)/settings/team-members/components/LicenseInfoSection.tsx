@@ -4,8 +4,11 @@ import { Card } from "@mcw/ui";
 import { TeamMember } from "../hooks/useRolePermissions";
 import EditTeamMemberSidebar from "./EditTeamMemberSidebar";
 import LicenseInfoEdit from "./LicenseInfoEdit";
-import { useUpdateLicenses } from "../services/member.service";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@mcw/ui";
+import { showErrorToast } from "@mcw/utils";
 import { format } from "date-fns";
+
 // Extended TeamMember interface to include additional properties
 interface ExtendedTeamMember extends TeamMember {
   licenses?: Array<{
@@ -16,6 +19,7 @@ interface ExtendedTeamMember extends TeamMember {
     state: string;
   }>;
   clinicalInfoId?: number;
+  clinicianId?: string | null;
 }
 
 interface LicenseInfoSectionProps {
@@ -31,26 +35,77 @@ export function LicenseInfoSection({
   isEditing,
   onClose,
 }: LicenseInfoSectionProps) {
-  const { mutate: updateLicenses, isPending } = useUpdateLicenses();
+  const queryClient = useQueryClient();
+
+  // Update license through team-members API
+  const updateMutation = useMutation({
+    mutationFn: async (data: {
+      license: {
+        type: string;
+        number: string;
+        expirationDate: string;
+        state: string;
+      };
+    }) => {
+      const response = await fetch(`/api/team-members`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: member.id,
+          license: data.license,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update license information");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "License information updated successfully",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["clinician-details", member.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      onClose();
+    },
+    onError: (error: unknown) => {
+      showErrorToast(toast, error);
+    },
+  });
 
   // Check if we have any licenses to display
   const hasLicenses = member.licenses && member.licenses.length > 0;
 
+  // Get the first license for the form
+  const primaryLicense = hasLicenses ? member.licenses![0] : member.license;
+
   const handleSubmit = (data: {
-    licenses: Array<{
-      id?: number;
-      license_type: string;
-      license_number: string;
-      expiration_date: string;
+    license: {
+      type: string;
+      number: string;
+      expirationDate: string;
       state: string;
-    }>;
-    clinical_info_id: number;
+    };
   }) => {
-    updateLicenses(data, {
-      onSuccess: () => {
-        onClose();
-      },
-    });
+    updateMutation.mutate(data);
+  };
+
+  const handleSave = () => {
+    // Trigger form submission
+    const form = document.getElementById(
+      "license-info-edit-form",
+    ) as HTMLFormElement;
+    if (form) {
+      form.requestSubmit();
+    }
   };
 
   return (
@@ -100,6 +155,36 @@ export function LicenseInfoSection({
                 </div>
               ))}
             </div>
+          ) : member.license ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-base text-[#4B5563]">Type</p>
+                <p className="text-base font-medium text-[#1F2937]">
+                  {member.license.type}
+                </p>
+              </div>
+              <div>
+                <p className="text-base text-[#4B5563]">License number</p>
+                <p className="text-base font-medium text-[#1F2937]">
+                  {member.license.number}
+                </p>
+              </div>
+              <div>
+                <p className="text-base text-[#4B5563]">Expiration date</p>
+                <p className="text-base font-medium text-[#1F2937]">
+                  {format(
+                    new Date(member.license.expirationDate),
+                    "MM/dd/yyyy",
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-base text-[#4B5563]">State</p>
+                <p className="text-base font-medium text-[#1F2937]">
+                  {member.license.state}
+                </p>
+              </div>
+            </div>
           ) : (
             <p className="text-base text-[#4B5563]">
               No license information provided
@@ -110,15 +195,32 @@ export function LicenseInfoSection({
 
       <EditTeamMemberSidebar
         formId="license-info-edit-form"
-        isLoading={isPending}
+        isLoading={updateMutation.isPending}
         isOpen={isEditing}
         title="Manage license and degree info"
         onClose={onClose}
+        onSave={handleSave}
       >
         <LicenseInfoEdit
           member={{
             ...member,
-            clinicalInfoId: member.clinicalInfoId,
+            license: primaryLicense
+              ? {
+                  type:
+                    "license_type" in primaryLicense
+                      ? primaryLicense.license_type
+                      : primaryLicense.type || "",
+                  number:
+                    "license_number" in primaryLicense
+                      ? primaryLicense.license_number
+                      : primaryLicense.number || "",
+                  expirationDate:
+                    "expiration_date" in primaryLicense
+                      ? primaryLicense.expiration_date
+                      : primaryLicense.expirationDate || "",
+                  state: primaryLicense.state || "",
+                }
+              : undefined,
           }}
           onSubmit={handleSubmit}
         />
