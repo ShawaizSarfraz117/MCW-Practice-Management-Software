@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import prismaMock from "@mcw/database/mock";
@@ -12,6 +13,7 @@ import {
 const mockGoodFaithEstimate = (overrides = {}) => ({
   id: "estimate-123",
   clinician_id: "clinician-123",
+  client_group_id: "client-group-123",
   clinician_npi: null,
   clinician_tin: null,
   clinician_location_id: "location-123",
@@ -24,6 +26,7 @@ const mockGoodFaithEstimate = (overrides = {}) => ({
   service_end_date: null,
   total_cost: 50000,
   notes: "Test estimate",
+  created_at: new Date(),
   GoodFaithClients: [],
   GoodFaithServices: [],
   Clinician: {
@@ -37,6 +40,24 @@ const mockGoodFaithEstimate = (overrides = {}) => ({
     speciality: null,
     NPI_number: null,
     taxonomy_code: null,
+    ClinicianLocation: [
+      {
+        id: "clinician-location-123",
+        clinician_id: "clinician-123",
+        location_id: "location-123",
+        Location: {
+          id: "location-123",
+          name: "Test Location",
+          address: "Test Address",
+          is_active: true,
+          city: null,
+          color: null,
+          state: null,
+          street: null,
+          zip: null,
+        },
+      },
+    ],
   },
   Location: {
     id: "location-123",
@@ -116,11 +137,21 @@ describe("Good Faith Estimates [estimateId] API Unit Tests", () => {
       const existingEstimate = mockGoodFaithEstimate();
       const updatedEstimate = { ...existingEstimate, notes: "Updated notes" };
 
+      // Extract base estimate without relations for the update mock
+      const {
+        GoodFaithClients,
+        GoodFaithServices,
+        Clinician,
+        Location,
+        ...baseEstimate
+      } = existingEstimate;
+      const updatedBaseEstimate = { ...baseEstimate, notes: "Updated notes" };
+
       const mockTransaction = vi.fn().mockImplementation(async (callback) => {
         return await callback({
           goodFaithEstimate: {
             findUnique: vi.fn().mockResolvedValue(existingEstimate),
-            update: vi.fn().mockResolvedValue(updatedEstimate),
+            update: vi.fn().mockResolvedValue(updatedBaseEstimate),
           },
           goodFaithClients: {
             deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -197,11 +228,20 @@ describe("Good Faith Estimates [estimateId] API Unit Tests", () => {
         GoodFaithClients: [{ id: "client-1", name: "John Doe" }],
       });
 
+      // Extract base estimate without relations
+      const {
+        GoodFaithClients,
+        GoodFaithServices,
+        Clinician,
+        Location,
+        ...baseEstimate
+      } = existingEstimate;
+
       const mockTransaction = vi.fn().mockImplementation(async (callback) => {
         return await callback({
           goodFaithEstimate: {
             findUnique: vi.fn().mockResolvedValue(existingEstimate),
-            update: vi.fn().mockResolvedValue(existingEstimate),
+            update: vi.fn().mockResolvedValue(baseEstimate),
           },
           goodFaithClients: {
             deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -265,11 +305,20 @@ describe("Good Faith Estimates [estimateId] API Unit Tests", () => {
     it("should delete a Good Faith Estimate successfully", async () => {
       const existingEstimate = mockGoodFaithEstimate();
 
+      // Extract base estimate without relations
+      const {
+        GoodFaithClients,
+        GoodFaithServices,
+        Clinician,
+        Location,
+        ...baseEstimate
+      } = existingEstimate;
+
       const mockTransaction = vi.fn().mockImplementation(async (callback) => {
         return await callback({
           goodFaithEstimate: {
             findUnique: vi.fn().mockResolvedValue(existingEstimate),
-            delete: vi.fn().mockResolvedValue(existingEstimate),
+            delete: vi.fn().mockResolvedValue(baseEstimate),
           },
           goodFaithServices: {
             deleteMany: vi.fn().mockResolvedValue({ count: 1 }),

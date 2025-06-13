@@ -195,16 +195,20 @@ export async function PUT(
         // Create new services
         await Promise.all(
           requestData.services.map((service: ServiceData) => {
-            return tx.goodFaithServices.create({
-              data: {
-                good_faith_id: estimateId,
-                service_id: service.service_id,
-                diagnosis_id: service.diagnosis_id,
-                location_id: service.location_id,
-                quantity: service.quantity,
-                fee: service.fee,
-              },
-            });
+            const baseData = {
+              good_faith_id: estimateId,
+              service_id: service.service_id,
+              location_id: service.location_id,
+              quantity: service.quantity,
+              fee: service.fee,
+            };
+
+            const data = {
+              ...baseData,
+              diagnosis_id: service.diagnosis_id || "",
+            };
+
+            return tx.goodFaithServices.create({ data });
           }),
         );
       }

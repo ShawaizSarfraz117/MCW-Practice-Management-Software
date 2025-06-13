@@ -371,7 +371,7 @@ export default function GoodFaithEstimate() {
             <div className="text-sm text-gray-600 mb-1">Diagnosis codes</div>
             <div className="text-sm">
               {goodFaithEstimate.GoodFaithServices.map(
-                (service) => service.Diagnosis.code,
+                (service) => service.Diagnosis?.code,
               ).join(", ") || "None"}
             </div>
           </div>
@@ -395,7 +395,7 @@ export default function GoodFaithEstimate() {
                   {service.PracticeService.code} {service.PracticeService.type},{" "}
                   {service.PracticeService.duration} min
                 </div>
-                <div>{service.Diagnosis.code}</div>
+                <div>{service.Diagnosis?.code}</div>
                 <div>{service.Location.name}</div>
                 <div>{service.quantity}</div>
                 <div>${service.fee.toFixed(2)}</div>

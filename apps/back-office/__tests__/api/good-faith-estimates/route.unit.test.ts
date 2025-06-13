@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import { vi } from "vitest";
 import { describe, it, expect, beforeEach } from "vitest";
 import prismaMock from "@mcw/database/mock";
@@ -8,6 +9,7 @@ import { POST } from "@/api/good-faith-estimates/route";
 const mockGoodFaithEstimate = (overrides = {}) => ({
   id: "estimate-123",
   clinician_id: "clinician-123",
+  client_group_id: "client-group-123",
   clinician_npi: null,
   clinician_tin: null,
   clinician_location_id: "location-123",
@@ -20,6 +22,7 @@ const mockGoodFaithEstimate = (overrides = {}) => ({
   service_end_date: null,
   total_cost: 50000,
   notes: "Test estimate",
+  created_at: new Date(),
   ...overrides,
 });
 
@@ -38,6 +41,7 @@ const mockGoodFaithClient = (overrides = {}) => ({
   should_voice: false,
   should_text: false,
   should_email: true,
+  created_at: new Date(),
   ...overrides,
 });
 
@@ -49,6 +53,7 @@ const mockGoodFaithService = (overrides = {}) => ({
   location_id: "location-123",
   quantity: 1,
   fee: 50000,
+  created_at: new Date(),
   ...overrides,
 });
 
@@ -127,6 +132,7 @@ describe("Good Faith Estimates API Unit Tests", () => {
 
       const requestData = {
         clinician_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+        client_group_id: "client-group-123",
         clinician_location_id: "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
         total_cost: 50000,
         clients: [
@@ -222,6 +228,7 @@ describe("Good Faith Estimates API Unit Tests", () => {
     it("should return 400 if clients array is empty", async () => {
       const requestData = {
         clinician_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+        client_group_id: "client-group-123",
         clinician_location_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
         total_cost: 50000,
         clients: [],
@@ -250,6 +257,7 @@ describe("Good Faith Estimates API Unit Tests", () => {
     it("should return 400 if services array is empty", async () => {
       const requestData = {
         clinician_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+        client_group_id: "client-group-123",
         clinician_location_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
         total_cost: 50000,
         clients: [
@@ -289,6 +297,7 @@ describe("Good Faith Estimates API Unit Tests", () => {
 
       const requestData = {
         clinician_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+        client_group_id: "client-group-123",
         clinician_location_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
         total_cost: 50000,
         clients: [
@@ -336,6 +345,7 @@ describe("Good Faith Estimates API Unit Tests", () => {
 
       const requestData = {
         clinician_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+        client_group_id: "client-group-123",
         clinician_location_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
         total_cost: 50000,
         clients: [
@@ -374,6 +384,7 @@ describe("Good Faith Estimates API Unit Tests", () => {
 
       const requestData = {
         clinician_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+        client_group_id: "client-group-123",
         clinician_location_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
         total_cost: 50000,
         clients: [

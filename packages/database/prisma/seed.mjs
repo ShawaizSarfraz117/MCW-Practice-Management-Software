@@ -10,34 +10,44 @@ import { seedTags } from "./seed-tags.mjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  // First try to find the existing role
-  let backOfficeRole = await prisma.role.findUnique({
-    where: { name: "CLINICIAN" },
-  });
+  // Define all roles to be seeded
+  const rolesToSeed = [
+    // Base roles (kept for backward compatibility)
+    { name: "CLINICIAN", description: "Base clinician role" },
+    { name: "ADMIN", description: "Base admin role" },
+    // Specific roles with category.subcategory format
+    { name: "CLINICIAN.BASIC", description: "Basic clinician - can schedule and add documentation for their clients" },
+    { name: "CLINICIAN.BILLING", description: "Billing clinician - can bill, schedule, and add documentation for their clients" },
+    { name: "CLINICIAN.FULL-CLIENT-LIST", description: "Full client list clinician - can see profiles and appointments for all clients" },
+    { name: "CLINICIAN.ENTIRE-PRACTICE", description: "Entire practice clinician - can see most reports and practice settings" },
+    { name: "CLINICIAN.SUPERVISOR", description: "Supervisor - for team members who supervise a pre-licensed clinician" },
+    { name: "ADMIN.PRACTICE-MANAGER", description: "Practice manager - makes administrative decisions for the practice" },
+    { name: "ADMIN.PRACTICE-BILLER", description: "Practice biller - handles client payments and insurance" },
+  ];
 
-  let adminRole = await prisma.role.findUnique({
-    where: { name: "ADMIN" },
-  });
-
-  // If it doesn't exist, create it
-  if (!backOfficeRole) {
-    backOfficeRole = await prisma.role.create({
-      data: {
+  // Create or update all roles
+  console.log("Seeding roles...");
+  const createdRoles = {};
+  
+  for (const roleData of rolesToSeed) {
+    const role = await prisma.role.upsert({
+      where: { name: roleData.name },
+      update: { description: roleData.description },
+      create: {
         id: uuidv4(),
-        name: "CLINICIAN",
+        name: roleData.name,
+        description: roleData.description,
       },
     });
-  }
-  if (!adminRole) {
-    adminRole = await prisma.role.create({
-      data: {
-        id: uuidv4(),
-        name: "ADMIN",
-      },
-    });
+    createdRoles[roleData.name] = role;
+    console.log(`Role seeded: ${role.name}`);
   }
 
-  console.log("Roles created or found:", { admin: adminRole.name, clinician: backOfficeRole.name });
+  // Get base roles for backward compatibility
+  const backOfficeRole = createdRoles["CLINICIAN"];
+  const adminRole = createdRoles["ADMIN"];
+
+  console.log("All roles seeded successfully");
 
   // Seed users
   const { admin, clinician, clinicianRecord, adminClinicianRecord } = await seedUsers(prisma, { adminRole, backOfficeRole });

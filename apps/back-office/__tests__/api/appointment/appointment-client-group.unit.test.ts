@@ -67,6 +67,7 @@ const mockLocation = {
   color: "#2d8467",
 };
 
+// eslint-disable-next-line max-lines-per-function
 describe("Appointment Client Group Name Tests", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -102,6 +103,7 @@ describe("Appointment Client Group Name Tests", () => {
       write_off: new Decimal(0),
       superbill_id: null,
       notes: null,
+      created_at: new Date(),
     };
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);
@@ -180,6 +182,7 @@ describe("Appointment Client Group Name Tests", () => {
       write_off: new Decimal(0),
       superbill_id: null,
       notes: null,
+      created_at: new Date(),
     };
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedEvent);
@@ -250,6 +253,7 @@ describe("Appointment Client Group Name Tests", () => {
       write_off: new Decimal(0),
       superbill_id: null,
       notes: null,
+      created_at: new Date(),
     };
 
     prismaMock.appointment.create.mockResolvedValueOnce(expectedAppointment);

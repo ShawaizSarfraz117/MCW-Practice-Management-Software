@@ -67,12 +67,14 @@ export const createSurveyAnswer = async ({
   appointment_id,
   content,
   status = "PENDING",
+  client_group_id,
 }: {
   template_id: string;
   client_id: string;
   appointment_id?: string | null;
   content?: SurveyAnswerContent;
   status?: "PENDING" | "IN_PROGRESS" | "COMPLETED";
+  client_group_id?: string | null;
 }): Promise<[CreateSurveyAnswerResponse | null, Error | null]> => {
   try {
     const response = (await FETCH.post({
@@ -83,6 +85,7 @@ export const createSurveyAnswer = async ({
         appointment_id,
         content,
         status,
+        client_group_id,
       },
       isFormData: false,
     })) as CreateSurveyAnswerResponse;
@@ -204,6 +207,7 @@ export const createMentalStatusExamAnswer = async ({
   template_id,
   content,
   status = "COMPLETED",
+  client_group_id,
 }: {
   client_id: string;
   template_id: string;
@@ -225,6 +229,7 @@ export const createMentalStatusExamAnswer = async ({
     speech: string;
     recommendations: string;
   };
+  client_group_id?: string | null;
   status?: "PENDING" | "IN_PROGRESS" | "COMPLETED";
 }): Promise<[CreateSurveyAnswerResponse | null, Error | null]> => {
   return createSurveyAnswer({
@@ -232,5 +237,6 @@ export const createMentalStatusExamAnswer = async ({
     client_id,
     content,
     status,
+    client_group_id,
   });
 };

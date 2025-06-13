@@ -26,7 +26,7 @@ import { Invoice, Payment } from "@prisma/client";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClientInfoCard } from "./ClientInfoCard";
 import Link from "next/link";
 import { useToast } from "@mcw/ui";
@@ -107,6 +107,7 @@ export default function ClientProfile({
   const router = useRouter();
   const filesTabRef = useRef<FilesTabRef>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Helper function to get the next appointment date
   const getNextAppointmentDate = (): string | null => {
@@ -123,16 +124,17 @@ export default function ClientProfile({
     return null;
   };
 
-  // Fetch administrative notes
-  const fetchAdministrativeNotes = async () => {
+  // Parse administrative notes from client group data
+  const parseAdministrativeNotes = (
+    notesString: string | null,
+  ): AdministrativeNote[] => {
+    if (!notesString) return [];
     try {
-      const response = await fetch(`/api/clients/${id}/administrative-notes`);
-      if (response.ok) {
-        const data = await response.json();
-        setAdministrativeNotes(data.notes || []);
-      }
+      const parsed = JSON.parse(notesString);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
-      console.error("Failed to fetch administrative notes:", error);
+      console.error("Failed to parse administrative notes:", error);
+      return [];
     }
   };
 
@@ -152,6 +154,14 @@ export default function ClientProfile({
           const name = getClientGroupInfo(clientGroupData);
           setClientName(name || "");
         }
+
+        // Parse and set administrative notes from the response
+        // Always attempt to parse administrative notes, even if null
+        const notes = parseAdministrativeNotes(
+          clientGroupData.administrative_notes as string | null,
+        );
+        setAdministrativeNotes(notes);
+
         return clientGroupData;
       }
       return null;
@@ -174,7 +184,6 @@ export default function ClientProfile({
 
   useEffect(() => {
     fetchInvoicesData();
-    fetchAdministrativeNotes();
   }, [id]);
 
   useEffect(() => {
@@ -232,7 +241,8 @@ export default function ClientProfile({
   };
 
   const handleNoteSaved = () => {
-    fetchAdministrativeNotes();
+    // Refetch client group data to get updated administrative notes
+    queryClient.invalidateQueries({ queryKey: ["clientGroup", id] });
   };
 
   const handleEditNote = (note: AdministrativeNote) => {
@@ -364,23 +374,9 @@ export default function ClientProfile({
       <div className="grid grid-cols-12 flex-1">
         {/* Left Side - Tabs */}
         <div className="col-span-12 lg:col-span-8 border-t lg:border-r border-[#e5e7eb]">
-          {administrativeNotes.length === 0 ? (
-            /* Add Administrative Note Button - Only when no notes */
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
-              <div className="flex justify-end p-2">
-                <Button
-                  className="text-blue-500 hover:bg-blue-50"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleAddNote}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
-                </Button>
-              </div>
-            </div>
-          ) : (
-            /* Administrative Notes Section - Replaces button when notes exist */
-            <div className="p-4 sm:p-6">
+          {/* Administrative Notes Section - Show if any notes exist */}
+          {administrativeNotes.length > 0 && (
+            <div className="p-4 sm:p-6 border-b border-[#e5e7eb]">
               {administrativeNotes.map((note) => (
                 <AdministrativeNoteCard
                   key={note.id}
@@ -401,7 +397,7 @@ export default function ClientProfile({
             onValueChange={handleTabChange}
           >
             <div className="border-b border-[#e5e7eb] overflow-x-auto">
-              <div className="px-4 sm:px-6">
+              <div className="px-4 sm:px-6 flex justify-between items-center">
                 <TabsList className="h-[40px] bg-transparent p-0 w-auto">
                   <TabsTrigger
                     className={`rounded-none h-[40px] px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-transparent ${activeTab === "overview" ? "data-[state=active]:border-b-2 data-[state=active]:border-[#2d8467] text-[#2d8467]" : "text-gray-500"}`}
@@ -428,6 +424,17 @@ export default function ClientProfile({
                     Files
                   </TabsTrigger>
                 </TabsList>
+                {/* Add Administrative Note Button */}
+                {administrativeNotes.length === 0 && (
+                  <Button
+                    className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAddNote}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add Administrative Note
+                  </Button>
+                )}
               </div>
             </div>
             <TabsContent value="overview">

@@ -36,3 +36,6 @@ export * from "./client";
 
 // Re-export appointment types
 export * from "./appointment";
+
+// Re-export client overview types
+export * from "./client-overview";

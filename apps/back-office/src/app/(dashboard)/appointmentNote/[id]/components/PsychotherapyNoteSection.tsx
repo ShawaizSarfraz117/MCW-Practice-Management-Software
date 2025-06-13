@@ -94,7 +94,7 @@ export function PsychotherapyNoteSection({
             <h3 className="text-lg font-semibold">Psychotherapy Note</h3>
             <p className="text-sm text-gray-500">
               Kept separate from the client record.{" "}
-              <a href="#" className="text-blue-600 hover:underline">
+              <a className="text-blue-600 hover:underline" href="#">
                 Learn more
               </a>
             </p>
@@ -104,7 +104,7 @@ export function PsychotherapyNoteSection({
               <AlertDialog>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button size="sm" variant="ghost">
                       More <ChevronDown className="ml-1 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -141,8 +141,8 @@ export function PsychotherapyNoteSection({
             )}
             {psychoNote ? (
               <Button
-                variant="ghost"
                 size="sm"
+                variant="ghost"
                 onClick={() => setShowPsychotherapyNote(true)}
               >
                 <Edit2 className="h-4 w-4 mr-2" />
@@ -150,8 +150,8 @@ export function PsychotherapyNoteSection({
               </Button>
             ) : (
               <Button
-                variant="ghost"
                 size="sm"
+                variant="ghost"
                 onClick={() => setShowPsychotherapyNote(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
