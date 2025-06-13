@@ -45,6 +45,7 @@ describe("Client Group Chart Notes API Unit Tests", () => {
     client_group_id: faker.string.uuid(),
     text: faker.lorem.paragraph(),
     note_date: faker.date.recent(),
+    created_at: faker.date.recent(),
     ...overrides,
   });
 
