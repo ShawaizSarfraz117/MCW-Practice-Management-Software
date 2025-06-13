@@ -67,6 +67,7 @@ const mockSurveyAnswer = {
   is_intake: false,
   created_at: new Date(),
   updated_at: new Date(),
+  client_group_id: null,
   SurveyTemplate: mockTemplate,
   Client: mockClient,
 };
@@ -104,6 +105,7 @@ describe("appointmentNote API - PUT Unit Tests", () => {
       ...mockSurveyAnswer,
       content: '{"question1": "updated answer"}',
       status: "UPDATED",
+      client_group_id: mockSurveyAnswer.client_group_id,
     } as SurveyAnswers);
 
     const request = createRequestWithBody(
