@@ -58,7 +58,7 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
           }
         },
         isComplete: () => {
-          return surveyModel ? surveyModel.isCompleted : false;
+          return surveyModel ? surveyModel.state === "completed" : false;
         },
       }),
       [surveyModel, mode],
