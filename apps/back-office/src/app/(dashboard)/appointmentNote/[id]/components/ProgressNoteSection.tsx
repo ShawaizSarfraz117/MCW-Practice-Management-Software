@@ -93,6 +93,11 @@ export function ProgressNoteSection({
                 <div className="border rounded-lg bg-white">
                   <SurveyPreview
                     content={selectedTemplate.content || ""}
+                    defaultAnswers={
+                      progressNote?.content
+                        ? parseSurveyContent(progressNote.content) || undefined
+                        : undefined
+                    }
                     mode="edit"
                     showInstructions={false}
                     title=""
@@ -101,11 +106,6 @@ export function ProgressNoteSection({
                       handleSaveProgressNote(result);
                       setShowEditProgressNote(false);
                     }}
-                    defaultAnswers={
-                      progressNote?.content
-                        ? parseSurveyContent(progressNote.content) || undefined
-                        : undefined
-                    }
                   />
                 </div>
                 <div className="flex justify-end gap-2">
@@ -113,12 +113,12 @@ export function ProgressNoteSection({
                     Cancel
                   </Button>
                   <Button
-                    type="submit"
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     disabled={
                       createMutationStatus === "pending" ||
                       updateMutationStatus === "pending"
                     }
+                    type="submit"
                   >
                     {progressNote ? "Update" : "Save"}
                   </Button>
@@ -129,9 +129,9 @@ export function ProgressNoteSection({
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <SurveyContentDisplay
-                    content={progressNote.content}
-                    className="text-sm text-gray-700"
                     borderColor="border-blue-200"
+                    className="text-sm text-gray-700"
+                    content={progressNote.content}
                   />
                   <div className="mt-3 text-xs text-gray-500">
                     Last updated:{" "}

@@ -28,12 +28,12 @@ export function AppointmentBilling({ appointment }: AppointmentBillingProps) {
             </span>
           </div>
           <Badge
-            variant={isPaid ? "default" : "secondary"}
             className={
               isPaid
                 ? "bg-green-100 text-green-700 hover:bg-green-100"
                 : "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
             }
+            variant={isPaid ? "default" : "secondary"}
           >
             {isPaid ? (
               <>
