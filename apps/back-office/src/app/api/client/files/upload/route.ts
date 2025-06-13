@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
-import { getBackOfficeSession, getClinicianInfo } from "@/utils/helpers";
+import { getBackOfficeSession } from "@/utils/helpers";
 import { generateUUID } from "@mcw/utils";
 import { uploadToAzureStorage } from "@/utils/azureStorage";
 
+// POST /api/client/files/client-upload - Upload a file directly to a specific client
 export async function POST(request: NextRequest) {
   try {
-    // Get user session for authentication
     const session = await getBackOfficeSession();
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -19,18 +19,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current clinician info
-    const { clinicianId } = await getClinicianInfo();
-    if (!clinicianId) {
-      return NextResponse.json(
-        { error: "Unauthorized. Clinician information not found." },
-        { status: 401 },
-      );
-    }
-
     // Parse form data
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const clientId = formData.get("client_id") as string;
     const clientGroupId = formData.get("client_group_id") as string;
     const title = formData.get("title") as string;
 
@@ -38,9 +30,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!clientGroupId) {
+    if (!clientId || !clientGroupId) {
       return NextResponse.json(
-        { error: "client_group_id is required" },
+        { error: "client_id and client_group_id are required" },
         { status: 400 },
       );
     }
@@ -52,11 +44,19 @@ export async function POST(request: NextRequest) {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "image/jpeg",
       "image/png",
+      "image/gif",
+      "text/plain",
+      "text/csv",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: "Invalid file type. Allowed types: PDF, DOC, DOCX, JPG, PNG" },
+        {
+          error:
+            "Invalid file type. Allowed types: PDF, DOC, DOCX, JPG, PNG, GIF, TXT, CSV, XLS, XLSX",
+        },
         { status: 400 },
       );
     }
@@ -70,14 +70,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate client group exists
-    const clientGroup = await prisma.clientGroup.findUnique({
-      where: { id: clientGroupId },
+    // Validate client exists and belongs to the group
+    const client = await prisma.client.findFirst({
+      where: {
+        id: clientId,
+        ClientGroupMembership: {
+          some: {
+            client_group_id: clientGroupId,
+          },
+        },
+      },
     });
 
-    if (!clientGroup) {
+    if (!client) {
       return NextResponse.json(
-        { error: "Client group not found" },
+        { error: "Client not found or not in the specified group" },
         { status: 404 },
       );
     }
@@ -86,37 +93,61 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload to Azure Blob Storage
+    // Replace spaces with underscores in filename
+    const sanitizedFileName = file.name.replace(/\s+/g, '_');
+
+    // Upload to Azure Blob Storage with new folder structure
+    // Client-specific files go to: client-groups/{clientGroupId}/{clientId}/
+    const virtualPath = `${clientGroupId}/${clientId}`;
     const uploadResult = await uploadToAzureStorage(
       buffer,
-      file.name,
-      "client-files",
-      `${clientGroupId}/uploads`,
+      sanitizedFileName,
+      "client-groups",
+      virtualPath,
     );
 
-    // Create ClientGroupFile record
-    const clientGroupFile = await prisma.clientGroupFile.create({
-      data: {
-        id: generateUUID(),
-        client_group_id: clientGroupId,
-        title: title || file.name,
-        type: "PRACTICE_UPLOAD",
-        url: uploadResult.url,
-        uploaded_by_id: session.user.id,
-        is_template: false,
-        sharing_enabled: true,
-      },
+    // Create transaction to ensure both records are created
+    const result = await prisma.$transaction(async (tx) => {
+      // Create ClientGroupFile record
+      const clientGroupFile = await tx.clientGroupFile.create({
+        data: {
+          id: generateUUID(),
+          client_group_id: clientGroupId,
+          title: title || file.name,
+          type: "Client Upload", // New type for client-specific uploads
+          url: uploadResult.blobUrl,
+          uploaded_by_id: session.user.id,
+        },
+      });
+
+      // Create ClientFiles record to link to specific client
+      const clientFile = await tx.clientFiles.create({
+        data: {
+          id: generateUUID(),
+          client_id: clientId,
+          client_group_file_id: clientGroupFile.id,
+          status: "Uploaded",
+          shared_at: new Date(),
+        },
+      });
+
+      return {
+        clientGroupFile,
+        clientFile,
+      };
     });
 
     return NextResponse.json(
       {
         success: true,
         file: {
-          id: clientGroupFile.id,
-          title: clientGroupFile.title,
-          url: clientGroupFile.url,
-          type: clientGroupFile.type,
-          uploadedAt: clientGroupFile.created_at,
+          id: result.clientFile.id,
+          clientGroupFileId: result.clientGroupFile.id,
+          title: result.clientGroupFile.title,
+          url: result.clientGroupFile.url,
+          type: result.clientGroupFile.type,
+          status: result.clientFile.status,
+          uploadedAt: result.clientGroupFile.created_at,
         },
       },
       { status: 201 },
@@ -124,7 +155,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const err = error as Error;
     logger.error({
-      message: "File upload error",
+      message: "Client file upload error",
       error: err?.message || "Unknown error",
       stack: err?.stack,
     });
@@ -133,92 +164,6 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: "Failed to upload file",
-        details: err?.message || "Internal server error",
-      },
-      { status: 500 },
-    );
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    // Get user session for authentication
-    const session = await getBackOfficeSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-        },
-        { status: 401 },
-      );
-    }
-
-    // Get client_group_id from URL search params
-    const searchParams = request.nextUrl.searchParams;
-    const clientGroupId = searchParams.get("client_group_id");
-
-    if (!clientGroupId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "client_group_id is required",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Fetch uploaded files for the client group
-    const files = await prisma.clientGroupFile.findMany({
-      where: {
-        client_group_id: clientGroupId,
-        type: "PRACTICE_UPLOAD",
-        is_template: false,
-      },
-      include: {
-        ClientFiles: true,
-        User: true,
-      },
-      orderBy: {
-        created_at: "desc",
-      },
-    });
-
-    // Transform the data to include sharing status
-    const transformedFiles = files.map((file) => ({
-      id: file.id,
-      title: file.title,
-      url: file.url,
-      type: file.type,
-      uploadedAt: file.created_at,
-      uploadedBy: file.User ? `${file.User.id}` : null,
-      isShared: file.ClientFiles.length > 0,
-      sharedAt:
-        file.ClientFiles.length > 0 ? file.ClientFiles[0].shared_at : null,
-      sharingEnabled: file.sharing_enabled,
-    }));
-
-    return NextResponse.json(
-      {
-        success: true,
-        files: transformedFiles,
-      },
-      {
-        status: 200,
-      },
-    );
-  } catch (error: unknown) {
-    const err = error as Error;
-    logger.error({
-      message: "Files fetch error",
-      error: err?.message || "Unknown error",
-      stack: err?.stack,
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch files",
         details: err?.message || "Internal server error",
       },
       { status: 500 },

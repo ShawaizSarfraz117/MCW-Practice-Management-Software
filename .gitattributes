@@ -3,11 +3,10 @@
 
 # Explicitly declare text files you want to always be normalized and converted
 # to native line endings on checkout.
-*.ts text
-*.tsx text
+
 *.js text
 *.jsx text
-*.json text
+*.json text eol=lf
 *.md text
 *.css text
 *.scss text
@@ -28,7 +27,8 @@
 # Shell scripts should always have LF line endings
 *.sh text eol=lf
 *.bash text eol=lf
-
+*.ts text  eol=lf
+*.tsx text eol=lf
 # Declare files that will always have CRLF line endings on checkout.
 *.bat text eol=crlf
 *.cmd text eol=crlf

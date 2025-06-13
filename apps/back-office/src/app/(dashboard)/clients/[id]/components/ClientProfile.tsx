@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
-import ShareModal from "./ShareModal";
+import ShareDocumentsFlow from "./ShareDocumentsFlow";
 
 import { Button } from "@mcw/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import OverviewTab from "./tabs/OverviewTab";
 import BillingTab from "./tabs/BillingTab";
 import MeasuresTab from "./tabs/MeasuresTab";
-import FilesTab, { FilesTabRef } from "./tabs/FilesTab";
+import FilesTabGroup, { FilesTabRef } from "./tabs/FilesTabGroup";
 import { AddPaymentModal } from "./AddPaymentModal";
 import {
   fetchInvoices,
@@ -175,11 +175,7 @@ export default function ClientProfile({
     });
   };
 
-  const handleShare = (
-    selectedUsers: { id: string; name: string; initials: string }[],
-  ) => {
-    console.log("Sharing with users:", selectedUsers);
-  };
+  // handleShare removed - not currently used
 
   const handleUpload = () => {
     setActiveTab("files");
@@ -204,10 +200,14 @@ export default function ClientProfile({
           onOpenChange={setAddPaymentModalOpen}
         />
       )}
-      <ShareModal
+      <ShareDocumentsFlow
+        clientGroupId={id as string}
+        clients={clientGroup?.ClientGroupMembership?.map(m => ({
+          id: m.Client?.id || '',
+          name: `${m.Client?.legal_first_name || ''} ${m.Client?.legal_last_name || ''}`.trim()
+        })) || []}
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
-        onShare={handleShare}
       />
       {/* Client Header */}
       <div className="px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
@@ -324,7 +324,15 @@ export default function ClientProfile({
             </TabsContent>
 
             <TabsContent value="files">
-              <FilesTab ref={filesTabRef} />
+              <FilesTabGroup 
+                ref={filesTabRef} 
+                clientGroupId={id as string}
+                clients={clientGroup?.ClientGroupMembership?.map(m => ({
+                  id: m.Client?.id || '',
+                  name: `${m.Client?.legal_first_name || ''} ${m.Client?.legal_last_name || ''}`.trim()
+                })) || []}
+                onShareFile={() => setShareModalOpen(true)}
+              />
             </TabsContent>
           </Tabs>
         </div>

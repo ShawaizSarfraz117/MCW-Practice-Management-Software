@@ -3,7 +3,7 @@ import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { generateUUID } from "@mcw/utils";
-import { FileFrequency, FILE_FREQUENCY_OPTIONS } from "@mcw/types";
+import { FileFrequency, FILE_FREQUENCY_OPTIONS, FILE_TYPE_MAPPING } from "@mcw/types";
 
 interface FileSharePayload {
   client_group_id: string;
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
               title:
                 surveyTemplate?.name ||
                 `Shared file - ${new Date().toISOString()}`,
-              type: "Consent",
+              type: FILE_TYPE_MAPPING[surveyTemplate?.type || ""] || surveyTemplate?.type || "Document",
               url: null,
               uploaded_by_id: userId,
               created_at: now,

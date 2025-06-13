@@ -130,3 +130,118 @@ export async function uploadToAzureStorage(
     throw new Error("Failed to upload file to Azure Blob Storage");
   }
 }
+
+/**
+ * Generates a download URL for a blob in Azure Storage
+ * @param blobUrl - The blob URL
+ * @returns Promise containing the SAS URL for downloading
+ */
+export async function generateDownloadUrl(blobUrl: string): Promise<string> {
+  if (!AZURE_STORAGE_CONNECTION_STRING) {
+    throw new Error(
+      "AZURE_STORAGE_CONNECTION_STRING environment variable is not configured",
+    );
+  }
+
+  try {
+    const blobServiceClient = BlobServiceClient.fromConnectionString(
+      AZURE_STORAGE_CONNECTION_STRING,
+    );
+    
+    // Extract container and blob name from URL
+    const url = new URL(blobUrl);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    const containerName = pathParts[0];
+    const blobName = pathParts.slice(1).join('/');
+    
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    
+    const permissions = new BlobSASPermissions();
+    permissions.read = true;
+    
+    const sasToken = await blockBlobClient.generateSasUrl({
+      permissions,
+      expiresOn: new Date(new Date().valueOf() + 60 * 60 * 1000), // 1 hour from now
+    });
+    
+    return sasToken;
+  } catch (error) {
+    console.error("Error generating download URL:", error);
+    throw new Error("Failed to generate download URL");
+  }
+}
+
+/**
+ * Deletes a file from Azure Blob Storage
+ * @param blobUrl - The blob URL to delete
+ * @returns Promise<boolean> indicating success
+ */
+export async function deleteFromAzureStorage(blobUrl: string): Promise<boolean> {
+  if (!AZURE_STORAGE_CONNECTION_STRING) {
+    throw new Error(
+      "AZURE_STORAGE_CONNECTION_STRING environment variable is not configured",
+    );
+  }
+
+  try {
+    const blobServiceClient = BlobServiceClient.fromConnectionString(
+      AZURE_STORAGE_CONNECTION_STRING,
+    );
+    
+    // Extract container and blob name from URL
+    const url = new URL(blobUrl);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    const containerName = pathParts[0];
+    const blobName = pathParts.slice(1).join('/');
+    
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    
+    const deleteResponse = await blockBlobClient.deleteIfExists();
+    return deleteResponse.succeeded;
+  } catch (error) {
+    console.error("Error deleting blob:", error);
+    throw new Error("Failed to delete file from Azure Blob Storage");
+  }
+}
+
+/**
+ * Copies a blob within Azure Storage
+ * @param sourceBlobUrl - The source blob URL
+ * @param destinationPath - The destination path within the same container
+ * @returns Promise containing the new blob URL
+ */
+export async function copyBlobInAzureStorage(
+  sourceBlobUrl: string, 
+  destinationPath: string
+): Promise<string> {
+  if (!AZURE_STORAGE_CONNECTION_STRING) {
+    throw new Error(
+      "AZURE_STORAGE_CONNECTION_STRING environment variable is not configured",
+    );
+  }
+
+  try {
+    const blobServiceClient = BlobServiceClient.fromConnectionString(
+      AZURE_STORAGE_CONNECTION_STRING,
+    );
+    
+    // Extract container and blob name from source URL
+    const url = new URL(sourceBlobUrl);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    const containerName = pathParts[0];
+    
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const destinationBlobClient = containerClient.getBlockBlobClient(destinationPath);
+    
+    // Start the copy operation
+    const copyPoller = await destinationBlobClient.beginCopyFromURL(sourceBlobUrl);
+    await copyPoller.pollUntilDone();
+    
+    return destinationBlobClient.url;
+  } catch (error) {
+    console.error("Error copying blob:", error);
+    throw new Error("Failed to copy file in Azure Blob Storage");
+  }
+}
