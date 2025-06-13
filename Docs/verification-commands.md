@@ -2,6 +2,65 @@
 
 For quick verification that changes haven't broken anything, use these commands in order of speed:
 
+## 🚨 CRITICAL: Pre-Commit Checks (MUST RUN BEFORE EVERY PUSH)
+
+**IMPORTANT**: Always run pre-commit checks before pushing to avoid costly CI failures and time-consuming iterations.
+
+### Pre-Commit Check Commands
+
+```bash
+# WITHOUT integration tests (faster, ~90 seconds)
+npm run check:enhanced
+
+# WITH integration tests (comprehensive, ~3-5 minutes)
+npm run check:enhanced:full
+```
+
+### When to Use Each Command
+
+- **Use `npm run check:enhanced`** (without integration) for:
+
+  - Quick iterations during development
+  - Minor code changes (styling, imports, refactoring)
+  - When you haven't touched database or API logic
+
+- **Use `npm run check:enhanced:full`** (with integration) for:
+  - Before pushing to remote repository
+  - After modifying API endpoints
+  - After changing database queries or schema
+  - Before creating pull requests
+
+### What Pre-Commit Checks Include
+
+1. **TypeScript + Prettier + Lint** (via `npm run checks` - matches CI exactly)
+2. **Unit Tests** (447+ tests, runs in parallel)
+3. **UI Tests** (22+ tests, component rendering)
+4. **Integration Tests** (311+ tests, runs sequentially to avoid DB conflicts)
+
+### Understanding the HTML Report
+
+The pre-commit check generates a detailed HTML report at:
+
+```
+./test-results/reports/pre-commit-report.html
+```
+
+This report shows:
+
+- ❌ Failed tests with detailed error messages
+- ⏱️ Performance metrics and slow tests
+- 📊 Test counts and execution timeline
+- ⚠️ All warnings and errors
+
+**ALL TESTS MUST PASS** - The CI/CD pipeline will fail if any test fails, causing delays.
+
+### Why This Matters
+
+- **Saves Time**: Catch issues locally in 2-5 minutes vs 10+ minute CI cycles
+- **Prevents Broken Builds**: CI runs the exact same checks
+- **Maintains Code Quality**: Ensures consistent code standards
+- **Reduces Iterations**: Fix issues before they reach the PR stage
+
 ## 1. Fastest – Linting (10–20 seconds)
 
 ```bash

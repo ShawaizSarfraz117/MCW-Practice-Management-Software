@@ -1,0 +1,17 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "title": "Patient Progress Note",
+      "elements": [
+        {
+          "type": "reactquill",
+          "name": "chiefComplaint",
+          "title": "Chief Complaint",
+          "placeholder": "Begin typing..."
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}
