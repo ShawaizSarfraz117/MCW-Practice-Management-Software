@@ -73,22 +73,22 @@ export function AppointmentSidebar({
       <div className="border-b">
         <div className="flex">
           <button
-            onClick={() => setActiveTab("appointment-info")}
             className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "appointment-info"
                 ? "text-blue-600 border-blue-600"
                 : "text-gray-500 border-transparent hover:text-gray-700"
             }`}
+            onClick={() => setActiveTab("appointment-info")}
           >
             Appointment Info
           </button>
           <button
-            onClick={() => setActiveTab("treatment-progress")}
             className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "treatment-progress"
                 ? "text-blue-600 border-blue-600"
                 : "text-gray-500 border-transparent hover:text-gray-700"
             }`}
+            onClick={() => setActiveTab("treatment-progress")}
           >
             Treatment progress
           </button>
@@ -107,8 +107,8 @@ export function AppointmentSidebar({
             <BillingSection appointment={appointment} />
             <AppointmentsSection
               clientAppointments={clientAppointments}
-              isLoadingClientAppointments={isLoadingClientAppointments}
               clientId={clientId}
+              isLoadingClientAppointments={isLoadingClientAppointments}
             />
           </div>
         ) : (

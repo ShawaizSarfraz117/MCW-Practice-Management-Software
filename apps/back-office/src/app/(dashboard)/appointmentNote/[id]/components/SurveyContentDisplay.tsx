@@ -66,9 +66,9 @@ function ParsedContentDisplay({
       {Object.entries(content).map(([key, value]) => (
         <FieldDisplay
           key={key}
+          borderColor={borderColor}
           fieldKey={key}
           value={value}
-          borderColor={borderColor}
         />
       ))}
     </div>
@@ -113,8 +113,8 @@ export function SurveyContentDisplay({
     <div className={className}>
       {hasMultipleFields ? (
         <ParsedContentDisplay
-          content={parsedContent}
           borderColor={borderColor}
+          content={parsedContent}
         />
       ) : (
         <DefaultContentDisplay content={parsedContent} />

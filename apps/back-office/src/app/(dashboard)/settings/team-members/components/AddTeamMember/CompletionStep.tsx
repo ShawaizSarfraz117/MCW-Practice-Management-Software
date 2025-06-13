@@ -2,14 +2,15 @@
 
 import { Button } from "@mcw/ui";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { parseRole } from "@mcw/types";
 import {
   TeamMember,
   useRolePermissions,
   RoleCategory,
-} from "../../hooks/useRolePermissions";
-import { isClinicianWithSubroles } from "../../utils/roleUtils";
-import { useCreateTeamMember } from "../../services/member.service";
-import { useEffect, useState, useRef } from "react";
+} from "@/(dashboard)/settings/team-members/hooks/useRolePermissions";
+import { isClinicianWithSubroles } from "@/(dashboard)/settings/team-members/utils/roleUtils";
+import { useCreateTeamMember } from "@/(dashboard)/settings/team-members/services/member.service";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 interface CompletionStepProps {
   teamMemberData: Partial<TeamMember> & { role?: string };
@@ -105,10 +106,21 @@ export default function CompletionStep({
       : [];
 
   // Format roles for display in text
+  const formatRoleForDisplay = (role: string) => {
+    const { category, subcategory } = parseRole(role);
+    const formattedSubcategory = subcategory
+      .replace(/-/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+    return `${category} - ${formattedSubcategory}`;
+  };
+
   const rolesDisplay =
     roles.length > 1
-      ? `${roles.slice(0, -1).join(", ")} and ${roles[roles.length - 1]}`
-      : roles[0] || "team member";
+      ? roles.map(formatRoleForDisplay).join(", ")
+      : roles.length === 1
+        ? formatRoleForDisplay(roles[0])
+        : "team member";
 
   // Check if specific Clinician role is present (not Supervisor)
   const hasClinicianWithLevels = roles.some((role) =>
@@ -116,80 +128,75 @@ export default function CompletionStep({
   );
 
   // Function to submit team member data
-  const submitTeamMember = () => {
+  const submitTeamMember = useCallback(() => {
     console.log("submitTeamMember called");
-    // Map categories to actual database roles (ADMIN and CLINICIAN)
+    console.log("Team member data before submission:", teamMemberData);
+
+    // Map role categories to specific role formats
     const mapCategoriesToRoles = (roleCategories: RoleCategory[]) => {
       const mappedRoles: string[] = [];
 
-      // Check if any category indicates clinician role
-      const clinicianCategories = ["Client Care", "Clinical"];
-      const adminCategories = ["Operations", "Administrative", "Management"];
+      roleCategories.forEach((roleCategory) => {
+        const roleId = roleCategory.roleId;
+        const category = roleCategory.category.toLowerCase();
 
-      const categories = roleCategories.map((rc) => rc.category);
-
-      const hasClinicianCategory = categories.some((category) =>
-        clinicianCategories.some((cat) =>
-          category.toLowerCase().includes(cat.toLowerCase()),
-        ),
-      );
-
-      const hasAdminCategory = categories.some((category) =>
-        adminCategories.some((cat) =>
-          category.toLowerCase().includes(cat.toLowerCase()),
-        ),
-      );
-
-      // Add roles based on categories
-      if (hasClinicianCategory) {
-        mappedRoles.push("CLINICIAN");
-      }
-      if (hasAdminCategory) {
-        mappedRoles.push("ADMIN");
-      }
-
-      // If no specific mapping found, default based on role titles
-      if (mappedRoles.length === 0 && roleCategories.length > 0) {
-        const roleTitle = roleCategories[0].roleTitle.toLowerCase();
-        if (
-          roleTitle.includes("clinician") ||
-          roleTitle.includes("therapist") ||
-          roleTitle.includes("supervisor")
-        ) {
-          mappedRoles.push("CLINICIAN");
-        } else {
-          mappedRoles.push("ADMIN");
+        // Handle Clinical roles
+        if (category.includes("clinical")) {
+          if (roleId === "Clinician") {
+            // For Clinician role, append the clinician level
+            const level = teamMemberData.clinicianLevel || "Basic";
+            // Map clinician levels to the expected format
+            const levelMap: Record<string, string> = {
+              Basic: "CLINICIAN.BASIC",
+              Billing: "CLINICIAN.BILLING",
+              "Full client list": "CLINICIAN.FULL-CLIENT-LIST",
+              "Entire practice": "CLINICIAN.ENTIRE-PRACTICE",
+            };
+            const mappedRole = levelMap[level] || "CLINICIAN.BASIC";
+            mappedRoles.push(mappedRole);
+          } else if (roleId === "Supervisor") {
+            mappedRoles.push("CLINICIAN.SUPERVISOR");
+          }
         }
-      }
 
-      // Fallback to ADMIN if still no roles
-      if (mappedRoles.length === 0) {
-        mappedRoles.push("ADMIN");
-      }
+        // Handle Administrative roles
+        else if (category.includes("administrative")) {
+          if (roleId === "Practice Administrator") {
+            mappedRoles.push("ADMIN.PRACTICE-MANAGER");
+          } else if (roleId === "Practice Biller") {
+            mappedRoles.push("ADMIN.PRACTICE-BILLER");
+          }
+        }
+      });
 
       return mappedRoles;
     };
 
-    // Map categories to database roles
+    // Map categories to roles
     const rolesToSend = teamMemberData.roleCategories
       ? mapCategoriesToRoles(teamMemberData.roleCategories)
-      : ["ADMIN"]; // Default fallback
+      : ["ADMIN-PRACTICE-MANAGER"]; // Default fallback
 
     // Prepare the data for the API
     const apiData = {
       email: teamMemberData.email!,
       firstName: teamMemberData.firstName!,
       lastName: teamMemberData.lastName!,
-      roles: rolesToSend, // Send mapped database roles
+      roles: rolesToSend, // Send the formatted roles (CLINICIAN-BASIC, etc.)
       roleCategories: teamMemberData.roleCategories, // Send the full category data for reference
+      clinicianLevel: teamMemberData.clinicianLevel, // Include clinician level
       ...(teamMemberData.specialty && {
         specialty: teamMemberData.specialty,
       }),
       ...(teamMemberData.npiNumber && {
         npiNumber: teamMemberData.npiNumber,
       }),
+      // Include license data only if all required fields are present
       ...(teamMemberData.license &&
-        teamMemberData.license.type && {
+        teamMemberData.license.type &&
+        teamMemberData.license.number &&
+        teamMemberData.license.expirationDate &&
+        teamMemberData.license.state && {
           license: {
             type: teamMemberData.license.type,
             number: teamMemberData.license.number,
@@ -203,16 +210,18 @@ export default function CompletionStep({
     // Mark as submitted to prevent duplicate calls
     hasSubmittedRef.current = true;
 
+    console.log("License data in teamMemberData:", teamMemberData.license);
     console.log("Calling mutation with data:", apiData);
+    console.log("License included in apiData:", apiData.license);
     createTeamMemberMutation.mutate({ body: apiData });
-  };
+  }, [teamMemberData, createTeamMemberMutation]);
 
   // Submit the team member data when component mounts (only once)
   useEffect(() => {
     if (!hasSubmittedRef.current) {
       submitTeamMember();
     }
-  }, []); // Empty dependency array - only run once on mount
+  }, [submitTeamMember]); // Include submitTeamMember in dependencies
 
   // Show loading state
   if (submissionState === "submitting") {
@@ -284,7 +293,8 @@ export default function CompletionStep({
         </h3>
         <p className="text-gray-600 max-w-md">
           {fullName} has been added to your team with{" "}
-          {roles.length > 1 ? "multiple roles" : "the role of"} {rolesDisplay}.
+          {roles.length > 1 ? "the following roles:" : "the role of"}{" "}
+          {rolesDisplay}.
         </p>
       </div>
 
@@ -303,19 +313,24 @@ export default function CompletionStep({
           <div>
             <p className="text-sm text-gray-500">Roles</p>
             <div className="mt-1 space-y-2">
-              {teamMemberData.roleCategories?.map((roleCategory, index) => (
-                <div key={index} className="space-y-1">
-                  <p className="font-medium">{roleCategory.roleTitle}</p>
-                  <p className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md inline-block">
-                    {roleCategory.category}
-                  </p>
-                </div>
-              )) ||
-                roles.map((role, index) => (
-                  <div key={index} className="font-medium">
-                    {role}
+              {roles.map((role, index) => {
+                const { category, subcategory } = parseRole(role);
+                return (
+                  <div key={index} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                        {category}
+                      </span>
+                      <span className="font-medium">
+                        {subcategory
+                          .replace(/-/g, " ")
+                          .toLowerCase()
+                          .replace(/\b\w/g, (l) => l.toUpperCase())}
+                      </span>
+                    </div>
                   </div>
-                ))}
+                );
+              })}
             </div>
           </div>
 

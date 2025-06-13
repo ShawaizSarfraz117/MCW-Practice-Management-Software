@@ -76,31 +76,31 @@ export function EditAppointmentDialog({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="date" className="text-right">
+            <Label className="text-right" htmlFor="date">
               Date
             </Label>
             <Input
+              className="col-span-3"
               id="date"
               type="date"
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
-              className="col-span-3"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="time" className="text-right">
+            <Label className="text-right" htmlFor="time">
               Time
             </Label>
             <Input
+              className="col-span-3"
               id="time"
               type="time"
               value={appointmentTime}
               onChange={(e) => setAppointmentTime(e.target.value)}
-              className="col-span-3"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="duration" className="text-right">
+            <Label className="text-right" htmlFor="duration">
               Duration
             </Label>
             <Select
@@ -126,9 +126,9 @@ export function EditAppointmentDialog({
             Cancel
           </Button>
           <Button
-            onClick={handleSave}
-            disabled={isSaving}
             className="bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={isSaving}
+            onClick={handleSave}
           >
             {isSaving ? "Saving..." : "Save changes"}
           </Button>

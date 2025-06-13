@@ -15,8 +15,7 @@ export function RoleInfoSection({ member }: RoleInfoSectionProps) {
   const [expandedRoles, setExpandedRoles] = useState<Record<string, boolean>>(
     {},
   );
-  const { getRolePermissions, getRoleDescription, ROLE_DESCRIPTIONS } =
-    useRolePermissions();
+  const { getRolePermissions, getRoleDescription } = useRolePermissions();
   const [showEditRoleModal, setShowEditRoleModal] = useState(false);
 
   const toggleRolePermissions = (role: string) => {
@@ -36,7 +35,22 @@ export function RoleInfoSection({ member }: RoleInfoSectionProps) {
         <div className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-base font-medium text-[#1F2937]">{role}</p>
+              <p className="text-base font-medium text-[#1F2937]">
+                {(() => {
+                  const roleDisplayMap: Record<string, string> = {
+                    ADMIN: "Admin",
+                    "ADMIN.PRACTICE-MANAGER": "Admin - Practice Manager",
+                    "ADMIN.PRACTICE-BILLER": "Admin - Practice Biller",
+                    "CLINICIAN.BASIC": "Clinician - Basic Access",
+                    "CLINICIAN.BILLING": "Clinician - Billing Access",
+                    "CLINICIAN.FULL-CLIENT-LIST":
+                      "Clinician - Full Client List",
+                    "CLINICIAN.ENTIRE-PRACTICE": "Clinician - Entire Practice",
+                    "CLINICIAN.SUPERVISOR": "Clinician - Supervisor",
+                  };
+                  return roleDisplayMap[role] || role;
+                })()}
+              </p>
               <p className="text-sm text-[#6B7280] mt-1">{description}</p>
             </div>
             <button
@@ -61,97 +75,109 @@ export function RoleInfoSection({ member }: RoleInfoSectionProps) {
               </svg>
             </button>
           </div>
-          {isExpanded && permissions && (
+          {isExpanded && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="space-y-6">
-                {/* Client care section */}
-                <div>
-                  <h4 className="text-sm font-medium text-[#374151] bg-[#F9FAFB] px-4 py-2 rounded-md shadow-sm">
-                    Client care
-                  </h4>
-                  <ul className="mt-2 space-y-2">
-                    {permissions.clientCare.map((permission, index) => (
-                      <li
-                        key={index}
-                        className="flex justify-between items-center px-4"
-                      >
-                        <span className="text-sm text-[#4B5563]">
-                          {permission}
-                        </span>
-                        <div className="flex items-center gap-2 text-[#4B5563]">
-                          <svg
-                            fill="none"
-                            height="16"
-                            viewBox="0 0 16 16"
-                            width="16"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M8 8C9.933 8 11.5 6.433 11.5 4.5C11.5 2.567 9.933 1 8 1C6.067 1 4.5 2.567 4.5 4.5C4.5 6.433 6.067 8 8 8Z"
-                              stroke="currentColor"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.5"
-                            />
-                            <path
-                              d="M13.5234 15C13.5234 12.2975 11.0359 10.1125 7.99844 10.1125C4.96094 10.1125 2.47344 12.2975 2.47344 15"
-                              stroke="currentColor"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.5"
-                            />
-                          </svg>
-                          <span className="text-sm">Entire practice</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              {permissions ? (
+                <div className="space-y-6">
+                  {/* Client care section */}
+                  {permissions.clientCare &&
+                    permissions.clientCare.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-[#374151] bg-[#F9FAFB] px-4 py-2 rounded-md shadow-sm">
+                          Client care
+                        </h4>
+                        <ul className="mt-2 space-y-2">
+                          {permissions.clientCare.map((permission, index) => (
+                            <li
+                              key={index}
+                              className="flex justify-between items-center px-4"
+                            >
+                              <span className="text-sm text-[#4B5563]">
+                                {permission}
+                              </span>
+                              <div className="flex items-center gap-2 text-[#4B5563]">
+                                <svg
+                                  fill="none"
+                                  height="16"
+                                  viewBox="0 0 16 16"
+                                  width="16"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M8 8C9.933 8 11.5 6.433 11.5 4.5C11.5 2.567 9.933 1 8 1C6.067 1 4.5 2.567 4.5 4.5C4.5 6.433 6.067 8 8 8Z"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="1.5"
+                                  />
+                                  <path
+                                    d="M13.5234 15C13.5234 12.2975 11.0359 10.1125 7.99844 10.1125C4.96094 10.1125 2.47344 12.2975 2.47344 15"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="1.5"
+                                  />
+                                </svg>
+                                <span className="text-sm">Entire practice</span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
-                {/* Billing section */}
-                <div>
-                  <h4 className="text-sm font-medium text-[#374151] bg-[#F9FAFB] px-4 py-2 rounded-md shadow-sm">
-                    Billing
-                  </h4>
-                  <ul className="mt-2 space-y-2">
-                    {permissions.operations.map((permission, index) => (
-                      <li
-                        key={index}
-                        className="flex justify-between items-center px-4"
-                      >
-                        <span className="text-sm text-[#4B5563]">
-                          {permission}
-                        </span>
-                        <div className="flex items-center gap-2 text-[#4B5563]">
-                          <svg
-                            fill="none"
-                            height="16"
-                            viewBox="0 0 16 16"
-                            width="16"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M8 8C9.933 8 11.5 6.433 11.5 4.5C11.5 2.567 9.933 1 8 1C6.067 1 4.5 2.567 4.5 4.5C4.5 6.433 6.067 8 8 8Z"
-                              stroke="currentColor"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.5"
-                            />
-                            <path
-                              d="M13.5234 15C13.5234 12.2975 11.0359 10.1125 7.99844 10.1125C4.96094 10.1125 2.47344 12.2975 2.47344 15"
-                              stroke="currentColor"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.5"
-                            />
-                          </svg>
-                          <span className="text-sm">Entire practice</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Billing section */}
+                  {permissions.operations &&
+                    permissions.operations.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-[#374151] bg-[#F9FAFB] px-4 py-2 rounded-md shadow-sm">
+                          Billing
+                        </h4>
+                        <ul className="mt-2 space-y-2">
+                          {permissions.operations.map((permission, index) => (
+                            <li
+                              key={index}
+                              className="flex justify-between items-center px-4"
+                            >
+                              <span className="text-sm text-[#4B5563]">
+                                {permission}
+                              </span>
+                              <div className="flex items-center gap-2 text-[#4B5563]">
+                                <svg
+                                  fill="none"
+                                  height="16"
+                                  viewBox="0 0 16 16"
+                                  width="16"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M8 8C9.933 8 11.5 6.433 11.5 4.5C11.5 2.567 9.933 1 8 1C6.067 1 4.5 2.567 4.5 4.5C4.5 6.433 6.067 8 8 8Z"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="1.5"
+                                  />
+                                  <path
+                                    d="M13.5234 15C13.5234 12.2975 11.0359 10.1125 7.99844 10.1125C4.96094 10.1125 2.47344 12.2975 2.47344 15"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="1.5"
+                                  />
+                                </svg>
+                                <span className="text-sm">Entire practice</span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
-              </div>
+              ) : (
+                <p className="text-sm text-[#6B7280]">
+                  No permissions defined for this role
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -173,8 +199,10 @@ export function RoleInfoSection({ member }: RoleInfoSectionProps) {
         </div>
         <div className="px-6 pb-6">
           <div className="space-y-4">
-            {Object.keys(ROLE_DESCRIPTIONS).map((role) =>
-              renderRoleCard(role as RoleType),
+            {member.roles && member.roles.length > 0 ? (
+              member.roles.map((role) => renderRoleCard(role as RoleType))
+            ) : (
+              <p className="text-base text-[#4B5563]">No roles assigned</p>
             )}
           </div>
         </div>

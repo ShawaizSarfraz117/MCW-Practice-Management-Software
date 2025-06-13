@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@mcw/database";
+import { prisma, Prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { getBackOfficeSession } from "@/utils/helpers";
+import { withErrorHandling } from "@mcw/utils";
 import { z } from "zod";
 import { hash } from "bcryptjs";
-import { Prisma } from "@prisma/client";
 import { ROLE_NAME_MAP } from "@mcw/types";
 
 // Schema for creating a team member
@@ -32,7 +32,15 @@ const teamMemberSchema = z.object({
     .object({
       type: z.string(),
       number: z.string(),
-      expirationDate: z.string(),
+      expirationDate: z.string().refine(
+        (date) => {
+          const selectedDate = new Date(date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return selectedDate > today;
+        },
+        { message: "Expiration date must be in the future" },
+      ),
       state: z.string(),
     })
     .optional(),
@@ -71,140 +79,405 @@ const updateTeamMemberSchema = z.object({
   services: z.array(z.string()).optional(),
 });
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getBackOfficeSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    const searchParams = request.nextUrl.searchParams;
-    const search = searchParams.get("search") || "";
-    const role = searchParams.get("role") || "all";
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
-    const skip = (page - 1) * pageSize;
+  const searchParams = request.nextUrl.searchParams;
+  const search = searchParams.get("search") || "";
+  const role = searchParams.get("role") || "all";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
+  const skip = (page - 1) * pageSize;
 
-    // Build where clause
-    let where: Prisma.UserWhereInput = {};
+  // Build where clause
+  let where: Prisma.UserWhereInput = {};
 
-    if (search && search !== "undefined") {
-      where = {
-        OR: [
-          { email: { contains: search } },
-          { Clinician: { first_name: { contains: search } } },
-          { Clinician: { last_name: { contains: search } } },
-        ],
-      };
-    }
+  if (search && search !== "undefined") {
+    where = {
+      OR: [
+        { email: { contains: search } },
+        { Clinician: { first_name: { contains: search } } },
+        { Clinician: { last_name: { contains: search } } },
+      ],
+    };
+  }
 
-    // Filter by role if specified
-    if (role && role !== "all" && role !== "undefined") {
-      // Map frontend role name to database role name
-      const mappedRole = ROLE_NAME_MAP[role] || role;
-      where.UserRole = {
-        some: {
-          Role: {
-            name: mappedRole,
+  // Filter by role if specified
+  if (role && role !== "all" && role !== "undefined") {
+    // Map frontend role name to database role name
+    const mappedRole = ROLE_NAME_MAP[role] || role;
+    where.UserRole = {
+      some: {
+        Role: {
+          name: mappedRole,
+        },
+      },
+    };
+  }
+
+  // Fetch users with comprehensive data including services and licenses
+  const users = await prisma.user.findMany({
+    where,
+    skip,
+    take: pageSize,
+    select: {
+      id: true,
+      email: true,
+      last_login: true,
+      date_of_birth: true,
+      phone: true,
+      profile_photo: true,
+      UserRole: {
+        include: {
+          Role: true,
+        },
+      },
+      Clinician: {
+        include: {
+          ClinicianServices: {
+            include: {
+              PracticeService: true,
+            },
+          },
+          License: {
+            select: {
+              id: true,
+              license_type: true,
+              license_number: true,
+              expiration_date: true,
+              state: true,
+            },
           },
         },
-      };
-    }
-
-    // Fetch users with roles and clinician info, excluding sensitive fields
-    const users = await prisma.user.findMany({
-      where,
-      skip,
-      take: pageSize,
-      select: {
-        id: true,
-        email: true,
-        last_login: true,
-        date_of_birth: true,
-        phone: true,
-        profile_photo: true,
-        UserRole: {
-          include: {
-            Role: true,
-          },
+      },
+      clinicalInfos: {
+        select: {
+          id: true,
+          speciality: true,
+          taxonomy_code: true,
+          NPI_number: true,
         },
-        Clinician: true,
       },
-      orderBy: {
-        email: "asc",
-      },
-    });
+    },
+    orderBy: {
+      email: "asc",
+    },
+  });
 
-    // Count total users for pagination
-    const total = await prisma.user.count({ where });
+  // Count total users for pagination
+  const total = await prisma.user.count({ where });
 
-    return NextResponse.json({
-      data: users,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-      },
-    });
-  } catch (error) {
-    logger.error({ error }, "Failed to fetch team members");
+  logger.info(
+    { search, role, page, pageSize, total },
+    "Team members fetched successfully",
+  );
+
+  return NextResponse.json({
+    data: users,
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    },
+  });
+});
+
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Parse and validate request body
+  const body = await request.json();
+  const validationResult = teamMemberSchema.safeParse(body);
+
+  if (!validationResult.success) {
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
+      { error: "Invalid input", details: validationResult.error.format() },
+      { status: 422 },
     );
   }
-}
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getBackOfficeSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const {
+    email,
+    firstName,
+    lastName,
+    password,
+    roles,
+    roleCategories,
+    specialty,
+    npiNumber,
+    license,
+    services,
+  } = validationResult.data;
+
+  // Check if user already exists
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (existingUser) {
+    return NextResponse.json(
+      { error: "User with this email already exists" },
+      { status: 409 },
+    );
+  }
+
+  // Log the received data
+  logger.info({ roleCategories, roles }, "Creating team member with roles");
+
+  // Check if roles exist in the database
+  const roleRecords = await prisma.role.findMany({
+    where: { name: { in: roles } },
+  });
+
+  if (roleRecords.length !== roles.length) {
+    const foundRoleNames = roleRecords.map((role) => role.name);
+    const missingRoles = roles.filter(
+      (roleName) => !foundRoleNames.includes(roleName),
+    );
+    return NextResponse.json(
+      { error: "One or more roles not found", missingRoles },
+      { status: 404 },
+    );
+  }
+
+  // Determine if user has any clinician role
+  const hasClinicianRole = roles.some((role) => role.startsWith("CLINICIAN."));
+  const hasAdminRole = roles.some((role) => role.startsWith("ADMIN."));
+
+  // Hash password - use provided password or role-based default
+  let defaultPassword: string;
+  if (password) {
+    defaultPassword = password;
+  } else if (hasClinicianRole) {
+    defaultPassword = "clinician123";
+  } else if (hasAdminRole) {
+    defaultPassword = "admin123";
+  } else {
+    defaultPassword = "admin123";
+  }
+
+  const passwordHash = await hash(defaultPassword, 10);
+
+  // Create user with all related data in a transaction
+  const result = await prisma.$transaction(async (tx) => {
+    // Create user
+    const newUser = await tx.user.create({
+      data: {
+        email,
+        password_hash: passwordHash,
+        UserRole: {
+          create: roleRecords.map((role) => ({
+            role_id: role.id,
+          })),
+        },
+      },
+    });
+
+    let clinician = null;
+    let clinicalInfo = null;
+
+    // Create clinician if user has clinician role
+    if (hasClinicianRole) {
+      const clinicianData = await tx.clinician.create({
+        data: {
+          user_id: newUser.id,
+          first_name: firstName,
+          last_name: lastName,
+          address: "", // Default empty address - can be updated later
+          percentage_split: 100, // Default 100% - can be updated later
+        },
+      });
+      clinician = clinicianData;
+
+      // Create clinical info for all clinicians
+      const clinicalInfoData = await tx.clinicalInfo.create({
+        data: {
+          user_id: newUser.id,
+          speciality: specialty || "",
+          taxonomy_code: "", // Default empty - can be updated later
+          NPI_number: npiNumber ? parseFloat(npiNumber) : 0,
+        },
+      });
+      clinicalInfo = clinicalInfoData;
+
+      // Create license if provided
+      if (
+        license &&
+        license.type &&
+        license.number &&
+        license.expirationDate &&
+        license.state
+      ) {
+        await tx.license.create({
+          data: {
+            clinician_id: clinicianData.id,
+            license_type: license.type,
+            license_number: license.number,
+            expiration_date: new Date(license.expirationDate),
+            state: license.state,
+          },
+        });
+      }
+
+      // Assign services if provided
+      if (services && services.length > 0) {
+        // Verify services exist
+        const serviceRecords = await tx.practiceService.findMany({
+          where: { id: { in: services } },
+        });
+
+        if (serviceRecords.length > 0) {
+          await tx.clinicianServices.createMany({
+            data: serviceRecords.map((service) => ({
+              clinician_id: clinicianData.id,
+              service_id: service.id,
+              is_active: true,
+            })),
+          });
+        }
+      }
     }
 
-    // Parse and validate request body
-    const body = await request.json();
-    const validationResult = teamMemberSchema.safeParse(body);
+    return { newUser, clinician, clinicalInfo };
+  });
 
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: validationResult.error.format() },
-        { status: 422 },
-      );
-    }
+  // Fetch the created user with all related data, excluding password_hash
+  const createdUser = await prisma.user.findUnique({
+    where: { id: result.newUser.id },
+    select: {
+      id: true,
+      email: true,
+      last_login: true,
+      date_of_birth: true,
+      phone: true,
+      profile_photo: true,
+      UserRole: {
+        include: {
+          Role: true,
+        },
+      },
+      Clinician: {
+        include: {
+          ClinicianServices: {
+            include: {
+              PracticeService: true,
+            },
+          },
+          License: {
+            select: {
+              id: true,
+              license_type: true,
+              license_number: true,
+              expiration_date: true,
+              state: true,
+            },
+          },
+        },
+      },
+      clinicalInfos: true,
+    },
+  });
 
-    const {
-      email,
-      firstName,
-      lastName,
-      password,
-      roles,
-      roleCategories,
-      specialty,
-      npiNumber,
-      license,
-      services,
-    } = validationResult.data;
+  if (!createdUser) {
+    throw new Error("Failed to retrieve created user");
+  }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+  logger.info(
+    { userId: createdUser.id, email: createdUser.email },
+    "Team member created successfully",
+  );
+
+  return NextResponse.json(createdUser, { status: 201 });
+});
+
+export const PUT = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Parse and validate request body
+  const body = await request.json();
+  const validationResult = updateTeamMemberSchema.safeParse(body);
+
+  if (!validationResult.success) {
+    return NextResponse.json(
+      { error: "Invalid input", details: validationResult.error.format() },
+      { status: 422 },
+    );
+  }
+
+  const {
+    id,
+    email,
+    firstName,
+    lastName,
+    roles,
+    specialty,
+    npiNumber,
+    license,
+    services,
+  } = validationResult.data;
+
+  // Validate UUID format first
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // Check if user exists with all related data
+  const existingUser = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      UserRole: {
+        include: {
+          Role: true,
+        },
+      },
+      Clinician: {
+        include: {
+          License: true,
+          ClinicianServices: true,
+        },
+      },
+      clinicalInfos: true,
+    },
+  });
+
+  if (!existingUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // If email is changing, make sure it doesn't conflict
+  if (email && email !== existingUser.email) {
+    const emailExists = await prisma.user.findUnique({
       where: { email },
     });
 
-    if (existingUser) {
+    if (emailExists) {
       return NextResponse.json(
-        { error: "User with this email already exists" },
+        { error: "Email already in use" },
         { status: 409 },
       );
     }
+  }
 
-    // Log the received data for debugging
-    console.log("Received roleCategories:", roleCategories);
-    console.log("Received mapped roles:", roles);
-
-    // Check if roles exist and get their IDs (roles should be ADMIN and/or CLINICIAN)
-    const roleRecords = await prisma.role.findMany({
+  // Check if roles exist in the database
+  let roleRecords: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+  }> = [];
+  if (roles && roles.length > 0) {
+    roleRecords = await prisma.role.findMany({
       where: { name: { in: roles } },
     });
 
@@ -218,83 +491,141 @@ export async function POST(request: NextRequest) {
         { status: 404 },
       );
     }
+  }
 
-    // Determine if user has clinician role
-    const hasClinicianRole = roles.some(
-      (role) => role.toUpperCase() === "CLINICIAN",
-    );
+  // Determine if user has/will have any clinician role
+  const hasClinicianRole = roles
+    ? roles.some((role) => role.startsWith("CLINICIAN."))
+    : existingUser.UserRole.some((ur) => ur.Role.name.startsWith("CLINICIAN."));
 
-    // Hash password
-    const passwordHash = password
-      ? await hash(password, 10)
-      : await hash(generateRandomPassword(), 10);
+  // Update user in a transaction
+  await prisma.$transaction(async (tx) => {
+    // Update user email if provided
+    if (email) {
+      await tx.user.update({
+        where: { id },
+        data: { email },
+      });
+    }
 
-    // Create user with all related data in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create user
-      const newUser = await tx.user.create({
-        data: {
-          email,
-          password_hash: passwordHash,
-          UserRole: {
-            create: roleRecords.map((role) => ({
-              role_id: role.id,
-            })),
-          },
-        },
+    // Update roles if provided
+    if (roles && roles.length > 0) {
+      // Remove existing roles
+      await tx.userRole.deleteMany({
+        where: { user_id: id },
       });
 
-      let clinician = null;
-      let clinicalInfo = null;
+      // Add new roles
+      await tx.userRole.createMany({
+        data: roleRecords.map((role) => ({
+          user_id: id,
+          role_id: role.id,
+        })),
+      });
+    }
 
-      // Create clinician if user has clinician role
-      if (hasClinicianRole) {
-        const clinicianData = await tx.clinician.create({
+    // Handle clinician-related updates
+    if (hasClinicianRole) {
+      // Update or create clinician record
+      const existingClinician = existingUser.Clinician;
+
+      let clinicianId;
+      if (existingClinician) {
+        // Update existing clinician
+        if (firstName || lastName) {
+          await tx.clinician.update({
+            where: { id: existingClinician.id },
+            data: {
+              ...(firstName && { first_name: firstName }),
+              ...(lastName && { last_name: lastName }),
+            },
+          });
+        }
+        clinicianId = existingClinician.id;
+      } else {
+        // Create new clinician if doesn't exist
+        const newClinician = await tx.clinician.create({
           data: {
-            user_id: newUser.id,
-            first_name: firstName,
-            last_name: lastName,
-            address: "", // Default empty address - can be updated later
-            percentage_split: 100, // Default 100% - can be updated later
+            user_id: id,
+            first_name: firstName || "",
+            last_name: lastName || "",
+            address: "",
+            percentage_split: 100,
           },
         });
-        clinician = clinicianData;
+        clinicianId = newClinician.id;
+      }
 
-        // Create clinical info if specialty or NPI provided
-        if (specialty || npiNumber) {
-          const clinicalInfoData = await tx.clinicalInfo.create({
+      // Update clinical info if provided
+      if (specialty !== undefined || npiNumber !== undefined) {
+        const existingClinicalInfo = existingUser.clinicalInfos?.[0];
+
+        if (existingClinicalInfo) {
+          await tx.clinicalInfo.update({
+            where: { id: existingClinicalInfo.id },
             data: {
-              user_id: newUser.id,
+              ...(specialty !== undefined && { speciality: specialty }),
+              ...(npiNumber !== undefined && {
+                NPI_number: npiNumber ? parseFloat(npiNumber) : 0,
+              }),
+            },
+          });
+        } else {
+          await tx.clinicalInfo.create({
+            data: {
+              user_id: id,
               speciality: specialty || "",
-              taxonomy_code: "", // Default empty - can be updated later
+              taxonomy_code: "",
               NPI_number: npiNumber ? parseFloat(npiNumber) : 0,
             },
           });
-          clinicalInfo = clinicalInfoData;
-
-          // Create license if provided
-          if (
-            license &&
-            license.type &&
-            license.number &&
-            license.expirationDate &&
-            license.state
-          ) {
-            await tx.license.create({
-              data: {
-                clinician_id: clinicianData.id,
-                license_type: license.type,
-                license_number: license.number,
-                expiration_date: new Date(license.expirationDate),
-                state: license.state,
-              },
-            });
-          }
         }
+      }
 
-        // Assign services if provided
-        if (services && services.length > 0) {
-          // Verify services exist
+      // Update license if provided
+      if (license) {
+        // Fetch license for the clinician (not from existingClinician which might be null)
+        const existingLicense = await tx.license.findFirst({
+          where: { clinician_id: clinicianId },
+        });
+
+        if (existingLicense) {
+          await tx.license.update({
+            where: { id: existingLicense.id },
+            data: {
+              license_type: license.type,
+              license_number: license.number,
+              expiration_date: new Date(license.expirationDate),
+              state: license.state,
+            },
+          });
+        } else if (
+          license.type &&
+          license.number &&
+          license.expirationDate &&
+          license.state
+        ) {
+          await tx.license.create({
+            data: {
+              clinician_id: clinicianId,
+              license_type: license.type,
+              license_number: license.number,
+              expiration_date: new Date(license.expirationDate),
+              state: license.state,
+            },
+          });
+        }
+      }
+
+      // Update services if provided
+      if (services !== undefined) {
+        // Remove existing services
+        await tx.clinicianServices.deleteMany({
+          where: { clinician_id: clinicianId },
+        });
+
+        // Add new services if any
+        if (services.length > 0) {
           const serviceRecords = await tx.practiceService.findMany({
             where: { id: { in: services } },
           });
@@ -302,7 +633,7 @@ export async function POST(request: NextRequest) {
           if (serviceRecords.length > 0) {
             await tx.clinicianServices.createMany({
               data: serviceRecords.map((service) => ({
-                clinician_id: clinicianData.id,
+                clinician_id: clinicianId,
                 service_id: service.id,
                 is_active: true,
               })),
@@ -310,273 +641,118 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+    }
+  });
 
-      return { newUser, clinician, clinicalInfo };
-    });
-
-    // Fetch the created user with all related data, excluding password_hash
-    const createdUser = await prisma.user.findUnique({
-      where: { id: result.newUser.id },
-      select: {
-        id: true,
-        email: true,
-        last_login: true,
-        date_of_birth: true,
-        phone: true,
-        profile_photo: true,
-        UserRole: {
-          include: {
-            Role: true,
-          },
+  // Fetch updated user with all related data
+  const updatedUser = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      last_login: true,
+      date_of_birth: true,
+      phone: true,
+      profile_photo: true,
+      UserRole: {
+        include: {
+          Role: true,
         },
-        Clinician: {
-          include: {
-            ClinicianServices: {
-              include: {
-                PracticeService: true,
-              },
+      },
+      Clinician: {
+        include: {
+          ClinicianServices: {
+            include: {
+              PracticeService: true,
+            },
+          },
+          License: {
+            select: {
+              id: true,
+              license_type: true,
+              license_number: true,
+              expiration_date: true,
+              state: true,
             },
           },
         },
-        clinicalInfos: true,
       },
-    });
+      clinicalInfos: {
+        select: {
+          id: true,
+          speciality: true,
+          taxonomy_code: true,
+          NPI_number: true,
+        },
+      },
+    },
+  });
 
-    if (!createdUser) {
-      throw new Error("Failed to retrieve created user");
-    }
+  logger.info(
+    { userId: id, email: updatedUser?.email },
+    "Team member updated successfully",
+  );
 
-    return NextResponse.json(createdUser, { status: 201 });
-  } catch (error) {
-    logger.error({ error }, "Failed to create team member");
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
+  return NextResponse.json(updatedUser);
+});
+
+export const DELETE = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-}
 
-export async function PUT(request: NextRequest) {
-  try {
-    const session = await getBackOfficeSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const searchParams = request.nextUrl.searchParams;
+  const id = searchParams.get("id");
 
-    // Parse and validate request body
-    const body = await request.json();
-    const validationResult = updateTeamMemberSchema.safeParse(body);
+  if (!id) {
+    return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+  }
 
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: validationResult.error.format() },
-        { status: 422 },
-      );
-    }
+  // Validate UUID format first
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
-    const {
-      id,
-      email,
-      firstName,
-      lastName,
-      roles,
-      specialty: _specialty,
-      npiNumber: _npiNumber,
-      license: _license,
-      services: _services,
-    } = validationResult.data;
+  // Check if user exists
+  const existingUser = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      Clinician: true,
+    },
+  });
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { id },
-      include: {
-        UserRole: true,
-        Clinician: true,
-      },
-    });
+  if (!existingUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
-    if (!existingUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // If email is changing, make sure it doesn't conflict
-    if (email && email !== existingUser.email) {
-      const emailExists = await prisma.user.findUnique({
-        where: { email },
+  // Instead of hard deleting, we'll mark the user as inactive
+  // and handle any related records
+  await prisma.$transaction(async (tx) => {
+    // If user is a clinician, mark clinician as inactive
+    if (existingUser.Clinician) {
+      await tx.clinician.update({
+        where: { id: existingUser.Clinician.id },
+        data: { is_active: false },
       });
-
-      if (emailExists) {
-        return NextResponse.json(
-          { error: "Email already in use" },
-          { status: 409 },
-        );
-      }
     }
 
-    // Update user in a transaction
-    await prisma.$transaction(async (tx) => {
-      // Update user email if provided
-      if (email) {
-        await tx.user.update({
-          where: { id },
-          data: { email },
-        });
-      }
-
-      // Update roles if provided
-      if (roles) {
-        // Get role records
-        const roleRecords = await tx.role.findMany({
-          where: { name: { in: roles } },
-        });
-
-        // Remove existing roles
-        await tx.userRole.deleteMany({
-          where: { user_id: id },
-        });
-
-        // Add new roles
-        await Promise.all(
-          roleRecords.map((role) =>
-            tx.userRole.create({
-              data: {
-                user_id: id,
-                role_id: role.id,
-              },
-            }),
-          ),
-        );
-      }
-
-      // Handle clinician updates if needed
-      const hasClinicianRole = roles
-        ? roles.includes("Clinician") || roles.includes("Supervisor")
-        : false;
-
-      if (hasClinicianRole && (firstName || lastName)) {
-        // Update clinician info if exists, create if doesn't
-        const existingClinician = await tx.clinician.findUnique({
-          where: { user_id: id },
-        });
-
-        if (existingClinician) {
-          await tx.clinician.update({
-            where: { user_id: id },
-            data: {
-              ...(firstName && { first_name: firstName }),
-              ...(lastName && { last_name: lastName }),
-            },
-          });
-        } else {
-          await tx.clinician.create({
-            data: {
-              user_id: id,
-              first_name: firstName || "",
-              last_name: lastName || "",
-              address: "",
-              percentage_split: 100,
-            },
-          });
-        }
-      }
-    });
-
-    // Fetch updated user, excluding password_hash
-    const updatedUser = await prisma.user.findUnique({
+    // Update the user (e.g., append "DELETED" to email to prevent re-registration)
+    await tx.user.update({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        last_login: true,
-        date_of_birth: true,
-        phone: true,
-        profile_photo: true,
-        UserRole: {
-          include: {
-            Role: true,
-          },
-        },
-        Clinician: true,
+      data: {
+        email: `DELETED-${Date.now()}-${existingUser.email}`,
+        password_hash: "DELETED", // Invalidate password
       },
     });
+  });
 
-    return NextResponse.json(updatedUser);
-  } catch (error) {
-    logger.error({ error }, "Failed to update team member");
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
-}
+  logger.info(
+    { userId: id, email: existingUser.email },
+    "Team member soft deleted successfully",
+  );
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const session = await getBackOfficeSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 },
-      );
-    }
-
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { id },
-      include: {
-        Clinician: true,
-      },
-    });
-
-    if (!existingUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Instead of hard deleting, we'll mark the user as inactive
-    // and handle any related records
-    await prisma.$transaction(async (tx) => {
-      // If user is a clinician, mark clinician as inactive
-      if (existingUser.Clinician) {
-        await tx.clinician.update({
-          where: { id: existingUser.Clinician.id },
-          data: { is_active: false },
-        });
-      }
-
-      // Update the user (e.g., append "DELETED" to email to prevent re-registration)
-      await tx.user.update({
-        where: { id },
-        data: {
-          email: `DELETED-${Date.now()}-${existingUser.email}`,
-          password_hash: "DELETED", // Invalidate password
-        },
-      });
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    logger.error({ error }, "Failed to delete team member");
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
-}
-
-// Helper function to generate a random password
-function generateRandomPassword() {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-  let password = "";
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
+  return NextResponse.json({ success: true });
+});

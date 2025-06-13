@@ -75,8 +75,8 @@ function AppointmentItem({ appointment }: AppointmentItemProps) {
           )}
         </div>
         <Button
-          variant="link"
           className="text-blue-600 p-0 h-auto text-sm"
+          variant="link"
           onClick={() => router.push(`/appointmentNote/${appointment.id}`)}
         >
           Show
@@ -139,8 +139,8 @@ export function AppointmentsSection({
       </div>
       {clientId && (
         <Button
-          variant="link"
           className="text-blue-600 p-0 h-auto text-sm mt-3 flex items-center"
+          variant="link"
           onClick={() => router.push(`/clients/${clientId}`)}
         >
           <ExternalLink className="h-3 w-3 mr-1" />
