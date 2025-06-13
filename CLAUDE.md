@@ -19,8 +19,29 @@ See @README for project overview and @package.json for available npm commands.
 
 - **ALWAYS run pre-commit checks before pushing**: `npm run check:enhanced:full`
 - **ALL tests MUST pass** - CI will fail otherwise, causing delays
-- See @Docs/verification-commands.md for detailed instructions
 - Pre-commit checks are MANDATORY to avoid time-consuming iteration cycles
+- For quick iterations: `npm run check:enhanced` (without integration tests)
+- For comprehensive checks: `npm run check:enhanced:full` (with integration tests)
+
+**IMPORT CONVENTIONS - ENFORCED BY ESLINT**:
+
+- **REQUIRED**: Use `@/` path aliases instead of relative imports with `../..` syntax
+- For imports within the same app: Use `@/` (resolves to `src/`)
+- For cross-package imports: Use `@mcw/package-name`
+- ESLint will fail builds with `../..` imports
+
+**ERROR HANDLING REQUIREMENTS**:
+
+- **ALL API routes** must use `withErrorHandling` wrapper from `@mcw/utils`
+- **ALL mutations** must use `showErrorToast(toast, error)` for error display
+- Maximum error visibility in development environments
+
+**TESTING REQUIREMENTS**:
+
+- **Tests MUST be in `__tests__/` directory** (ESLint will error if in `src/`)
+- **No feature is complete without tests**
+- Naming: `.unit.test.ts` (mocked), `.integration.test.ts` (real DB), `.ui.test.tsx` (DOM)
+- Use test helpers: `createRequest()` and `createRequestWithBody()` from `@mcw/utils`
 
 ## Project Overview
 
@@ -31,30 +52,39 @@ MCW Practice Management Software is a HIPAA-compliant healthcare practice manage
 
 The project prioritizes **safety, security, and privacy** as it handles medical records. The codebase follows AI-first development principles where 95% of code is AI-generated while maintaining strict quality standards for security, privacy, and testing.
 
-## Architecture and Development
+**API DEVELOPMENT PATTERNS**:
 
-- @Docs/architecture.md
-- @Docs/api-patterns.md
-- @Docs/code-quality-conventions.md
-- @Docs/TYPE_SYSTEM_ARCHITECTURE.md
+- All API routes must follow this structure in `src/app/api/[feature]/route.ts`:
 
-## Development Commands
+```typescript
+import { withErrorHandling } from "@mcw/utils";
+import { prisma } from "@mcw/database";
 
-- @Docs/development-commands.md
-- @Docs/verification-commands.md
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  // Implementation
+});
+```
 
-## Environment and Testing
+- Use `NextRequest` and `NextResponse`
+- Validate all inputs before processing
+- Use shared Prisma client with transactions when needed
 
-- @Docs/environment-setup.md
-- @Docs/testing-guidelines.md
-- @Docs/error-handling.md
+## Reference Documentation (Load On-Demand)
 
-## Domain-Specific Documentation
+When working on specific features or areas, load these references:
 
-- @Docs/appointment-tags.md
-- @Docs/API_INTEGRATION_ANALYSIS.md
-- @Docs/REPOSITORY_PATTERN_PROPOSAL.md
-- @Docs/schema_notes.md
+**Architecture & Development**:
+
+- Architecture overview: @Docs/architecture.md
+- Development setup: @Docs/development-commands.md
+- Environment setup: @Docs/environment-setup.md
+
+**Feature-Specific**:
+
+- Appointment system: @Docs/appointment-tags.md
+- API integration status: @Docs/API_INTEGRATION_ANALYSIS.md
+- Business domain rules: @Docs/schema_notes.md
+- Repository pattern proposal: @Docs/REPOSITORY_PATTERN_PROPOSAL.md
 
 ## Type Safety Rules
 
