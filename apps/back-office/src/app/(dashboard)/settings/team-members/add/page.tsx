@@ -53,7 +53,12 @@ export default function AddTeamMemberPage() {
   const licenseFormRef = useRef<LicenseInfoFormRef>(null);
 
   const updateTeamMemberData = (data: Partial<TeamMember>) => {
-    setTeamMemberData((prev) => ({ ...prev, ...data }));
+    console.log("Updating team member data with:", data);
+    setTeamMemberData((prev) => {
+      const updated = { ...prev, ...data };
+      console.log("Updated team member data:", updated);
+      return updated;
+    });
   };
 
   const onStepSubmit = (data: Partial<TeamMember>) => {
@@ -81,7 +86,15 @@ export default function AddTeamMemberPage() {
   };
 
   const handleFinish = () => {
-    handleNext();
+    // Submit the current form before moving to completion
+    const actualStepIndex = getActualStepIndex(activeStep);
+    if (actualStepIndex === 3) {
+      // We're on the license step, submit it first
+      licenseFormRef.current?.submitForm();
+    } else {
+      // For other steps, just move to next
+      handleNext();
+    }
   };
 
   const renderStepContent = () => {

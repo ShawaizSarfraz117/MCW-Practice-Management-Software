@@ -49,7 +49,7 @@ export default function TeamMemberEditPage() {
         clinicianDetails.email.split("@")[0],
       lastName: clinicianDetails.Clinician?.last_name || "",
       email: clinicianDetails.email,
-      roles: ["Clinician"],
+      roles: clinicianDetails.UserRole?.map((ur) => ur.Role.name) || [],
     };
 
     // Set the clinical info ID if available
@@ -65,38 +65,39 @@ export default function TeamMemberEditPage() {
       );
       formattedMember.specialty =
         clinicianDetails.clinicalInfos[0].speciality || "";
+    }
 
-      // Format licenses array if available
-      if (
-        clinicianDetails.clinicalInfos[0].licenses &&
-        clinicianDetails.clinicalInfos[0].licenses.length > 0
-      ) {
-        formattedMember.licenses =
-          clinicianDetails.clinicalInfos[0].licenses.map((license) => {
-            return {
-              id: Number(license.id),
-              license_type: license.license_type || "",
-              license_number: license.license_number || "",
-              expiration_date:
-                typeof license.expiration_date === "string"
-                  ? license.expiration_date
-                  : license.expiration_date.toISOString().split("T")[0],
-              state: license.state || "",
-            };
-          });
+    // Format licenses array if available from Clinician.License
+    if (
+      clinicianDetails.Clinician?.License &&
+      clinicianDetails.Clinician.License.length > 0
+    ) {
+      formattedMember.licenses = clinicianDetails.Clinician.License.map(
+        (license) => {
+          return {
+            id: Number(license.id),
+            license_type: license.license_type || "",
+            license_number: license.license_number || "",
+            expiration_date:
+              typeof license.expiration_date === "string"
+                ? license.expiration_date
+                : license.expiration_date.toISOString().split("T")[0],
+            state: license.state || "",
+          };
+        },
+      );
 
-        // For backward compatibility with components that use the single license format
-        const primaryLicense = clinicianDetails.clinicalInfos[0].licenses[0];
-        formattedMember.license = {
-          type: primaryLicense.license_type || "",
-          number: primaryLicense.license_number || "",
-          expirationDate:
-            typeof primaryLicense.expiration_date === "string"
-              ? primaryLicense.expiration_date
-              : primaryLicense.expiration_date.toISOString().split("T")[0],
-          state: primaryLicense.state || "",
-        };
-      }
+      // For backward compatibility with components that use the single license format
+      const primaryLicense = clinicianDetails.Clinician.License[0];
+      formattedMember.license = {
+        type: primaryLicense.license_type || "",
+        number: primaryLicense.license_number || "",
+        expirationDate:
+          typeof primaryLicense.expiration_date === "string"
+            ? primaryLicense.expiration_date
+            : primaryLicense.expiration_date.toISOString().split("T")[0],
+        state: primaryLicense.state || "",
+      };
     }
 
     // Handle services if available
@@ -106,7 +107,8 @@ export default function TeamMemberEditPage() {
     ) {
       formattedMember.services =
         clinicianDetails.Clinician.ClinicianServices.map(
-          (service) => service.PracticeService.type,
+          (service) =>
+            service.PracticeService.name || service.PracticeService.type,
         );
     }
 
