@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+import type { SurveyPreviewRef } from "@mcw/ui";
 import {
   Button,
   Card,
@@ -64,6 +66,8 @@ export function ProgressNoteSection({
   createMutationStatus,
   updateMutationStatus,
 }: ProgressNoteSectionProps) {
+  const surveyRef = useRef<SurveyPreviewRef>(null);
+
   // Validate template content is valid JSON
   const isValidTemplateContent = (
     content: string | null | undefined,
@@ -106,6 +110,7 @@ export function ProgressNoteSection({
                 <div className="border rounded-lg bg-white">
                   {isValidTemplateContent(selectedTemplate.content) ? (
                     <SurveyPreview
+                      ref={surveyRef}
                       content={selectedTemplate.content!}
                       mode="edit"
                       showInstructions={false}
@@ -206,29 +211,50 @@ export function ProgressNoteSection({
               </div>
             ) : (
               // Show form for new note
-              <div className="border rounded-lg bg-white">
-                {isValidTemplateContent(selectedTemplate.content) ? (
-                  <SurveyPreview
-                    content={selectedTemplate.content!}
-                    mode="edit"
-                    showInstructions={false}
-                    title=""
-                    type={selectedTemplate.type}
-                    onComplete={handleSaveProgressNote}
-                    defaultAnswers={
-                      progressNote?.content
-                        ? parseSurveyContent(progressNote.content) || undefined
-                        : undefined
+              <div className="space-y-4">
+                <div className="border rounded-lg bg-white">
+                  {isValidTemplateContent(selectedTemplate.content) ? (
+                    <SurveyPreview
+                      ref={surveyRef}
+                      content={selectedTemplate.content!}
+                      mode="edit"
+                      showInstructions={false}
+                      title=""
+                      type={selectedTemplate.type}
+                      onComplete={(result) => {
+                        handleSaveProgressNote(result);
+                      }}
+                      defaultAnswers={
+                        progressNote?.content
+                          ? parseSurveyContent(progressNote.content) ||
+                            undefined
+                          : undefined
+                      }
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <p>Template content is not available or invalid.</p>
+                      <p className="text-sm mt-2">
+                        Please check the template configuration in Settings.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={handleCancelProgressNote}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={
+                      createMutationStatus === "pending" ||
+                      updateMutationStatus === "pending"
                     }
-                  />
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    <p>Template content is not available or invalid.</p>
-                    <p className="text-sm mt-2">
-                      Please check the template configuration in Settings.
-                    </p>
-                  </div>
-                )}
+                  >
+                    Save
+                  </Button>
+                </div>
               </div>
             )}
           </div>

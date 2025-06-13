@@ -23,7 +23,8 @@ import { SurveyPreview } from "@mcw/ui";
 import { Template } from "./../../hooks/useTemplates";
 import { SurveyContentDisplay } from "./SurveyContentDisplay";
 import { formatDate, parseSurveyContent } from "../utils/noteParser";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import type { SurveyPreviewRef } from "@mcw/ui";
 
 interface SurveyNote {
   id: string;
@@ -61,6 +62,7 @@ export function PsychotherapyNoteSection({
   const isSaving =
     createMutationStatus === "pending" || updateMutationStatus === "pending";
   const [fallbackTemplate, setFallbackTemplate] = useState<string | null>(null);
+  const surveyRef = useRef<SurveyPreviewRef>(null);
 
   // Load fallback template if no database template exists
   useEffect(() => {
@@ -179,6 +181,7 @@ export function PsychotherapyNoteSection({
             <div className="border rounded-lg">
               {psychoTemplate || fallbackTemplate ? (
                 <SurveyPreview
+                  ref={surveyRef}
                   content={psychoTemplate?.content || fallbackTemplate || ""}
                   mode="edit"
                   showInstructions={false}
@@ -218,13 +221,8 @@ export function PsychotherapyNoteSection({
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={isSaving}
                   onClick={() => {
-                    // Trigger form submission by clicking the SurveyJS complete button
-                    const completeButton = document.querySelector(
-                      ".sd-btn--action.sd-navigation__complete-btn",
-                    ) as HTMLButtonElement;
-                    if (completeButton) {
-                      completeButton.click();
-                    }
+                    // Trigger form submission using the ref
+                    surveyRef.current?.submit();
                   }}
                 >
                   {isSaving ? "Saving..." : psychoNote ? "Update" : "Save"}
