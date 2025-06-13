@@ -1,5 +1,6 @@
 import { FETCH } from "@mcw/utils";
 import { useQuery } from "@tanstack/react-query";
+import { DocumentType } from "@mcw/types";
 
 export const fetchSingleStatement = async ({ searchParams = {} }) => {
   try {
@@ -64,26 +65,6 @@ export const createChartNote = async ({ body = {} }) => {
   }
 };
 
-export const updateChartNote = async ({
-  body = {},
-  id,
-}: {
-  body: object;
-  id: string;
-}) => {
-  try {
-    const response: unknown = await FETCH.update({
-      url: `/client/group/chart-notes/${id}`,
-      body,
-      isFormData: false,
-    });
-
-    return [response, null];
-  } catch (error) {
-    return [null, error];
-  }
-};
-
 export const deleteChartNote = async ({ id }: { id: string }) => {
   try {
     const response: unknown = await FETCH.remove({
@@ -115,4 +96,43 @@ export const useFetchStatement = (statementId: string | null) => {
     enabled: !!statementId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+};
+
+export const deleteDocument = async (
+  documentId: string,
+  documentType: DocumentType,
+) => {
+  const response = await fetch(
+    `/api/client/overview?documentId=${documentId}&documentType=${documentType}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to delete document");
+  }
+
+  return response.json();
+};
+
+export const updateChartNote = async (
+  chartNoteId: string,
+  data: { text?: string; note_date?: string },
+) => {
+  const response = await fetch(`/api/client/group/chart-notes/${chartNoteId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Failed to update chart note");
+  }
+
+  return response.json();
 };

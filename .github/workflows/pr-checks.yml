@@ -27,6 +27,9 @@ jobs:
       - name: Prisma generate
         run: npm run --workspace packages/database db:generate
 
+      - name: Build email package
+        run: npm run build --workspace=@mcw/email
+
       - name: Check TypeScript, formatting, and linting
         run: npm run checks
 

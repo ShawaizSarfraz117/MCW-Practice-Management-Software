@@ -22,6 +22,17 @@
     "test:front-office:integration": "./scripts/run-vitest-with-testdb.sh --project front-office/integration",
     "test:back-office:unit": "vitest --project back-office/unit",
     "test:front-office:unit": "vitest --project front-office/unit",
+    "test:metrics": "vitest --config vitest.config.metrics.ts --run && tsx scripts/analyze-test-performance.ts",
+    "test:analyze": "tsx scripts/analyze-test-performance.ts",
+    "test:local": "./scripts/test-local.sh",
+    "check:local": "./scripts/test-local.sh",
+    "check:pre-push": "./scripts/test-local.sh --mode=pr",
+    "check:ultra": "tsx scripts/pre-commit-check-ultra.ts",
+    "check": "tsx scripts/pre-commit-check.ts",
+    "check:full": "tsx scripts/pre-commit-check.ts --with-integration",
+    "check:ultra:full": "tsx scripts/pre-commit-check-ultra.ts --with-integration",
+    "check:enhanced": "tsx scripts/pre-commit-check-enhanced.ts",
+    "check:enhanced:full": "tsx scripts/pre-commit-check-enhanced.ts --with-integration",
     "db:migrate": "turbo run db:migrate",
     "db:deploy": "turbo run db:deploy",
     "db:seed": "turbo run db:seed",
@@ -33,7 +44,8 @@
     "test:ci": "./scripts/run-vitest-with-testdb.sh run",
     "prepare": "husky",
     "lint-staged": "lint-staged",
-    "prettier:write": "prettier --write src"
+    "prettier:write": "prettier --write src",
+    "format:check": "turbo run prettier:check"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -55,6 +67,7 @@
     "node-mocks-http": "^1.16.2",
     "prettier": "^3.5.3",
     "prisma": "^6.5.0",
+    "tsx": "^4.20.2",
     "turbo": "^2.5.4",
     "typescript": "^5.3.3",
     "vitest-mock-extended": "^3.0.1"

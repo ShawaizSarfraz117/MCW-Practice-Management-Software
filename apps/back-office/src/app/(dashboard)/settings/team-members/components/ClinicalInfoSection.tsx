@@ -4,7 +4,9 @@ import { Card } from "@mcw/ui";
 import { TeamMember } from "../hooks/useRolePermissions";
 import EditTeamMemberSidebar from "./EditTeamMemberSidebar";
 import ClinicalInfoEdit from "./ClinicalInfoEdit";
-import { useUpdateClinicalInfo } from "../services/member.service";
+import { toast } from "@mcw/ui";
+import { showErrorToast } from "@mcw/utils";
+import { useUpdateTeamMember } from "../services/member.service";
 
 interface ClinicalInfoSectionProps {
   member: TeamMember;
@@ -19,26 +21,33 @@ export function ClinicalInfoSection({
   isEditing,
   onClose,
 }: ClinicalInfoSectionProps) {
-  const { mutate: updateClinicalInfo, isPending } = useUpdateClinicalInfo();
+  const updateMutation = useUpdateTeamMember();
+
+  const handleMutationSuccess = () => {
+    toast({
+      title: "Success",
+      description: "Clinical information updated successfully",
+    });
+    onClose();
+  };
+
+  const handleMutationError = (error: unknown) => {
+    showErrorToast(toast, error);
+  };
 
   const handleClinicalInfoSubmit = (data: {
     specialty: string;
     npiNumber: string;
   }) => {
-    // Convert the NPI number to a number
-    const NPInumber = data.npiNumber ? parseInt(data.npiNumber, 10) : undefined;
-
-    updateClinicalInfo(
+    updateMutation.mutate(
       {
-        speciality: data.specialty,
-        taxonomyCode: "000", // Default taxonomy code
-        NPInumber,
-        user_id: member.id,
+        id: member.id,
+        specialty: data.specialty,
+        npiNumber: data.npiNumber,
       },
       {
-        onSuccess: () => {
-          onClose();
-        },
+        onSuccess: handleMutationSuccess,
+        onError: handleMutationError,
       },
     );
   };
@@ -85,7 +94,7 @@ export function ClinicalInfoSection({
 
       <EditTeamMemberSidebar
         formId="clinical-info-edit-form"
-        isLoading={isPending}
+        isLoading={updateMutation.isPending}
         isOpen={isEditing}
         title="Edit clinical info"
         onClose={onClose}

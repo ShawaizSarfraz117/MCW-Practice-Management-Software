@@ -178,6 +178,19 @@ describe("Superbill API - Integration Tests", () => {
       });
       testIds.userId = user.id;
 
+      // Create a clinician
+      const clinician = await prisma.clinician.create({
+        data: {
+          id: generateUUID(),
+          user_id: user.id,
+          first_name: "Test",
+          last_name: "Clinician",
+          address: "123 Test St",
+          percentage_split: 100.0,
+        },
+      });
+      testIds.clinicianId = clinician.id;
+
       // Create a client
       const client = await prisma.client.create({
         data: {
@@ -196,6 +209,7 @@ describe("Superbill API - Integration Tests", () => {
           id: generateUUID(),
           name: "Test Group",
           type: "INDIVIDUAL",
+          clinician_id: clinician.id,
           created_at: new Date(),
           available_credit: 0,
           ClientGroupMembership: {
@@ -287,6 +301,7 @@ describe("Superbill API - Integration Tests", () => {
           id: generateUUID(),
           name: "Test Group",
           type: "INDIVIDUAL",
+          clinician_id: clinician.id,
         },
       });
       testIds.clientGroupId = clientGroup.id;

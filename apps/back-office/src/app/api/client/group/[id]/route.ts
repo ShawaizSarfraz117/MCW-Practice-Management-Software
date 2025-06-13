@@ -18,7 +18,11 @@ export async function GET(
       const clientGroup = await prisma.clientGroup.findUnique({
         where: { id },
         include: {
-          Clinician: true,
+          Clinician: {
+            include: {
+              ClinicianLocation: true,
+            },
+          },
           ClientGroupMembership: {
             orderBy: {
               created_at: "asc",

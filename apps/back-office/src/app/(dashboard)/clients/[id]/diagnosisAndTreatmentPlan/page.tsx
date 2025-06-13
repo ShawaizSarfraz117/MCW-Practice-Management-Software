@@ -1,17 +1,62 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { toast } from "@mcw/ui";
 import DiagnosisRows from "./components/DiagnosisRows";
 import TreatmentPlanTemplate from "./components/TreatmentPlanTemplate";
 import DocumentationHistorySidebar from "../components/DocumentationHistorySidebar";
+import { ClientInfoHeader } from "../components/ClientInfoHeader";
+import {
+  createDiagnosisTreatmentPlan,
+  fetchSingleClientGroup,
+} from "@/(dashboard)/clients/services/client.service";
+import { showErrorToast } from "@mcw/utils";
+import { ClientGroupFromAPI } from "../edit/components/ClientEdit";
+
+interface DiagnosisData {
+  code: string;
+  description: string;
+  id?: string;
+}
 
 export default function DiagnosisAndTreatmentPlan() {
-  const [diagnoses, setDiagnoses] = useState([{ code: "", description: "" }]);
+  const params = useParams();
+  const clientGroupId = params.id as string;
+  const [clientInfo, setClientInfo] = useState<ClientGroupFromAPI | null>(null);
+  const [diagnoses, setDiagnoses] = useState<DiagnosisData[]>([
+    { code: "", description: "" },
+  ]);
   const [date, setDate] = useState("2025-03-29");
   const [time, setTime] = useState("19:08");
-  const [showTreatmentPlan, setShowTreatmentPlan] = useState(false); // new state
-  const [sidebarOpen, setSidebarOpen] = useState(false); // sidebar state
+  const [showTreatmentPlan, setShowTreatmentPlan] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [_isSaving, setIsSaving] = useState(false);
+
+  // Get the first client's ID from the client group
+  const clientId = clientInfo?.ClientGroupMembership[0]?.Client?.id;
+
+  useEffect(() => {
+    const fetchClientData = async () => {
+      try {
+        const data = (await fetchSingleClientGroup({
+          id: clientGroupId,
+          searchParams: {
+            includeProfile: "true",
+            includeAdress: "true",
+          },
+        })) as { data: ClientGroupFromAPI } | null;
+
+        if (data?.data) {
+          setClientInfo(data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching client data:", error);
+      }
+    };
+
+    fetchClientData();
+  }, [clientGroupId]);
 
   const addDiagnosis = () =>
     setDiagnoses([...diagnoses, { code: "", description: "" }]);
@@ -19,53 +64,75 @@ export default function DiagnosisAndTreatmentPlan() {
     if (diagnoses.length === 1) return; // Prevent removing the last row
     setDiagnoses(diagnoses.filter((_, i) => i !== idx));
   };
-  const updateDiagnosis = (idx: number, key: string, value: string) => {
-    setDiagnoses(
-      diagnoses.map((d, i) => (i === idx ? { ...d, [key]: value } : d)),
-    );
+  const updateDiagnosis = (idx: number, updates: Partial<DiagnosisData>) => {
+    setDiagnoses((prevDiagnoses) => {
+      const updatedDiagnoses = [...prevDiagnoses];
+      updatedDiagnoses[idx] = { ...updatedDiagnoses[idx], ...updates };
+      return updatedDiagnoses;
+    });
+  };
+
+  const handleSave = async () => {
+    if (!clientId) {
+      toast({
+        title: "Error",
+        description: "Client information not loaded. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const dateTime = `${date}T${time}:00`;
+
+      // Only include diagnoses that have both code and ID
+      const validDiagnoses = diagnoses.filter((d) => d.code && d.id);
+
+      if (validDiagnoses.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please select at least one diagnosis from the dropdown",
+          variant: "destructive",
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      const [_response, error] = await createDiagnosisTreatmentPlan({
+        body: {
+          clientId,
+          clientGroupId,
+          title: "Diagnosis and Treatment Plan",
+          diagnoses: validDiagnoses,
+          dateTime,
+        },
+      });
+
+      if (error) {
+        showErrorToast(toast, error);
+      } else {
+        toast({
+          title: "Success",
+          description: "Diagnosis and treatment plan saved successfully",
+        });
+        setShowTreatmentPlan(true);
+      }
+    } catch (error) {
+      showErrorToast(toast, error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="px-4 py-8 w-full max-w-6xl mx-auto">
-      {/* Breadcrumb and Documentation History */}
-      <div className="w-[90%] flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-        <div className="text-sm text-gray-500 flex flex-wrap items-center gap-1">
-          <Link className="hover:underline" href="/clients">
-            Clients and contacts
-          </Link>
-          <span>/</span>
-          <Link className="hover:underline" href="#">
-            Jamie D. Appleseed's profile
-          </Link>
-          <span>/</span>
-          <span className="text-gray-700 font-medium">
-            Diagnosis and treatment plan
-          </span>
-        </div>
-        <button
-          className="text-[#2d8467] hover:underline font-medium"
-          type="button"
-          onClick={() => setSidebarOpen(true)}
-        >
-          Documentation history
-        </button>
-      </div>
-
-      {/* Client Info */}
-      <h1 className="text-2xl font-semibold mt-4 mb-1">Jamie D. Appleseed</h1>
-      <div className="text-sm text-gray-500 mb-4 flex flex-wrap gap-2 items-center">
-        Adult
-        <span className="text-gray-300">|</span>
-        07/12/2024 (0)
-        <span className="text-gray-300">|</span>
-        <Link className="text-[#2d8467] hover:underline" href="#">
-          Schedule appointment
-        </Link>
-        <span className="text-gray-300">|</span>
-        <Link className="text-[#2d8467] hover:underline" href="#">
-          Edit
-        </Link>
-      </div>
+      <ClientInfoHeader
+        clientInfo={clientInfo}
+        clientGroupId={clientGroupId}
+        showDocumentationHistory={true}
+        onDocumentationHistoryClick={() => setSidebarOpen(true)}
+      />
 
       {!showTreatmentPlan ? (
         <DiagnosisRows
@@ -86,6 +153,7 @@ export default function DiagnosisAndTreatmentPlan() {
           setTime={setTime}
           time={time}
           updateDiagnosis={updateDiagnosis}
+          onSave={handleSave}
         />
       ) : (
         <TreatmentPlanTemplate />

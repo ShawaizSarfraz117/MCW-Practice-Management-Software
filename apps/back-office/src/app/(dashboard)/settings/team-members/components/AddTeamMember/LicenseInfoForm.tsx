@@ -57,6 +57,18 @@ const LicenseInfoForm = forwardRef<LicenseInfoFormRef, LicenseInfoFormProps>(
       ({ value }: { value: string }) =>
         !value ? `${fieldName} is required` : undefined;
 
+    // Validator for future dates only
+    const futureDateValidator = ({ value }: { value: string }) => {
+      if (!value) return "Expiration date is required";
+      const selectedDate = new Date(value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      if (selectedDate <= today) {
+        return "Expiration date must be in the future";
+      }
+      return undefined;
+    };
+
     const form = useForm({
       defaultValues: {
         license: {
@@ -200,7 +212,8 @@ const LicenseInfoForm = forwardRef<LicenseInfoFormRef, LicenseInfoFormProps>(
           <form.Field
             name="license.expirationDate"
             validators={{
-              onBlur: requiredValidator("Expiration date"),
+              onBlur: futureDateValidator,
+              onChange: futureDateValidator,
             }}
           >
             {(field) => (
@@ -214,6 +227,7 @@ const LicenseInfoForm = forwardRef<LicenseInfoFormRef, LicenseInfoFormProps>(
                     id={field.name}
                     name={field.name}
                     type="date"
+                    min={new Date().toISOString().split("T")[0]}
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}

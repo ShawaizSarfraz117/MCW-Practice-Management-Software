@@ -9,7 +9,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@mcw/ui";
-import { Search } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, FormEvent, useEffect } from "react";
 import { useTeamMembers } from "./services/member.service";
 import Loading from "@/components/Loading";
@@ -22,15 +22,19 @@ export default function TeamMembersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [isManageListOrderOpen, setIsManageListOrderOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20); // Can be made configurable if needed
   const [queryParams, setQueryParams] = useState({
     search: undefined as string | undefined,
     role: undefined as string | undefined,
+    page: 1,
+    pageSize: 20,
   });
 
   const { data, isLoading, refetch } = useTeamMembers(queryParams);
 
   const teamMembers = data?.data || [];
-  const _pagination = data?.pagination;
+  const pagination = data?.pagination;
 
   useEffect(() => {
     refetch();
@@ -38,16 +42,30 @@ export default function TeamMembersPage() {
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
+    setCurrentPage(1); // Reset to first page on new search
     setQueryParams({
       search: searchQuery || undefined,
       role: roleFilter !== "all" ? roleFilter : undefined,
+      page: 1,
+      pageSize,
     });
   };
 
   const handleSearchIconClick = () => {
+    setCurrentPage(1); // Reset to first page on new search
     setQueryParams({
       search: searchQuery || undefined,
       role: roleFilter !== "all" ? roleFilter : undefined,
+      page: 1,
+      pageSize,
+    });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    setQueryParams({
+      ...queryParams,
+      page: newPage,
     });
   };
 
@@ -110,9 +128,12 @@ export default function TeamMembersPage() {
           value={roleFilter}
           onValueChange={(value) => {
             setRoleFilter(value);
+            setCurrentPage(1); // Reset to first page on role change
             setQueryParams({
               search: searchQuery || undefined,
               role: value !== "all" ? value : undefined,
+              page: 1,
+              pageSize,
             });
           }}
         >
@@ -121,8 +142,25 @@ export default function TeamMembersPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All roles</SelectItem>
-            <SelectItem value="clinician">Clinician</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="CLINICIAN.BASIC">Clinician - Basic</SelectItem>
+            <SelectItem value="CLINICIAN.BILLING">
+              Clinician - Billing
+            </SelectItem>
+            <SelectItem value="CLINICIAN.FULL-CLIENT-LIST">
+              Clinician - Full Client List
+            </SelectItem>
+            <SelectItem value="CLINICIAN.ENTIRE-PRACTICE">
+              Clinician - Entire Practice
+            </SelectItem>
+            <SelectItem value="CLINICIAN.SUPERVISOR">
+              Clinician - Supervisor
+            </SelectItem>
+            <SelectItem value="ADMIN.PRACTICE-MANAGER">
+              Admin - Practice Manager
+            </SelectItem>
+            <SelectItem value="ADMIN.PRACTICE-BILLER">
+              Admin - Practice Biller
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -131,6 +169,53 @@ export default function TeamMembersPage() {
       <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-sm">
         <MemberTable rows={teamMembers} onRowClick={handleRowClick} />
       </div>
+
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-700">
+              Showing{" "}
+              <span className="font-medium">
+                {(pagination.page - 1) * pagination.pageSize + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium">
+                {Math.min(
+                  pagination.page * pagination.pageSize,
+                  pagination.total,
+                )}
+              </span>{" "}
+              of <span className="font-medium">{pagination.total}</span> results
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-gray-700 px-3">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === pagination.totalPages}
+              className="flex items-center gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Sidebar */}
       <ManageListOrderSidebar
