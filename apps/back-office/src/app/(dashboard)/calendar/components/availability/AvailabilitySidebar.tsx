@@ -232,83 +232,74 @@ export function AvailabilitySidebar({
     }));
   };
 
-  // Function to fetch all practice services
-  const fetchServices = async () => {
-    console.log("=== fetchServices function called ===");
-    console.log("Setting loading state to true");
-    setIsLoadingServices(true);
-
-    try {
-      console.log("Inside try block - fetching all practice services...");
-
-      // Always fetch all practice services
-      const allServicesUrl = "/api/service";
-      console.log("API URL:", allServicesUrl);
-      console.log("About to call fetch()...");
-
-      const response = await fetch(allServicesUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("Response status:", response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Services API response:", data);
-        console.log("Response type:", typeof data);
-        console.log("Is array:", Array.isArray(data));
-
-        // Handle different response formats
-        let services: Service[] = [];
-        if (Array.isArray(data)) {
-          // Map snake_case to camelCase if needed
-          services = data.map((service: Record<string, unknown>) => ({
-            id: service.id as string,
-            type: service.type as string,
-            code: service.code as string,
-            duration: service.duration as number,
-            description: service.description as string,
-            rate: service.rate as number,
-            defaultRate: service.rate as number, // API returns rate, not defaultRate
-            color: service.color as string,
-            isActive: (service.is_active as boolean) ?? true,
-            isDefault: (service.is_default as boolean) ?? false,
-            billInUnits: (service.bill_in_units as boolean) ?? false,
-            availableOnline: (service.available_online as boolean) ?? false,
-            allowNewClients: (service.allow_new_clients as boolean) ?? false,
-            requireCall: (service.require_call as boolean) ?? false,
-            blockBefore: (service.block_before as number) ?? 0,
-            blockAfter: (service.block_after as number) ?? 0,
-          }));
-        } else if (data.services && Array.isArray(data.services)) {
-          services = data.services;
-        } else if (data.data && Array.isArray(data.data)) {
-          services = data.data;
-        }
-
-        console.log(`Found ${services.length} practice services`);
-        console.log("First service:", services[0]);
-        setFetchedServices(services);
-      } else {
+  // Use React Query to fetch practice services
+  const {
+    data: servicesData,
+    isLoading: isLoadingServicesQuery,
+    refetch: refetchServices,
+  } = useQuery({
+    queryKey: ["practiceServices"],
+    queryFn: async () => {
+      const response = await fetch("/api/service");
+      if (!response.ok) {
+        const errorText = await response.text();
         console.error(
           "Failed to fetch services:",
           response.status,
           response.statusText,
         );
-        const errorText = await response.text();
         console.error("Error response:", errorText);
-        setFetchedServices([]);
+        throw new Error("Failed to fetch services");
       }
-    } catch (error) {
-      console.error("Error fetching practice services:", error);
-      setFetchedServices([]);
-    } finally {
-      setIsLoadingServices(false);
-      console.log("fetchServices completed");
+      return response.json();
+    },
+    enabled: false, // Only fetch when explicitly triggered
+  });
+
+  // Update fetched services when data changes
+  useEffect(() => {
+    if (servicesData) {
+      let services: Service[] = [];
+      if (Array.isArray(servicesData)) {
+        // Map snake_case to camelCase if needed
+        services = servicesData.map((service: Record<string, unknown>) => ({
+          id: service.id as string,
+          type: service.type as string,
+          code: service.code as string,
+          duration: service.duration as number,
+          description: service.description as string,
+          rate: service.rate as number,
+          defaultRate: service.rate as number, // API returns rate, not defaultRate
+          color: service.color as string,
+          isActive: (service.is_active as boolean) ?? true,
+          isDefault: (service.is_default as boolean) ?? false,
+          billInUnits: (service.bill_in_units as boolean) ?? false,
+          availableOnline: (service.available_online as boolean) ?? false,
+          allowNewClients: (service.allow_new_clients as boolean) ?? false,
+          requireCall: (service.require_call as boolean) ?? false,
+          blockBefore: (service.block_before as number) ?? 0,
+          blockAfter: (service.block_after as number) ?? 0,
+        }));
+      } else if (
+        servicesData.services &&
+        Array.isArray(servicesData.services)
+      ) {
+        services = servicesData.services;
+      } else if (servicesData.data && Array.isArray(servicesData.data)) {
+        services = servicesData.data;
+      }
+      setFetchedServices(services);
     }
+  }, [servicesData]);
+
+  // Update loading state when query loading changes
+  useEffect(() => {
+    setIsLoadingServices(isLoadingServicesQuery);
+  }, [isLoadingServicesQuery]);
+
+  // Function to fetch all practice services
+  const fetchServices = async () => {
+    await refetchServices();
   };
 
   // Use fetched services or empty array
@@ -451,8 +442,6 @@ export function AvailabilitySidebar({
   // Fetch services when component opens
   useEffect(() => {
     if (open && !isEditMode) {
-      console.log("Component opened in create mode, fetching services");
-      console.log("Current fetchedServices length:", fetchedServices.length);
       fetchServices();
     }
   }, [open, isEditMode]);
@@ -580,12 +569,6 @@ export function AvailabilitySidebar({
 
   const handleDelete = async () => {
     try {
-      console.log("Delete attempt - availabilityData:", availabilityData);
-      console.log(
-        "Delete attempt - availabilityData.id:",
-        availabilityData?.id,
-      );
-
       if (!availabilityData?.id) {
         setGeneralError("No availability ID found");
         return;
@@ -600,12 +583,8 @@ export function AvailabilitySidebar({
         method: "DELETE",
       });
 
-      console.log("Delete response status:", response.status);
-      console.log("Delete response ok:", response.ok);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.log("Delete error data:", errorData);
         throw new Error(errorData.error || "Failed to delete availability");
       }
 
@@ -1187,14 +1166,6 @@ export function AvailabilitySidebar({
                               </div>
                             ) : (
                               <>
-                                {console.log(
-                                  "Rendering services dropdown, allServices:",
-                                  allServices,
-                                )}
-                                {console.log(
-                                  "allServices length:",
-                                  allServices.length,
-                                )}
                                 {/* Add all services option */}
                                 {allServices.filter(
                                   (service: Service) =>

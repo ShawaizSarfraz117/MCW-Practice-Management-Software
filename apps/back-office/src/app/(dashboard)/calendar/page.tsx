@@ -13,89 +13,12 @@ import {
   fetchClientGroups,
   ClientGroupWithMembership,
 } from "../clients/services/client.service";
-
-// Types for API responses
-type Clinician = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  is_active: boolean;
-  User: {
-    email: string;
-  };
-};
-
-type Location = {
-  id: string;
-  name: string;
-  address: string;
-  is_active: boolean;
-};
-
-// New type for appointments
-type Appointment = {
-  id: string;
-  type: string;
-  title: string;
-  is_all_day: boolean;
-  start_date: string;
-  end_date: string;
-  location_id: string;
-  client_id?: string;
-  clinician_id?: string;
-  status: string;
-  is_recurring: boolean;
-  isFirstAppointmentForGroup?: boolean;
-  Client?: {
-    id: string;
-    legal_first_name: string;
-    legal_last_name: string;
-    preferred_name?: string;
-  };
-  Clinician?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
-  Location?: {
-    id: string;
-    name: string;
-    address: string;
-  };
-  AppointmentTag?: Array<{
-    id: string;
-    appointment_id: string;
-    tag_id: string;
-    Tag: {
-      id: string;
-      name: string;
-      color: string;
-    };
-  }>;
-};
-
-// Type for availabilities
-type Availability = {
-  id: string;
-  clinician_id: string;
-  title: string;
-  start_date: string;
-  end_date: string;
-  location_id: string;
-  allow_online_requests: boolean;
-  is_recurring: boolean;
-  recurring_rule: string | null;
-  Location?: {
-    id: string;
-    name: string;
-    address: string;
-  };
-  Clinician?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
-};
+import type {
+  CalendarClinician,
+  CalendarLocation,
+  CalendarAppointment,
+  CalendarAvailability,
+} from "@mcw/types";
 
 // Custom hook to get clinician data for the current user
 function useClinicianData() {
@@ -197,7 +120,7 @@ const CalendarPage: React.FC = () => {
 
   // Fetch clinicians with role-based permissions
   const { data: cliniciansData = [], isLoading: isLoadingClinicians } =
-    useQuery<Clinician[]>({
+    useQuery<CalendarClinician[]>({
       queryKey: ["clinicians", effectiveClinicianId, isAdmin, isClinician],
       queryFn: async () => {
         let url = "/api/clinician";
@@ -220,7 +143,7 @@ const CalendarPage: React.FC = () => {
 
   // Fetch locations with role-based permissions
   const { data: locationsData = [], isLoading: isLoadingLocations } = useQuery<
-    Location[]
+    CalendarLocation[]
   >({
     queryKey: ["locations", effectiveClinicianId, isAdmin, isClinician],
     queryFn: async () => {
@@ -242,7 +165,7 @@ const CalendarPage: React.FC = () => {
 
   // Fetch appointments with role-based permissions
   const { data: appointmentsData = [], isLoading: isLoadingAppointments } =
-    useQuery<Appointment[]>({
+    useQuery<CalendarAppointment[]>({
       queryKey: [
         "appointments",
         effectiveClinicianId,
@@ -274,7 +197,7 @@ const CalendarPage: React.FC = () => {
 
   // Fetch availabilities with role-based permissions
   const { data: availabilitiesData = [], isLoading: isLoadingAvailabilities } =
-    useQuery<Availability[]>({
+    useQuery<CalendarAvailability[]>({
       queryKey: [
         "availabilities",
         effectiveClinicianId,
@@ -377,7 +300,7 @@ const CalendarPage: React.FC = () => {
         return {
           id: appointment.id,
           resourceId: appointment.clinician_id || "",
-          title: title,
+          title: title || "Appointment",
           start: appointment.start_date,
           end: appointment.end_date,
           location: appointment.location_id,

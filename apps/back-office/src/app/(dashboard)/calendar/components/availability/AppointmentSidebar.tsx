@@ -89,26 +89,22 @@ export function AppointmentSidebar({
   // State for user's clinician ID
   const [userClinicianId, setUserClinicianId] = useState<string | null>(null);
 
-  // Fetch clinician ID for non-admin users
-  useEffect(() => {
-    const fetchClinicianId = async () => {
-      if (isClinician && !isAdmin && userId) {
-        try {
-          const response = await fetch(`/api/clinician?userId=${userId}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data && data.id) {
-              setUserClinicianId(data.id);
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching clinician ID:", error);
-        }
-      }
-    };
+  // Fetch clinician ID for non-admin users using React Query
+  const { data: clinicianData } = useQuery({
+    queryKey: ["clinician", userId],
+    queryFn: async () => {
+      const response = await fetch(`/api/clinician?userId=${userId}`);
+      if (!response.ok) throw new Error("Failed to fetch clinician");
+      return response.json();
+    },
+    enabled: !!userId && isClinician && !isAdmin,
+  });
 
-    fetchClinicianId();
-  }, [isClinician, isAdmin, userId]);
+  useEffect(() => {
+    if (clinicianData?.id) {
+      setUserClinicianId(clinicianData.id);
+    }
+  }, [clinicianData]);
 
   // Use user's clinician ID if they're a clinician, otherwise use selectedResource
   const effectiveClinicianId =
@@ -136,66 +132,61 @@ export function AppointmentSidebar({
     setAvailabilityFormValues,
   ]);
 
+  // Use React Query to fetch services
+  const {
+    data: servicesData,
+    isLoading: isLoadingServicesQuery,
+    refetch: refetchServices,
+  } = useQuery({
+    queryKey: ["practiceServices"],
+    queryFn: async () => {
+      const response = await fetch("/api/service");
+      if (!response.ok) throw new Error("Failed to fetch services");
+      return response.json();
+    },
+    enabled: false, // Only fetch when explicitly triggered
+  });
+
+  // Update fetched services when data changes
+  useEffect(() => {
+    if (servicesData && Array.isArray(servicesData)) {
+      const services: DetailedService[] = servicesData.map(
+        (service: unknown) => {
+          const svc = service as Record<string, unknown>;
+          return {
+            id: svc.id as string,
+            type: svc.type as string,
+            code: svc.code as string,
+            duration: svc.duration as number,
+            description: svc.description as string,
+            rate: svc.rate as number,
+            defaultRate: svc.rate as number,
+            customRate: undefined,
+            effectiveRate: svc.rate as number,
+            color: svc.color as string,
+            isActive: true,
+            isDefault: (svc.is_default as boolean) ?? false,
+            billInUnits: (svc.bill_in_units as boolean) ?? false,
+            availableOnline: (svc.available_online as boolean) ?? false,
+            allowNewClients: (svc.allow_new_clients as boolean) ?? false,
+            requireCall: (svc.require_call as boolean) ?? false,
+            blockBefore: (svc.block_before as number) ?? 0,
+            blockAfter: (svc.block_after as number) ?? 0,
+          };
+        },
+      );
+      setFetchedServices(services);
+    }
+  }, [servicesData]);
+
+  // Update loading state when query loading changes
+  useEffect(() => {
+    setIsLoadingPracticeServices(isLoadingServicesQuery);
+  }, [isLoadingServicesQuery]);
+
   // Function to fetch all practice services
   const fetchAllPracticeServices = async () => {
-    console.log("=== fetchAllPracticeServices called ===");
-    setIsLoadingPracticeServices(true);
-
-    try {
-      console.log("Fetching all practice services...");
-      const response = await fetch("/api/service", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("Response status:", response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Services API response:", data);
-
-        // Map to DetailedService format
-        let services: DetailedService[] = [];
-        if (Array.isArray(data)) {
-          services = data.map((service: unknown) => {
-            const svc = service as Record<string, unknown>;
-            return {
-              id: svc.id as string,
-              type: svc.type as string,
-              code: svc.code as string,
-              duration: svc.duration as number,
-              description: svc.description as string,
-              rate: svc.rate as number,
-              defaultRate: svc.rate as number,
-              customRate: undefined,
-              effectiveRate: svc.rate as number,
-              color: svc.color as string,
-              isActive: true,
-              isDefault: (svc.is_default as boolean) ?? false,
-              billInUnits: (svc.bill_in_units as boolean) ?? false,
-              availableOnline: (svc.available_online as boolean) ?? false,
-              allowNewClients: (svc.allow_new_clients as boolean) ?? false,
-              requireCall: (svc.require_call as boolean) ?? false,
-              blockBefore: (svc.block_before as number) ?? 0,
-              blockAfter: (svc.block_after as number) ?? 0,
-            };
-          });
-        }
-
-        console.log(`Found ${services.length} practice services`);
-        setFetchedServices(services);
-      } else {
-        console.error("Failed to fetch services:", response.status);
-        setFetchedServices([]);
-      }
-    } catch (error) {
-      console.error("Error fetching practice services:", error);
-      setFetchedServices([]);
-    } finally {
-      setIsLoadingPracticeServices(false);
-    }
+    await refetchServices();
   };
 
   // Add all services to availability (like AvailabilitySidebar)
@@ -247,7 +238,6 @@ export function AppointmentSidebar({
   // Fetch services when component opens
   useEffect(() => {
     if (open && fetchedServices.length === 0) {
-      console.log("Fetching services on AppointmentSidebar open");
       fetchAllPracticeServices();
     }
   }, [open]);
@@ -422,7 +412,7 @@ export function AppointmentSidebar({
         }
         return [];
       } catch (error) {
-        console.error("Error fetching all services:", error);
+        console.error("Error fetching services:", error);
         return [];
       }
     },
@@ -447,7 +437,7 @@ export function AppointmentSidebar({
         }
         return [];
       } catch (error) {
-        console.error("Error fetching availability services:", error);
+        console.error("Error fetching services:", error);
         return [];
       }
     },
