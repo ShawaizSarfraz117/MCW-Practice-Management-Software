@@ -62,10 +62,10 @@ export default function OverviewTab() {
       {/* Date Range and Filter */}
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
         <DateRangeFilterControls
+          endDate={endDate}
           filterType={filterType}
           setFilterType={setFilterType}
           startDate={startDate}
-          endDate={endDate}
           onDateRangeChange={handleDateRangeChange}
         />
         <NavigationDropdown />

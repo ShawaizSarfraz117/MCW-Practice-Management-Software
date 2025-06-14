@@ -191,11 +191,11 @@ export default function TeamMembersPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
               className="flex items-center gap-1"
+              disabled={currentPage === 1}
+              size="sm"
+              variant="outline"
+              onClick={() => handlePageChange(currentPage - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
@@ -204,11 +204,11 @@ export default function TeamMembersPage() {
               Page {pagination.page} of {pagination.totalPages}
             </span>
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === pagination.totalPages}
               className="flex items-center gap-1"
+              disabled={currentPage === pagination.totalPages}
+              size="sm"
+              variant="outline"
+              onClick={() => handlePageChange(currentPage + 1)}
             >
               Next
               <ChevronRight className="h-4 w-4" />

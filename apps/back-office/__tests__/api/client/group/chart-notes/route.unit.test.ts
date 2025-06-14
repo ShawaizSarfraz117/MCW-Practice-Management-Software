@@ -40,14 +40,20 @@ describe("Client Group Chart Notes API Unit Tests", () => {
 
   const mockChartNote = (
     overrides: Partial<ClientGroupChartNote> = {},
-  ): ClientGroupChartNote => ({
-    id: faker.string.uuid(),
-    client_group_id: faker.string.uuid(),
-    text: faker.lorem.paragraph(),
-    note_date: faker.date.recent(),
-    created_at: faker.date.recent(),
-    ...overrides,
-  });
+  ): ClientGroupChartNote => {
+    const defaults: ClientGroupChartNote = {
+      id: faker.string.uuid(),
+      client_group_id: faker.string.uuid(),
+      text: faker.lorem.paragraph(),
+      note_date: faker.date.recent(),
+      created_at: faker.date.recent(),
+    };
+
+    return {
+      ...defaults,
+      ...overrides,
+    };
+  };
 
   // POST /api/client/group/chart-notes
   describe("POST handler", () => {
@@ -62,7 +68,8 @@ describe("Client Group Chart Notes API Unit Tests", () => {
         id: defaultNoteData.client_group_id,
       });
       const createdNote = mockChartNote({
-        ...defaultNoteData,
+        client_group_id: defaultNoteData.client_group_id,
+        text: defaultNoteData.text,
         note_date: new Date(defaultNoteData.note_date),
       });
 

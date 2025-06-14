@@ -1,9 +1,16 @@
-import { EventClickArg, DateSelectArg } from "@fullcalendar/core";
+import { EventClickArg, DateSelectArg, EventApi } from "@fullcalendar/core";
 import type {
   BaseAppointment,
   Clinician as BaseClinicianType,
   Location as BaseLocationType,
 } from "@/types/entities";
+
+// Extend EventApi to include internal _def property used by FullCalendar resource plugin
+export interface EventApiWithResourceIds extends EventApi {
+  _def?: {
+    resourceIds?: string[];
+  };
+}
 
 // Calendar component types
 /**
@@ -28,7 +35,7 @@ export interface Location extends Partial<BaseLocationType> {
   type: "physical" | "virtual" | "unassigned";
 }
 
-export interface Event {
+export interface CalendarEvent {
   id: string;
   resourceId?: string;
   title: string;
@@ -60,17 +67,23 @@ export interface AvailabilityData {
   title: string;
   start_date: string;
   end_date: string;
-  location: string;
+  location?: string;
+  location_id?: string;
   clinician_id: string;
   allow_online_requests: boolean;
   is_recurring: boolean;
   recurring_rule: string | null;
+  Clinician?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
 }
 
 export interface CalendarViewProps {
   initialClinicians: Clinician[];
   initialLocations: Location[];
-  initialEvents: Event[];
+  initialEvents: CalendarEvent[];
   onCreateClient: (date: string, time: string) => void;
   onAppointmentDone: () => void;
   onEventClick?: (info: EventClickArg) => void;
@@ -116,6 +129,7 @@ export interface CalendarToolbarProps {
   currentDate: Date;
   currentView: string;
   isAdmin: boolean;
+  isScheduledPage?: boolean;
   initialClinicians: Clinician[];
   initialLocations: Location[];
   selectedLocations: string[];

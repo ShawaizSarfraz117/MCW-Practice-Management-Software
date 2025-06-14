@@ -168,8 +168,8 @@ export function PsychotherapyNoteSection({
         ) : psychoNote && !showPsychotherapyNote ? (
           <div className="bg-gray-50 rounded-lg p-4">
             <SurveyContentDisplay
-              content={psychoNote.content}
               className="text-sm text-gray-700"
+              content={psychoNote.content}
             />
             <div className="mt-3 text-xs text-gray-500">
               Last updated:{" "}
@@ -183,6 +183,11 @@ export function PsychotherapyNoteSection({
                 <SurveyPreview
                   ref={surveyRef}
                   content={psychoTemplate?.content || fallbackTemplate || ""}
+                  defaultAnswers={
+                    psychoNote?.content
+                      ? parseSurveyContent(psychoNote.content) || undefined
+                      : undefined
+                  }
                   mode="edit"
                   showInstructions={false}
                   title=""
@@ -190,11 +195,6 @@ export function PsychotherapyNoteSection({
                   onComplete={(result) => {
                     handleSavePsychotherapyNote(result);
                   }}
-                  defaultAnswers={
-                    psychoNote?.content
-                      ? parseSurveyContent(psychoNote.content) || undefined
-                      : undefined
-                  }
                 />
               ) : (
                 <div className="text-center py-8 text-gray-400">
@@ -204,9 +204,9 @@ export function PsychotherapyNoteSection({
             </div>
             <div className="flex justify-end gap-2">
               <Button
+                disabled={isSaving}
                 variant="outline"
                 onClick={handleCancelPsychotherapyNote}
-                disabled={isSaving}
               >
                 Cancel
               </Button>
@@ -217,9 +217,9 @@ export function PsychotherapyNoteSection({
               )}
               {psychoTemplate && (
                 <Button
-                  type="button"
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={isSaving}
+                  type="button"
                   onClick={() => {
                     // Trigger form submission using the ref
                     surveyRef.current?.submit();

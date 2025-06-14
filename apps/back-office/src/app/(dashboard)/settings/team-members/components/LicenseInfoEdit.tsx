@@ -96,11 +96,11 @@ export default function LicenseInfoEdit({
       <div>
         <Label htmlFor="number">License Number</Label>
         <Input
+          required
           className="mt-1"
           defaultValue={member.license?.number}
           id="number"
           name="number"
-          required
           placeholder="Enter license number"
         />
       </div>
@@ -108,13 +108,13 @@ export default function LicenseInfoEdit({
       <div>
         <Label htmlFor="expirationDate">Expiration Date</Label>
         <Input
+          required
           className="mt-1"
           defaultValue={member.license?.expirationDate}
           id="expirationDate"
-          name="expirationDate"
-          required
-          type="date"
           min={new Date().toISOString().split("T")[0]}
+          name="expirationDate"
+          type="date"
         />
       </div>
 

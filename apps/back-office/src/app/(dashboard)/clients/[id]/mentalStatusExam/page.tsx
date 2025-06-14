@@ -171,7 +171,7 @@ export default function MentalStatusExam() {
 
   return (
     <div className="px-4 w-full max-w-6xl mx-auto mt-4">
-      <ClientInfoHeader clientInfo={clientInfo} clientGroupId={clientGroupId} />
+      <ClientInfoHeader clientGroupId={clientGroupId} clientInfo={clientInfo} />
 
       {/* Section Title and All Normal */}
       <div className="flex items-center justify-between mt-8 mb-2">

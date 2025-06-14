@@ -1,9 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma, Prisma } from "@mcw/database";
-import { logger } from "@mcw/logger";
 import { z } from "zod";
 import { getServerSession } from "next-auth/next";
 import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
+import { DAY_CODE_TO_INDEX } from "@/utils/appointment-helpers";
 
 /**
  * Availability API Route
@@ -33,8 +33,7 @@ async function isAuthenticated(request: NextRequest) {
   try {
     const session = await getServerSession(backofficeAuthOptions);
     return !!session?.user;
-  } catch (error) {
-    logger.error({ error }, "Error checking authentication");
+  } catch (_error) {
     return false;
   }
 }
@@ -173,7 +172,6 @@ export async function POST(request: NextRequest) {
       // If this is a recurring availability, create multiple instances
       if (data.is_recurring && data.recurring_rule) {
         const recurringRule = data.recurring_rule;
-        logger.info(`Processing recurring rule: ${recurringRule}`);
 
         // Parse the recurring rule
         const ruleParts = recurringRule.split(";").reduce(
@@ -187,8 +185,6 @@ export async function POST(request: NextRequest) {
           {} as Record<string, string>,
         );
 
-        logger.info(ruleParts, "Parsed rule parts");
-
         // Handle both 'WEEK' and 'WEEKLY' for backwards compatibility
         let freq = ruleParts.FREQ || "WEEKLY";
         freq = freq.toUpperCase();
@@ -197,60 +193,19 @@ export async function POST(request: NextRequest) {
         if (freq === "YEAR") freq = "YEARLY";
 
         const interval = parseInt(ruleParts.INTERVAL || "1");
-        const count = parseInt(ruleParts.COUNT || "1");
+        // Only use COUNT if it's explicitly set, otherwise 0 for unlimited (until UNTIL date)
+        const count = ruleParts.COUNT ? parseInt(ruleParts.COUNT) : 0;
         const byDay = ruleParts.BYDAY?.split(",") || [];
         const until = ruleParts.UNTIL;
 
-        logger.info(
-          `Parsed values - freq: ${freq}, count: ${count}, byDay: ${byDay.join(",")}, interval: ${interval}`,
-        );
-        logger.info({ byDay }, "byDay array");
-        logger.info(`byDay.length: ${byDay.length}`);
-
         // For weekly recurrence with specific days
         if (freq === "WEEKLY" && byDay.length > 0) {
-          logger.info(`Entering WEEKLY recurrence logic`);
-          // Map of day codes to day indices (0 = Sunday, 1 = Monday, etc.)
-          // Support both 2-letter (RFC5545 standard) and 3-letter codes
-          const dayCodeToIndex: Record<string, number> = {
-            // 2-letter codes (RFC5545 standard)
-            SU: 0,
-            MO: 1,
-            TU: 2,
-            WE: 3,
-            TH: 4,
-            FR: 5,
-            SA: 6,
-            // 3-letter codes (common abbreviations)
-            SUN: 0,
-            MON: 1,
-            TUE: 2,
-            WED: 3,
-            THU: 4,
-            FRI: 5,
-            SAT: 6,
-          };
-
-          const weekdays = [
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-          ];
-
           const startDate = new Date(data.start_date!);
           const endDate = new Date(data.end_date!);
           const duration = endDate.getTime() - startDate.getTime();
 
           // Get the day of the week for the start date
           const startDayOfWeek = startDate.getDay();
-
-          logger.info(
-            `Start date details: ${startDate.toISOString()}, day of week: ${startDayOfWeek} (${weekdays[startDayOfWeek]}), duration: ${duration}ms`,
-          );
 
           // Calculate the start of the current week (Sunday)
           const startOfWeek = new Date(startDate);
@@ -259,32 +214,35 @@ export async function POST(request: NextRequest) {
           // Count how many child availabilities we've created (excluding master)
           let createdCount = 0;
 
-          logger.info(
-            `Creating recurring availabilities: count=${count}, byDay=${byDay.join(",")}, freq=${freq}, interval=${interval}, startDate=${startDate.toISOString()}`,
-          );
-          logger.info(
-            `Master availability created on ${startDate.toISOString().split("T")[0]} (${weekdays[startDayOfWeek]})`,
-          );
+          // Check if the master availability's day matches any of the selected days
+          let masterMatchesSelectedDays = false;
+          for (const dayCode of byDay) {
+            const dayIndex = DAY_CODE_TO_INDEX[dayCode.toUpperCase().trim()];
+            if (dayIndex === startDayOfWeek) {
+              masterMatchesSelectedDays = true;
+              break;
+            }
+          }
+
+          // If master doesn't match selected days, we'll need to exclude it later
+          if (!masterMatchesSelectedDays) {
+            // Master doesn't match selected days
+          }
 
           // Create availabilities for each specified day for several weeks
-          for (let week = 0; week < Math.ceil(count > 0 ? count : 52); week++) {
-            logger.info(
-              `Processing week ${week}, createdCount: ${createdCount}, target: ${count - 1}`,
-            );
-
+          // For "never" end type (no count or until), create 104 weeks (2 years) of availabilities
+          const maxWeeks =
+            count > 0 ? Math.ceil(count / byDay.length) : until ? 52 : 104;
+          for (let week = 0; week < maxWeeks; week++) {
             // For each day specified in BYDAY
             for (const dayCode of byDay) {
-              // Skip if we've reached the maximum count (count - 1 because master already exists)
-              if (count > 0 && createdCount >= count - 1) break;
+              // Skip if we've reached the maximum count
+              // If master doesn't match selected days, we need full count, otherwise count - 1
+              const targetCount = masterMatchesSelectedDays ? count - 1 : count;
+              if (count > 0 && createdCount >= targetCount) break;
 
-              const dayIndex = dayCodeToIndex[dayCode.toUpperCase().trim()];
+              const dayIndex = DAY_CODE_TO_INDEX[dayCode.toUpperCase().trim()];
               if (dayIndex === undefined) {
-                logger.warn(
-                  `Invalid day code: ${dayCode} (trimmed: ${dayCode.trim()}, uppercase: ${dayCode.toUpperCase()})`,
-                );
-                logger.warn(
-                  `Available day codes: ${Object.keys(dayCodeToIndex).join(", ")}`,
-                );
                 continue; // Invalid day code
               }
 
@@ -294,13 +252,8 @@ export async function POST(request: NextRequest) {
                 startOfWeek.getDate() + dayIndex + week * 7 * interval,
               );
 
-              logger.info(
-                `Checking date: ${availabilityDate.toISOString().split("T")[0]} (${weekdays[dayIndex]}) - week ${week}, dayCode ${dayCode}`,
-              );
-
               // Skip if this date is before the start date
               if (availabilityDate < startDate) {
-                logger.info(`  Skipping - before start date`);
                 continue;
               }
 
@@ -311,25 +264,40 @@ export async function POST(request: NextRequest) {
                 dayIndex === startDayOfWeek &&
                 week === 0
               ) {
-                logger.info(`  Skipping - same as master date`);
                 continue;
               }
 
               // If UNTIL is specified, check if we've passed the end date
               if (until) {
-                const untilDate = new Date(
-                  `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`,
-                );
-                if (availabilityDate > untilDate) break;
+                // Handle both YYYYMMDD and YYYYMMDDTHHMMSSZ formats
+                let untilDate: Date;
+                if (until.includes("T")) {
+                  // Full datetime format (e.g., 20240131T235959Z)
+                  // Parse the full ISO format to preserve timezone
+                  const year = until.slice(0, 4);
+                  const month = until.slice(4, 6);
+                  const day = until.slice(6, 8);
+                  const hour = until.slice(9, 11);
+                  const minute = until.slice(11, 13);
+                  const second = until.slice(13, 15);
+                  untilDate = new Date(
+                    `${year}-${month}-${day}T${hour}:${minute}:${second}Z`,
+                  );
+                } else {
+                  // Simple date format (e.g., 20240131)
+                  // Set to end of day in UTC to match RRULE spec
+                  untilDate = new Date(
+                    `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}T23:59:59Z`,
+                  );
+                }
+                if (availabilityDate > untilDate) {
+                  break;
+                }
               }
 
               // Calculate end date for this occurrence
               const availabilityEndDate = new Date(
                 availabilityDate.getTime() + duration,
-              );
-
-              logger.info(
-                `  Creating availability from ${availabilityDate.toISOString()} to ${availabilityEndDate.toISOString()}`,
               );
 
               // Create the recurring availability instance
@@ -359,29 +327,85 @@ export async function POST(request: NextRequest) {
 
                 allAvailabilities.push(recurringAvailability);
                 createdCount++;
-
-                logger.info(
-                  `Created recurring availability ${createdCount + 1}/${count} on ${availabilityDate.toISOString().split("T")[0]}`,
-                );
-              } catch (error) {
-                logger.error(
-                  { error },
-                  `Failed to create recurring availability for date ${availabilityDate.toISOString()}`,
-                );
+              } catch (_error) {
                 // Continue with next date instead of failing completely
               }
             }
 
-            // Break outer loop if we've created enough
-            if (count > 0 && createdCount >= count - 1) break;
+            // Break outer loop if we've created enough or passed until date
+            const targetCount = masterMatchesSelectedDays ? count - 1 : count;
+            if (count > 0 && createdCount >= targetCount) break;
+
+            // Also break if we have an until date and all days in this week would be past it
+            if (until) {
+              // Calculate the last day of this week to check
+              const lastDayOfWeek = new Date(startOfWeek);
+              lastDayOfWeek.setDate(
+                startOfWeek.getDate() + 6 + week * 7 * interval,
+              );
+
+              // Parse until date
+              let untilDate: Date;
+              if (until.includes("T")) {
+                // Full datetime format (e.g., 20240131T235959Z)
+                // Parse the full ISO format to preserve timezone
+                const year = until.slice(0, 4);
+                const month = until.slice(4, 6);
+                const day = until.slice(6, 8);
+                const hour = until.slice(9, 11);
+                const minute = until.slice(11, 13);
+                const second = until.slice(13, 15);
+                untilDate = new Date(
+                  `${year}-${month}-${day}T${hour}:${minute}:${second}Z`,
+                );
+              } else {
+                // Simple date format (e.g., 20240131)
+                // Set to end of day in UTC to match RRULE spec
+                untilDate = new Date(
+                  `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}T23:59:59Z`,
+                );
+              }
+
+              if (lastDayOfWeek > untilDate) {
+                break;
+              }
+            }
           }
         }
-        // For monthly and yearly recurrence (simplified for now)
-        else if ((freq === "MONTHLY" || freq === "YEARLY") && count > 1) {
+        // For monthly and yearly recurrence
+        else if (freq === "MONTHLY" || freq === "YEARLY") {
           const startDate = new Date(data.start_date!);
           const endDate = new Date(data.end_date!);
 
-          for (let i = 1; i < count; i++) {
+          // Determine max iterations based on end type
+          let maxIterations: number;
+          if (count > 0) {
+            maxIterations = count - 1; // Subtract 1 because master already exists
+          } else if (until) {
+            // Calculate based on until date
+            maxIterations = freq === "MONTHLY" ? 24 : 5; // 2 years for monthly, 5 years for yearly
+          } else {
+            // "never" case - create reasonable amount
+            maxIterations = freq === "MONTHLY" ? 24 : 5; // 2 years for monthly, 5 years for yearly
+          }
+
+          // Parse until date if specified
+          let untilDate: Date | null = null;
+          if (until) {
+            // Handle both YYYYMMDD and YYYYMMDDTHHMMSSZ formats
+            if (until.includes("T")) {
+              const dateOnly = until.slice(0, 8);
+              untilDate = new Date(
+                `${dateOnly.slice(0, 4)}-${dateOnly.slice(4, 6)}-${dateOnly.slice(6, 8)}`,
+              );
+            } else {
+              untilDate = new Date(
+                `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`,
+              );
+            }
+          }
+
+          for (let i = 1; i <= maxIterations; i++) {
             const newStartDate = new Date(startDate);
             const newEndDate = new Date(endDate);
 
@@ -391,6 +415,11 @@ export async function POST(request: NextRequest) {
             } else {
               newStartDate.setFullYear(startDate.getFullYear() + i * interval);
               newEndDate.setFullYear(endDate.getFullYear() + i * interval);
+            }
+
+            // Check if we've passed the until date
+            if (untilDate && newStartDate > untilDate) {
+              break;
             }
 
             // Create the recurring availability instance
@@ -421,9 +450,30 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        logger.info(
-          `Finished creating recurring availabilities. Total created: ${allAvailabilities.length} (1 master + ${allAvailabilities.length - 1} children)`,
-        );
+        // For weekly recurring with specific days, remove master if it doesn't match selected days
+        if (freq === "WEEKLY" && byDay.length > 0) {
+          const startDate = new Date(data.start_date!);
+          const startDayOfWeek = startDate.getDay();
+
+          let masterMatchesSelectedDays = false;
+          for (const dayCode of byDay) {
+            const dayIndex = DAY_CODE_TO_INDEX[dayCode.toUpperCase().trim()];
+            if (dayIndex === startDayOfWeek) {
+              masterMatchesSelectedDays = true;
+              break;
+            }
+          }
+
+          if (!masterMatchesSelectedDays) {
+            // Remove the master availability from the list (but keep in DB for foreign key integrity)
+            const masterIndex = allAvailabilities.findIndex(
+              (a) => a.id === masterAvailability.id,
+            );
+            if (masterIndex > -1) {
+              allAvailabilities.splice(masterIndex, 1);
+            }
+          }
+        }
       }
 
       // Now add services to all created availabilities
@@ -495,10 +545,6 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    logger.info(
-      `Created ${result.totalCreated} availabilities with ${result.servicesAdded} total services added`,
-    );
-
     // For backward compatibility with tests, return single availability if only one was created
     if (result.totalCreated === 1) {
       return NextResponse.json(result.availabilities[0]);
@@ -512,17 +558,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error(
-        { error: error.errors },
-        "Validation error while creating availability",
-      );
       return NextResponse.json(
         { error: "Validation error", details: error.errors },
         { status: 400 },
       );
     }
 
-    logger.error({ error }, "Error creating availability");
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -633,6 +674,13 @@ export async function GET(request: NextRequest) {
               address: true,
             },
           },
+          Clinician: {
+            select: {
+              id: true,
+              first_name: true,
+              last_name: true,
+            },
+          },
         },
       });
 
@@ -678,6 +726,7 @@ export async function GET(request: NextRequest) {
         allow_online_requests: true,
         is_recurring: true,
         recurring_rule: true,
+        recurring_availability_id: true,
         created_at: true,
         updated_at: true,
         Location: {
@@ -687,12 +736,56 @@ export async function GET(request: NextRequest) {
             address: true,
           },
         },
+        Clinician: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json(availabilities);
+    // Filter out master availabilities that don't match their recurring pattern
+    const filteredAvailabilities = availabilities.filter((availability) => {
+      // If it's not recurring, include it
+      if (!availability.is_recurring || !availability.recurring_rule) {
+        return true;
+      }
+
+      // If it has a recurring_availability_id, it's a child - include it
+      if (availability.recurring_availability_id) {
+        return true;
+      }
+
+      // It's a master availability - check if it matches the recurring pattern
+      const recurringRule = availability.recurring_rule;
+      const byDayMatch = recurringRule.match(/BYDAY=([^;]+)/);
+
+      if (byDayMatch) {
+        const selectedDays = byDayMatch[1].split(",");
+        const availabilityDayOfWeek = new Date(
+          availability.start_date,
+        ).getDay();
+
+        // Check if the availability's day matches any selected day
+        for (const dayCode of selectedDays) {
+          const dayIndex = DAY_CODE_TO_INDEX[dayCode.toUpperCase().trim()];
+          if (dayIndex === availabilityDayOfWeek) {
+            return true; // Master matches pattern - include it
+          }
+        }
+
+        // Master doesn't match pattern - exclude it
+        return false;
+      }
+
+      // No BYDAY rule - include it
+      return true;
+    });
+
+    return NextResponse.json(filteredAvailabilities);
   } catch (error) {
-    logger.error({ error }, "Error fetching availabilities");
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -754,139 +847,127 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Handle recurring availability updates
+    // Handle different edit options for recurring availabilities
+    let availabilityIdsToUpdate: string[] = [id];
+
     if (availability.is_recurring && editOption) {
       // Determine the parent ID (could be this availability or its parent)
       const parentId =
         availability.recurring_availability_id || availability.id;
 
-      // Use a transaction to update availabilities and related services
-      const result = await prisma.$transaction(async (tx) => {
-        let availabilityIds: string[] = [];
-        const updatedAvailabilities = [];
+      switch (editOption) {
+        case "single":
+          // Only update this specific availability
+          availabilityIdsToUpdate = [id];
+          break;
 
-        switch (editOption) {
-          case "single":
-            // Update only this specific availability
-            availabilityIds = [id];
-            break;
-
-          case "future": {
-            // Update this and all future availabilities in the series
-            const futureAvailabilities = await tx.availability.findMany({
-              where: {
-                OR: [
-                  {
-                    recurring_availability_id: parentId,
-                    start_date: {
-                      gte: availability.start_date,
-                    },
-                  },
-                  {
-                    id: availability.id, // Include the current one
-                  },
-                  {
-                    // If this is the parent, include it and its future children
-                    AND: [
-                      { id: parentId },
-                      { start_date: { gte: availability.start_date } },
-                    ],
-                  },
-                ],
-              },
-              select: { id: true },
-            });
-            availabilityIds = futureAvailabilities.map((a) => a.id);
-            break;
-          }
-
-          case "all": {
-            // Update all availabilities in the series including the parent
-            const allAvailabilities = await tx.availability.findMany({
-              where: {
-                OR: [{ recurring_availability_id: parentId }, { id: parentId }],
-              },
-              select: { id: true },
-            });
-            availabilityIds = allAvailabilities.map((a) => a.id);
-            break;
-          }
-
-          default:
-            // Default to single update
-            availabilityIds = [id];
-        }
-
-        // Update all selected availabilities
-        for (const availId of availabilityIds) {
-          const updated = await tx.availability.update({
-            where: { id: availId },
-            data,
-            select: {
-              id: true,
-              clinician_id: true,
-              title: true,
-              start_date: true,
-              end_date: true,
-              location_id: true,
-              allow_online_requests: true,
-              is_recurring: true,
-              recurring_rule: true,
-              created_at: true,
-              updated_at: true,
-            },
-          });
-          updatedAvailabilities.push(updated);
-        }
-
-        // Update services for all affected availabilities
-        if (selectedServices.length > 0) {
-          // Delete existing services
-          await tx.availabilityServices.deleteMany({
+        case "future": {
+          // Update this and all future availabilities in the series
+          const futureAvailabilities = await prisma.availability.findMany({
             where: {
-              availability_id: {
-                in: availabilityIds,
-              },
+              OR: [
+                {
+                  recurring_availability_id: parentId,
+                  start_date: {
+                    gte: availability.start_date,
+                  },
+                },
+                {
+                  id: availability.id, // Include the current one
+                },
+                {
+                  // If this is the parent, include it and its future children
+                  AND: [
+                    { id: parentId },
+                    { start_date: { gte: availability.start_date } },
+                  ],
+                },
+              ],
             },
+            select: { id: true, start_date: true, end_date: true },
           });
-
-          // Create new services
-          const availabilityServicesData = availabilityIds.flatMap(
-            (availabilityId) =>
-              selectedServices.map((serviceId: string) => ({
-                availability_id: availabilityId,
-                service_id: serviceId,
-              })),
-          );
-
-          await tx.availabilityServices.createMany({
-            data: availabilityServicesData,
-          });
+          availabilityIdsToUpdate = futureAvailabilities.map((a) => a.id);
+          break;
         }
 
-        return {
-          availabilities: updatedAvailabilities,
-          updatedCount: updatedAvailabilities.length,
-        };
-      });
+        case "all": {
+          // Update all availabilities in the series including the parent
+          const allAvailabilities = await prisma.availability.findMany({
+            where: {
+              OR: [{ recurring_availability_id: parentId }, { id: parentId }],
+            },
+            select: { id: true, start_date: true, end_date: true },
+          });
+          availabilityIdsToUpdate = allAvailabilities.map((a) => a.id);
+          break;
+        }
 
-      logger.info(
-        `Updated ${result.updatedCount} availabilities with editOption: ${editOption}`,
-      );
+        default:
+          // Default to single update
+          availabilityIdsToUpdate = [id];
+      }
+    }
 
-      return NextResponse.json({
-        availabilities: result.availabilities,
-        updatedCount: result.updatedCount,
-        message: `Successfully updated ${result.updatedCount} availability${result.updatedCount > 1 ? " instances" : ""}`,
-      });
-    } else {
-      // For non-recurring availabilities or when editOption is not specified
-      // Use a transaction to update availability and related services
-      const result = await prisma.$transaction(async (tx) => {
-        // Update the availability
+    // Use a transaction to update availabilities and related services
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedAvailabilities = [];
+
+      // Calculate the time difference if we're updating start/end times
+      let timeDifference = 0;
+      if (data.start_date && data.end_date && editOption !== "single") {
+        const originalStartTime = availability.start_date;
+        const newStartTime = new Date(data.start_date as Date);
+        timeDifference = newStartTime.getTime() - originalStartTime.getTime();
+      }
+
+      // Update each availability
+      for (const availabilityId of availabilityIdsToUpdate) {
+        const baseUpdateData: Partial<Prisma.AvailabilityUncheckedUpdateInput> =
+          {
+            title: validatedData.title,
+            location_id: validatedData.location_id,
+            clinician_id: validatedData.clinician_id,
+            allow_online_requests: validatedData.allow_online_requests,
+            updated_at: new Date(),
+          };
+
+        let updateData = baseUpdateData;
+
+        // For non-single edits, calculate the proportional time shift
+        if (
+          editOption !== "single" &&
+          timeDifference !== 0 &&
+          availabilityId !== id
+        ) {
+          // Get the original times for this specific availability
+          const originalAvailability = await tx.availability.findUnique({
+            where: { id: availabilityId },
+            select: { start_date: true, end_date: true },
+          });
+
+          if (originalAvailability) {
+            updateData = {
+              ...baseUpdateData,
+              start_date: new Date(
+                originalAvailability.start_date.getTime() + timeDifference,
+              ),
+              end_date: new Date(
+                originalAvailability.end_date.getTime() + timeDifference,
+              ),
+            };
+          }
+        } else if (availabilityId === id) {
+          // For the specific availability being edited, use the exact times provided
+          updateData = {
+            ...baseUpdateData,
+            start_date: data.start_date,
+            end_date: data.end_date,
+          };
+        }
+
         const updated = await tx.availability.update({
-          where: { id },
-          data,
+          where: { id: availabilityId },
+          data: updateData,
           select: {
             id: true,
             clinician_id: true,
@@ -902,19 +983,21 @@ export async function PUT(request: NextRequest) {
           },
         });
 
-        // Update services if provided
+        updatedAvailabilities.push(updated);
+
+        // Update services for each availability if provided
         if (selectedServices.length > 0) {
           // Delete existing services
           await tx.availabilityServices.deleteMany({
             where: {
-              availability_id: id,
+              availability_id: availabilityId,
             },
           });
 
           // Create new services
           const availabilityServicesData = selectedServices.map(
             (serviceId: string) => ({
-              availability_id: id,
+              availability_id: availabilityId,
               service_id: serviceId,
             }),
           );
@@ -923,12 +1006,14 @@ export async function PUT(request: NextRequest) {
             data: availabilityServicesData,
           });
         }
+      }
+      return (
+        updatedAvailabilities.find((a) => a.id === id) ||
+        updatedAvailabilities[0]
+      );
+    });
 
-        return updated;
-      });
-
-      return NextResponse.json(result);
-    }
+    return NextResponse.json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -937,7 +1022,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    logger.error({ error }, "Error updating availability");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -1123,9 +1207,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting availability:", error);
-    logger.error({ error }, "Error deleting availability");
-
     // Return more detailed error in development
     if (process.env.NODE_ENV === "development") {
       return NextResponse.json(

@@ -128,8 +128,8 @@ export default function DiagnosisAndTreatmentPlan() {
   return (
     <div className="px-4 py-8 w-full max-w-6xl mx-auto">
       <ClientInfoHeader
-        clientInfo={clientInfo}
         clientGroupId={clientGroupId}
+        clientInfo={clientInfo}
         showDocumentationHistory={true}
         onDocumentationHistoryClick={() => setSidebarOpen(true)}
       />
