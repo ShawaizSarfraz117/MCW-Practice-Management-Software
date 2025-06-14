@@ -896,6 +896,11 @@ export async function PUT(request: NextRequest) {
     const id = searchParams.get("id");
     const editOption = searchParams.get("editOption"); // 'single', 'future', or 'all'
 
+    logger.info(
+      `🔵 PUT request received for availability ${id} with editOption: ${editOption}`,
+    );
+    logger.info(`🔵 PUT URL: ${request.url}`);
+
     if (!id) {
       return NextResponse.json(
         { error: "Availability ID is required" },
@@ -904,6 +909,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
+    logger.info({ body }, "🔵 PUT request body received");
 
     const validatedData = availabilitySchema.partial().parse(body);
 
@@ -937,139 +943,132 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Handle recurring availability updates
+    // Handle different edit options for recurring availabilities
+    let availabilityIdsToUpdate: string[] = [id];
+
     if (availability.is_recurring && editOption) {
       // Determine the parent ID (could be this availability or its parent)
       const parentId =
         availability.recurring_availability_id || availability.id;
 
-      // Use a transaction to update availabilities and related services
-      const result = await prisma.$transaction(async (tx) => {
-        let availabilityIds: string[] = [];
-        const updatedAvailabilities = [];
+      switch (editOption) {
+        case "single":
+          // Only update this specific availability
+          availabilityIdsToUpdate = [id];
+          break;
 
-        switch (editOption) {
-          case "single":
-            // Update only this specific availability
-            availabilityIds = [id];
-            break;
-
-          case "future": {
-            // Update this and all future availabilities in the series
-            const futureAvailabilities = await tx.availability.findMany({
-              where: {
-                OR: [
-                  {
-                    recurring_availability_id: parentId,
-                    start_date: {
-                      gte: availability.start_date,
-                    },
-                  },
-                  {
-                    id: availability.id, // Include the current one
-                  },
-                  {
-                    // If this is the parent, include it and its future children
-                    AND: [
-                      { id: parentId },
-                      { start_date: { gte: availability.start_date } },
-                    ],
-                  },
-                ],
-              },
-              select: { id: true },
-            });
-            availabilityIds = futureAvailabilities.map((a) => a.id);
-            break;
-          }
-
-          case "all": {
-            // Update all availabilities in the series including the parent
-            const allAvailabilities = await tx.availability.findMany({
-              where: {
-                OR: [{ recurring_availability_id: parentId }, { id: parentId }],
-              },
-              select: { id: true },
-            });
-            availabilityIds = allAvailabilities.map((a) => a.id);
-            break;
-          }
-
-          default:
-            // Default to single update
-            availabilityIds = [id];
-        }
-
-        // Update all selected availabilities
-        for (const availId of availabilityIds) {
-          const updated = await tx.availability.update({
-            where: { id: availId },
-            data,
-            select: {
-              id: true,
-              clinician_id: true,
-              title: true,
-              start_date: true,
-              end_date: true,
-              location_id: true,
-              allow_online_requests: true,
-              is_recurring: true,
-              recurring_rule: true,
-              created_at: true,
-              updated_at: true,
-            },
-          });
-          updatedAvailabilities.push(updated);
-        }
-
-        // Update services for all affected availabilities
-        if (selectedServices.length > 0) {
-          // Delete existing services
-          await tx.availabilityServices.deleteMany({
+        case "future": {
+          // Update this and all future availabilities in the series
+          const futureAvailabilities = await prisma.availability.findMany({
             where: {
-              availability_id: {
-                in: availabilityIds,
-              },
+              OR: [
+                {
+                  recurring_availability_id: parentId,
+                  start_date: {
+                    gte: availability.start_date,
+                  },
+                },
+                {
+                  id: availability.id, // Include the current one
+                },
+                {
+                  // If this is the parent, include it and its future children
+                  AND: [
+                    { id: parentId },
+                    { start_date: { gte: availability.start_date } },
+                  ],
+                },
+              ],
             },
+            select: { id: true, start_date: true, end_date: true },
           });
-
-          // Create new services
-          const availabilityServicesData = availabilityIds.flatMap(
-            (availabilityId) =>
-              selectedServices.map((serviceId: string) => ({
-                availability_id: availabilityId,
-                service_id: serviceId,
-              })),
-          );
-
-          await tx.availabilityServices.createMany({
-            data: availabilityServicesData,
-          });
+          availabilityIdsToUpdate = futureAvailabilities.map((a) => a.id);
+          break;
         }
 
-        return {
-          availabilities: updatedAvailabilities,
-          updatedCount: updatedAvailabilities.length,
-        };
-      });
+        case "all": {
+          // Update all availabilities in the series including the parent
+          const allAvailabilities = await prisma.availability.findMany({
+            where: {
+              OR: [{ recurring_availability_id: parentId }, { id: parentId }],
+            },
+            select: { id: true, start_date: true, end_date: true },
+          });
+          availabilityIdsToUpdate = allAvailabilities.map((a) => a.id);
+          break;
+        }
 
-      logger.info(
-        `Updated ${result.updatedCount} availabilities with editOption: ${editOption}`,
-      );
+        default:
+          // Default to single update
+          availabilityIdsToUpdate = [id];
+      }
+    }
 
-      return NextResponse.json({
-        availabilities: result.availabilities,
-        updatedCount: result.updatedCount,
-        message: `Successfully updated ${result.updatedCount} availability${result.updatedCount > 1 ? " instances" : ""}`,
-      });
-    } else {
-      // For non-recurring availabilities or when editOption is not specified
-      // Use a transaction to update availability and related services
-      const result = await prisma.$transaction(async (tx) => {
-        // Update the availability
+    logger.info(
+      { availabilityIdsToUpdate, editOption },
+      `🔵 Updating ${availabilityIdsToUpdate.length} availability(ies)`,
+    );
+
+    // Use a transaction to update availabilities and related services
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedAvailabilities = [];
+
+      // Calculate the time difference if we're updating start/end times
+      let timeDifference = 0;
+      if (data.start_date && data.end_date && editOption !== "single") {
+        const originalStartTime = availability.start_date;
+        const newStartTime = new Date(data.start_date as Date);
+        timeDifference = newStartTime.getTime() - originalStartTime.getTime();
+      }
+
+      // Update each availability
+      for (const availabilityId of availabilityIdsToUpdate) {
+        const baseUpdateData: Partial<Prisma.AvailabilityUncheckedUpdateInput> =
+          {
+            title: validatedData.title,
+            location_id: validatedData.location_id,
+            clinician_id: validatedData.clinician_id,
+            allow_online_requests: validatedData.allow_online_requests,
+            updated_at: new Date(),
+          };
+
+        let updateData = baseUpdateData;
+
+        // For non-single edits, calculate the proportional time shift
+        if (
+          editOption !== "single" &&
+          timeDifference !== 0 &&
+          availabilityId !== id
+        ) {
+          // Get the original times for this specific availability
+          const originalAvailability = await tx.availability.findUnique({
+            where: { id: availabilityId },
+            select: { start_date: true, end_date: true },
+          });
+
+          if (originalAvailability) {
+            updateData = {
+              ...baseUpdateData,
+              start_date: new Date(
+                originalAvailability.start_date.getTime() + timeDifference,
+              ),
+              end_date: new Date(
+                originalAvailability.end_date.getTime() + timeDifference,
+              ),
+            };
+          }
+        } else if (availabilityId === id) {
+          // For the specific availability being edited, use the exact times provided
+          updateData = {
+            ...baseUpdateData,
+            start_date: data.start_date,
+            end_date: data.end_date,
+          };
+        }
+
         const updated = await tx.availability.update({
-          where: { id },
-          data,
+          where: { id: availabilityId },
+          data: updateData,
           select: {
             id: true,
             clinician_id: true,
@@ -1085,19 +1084,21 @@ export async function PUT(request: NextRequest) {
           },
         });
 
-        // Update services if provided
+        updatedAvailabilities.push(updated);
+
+        // Update services for each availability if provided
         if (selectedServices.length > 0) {
           // Delete existing services
           await tx.availabilityServices.deleteMany({
             where: {
-              availability_id: id,
+              availability_id: availabilityId,
             },
           });
 
           // Create new services
           const availabilityServicesData = selectedServices.map(
             (serviceId: string) => ({
-              availability_id: id,
+              availability_id: availabilityId,
               service_id: serviceId,
             }),
           );
@@ -1106,12 +1107,14 @@ export async function PUT(request: NextRequest) {
             data: availabilityServicesData,
           });
         }
+      }
+      return (
+        updatedAvailabilities.find((a) => a.id === id) ||
+        updatedAvailabilities[0]
+      );
+    });
 
-        return updated;
-      });
-
-      return NextResponse.json(result);
-    }
+    return NextResponse.json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -1306,7 +1309,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting availability:", error);
     logger.error({ error }, "Error deleting availability");
 
     // Return more detailed error in development

@@ -26,6 +26,7 @@ import {
   Location,
 } from "./types";
 import { DeleteAvailabilityModal } from "./DeleteAvailabilityModal";
+import { EditRecurringAvailabilityModal } from "./EditRecurringAvailabilityModal";
 import { ValidationError } from "../appointment-dialog/components/ValidationError";
 import { useSession } from "next-auth/react";
 
@@ -104,6 +105,10 @@ export function AvailabilitySidebar({
   const [selectedLocation, setSelectedLocation] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteOption, setDeleteOption] = useState<"single" | "future" | "all">(
+    "single",
+  );
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editOption, setEditOption] = useState<"single" | "future" | "all">(
     "single",
   );
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
@@ -675,6 +680,26 @@ export function AvailabilitySidebar({
         return;
       }
 
+      // For recurring availabilities in edit mode, show the edit options modal
+      if (isEditMode && availabilityData?.is_recurring) {
+        setIsEditDialogOpen(true);
+        return;
+      }
+
+      // For non-recurring or new availabilities, proceed directly
+      await performSave();
+    } catch (error) {
+      setGeneralError(
+        error instanceof Error ? error.message : "Failed to save availability",
+      );
+    }
+  };
+
+  // Perform the actual save operation
+  const performSave = async (
+    selectedEditOption?: "single" | "future" | "all",
+  ) => {
+    try {
       // Construct the payload
       const payload = {
         title: title || "Availability",
@@ -694,20 +719,30 @@ export function AvailabilitySidebar({
         selectedServices: localSelectedServices,
       };
 
+      // Build the URL with editOption parameter if it's a recurring edit
+      let url = "/api/availability";
+      if (isEditMode && availabilityData?.id) {
+        url += `?id=${availabilityData.id}`;
+        if (selectedEditOption) {
+          url += `&editOption=${selectedEditOption}`;
+        }
+      }
+
       // Call the API to create/update availability
-      const response = await fetch(
-        "/api/availability" +
-          (isEditMode && availabilityData?.id
-            ? `?id=${availabilityData.id}`
-            : ""),
-        {
-          method: isEditMode ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
+      const method = isEditMode ? "PUT" : "POST";
+      console.log(`🔍 Frontend: Making ${method} request to ${url}`, {
+        isEditMode,
+        availabilityDataId: availabilityData?.id,
+        payload,
+      });
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify(payload),
+      });
 
       const responseData = await response.json();
 
@@ -754,6 +789,12 @@ export function AvailabilitySidebar({
         error instanceof Error ? error.message : "Failed to save availability",
       );
     }
+  };
+
+  // Handle edit confirmation
+  const handleEditConfirm = async () => {
+    setIsEditDialogOpen(false);
+    await performSave(editOption);
   };
 
   if (!open) return null;
@@ -1412,6 +1453,15 @@ export function AvailabilitySidebar({
         onConfirm={handleDelete}
         onOpenChange={setIsDeleteDialogOpen}
         onOptionChange={setDeleteOption}
+      />
+
+      {/* Edit Recurring Availability Modal */}
+      <EditRecurringAvailabilityModal
+        open={isEditDialogOpen}
+        selectedOption={editOption}
+        onConfirm={handleEditConfirm}
+        onOpenChange={setIsEditDialogOpen}
+        onOptionChange={setEditOption}
       />
     </div>
   );
