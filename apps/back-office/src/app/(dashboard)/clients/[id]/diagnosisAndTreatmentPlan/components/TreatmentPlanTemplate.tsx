@@ -17,28 +17,49 @@ import { Pencil, FileText, AlertCircle } from "lucide-react";
 
 import SignAndLockModal from "./SignAndLockModal";
 import { useSurveyTemplates } from "../hooks/useSurveyTemplates";
+import { useDiagnosisTreatmentPlans } from "../hooks/useDiagnosisTreatmentPlans";
 import type { SurveyTemplate } from "../services/surveyTemplate.service";
 
-const TreatmentPlanTemplate: React.FC = () => {
+interface TreatmentPlanTemplateProps {
+  clientId?: string;
+}
+
+const TreatmentPlanTemplate: React.FC<TreatmentPlanTemplateProps> = ({
+  clientId,
+}) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("Shawaiz");
   const [credentials, setCredentials] = useState("LMFT");
   const [selectedTemplate, setSelectedTemplate] =
     useState<SurveyTemplate | null>(null);
 
-  // Mock diagnosis data - in real app this would come from props or API
-  const [selectedDiagnosis] = useState({
-    code: "F41.1",
-    description: "Generalized anxiety disorder",
-    dateTime: new Date().toLocaleString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }),
-  });
+  // Fetch diagnosis treatment plans for the client
+  const {
+    data: diagnosisPlans,
+    isLoading: isDiagnosisLoading,
+    error: diagnosisError,
+  } = useDiagnosisTreatmentPlans(clientId || "");
+
+  // Get the most recent diagnosis from the treatment plans
+  const latestDiagnosis = diagnosisPlans?.[0];
+  const firstDiagnosisItem = latestDiagnosis?.DiagnosisTreatmentPlanItem?.[0];
+
+  const selectedDiagnosis = firstDiagnosisItem
+    ? {
+        code: firstDiagnosisItem.Diagnosis.code,
+        description: firstDiagnosisItem.Diagnosis.description,
+        dateTime: latestDiagnosis.created_at
+          ? new Date(latestDiagnosis.created_at).toLocaleString("en-US", {
+              month: "2-digit",
+              day: "2-digit",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })
+          : "No date available",
+      }
+    : null;
 
   // Fetch survey templates with type "diagnosis_treatment_plan"
   const {
@@ -144,26 +165,42 @@ const TreatmentPlanTemplate: React.FC = () => {
       <div className="bg-white p-6">
         {/* Diagnosis Section */}
         <div className="mb-6">
-          <div className="flex items-center gap-16 py-3 border-b border-gray-100">
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium text-gray-900 mb-1">
-                Diagnosis
-              </div>
-              <div className="text-sm text-gray-700">
-                {selectedDiagnosis.code} - {selectedDiagnosis.description}
-              </div>
+          {isDiagnosisLoading ? (
+            <div className="text-sm text-gray-500 py-3">
+              Loading diagnosis information...
             </div>
-          </div>
-          <div className="flex items-center gap-16 py-3">
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium text-gray-900 mb-1">
-                Date and time
-              </div>
-              <div className="text-sm text-gray-700">
-                {selectedDiagnosis.dateTime}
-              </div>
+          ) : diagnosisError ? (
+            <div className="text-sm text-red-600 py-3">
+              Error loading diagnosis information
             </div>
-          </div>
+          ) : selectedDiagnosis ? (
+            <>
+              <div className="flex items-center gap-16 py-3 border-b border-gray-100">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-gray-900 mb-1">
+                    Diagnosis
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    {selectedDiagnosis.code} - {selectedDiagnosis.description}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-16 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-gray-900 mb-1">
+                    Date and time
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    {selectedDiagnosis.dateTime}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-gray-500 py-3">
+              No diagnosis information available
+            </div>
+          )}
         </div>
 
         {/* Treatment Plan Template Section */}

@@ -156,7 +156,7 @@ export default function DiagnosisAndTreatmentPlan() {
           onSave={handleSave}
         />
       ) : (
-        <TreatmentPlanTemplate />
+        <TreatmentPlanTemplate clientId={clientId} />
       )}
       <DocumentationHistorySidebar
         open={sidebarOpen}
