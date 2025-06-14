@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma, Prisma } from "@mcw/database";
-import { logger } from "@mcw/logger";
 import { z } from "zod";
 import { getServerSession } from "next-auth/next";
 import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
@@ -34,8 +33,7 @@ async function isAuthenticated(request: NextRequest) {
   try {
     const session = await getServerSession(backofficeAuthOptions);
     return !!session?.user;
-  } catch (error) {
-    logger.error({ error }, "Error checking authentication");
+  } catch (_error) {
     return false;
   }
 }
@@ -174,7 +172,6 @@ export async function POST(request: NextRequest) {
       // If this is a recurring availability, create multiple instances
       if (data.is_recurring && data.recurring_rule) {
         const recurringRule = data.recurring_rule;
-        logger.info(`Processing recurring rule: ${recurringRule}`);
 
         // Parse the recurring rule
         const ruleParts = recurringRule.split(";").reduce(
@@ -187,8 +184,6 @@ export async function POST(request: NextRequest) {
           },
           {} as Record<string, string>,
         );
-
-        logger.info(ruleParts, "Parsed rule parts");
 
         // Handle both 'WEEK' and 'WEEKLY' for backwards compatibility
         let freq = ruleParts.FREQ || "WEEKLY";
@@ -203,26 +198,8 @@ export async function POST(request: NextRequest) {
         const byDay = ruleParts.BYDAY?.split(",") || [];
         const until = ruleParts.UNTIL;
 
-        logger.info(
-          `Parsed values - freq: ${freq}, count: ${count}, byDay: ${byDay.join(",")}, interval: ${interval}`,
-        );
-        logger.info({ byDay }, "byDay array");
-        logger.info(`byDay.length: ${byDay.length}`);
-
-        const weekdays = [
-          "Sunday",
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-        ];
-
         // For weekly recurrence with specific days
         if (freq === "WEEKLY" && byDay.length > 0) {
-          logger.info(`Entering WEEKLY recurrence logic`);
-
           const startDate = new Date(data.start_date!);
           const endDate = new Date(data.end_date!);
           const duration = endDate.getTime() - startDate.getTime();
@@ -230,23 +207,12 @@ export async function POST(request: NextRequest) {
           // Get the day of the week for the start date
           const startDayOfWeek = startDate.getDay();
 
-          logger.info(
-            `Start date details: ${startDate.toISOString()}, day of week: ${startDayOfWeek} (${weekdays[startDayOfWeek]}), duration: ${duration}ms`,
-          );
-
           // Calculate the start of the current week (Sunday)
           const startOfWeek = new Date(startDate);
           startOfWeek.setDate(startDate.getDate() - startDayOfWeek);
 
           // Count how many child availabilities we've created (excluding master)
           let createdCount = 0;
-
-          logger.info(
-            `Creating recurring availabilities: count=${count}, byDay=${byDay.join(",")}, freq=${freq}, interval=${interval}, startDate=${startDate.toISOString()}`,
-          );
-          logger.info(
-            `Master availability created on ${startDate.toISOString().split("T")[0]} (${weekdays[startDayOfWeek]})`,
-          );
 
           // Check if the master availability's day matches any of the selected days
           let masterMatchesSelectedDays = false;
@@ -260,9 +226,7 @@ export async function POST(request: NextRequest) {
 
           // If master doesn't match selected days, we'll need to exclude it later
           if (!masterMatchesSelectedDays) {
-            logger.info(
-              `Master availability day (${weekdays[startDayOfWeek]}) does not match selected days (${byDay.join(",")})`,
-            );
+            // Master doesn't match selected days
           }
 
           // Create availabilities for each specified day for several weeks
@@ -270,10 +234,6 @@ export async function POST(request: NextRequest) {
           const maxWeeks =
             count > 0 ? Math.ceil(count / byDay.length) : until ? 52 : 104;
           for (let week = 0; week < maxWeeks; week++) {
-            logger.info(
-              `Processing week ${week}, createdCount: ${createdCount}, target: ${count > 0 ? (masterMatchesSelectedDays ? count - 1 : count) : "unlimited (until date)"}`,
-            );
-
             // For each day specified in BYDAY
             for (const dayCode of byDay) {
               // Skip if we've reached the maximum count
@@ -283,12 +243,6 @@ export async function POST(request: NextRequest) {
 
               const dayIndex = DAY_CODE_TO_INDEX[dayCode.toUpperCase().trim()];
               if (dayIndex === undefined) {
-                logger.warn(
-                  `Invalid day code: ${dayCode} (trimmed: ${dayCode.trim()}, uppercase: ${dayCode.toUpperCase()})`,
-                );
-                logger.warn(
-                  `Available day codes: ${Object.keys(DAY_CODE_TO_INDEX).join(", ")}`,
-                );
                 continue; // Invalid day code
               }
 
@@ -298,13 +252,8 @@ export async function POST(request: NextRequest) {
                 startOfWeek.getDate() + dayIndex + week * 7 * interval,
               );
 
-              logger.info(
-                `Checking date: ${availabilityDate.toISOString().split("T")[0]} (${weekdays[dayIndex]}) - week ${week}, dayCode ${dayCode}`,
-              );
-
               // Skip if this date is before the start date
               if (availabilityDate < startDate) {
-                logger.info(`  Skipping - before start date`);
                 continue;
               }
 
@@ -315,7 +264,6 @@ export async function POST(request: NextRequest) {
                 dayIndex === startDayOfWeek &&
                 week === 0
               ) {
-                logger.info(`  Skipping - same as master date`);
                 continue;
               }
 
@@ -343,9 +291,6 @@ export async function POST(request: NextRequest) {
                   );
                 }
                 if (availabilityDate > untilDate) {
-                  logger.info(
-                    `  Skipping - after until date ${untilDate.toISOString()}`,
-                  );
                   break;
                 }
               }
@@ -353,10 +298,6 @@ export async function POST(request: NextRequest) {
               // Calculate end date for this occurrence
               const availabilityEndDate = new Date(
                 availabilityDate.getTime() + duration,
-              );
-
-              logger.info(
-                `  Creating availability from ${availabilityDate.toISOString()} to ${availabilityEndDate.toISOString()}`,
               );
 
               // Create the recurring availability instance
@@ -386,15 +327,7 @@ export async function POST(request: NextRequest) {
 
                 allAvailabilities.push(recurringAvailability);
                 createdCount++;
-
-                logger.info(
-                  `Created recurring availability ${createdCount + 1}/${count} on ${availabilityDate.toISOString().split("T")[0]}`,
-                );
-              } catch (error) {
-                logger.error(
-                  { error },
-                  `Failed to create recurring availability for date ${availabilityDate.toISOString()}`,
-                );
+              } catch (_error) {
                 // Continue with next date instead of failing completely
               }
             }
@@ -434,9 +367,6 @@ export async function POST(request: NextRequest) {
               }
 
               if (lastDayOfWeek > untilDate) {
-                logger.info(
-                  `Breaking weekly loop - week ${week} is past until date`,
-                );
                 break;
               }
             }
@@ -489,9 +419,6 @@ export async function POST(request: NextRequest) {
 
             // Check if we've passed the until date
             if (untilDate && newStartDate > untilDate) {
-              logger.info(
-                `Stopping monthly/yearly recurrence - passed until date ${untilDate.toISOString()}`,
-              );
               break;
             }
 
@@ -523,10 +450,6 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        logger.info(
-          `Finished creating recurring availabilities. Total created: ${allAvailabilities.length} (1 master + ${allAvailabilities.length - 1} children)`,
-        );
-
         // For weekly recurring with specific days, remove master if it doesn't match selected days
         if (freq === "WEEKLY" && byDay.length > 0) {
           const startDate = new Date(data.start_date!);
@@ -548,9 +471,6 @@ export async function POST(request: NextRequest) {
             );
             if (masterIndex > -1) {
               allAvailabilities.splice(masterIndex, 1);
-              logger.info(
-                `Excluded master availability from results as it doesn't match selected days`,
-              );
             }
           }
         }
@@ -625,10 +545,6 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    logger.info(
-      `Created ${result.totalCreated} availabilities with ${result.servicesAdded} total services added`,
-    );
-
     // For backward compatibility with tests, return single availability if only one was created
     if (result.totalCreated === 1) {
       return NextResponse.json(result.availabilities[0]);
@@ -642,17 +558,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error(
-        { error: error.errors },
-        "Validation error while creating availability",
-      );
       return NextResponse.json(
         { error: "Validation error", details: error.errors },
         { status: 400 },
       );
     }
 
-    logger.error({ error }, "Error creating availability");
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -875,7 +786,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(filteredAvailabilities);
   } catch (error) {
-    logger.error({ error }, "Error fetching availabilities");
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -896,11 +806,6 @@ export async function PUT(request: NextRequest) {
     const id = searchParams.get("id");
     const editOption = searchParams.get("editOption"); // 'single', 'future', or 'all'
 
-    logger.info(
-      `🔵 PUT request received for availability ${id} with editOption: ${editOption}`,
-    );
-    logger.info(`🔵 PUT URL: ${request.url}`);
-
     if (!id) {
       return NextResponse.json(
         { error: "Availability ID is required" },
@@ -909,7 +814,6 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    logger.info({ body }, "🔵 PUT request body received");
 
     const validatedData = availabilitySchema.partial().parse(body);
 
@@ -1003,11 +907,6 @@ export async function PUT(request: NextRequest) {
           availabilityIdsToUpdate = [id];
       }
     }
-
-    logger.info(
-      { availabilityIdsToUpdate, editOption },
-      `🔵 Updating ${availabilityIdsToUpdate.length} availability(ies)`,
-    );
 
     // Use a transaction to update availabilities and related services
     const result = await prisma.$transaction(async (tx) => {
@@ -1123,7 +1022,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    logger.error({ error }, "Error updating availability");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -1309,8 +1207,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error({ error }, "Error deleting availability");
-
     // Return more detailed error in development
     if (process.env.NODE_ENV === "development") {
       return NextResponse.json(
