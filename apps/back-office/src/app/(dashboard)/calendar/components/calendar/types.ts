@@ -35,7 +35,7 @@ export interface Location extends Partial<BaseLocationType> {
   type: "physical" | "virtual" | "unassigned";
 }
 
-export interface Event {
+export interface CalendarEvent {
   id: string;
   resourceId?: string;
   title: string;
@@ -83,7 +83,7 @@ export interface AvailabilityData {
 export interface CalendarViewProps {
   initialClinicians: Clinician[];
   initialLocations: Location[];
-  initialEvents: Event[];
+  initialEvents: CalendarEvent[];
   onCreateClient: (date: string, time: string) => void;
   onAppointmentDone: () => void;
   onEventClick?: (info: EventClickArg) => void;

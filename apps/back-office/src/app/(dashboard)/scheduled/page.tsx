@@ -210,7 +210,7 @@ const Scheduled = () => {
             textColor: "#1E40AF",
             display: "block",
             extendedProps: {
-              type: "availability",
+              type: "availability" as const,
               clinician_id: availability.clinician_id,
               allow_online_requests: availability.allow_online_requests,
               is_recurring: availability.is_recurring,
@@ -237,7 +237,7 @@ const Scheduled = () => {
             textColor: "#1E40AF",
             display: "block",
             extendedProps: {
-              type: "appointment",
+              type: "appointment" as const,
             },
           }))
         : [],

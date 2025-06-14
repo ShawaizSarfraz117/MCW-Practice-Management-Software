@@ -111,9 +111,8 @@ export function AppointmentTab({
 
   // Sync React state with form value to ensure re-rendering
   useEffect(() => {
-    const formRecurringValue = form.getFieldValue<boolean>("recurring");
-    setIsRecurringState(!!formRecurringValue);
-  }, [form, isRecurring]);
+    setIsRecurringState(!!isRecurring);
+  }, [isRecurring]);
 
   // API data fetching
   const { data: servicesData = [], isLoading: isLoadingServices } = useQuery<

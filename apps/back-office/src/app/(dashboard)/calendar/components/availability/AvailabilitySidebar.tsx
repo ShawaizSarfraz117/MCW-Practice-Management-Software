@@ -730,11 +730,6 @@ export function AvailabilitySidebar({
 
       // Call the API to create/update availability
       const method = isEditMode ? "PUT" : "POST";
-      console.log(`🔍 Frontend: Making ${method} request to ${url}`, {
-        isEditMode,
-        availabilityDataId: availabilityData?.id,
-        payload,
-      });
 
       const response = await fetch(url, {
         method,

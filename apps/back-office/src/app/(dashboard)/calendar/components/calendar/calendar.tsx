@@ -17,7 +17,7 @@ import { useAppointmentHandler } from "./hooks/useAppointmentHandler";
 import { getHeaderDateFormat } from "./utils/date-utils";
 import {
   CalendarViewProps,
-  Event,
+  CalendarEvent,
   Clinician,
   Location,
   AppointmentData,
@@ -87,7 +87,7 @@ export function CalendarView({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
-  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showAvailabilitySidebar, setShowAvailabilitySidebar] = useState(false);
   const [selectedAvailability, setSelectedAvailability] =
