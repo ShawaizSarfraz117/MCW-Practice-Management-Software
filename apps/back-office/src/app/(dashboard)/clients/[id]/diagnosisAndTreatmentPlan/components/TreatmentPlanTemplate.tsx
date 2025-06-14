@@ -26,6 +26,20 @@ const TreatmentPlanTemplate: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] =
     useState<SurveyTemplate | null>(null);
 
+  // Mock diagnosis data - in real app this would come from props or API
+  const [selectedDiagnosis] = useState({
+    code: "F41.1",
+    description: "Generalized anxiety disorder",
+    dateTime: new Date().toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }),
+  });
+
   // Fetch survey templates with type "diagnosis_treatment_plan"
   const {
     data: templatesData,
@@ -60,9 +74,9 @@ const TreatmentPlanTemplate: React.FC = () => {
   return (
     <div className="mt-6 w-full max-w-full">
       {/* Header and Actions */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-          Diagnosis and Treatment Plan
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 bg-white border-b pb-4">
+        <h1 className="text-xl font-medium text-gray-900">
+          Diagnosis and treatment plan
         </h1>
         <div className="flex gap-2 flex-wrap">
           <Button
@@ -126,23 +140,37 @@ const TreatmentPlanTemplate: React.FC = () => {
         </div>
       </div>
 
-      {/* Diagnosis Card */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6 shadow-sm hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-            <div className="text-lg font-semibold text-gray-900">Diagnosis</div>
+      {/* Content Area */}
+      <div className="bg-white p-6">
+        {/* Diagnosis Section */}
+        <div className="mb-6">
+          <div className="flex items-center gap-16 py-3 border-b border-gray-100">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-gray-900 mb-1">
+                Diagnosis
+              </div>
+              <div className="text-sm text-gray-700">
+                {selectedDiagnosis.code} - {selectedDiagnosis.description}
+              </div>
+            </div>
           </div>
-          <div className="text-gray-500 italic">None Selected</div>
+          <div className="flex items-center gap-16 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-gray-900 mb-1">
+                Date and time
+              </div>
+              <div className="text-sm text-gray-700">
+                {selectedDiagnosis.dateTime}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Treatment Plan Template Section */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-        <div className="p-8">
-          <div className="mb-6">
-            <label className="text-lg font-semibold text-gray-900 block mb-3">
-              Select a Treatment Plan Template
+        {/* Treatment Plan Template Section */}
+        <div className="mb-6">
+          <div className="mb-4">
+            <label className="text-sm font-medium text-gray-900 block mb-3">
+              Select a treatment plan template
             </label>
             <Select
               value={selectedTemplate?.id || ""}
@@ -154,10 +182,10 @@ const TreatmentPlanTemplate: React.FC = () => {
               }}
               disabled={isLoading}
             >
-              <SelectTrigger className="w-full border-2 border-gray-200 rounded-lg h-12 px-4 text-base hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+              <SelectTrigger className="w-full max-w-md border border-gray-300 rounded h-10 px-3 text-sm">
                 <SelectValue
                   placeholder={
-                    isLoading ? "Loading templates..." : "Choose a template"
+                    isLoading ? "Loading templates..." : "Choose one"
                   }
                 />
               </SelectTrigger>
@@ -258,36 +286,6 @@ const TreatmentPlanTemplate: React.FC = () => {
               </div>
             </div>
           )}
-
-          {/* Action Buttons */}
-          <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="px-4 border-gray-300 hover:bg-gray-50 text-sm"
-                onClick={() => {
-                  // Handle cancel action
-                  console.log("Cancel clicked");
-                  setSelectedTemplate(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={() => {
-                  // Handle save action
-                  console.log("Save clicked with template:", selectedTemplate);
-                }}
-                disabled={!selectedTemplate}
-              >
-                Save
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
 
