@@ -40,7 +40,6 @@ export function InvoicesDocumentsCard({
     fetchBillingDocument({
       searchParams: {
         type: JSON.stringify(["superbill", "statement"]),
-        includeClientGroup: "true",
       },
     }).then((res) => {
       if (res) {
