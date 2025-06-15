@@ -38,7 +38,9 @@ export function InvoicesDocumentsCard({
 
   useEffect(() => {
     fetchBillingDocument({
-      searchParams: { type: JSON.stringify(["superbill", "statement"]) },
+      searchParams: {
+        type: JSON.stringify(["superbill", "statement"]),
+      },
     }).then((res) => {
       if (res) {
         setBillingDocuments(res as BillingDocumentsResponse);
