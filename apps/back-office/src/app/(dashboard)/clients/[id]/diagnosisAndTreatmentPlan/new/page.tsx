@@ -134,9 +134,10 @@ export default function NewDiagnosisAndTreatmentPlan() {
   };
 
   const handleSkipToTreatmentPlan = () => {
-    // For skip, we need to save first and then redirect
-    // This ensures we have a plan ID to navigate to
-    handleSave();
+    // Navigate to template selection page
+    router.push(
+      `/clients/${clientGroupId}/diagnosisAndTreatmentPlan/template-selection`,
+    );
   };
 
   return (
