@@ -160,7 +160,7 @@ function NavigationDropdown() {
       <DropdownMenuContent>
         <DropdownMenuItem
           onSelect={() =>
-            router.push(`/clients/${params.id}/diagnosisAndTreatmentPlan`)
+            router.push(`/clients/${params.id}/diagnosisAndTreatmentPlan/new`)
           }
         >
           Diagnosis and treatment plan
