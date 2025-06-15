@@ -37,7 +37,7 @@ interface TreatmentPlanTemplateProps {
   planId?: string;
 }
 
-export default function TreatmentPlanTemplate({
+function TreatmentPlanTemplate({
   clientId,
   planId,
 }: TreatmentPlanTemplateProps) {
@@ -48,7 +48,7 @@ export default function TreatmentPlanTemplate({
   const [credentials, setCredentials] = useState("LMFT");
   const [selectedTemplate, setSelectedTemplate] =
     useState<SurveyTemplate | null>(null);
-  const [surveyAnswers, setSurveyAnswers] = useState<Record<string, string>>(
+  const [surveyAnswers, setSurveyAnswers] = useState<Record<string, unknown>>(
     {},
   );
   const [isSaving, setIsSaving] = useState(false);
@@ -68,36 +68,60 @@ export default function TreatmentPlanTemplate({
   const [diagnosisInitialized, setDiagnosisInitialized] = useState(false);
   const [loadedSurveyData, setLoadedSurveyData] = useState<Record<
     string,
-    string
+    unknown
   > | null>(null);
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  
+  // Store original data for cancel functionality
+  const [originalDiagnoses, setOriginalDiagnoses] = useState<Diagnosis[]>([]);
+  const [originalTemplate, setOriginalTemplate] = useState<SurveyTemplate | null>(null);
+  const [originalSurveyData, setOriginalSurveyData] = useState<Record<string, unknown> | null>(null);
 
   // Callback for survey completion
   const handleSurveyComplete = (answers: Record<string, unknown>) => {
-    // Convert all values to strings for SurveyAnswerContent compatibility
-    const stringAnswers: Record<string, string> = {};
-    Object.entries(answers).forEach(([key, value]) => {
-      stringAnswers[key] = String(value ?? "");
-    });
-    setSurveyAnswers(stringAnswers);
+    // Keep original data types to preserve checkbox states
+    setSurveyAnswers(answers);
+  };
+
+  // Callback for when survey value changes
+  const handleSurveyValueChanged = (name: string, value: unknown) => {
+    console.log("=== DEBUG: Survey value changed ===");
+    console.log("Field name:", name);
+    console.log("New value:", value);
+    console.log("Value type:", typeof value);
+    
+    // Update survey answers state - preserve original types
+    setSurveyAnswers(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   // Get current survey data from the model
   const getCurrentSurveyData = () => {
-    console.log("Getting current survey data...");
+    console.log("=== DEBUG: Getting current survey data ===");
+    console.log("surveyModelRef.current exists:", !!surveyModelRef.current);
+    console.log("surveyModelRef.current?.data:", surveyModelRef.current?.data);
+    console.log("loadedSurveyData:", loadedSurveyData);
+    console.log("surveyAnswers state:", surveyAnswers);
+    
     if (surveyModelRef.current && surveyModelRef.current.data) {
       const modelData = surveyModelRef.current.data;
       console.log("Survey model has data:", modelData);
+      console.log("Type of model data:", typeof modelData);
+      console.log("Keys in model data:", Object.keys(modelData));
 
-      const stringAnswers: Record<string, string> = {};
-      Object.entries(modelData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          stringAnswers[key] = String(value);
-        }
-      });
-      console.log("Converted survey data:", stringAnswers);
-      return stringAnswers;
+      // Return the data as-is to preserve types
+      return modelData;
     }
+    
+    // If no model data but we have loaded survey data (edit mode), use it
+    if (isEditMode && loadedSurveyData) {
+      console.log("No survey model data but in edit mode, returning loadedSurveyData:", loadedSurveyData);
+      return loadedSurveyData;
+    }
+    
     console.log("No survey model data, returning state:", surveyAnswers);
     return surveyAnswers;
   };
@@ -114,13 +138,15 @@ export default function TreatmentPlanTemplate({
     const loadPlanData = async () => {
       if (planId) {
         try {
-          console.log("Loading plan data for editing, planId:", planId);
+          console.log("=== DEBUG: Loading plan data for editing ===");
+          console.log("planId:", planId);
           const response = await fetch(
             `/api/diagnosis-treatment-plan?planId=${planId}`,
           );
           if (response.ok) {
             const plan = await response.json();
-            console.log("Loaded plan for editing:", plan);
+            console.log("=== DEBUG: Full plan data loaded ===");
+            console.log("Full plan object:", JSON.stringify(plan, null, 2));
 
             // Load existing diagnoses
             if (
@@ -138,37 +164,61 @@ export default function TreatmentPlanTemplate({
                     item.custom_description || item.Diagnosis.description,
                 }),
               );
+              console.log("=== DEBUG: Loaded diagnoses ===", loadedDiagnoses);
               setDiagnoses(loadedDiagnoses);
+              setOriginalDiagnoses(loadedDiagnoses); // Store original for cancel
               setDiagnosisInitialized(true);
             }
 
             // Load survey data if available
             if (plan.SurveyAnswers) {
-              console.log("Loading survey data from plan:", plan.SurveyAnswers);
+              console.log("=== DEBUG: SurveyAnswers found ===");
+              console.log("SurveyAnswers object:", plan.SurveyAnswers);
+              console.log("Content type:", typeof plan.SurveyAnswers.content);
+              console.log("Content value:", plan.SurveyAnswers.content);
+              console.log("Template ID:", plan.SurveyAnswers.template_id);
 
               // Parse content if it's a string
               let content = plan.SurveyAnswers.content;
               if (typeof content === "string") {
                 try {
+                  console.log("=== DEBUG: Parsing string content ===");
                   content = JSON.parse(content);
+                  console.log("Parsed content:", content);
                 } catch (e) {
-                  console.error("Failed to parse survey content:", e);
+                  console.error("=== DEBUG: Failed to parse survey content ===", e);
                 }
               }
 
               if (content && typeof content === "object") {
-                setLoadedSurveyData(content as Record<string, string>);
-                setSurveyAnswers(content as Record<string, string>);
+                console.log("=== DEBUG: Setting survey data states ===");
+                console.log("Content to set:", content);
+                const surveyDataToLoad = content as Record<string, unknown>;
+                setLoadedSurveyData(surveyDataToLoad);
+                setSurveyAnswers(surveyDataToLoad);
+                setOriginalSurveyData(surveyDataToLoad); // Store original for cancel
+                
+                console.log("loadedSurveyData state will be:", surveyDataToLoad);
+                console.log("surveyAnswers state will be:", surveyDataToLoad);
               }
 
               // Set the template ID if available
               if (plan.SurveyAnswers.template_id) {
+                console.log("=== DEBUG: Setting template ID ===");
+                console.log("Template ID to set:", plan.SurveyAnswers.template_id);
                 setLoadedTemplateId(plan.SurveyAnswers.template_id);
               }
+              
+              // Mark as edit mode when we have survey data
+              setIsEditMode(true);
+            } else {
+              console.log("=== DEBUG: No SurveyAnswers in plan ===");
             }
+          } else {
+            console.error("=== DEBUG: Response not OK ===", response.status);
           }
         } catch (error) {
-          console.error("Error loading plan data:", error);
+          console.error("=== DEBUG: Error loading plan data ===", error);
         }
       }
     };
@@ -217,7 +267,14 @@ export default function TreatmentPlanTemplate({
 
   // Select the loaded template when templates are available
   useEffect(() => {
+    console.log("=== DEBUG: Template selection effect ===");
+    console.log("loadedTemplateId:", loadedTemplateId);
+    console.log("uniqueTemplates length:", uniqueTemplates.length);
+    console.log("selectedTemplate:", selectedTemplate);
+    console.log("loadedSurveyData:", loadedSurveyData);
+    
     if (loadedTemplateId && uniqueTemplates.length > 0 && !selectedTemplate) {
+      console.log("=== DEBUG: Looking for template ===");
       console.log("Looking for template with ID:", loadedTemplateId);
       console.log(
         "Available templates:",
@@ -231,13 +288,28 @@ export default function TreatmentPlanTemplate({
         (t: SurveyTemplate) => t.id === loadedTemplateId,
       );
       if (template) {
+        console.log("=== DEBUG: Auto-selecting template ===");
         console.log("Auto-selecting loaded template:", template);
         setSelectedTemplate(template);
+        setOriginalTemplate(template); // Store original for cancel
       } else {
+        console.log("=== DEBUG: Template not found ===");
         console.log("Template not found in available templates");
       }
     }
-  }, [loadedTemplateId, uniqueTemplates, selectedTemplate]);
+  }, [loadedTemplateId, uniqueTemplates, selectedTemplate, loadedSurveyData]);
+
+  // Monitor loadedSurveyData changes - but don't update the model directly
+  // Let the SurveyPreview component handle it through initialData prop
+  useEffect(() => {
+    console.log("=== DEBUG: loadedSurveyData changed ===");
+    console.log("loadedSurveyData:", loadedSurveyData);
+    console.log("isEditMode:", isEditMode);
+    console.log("selectedTemplate:", selectedTemplate);
+    
+    // We don't need to manually update the survey model here
+    // The SurveyPreview component will handle it through the initialData prop
+  }, [loadedSurveyData, isEditMode, selectedTemplate]);
 
   // Debug: Log if duplicates were found
   if (
@@ -640,19 +712,34 @@ export default function TreatmentPlanTemplate({
                 setSelectedTemplate(template || null);
 
                 // Clear loaded survey data if user selects a different template
+                // Only clear if we're in edit mode and changing from the loaded template
                 if (
+                  isEditMode &&
                   template &&
                   loadedTemplateId &&
                   template.id !== loadedTemplateId
                 ) {
-                  setLoadedSurveyData(null);
-                  setSurveyAnswers({});
-                  if (surveyModelRef.current) {
-                    surveyModelRef.current.data = {};
-                  }
-                  console.log(
-                    "Cleared survey data as user selected a different template",
+                  // Warn user about losing unsaved changes
+                  const confirmChange = window.confirm(
+                    "Changing the template will clear all current survey answers. Do you want to continue?"
                   );
+                  
+                  if (confirmChange) {
+                    setLoadedSurveyData(null);
+                    setSurveyAnswers({});
+                    if (surveyModelRef.current) {
+                      surveyModelRef.current.data = {};
+                    }
+                    console.log(
+                      "Cleared survey data as user selected a different template",
+                    );
+                    // No longer in edit mode for the original data
+                    setIsEditMode(false);
+                  } else {
+                    // Revert to the original template
+                    setSelectedTemplate(originalTemplate);
+                    return;
+                  }
                 }
               }}
             >
@@ -732,6 +819,24 @@ export default function TreatmentPlanTemplate({
                         );
                       }
 
+                      console.log("=== DEBUG: Rendering SurveyPreview ===");
+                      console.log("contentString:", contentString);
+                      console.log("selectedTemplate.id:", selectedTemplate?.id);
+                      console.log("loadedTemplateId:", loadedTemplateId);
+                      console.log("loadedSurveyData:", loadedSurveyData);
+                      console.log("Condition check - loadedSurveyData exists:", !!loadedSurveyData);
+                      console.log("Condition check - IDs match:", selectedTemplate?.id === loadedTemplateId);
+                      
+                      // Use loaded survey data if we're in edit mode and have data
+                      const initialDataToPass = isEditMode && loadedSurveyData
+                          ? loadedSurveyData
+                          : undefined;
+                      
+                      console.log("=== DEBUG: Initial data decision ===");
+                      console.log("isEditMode:", isEditMode);
+                      console.log("loadedSurveyData exists:", !!loadedSurveyData);
+                      console.log("initialData being passed:", initialDataToPass);
+                      
                       return (
                         <SurveyPreview
                           content={contentString}
@@ -741,15 +846,8 @@ export default function TreatmentPlanTemplate({
                           title={selectedTemplate.name}
                           type={selectedTemplate.type}
                           onComplete={handleSurveyComplete}
-                          onValueChanged={(name, value) => {
-                            console.log("Survey value changed:", name, value);
-                          }}
-                          initialData={
-                            loadedSurveyData &&
-                            selectedTemplate?.id === loadedTemplateId
-                              ? loadedSurveyData
-                              : undefined
-                          }
+                          onValueChanged={handleSurveyValueChanged}
+                          initialData={initialDataToPass}
                         />
                       );
                     } catch (error) {
@@ -778,11 +876,61 @@ export default function TreatmentPlanTemplate({
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    setSelectedTemplate(null);
-                    setSurveyAnswers({});
-                    setLoadedSurveyData(null);
-                    setDiagnoses([{ code: "", description: "" }]);
-                    setDiagnosisInitialized(false);
+                    if (isEditMode && planId) {
+                      // In edit mode, restore original data
+                      console.log("=== DEBUG: Cancel in edit mode - restoring original data ===");
+                      
+                      // Restore diagnoses
+                      if (originalDiagnoses.length > 0) {
+                        setDiagnoses(originalDiagnoses);
+                      } else {
+                        setDiagnoses([{ code: "", description: "" }]);
+                      }
+                      
+                      // Restore template
+                      setSelectedTemplate(originalTemplate);
+                      
+                      // Restore survey data
+                      if (originalSurveyData) {
+                        setSurveyAnswers(originalSurveyData);
+                        setLoadedSurveyData(originalSurveyData);
+                        
+                        // Update the survey model if it exists
+                        if (surveyModelRef.current && surveyModelRef.current.setValue) {
+                          Object.keys(originalSurveyData).forEach(key => {
+                            const value = originalSurveyData[key];
+                            let finalValue = value;
+                            if (value === "true") finalValue = true;
+                            else if (value === "false") finalValue = false;
+                            else if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
+                              try {
+                                finalValue = JSON.parse(value);
+                              } catch (_e) {
+                                console.log("Failed to parse array string:", value);
+                              }
+                            }
+                            surveyModelRef.current!.setValue(key, finalValue);
+                          });
+                        }
+                      } else {
+                        setSurveyAnswers({});
+                        setLoadedSurveyData(null);
+                      }
+                      
+                      // Navigate back to view page
+                      router.push(`/clients/${params.id}/diagnosisAndTreatmentPlan/view/${planId}`);
+                    } else {
+                      // For new plans, clear everything
+                      console.log("=== DEBUG: Cancel for new plan - clearing all data ===");
+                      setSelectedTemplate(null);
+                      setSurveyAnswers({});
+                      setLoadedSurveyData(null);
+                      setDiagnoses([{ code: "", description: "" }]);
+                      setDiagnosisInitialized(false);
+                      
+                      // Navigate back to client overview
+                      router.push(`/clients/${params.id}`);
+                    }
                   }}
                 >
                   Cancel
@@ -894,3 +1042,5 @@ export default function TreatmentPlanTemplate({
     </div>
   );
 }
+
+export default TreatmentPlanTemplate;

@@ -40,6 +40,10 @@ export function SurveyPreview({
 
   useEffect(() => {
     const setupSurvey = async () => {
+      console.log("=== DEBUG SurveyPreview: Setting up survey ===");
+      console.log("Initial data received:", initialData);
+      console.log("Mode:", mode);
+      
       // Initialize custom widgets
       await initializeCustomWidgets();
       const theme = configureSurveyTheme();
@@ -79,17 +83,42 @@ export function SurveyPreview({
           });
         }
 
-        // Store model reference if provided
+        // Set initial data if provided before setting model
+        if (initialData && mode === "edit") {
+          console.log("=== DEBUG SurveyPreview: Setting initial data on model ===");
+          console.log("Initial data to set:", initialData);
+          // Use setValue for each field to ensure proper binding
+          Object.keys(initialData).forEach(key => {
+            if (initialData[key] !== undefined && initialData[key] !== null) {
+              const value = initialData[key];
+              // Convert string boolean values to actual booleans for checkboxes
+              let finalValue = value;
+              if (value === "true") finalValue = true;
+              else if (value === "false") finalValue = false;
+              else if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
+                // Try to parse array strings (for multiple checkbox values)
+                try {
+                  finalValue = JSON.parse(value);
+                } catch (_e) {
+                  console.log("Failed to parse array string:", value);
+                }
+              }
+              
+              model.setValue(key, finalValue);
+            }
+          });
+          console.log("Model data after setting:", model.data);
+        }
+
+        // Ensure mode is properly set
+        console.log("=== DEBUG SurveyPreview: Final model mode ===", model.mode);
+        console.log("=== DEBUG SurveyPreview: Model is read-only? ===", model.isReadOnly);
+        
+        // Store model reference if provided (after data is set)
         if (modelRef) {
           modelRef.current = model;
         }
-
-        // Set initial data if provided
-        if (initialData && mode === "edit") {
-          model.data = initialData;
-          console.log("Set initial survey data:", initialData);
-        }
-
+        
         setSurveyModel(model);
         setError(null);
       } catch (err) {
@@ -104,15 +133,45 @@ export function SurveyPreview({
     };
 
     setupSurvey();
-  }, [content, title, type, mode, onComplete, onValueChanged, modelRef]);
+  }, [content, title, type, mode]); // Remove initialData from deps to prevent re-creation
 
-  // Separate effect to handle initial data updates
+  // Handle initial data updates separately
   useEffect(() => {
     if (surveyModel && initialData && mode === "edit") {
-      surveyModel.data = initialData;
-      console.log("Updated survey model with initial data:", initialData);
+      console.log("=== DEBUG SurveyPreview: Updating survey with initial data ===");
+      Object.keys(initialData).forEach(key => {
+        if (initialData[key] !== undefined && initialData[key] !== null) {
+          const value = initialData[key];
+          console.log(`Setting ${key}:`, value, "type:", typeof value);
+          
+          // Convert string boolean values to actual booleans for checkboxes
+          let finalValue = value;
+          if (value === "true") finalValue = true;
+          else if (value === "false") finalValue = false;
+          else if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
+            // Try to parse array strings (for multiple checkbox values)
+            try {
+              finalValue = JSON.parse(value);
+            } catch (_e) {
+              console.log("Failed to parse array string:", value);
+            }
+          }
+          
+          surveyModel.setValue(key, finalValue);
+        }
+      });
+      console.log("Survey model data after update:", surveyModel.data);
     }
   }, [surveyModel, initialData, mode]);
+
+  // Ensure the survey stays in the correct mode
+  useEffect(() => {
+    if (surveyModel && surveyModel.mode !== mode) {
+      console.log("=== DEBUG SurveyPreview: Correcting survey mode ===");
+      console.log("Current mode:", surveyModel.mode, "Expected mode:", mode);
+      surveyModel.mode = mode;
+    }
+  }, [surveyModel, mode]);
 
   if (!surveyModel) {
     return (
@@ -123,7 +182,8 @@ export function SurveyPreview({
   }
 
   return (
-    <div className="survey-preview-container">
+    <div className="survey-preview-container" 
+         onClick={() => console.log("=== DEBUG: Survey container clicked, mode:", surveyModel?.mode, "isReadOnly:", surveyModel?.isReadOnly)}>
       {showInstructions && mode === "display" && (
         <div className="mb-4">
           <p className="text-xs text-gray-500 text-right">
