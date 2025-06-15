@@ -7,7 +7,7 @@
 *.tsx text
 *.js text
 *.jsx text
-*.json text
+*.json text eol=lf
 *.md text
 *.css text
 *.scss text
@@ -28,7 +28,6 @@
 # Shell scripts should always have LF line endings
 *.sh text eol=lf
 *.bash text eol=lf
-
 # Declare files that will always have CRLF line endings on checkout.
 *.bat text eol=crlf
 *.cmd text eol=crlf

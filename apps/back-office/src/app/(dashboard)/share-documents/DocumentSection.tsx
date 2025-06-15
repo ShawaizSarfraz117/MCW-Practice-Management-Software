@@ -22,7 +22,10 @@ interface DocumentItem {
 interface DocumentSectionProps {
   title: string;
   items: DocumentItem[];
-  selectedDocuments?: Record<string, { checked: boolean; frequency?: string }>;
+  selectedDocuments?: Record<
+    string,
+    { checked: boolean; frequency?: string; disabled?: boolean }
+  >;
   onToggle?: (id: string) => void;
   onFrequencyChange?: (id: string, frequency: string) => void;
   context?: "appointment" | "client-share";
@@ -58,10 +61,14 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
 
       {/* Show column headers for client context */}
       {showStatusColumns && (
-        <div className="grid grid-cols-12 gap-4 text-xs text-gray-500 font-medium pb-2 border-b">
+        <div
+          className={`grid ${title === "Scored Measures" ? "grid-cols-12" : "grid-cols-10"} gap-4 text-xs text-gray-500 font-medium pb-2 border-b`}
+        >
           <div className="col-span-6" />
-          <div className="col-span-2">Frequency</div>
-          <div className="col-span-2">Last shared</div>
+          {title === "Scored Measures" && (
+            <div className="col-span-2">Frequency</div>
+          )}
+          <div className="col-span-2">Shared On</div>
           <div className="col-span-2">Status</div>
         </div>
       )}
@@ -70,6 +77,7 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
         {items.map((item) => {
           const isChecked =
             selectedDocuments?.[item.id]?.checked ?? item.checked;
+          const isDisabled = selectedDocuments?.[item.id]?.disabled ?? false;
           const showFrequency = item.frequency && isChecked;
 
           if (showStatusColumns) {
@@ -77,54 +85,61 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
             return (
               <div
                 key={item.id}
-                className="grid grid-cols-12 gap-4 items-center"
+                className={`grid ${title === "Scored Measures" ? "grid-cols-12" : "grid-cols-10"} gap-4 items-center`}
               >
                 <div className="col-span-6 flex items-center gap-2">
                   <Checkbox
                     checked={isChecked}
                     id={item.id}
-                    onCheckedChange={() => onToggle?.(item.id)}
+                    disabled={isDisabled}
+                    onCheckedChange={() => !isDisabled && onToggle?.(item.id)}
                   />
                   <Label
-                    className="cursor-pointer"
+                    className={`${isDisabled ? "text-gray-400" : "cursor-pointer"}`}
                     htmlFor={item.id}
-                    onClick={() => onToggle?.(item.id)}
+                    onClick={() => !isDisabled && onToggle?.(item.id)}
                   >
                     {item.label}
+                    {isDisabled && (
+                      <span className="text-xs ml-2">(Already shared)</span>
+                    )}
                   </Label>
                 </div>
-                <div className="col-span-2">
-                  {showFrequency ? (
-                    <Select
-                      value={
-                        selectedDocuments?.[item.id]?.frequency ??
-                        FILE_FREQUENCY_OPTIONS.ONCE
-                      }
-                      onValueChange={(value) =>
-                        onFrequencyChange?.(item.id, value)
-                      }
-                    >
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue placeholder="Frequency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(FILE_FREQUENCY_OPTIONS).map(
-                          ([_key, value]) => (
-                            <SelectItem key={value} value={value}>
-                              {FILE_FREQUENCY_LABELS[value]}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span className="text-gray-400 text-xs">-</span>
-                  )}
-                </div>
+                {title === "Scored Measures" && (
+                  <div className="col-span-2">
+                    {showFrequency ? (
+                      <Select
+                        disabled={isDisabled}
+                        value={
+                          selectedDocuments?.[item.id]?.frequency ??
+                          FILE_FREQUENCY_OPTIONS.ONCE
+                        }
+                        onValueChange={(value) =>
+                          onFrequencyChange?.(item.id, value)
+                        }
+                      >
+                        <SelectTrigger className="w-full h-8 text-xs">
+                          <SelectValue placeholder="Frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(FILE_FREQUENCY_OPTIONS).map(
+                            ([_key, value]) => (
+                              <SelectItem key={value} value={value}>
+                                {FILE_FREQUENCY_LABELS[value]}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </div>
+                )}
                 <div className="col-span-2 text-xs">
                   {item.sharedOn
                     ? new Date(item.sharedOn).toLocaleDateString()
-                    : "Not sent"}
+                    : "Not Sent"}
                 </div>
                 <div className="col-span-2 text-xs">
                   <span
@@ -149,19 +164,24 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
                   <Checkbox
                     checked={isChecked}
                     id={item.id}
-                    onCheckedChange={() => onToggle?.(item.id)}
+                    disabled={isDisabled}
+                    onCheckedChange={() => !isDisabled && onToggle?.(item.id)}
                   />
                   <Label
-                    className="cursor-pointer"
+                    className={`${isDisabled ? "text-gray-400" : "cursor-pointer"}`}
                     htmlFor={item.id}
-                    onClick={() => onToggle?.(item.id)}
+                    onClick={() => !isDisabled && onToggle?.(item.id)}
                   >
                     {item.label}
+                    {isDisabled && (
+                      <span className="text-xs ml-2">(Already shared)</span>
+                    )}
                   </Label>
                 </div>
                 {showFrequency && (
                   <div className="ml-6">
                     <Select
+                      disabled={isDisabled}
                       value={
                         selectedDocuments?.[item.id]?.frequency ??
                         FILE_FREQUENCY_OPTIONS.ONCE

@@ -51,3 +51,21 @@ export interface ClientFileWithFrequency {
   shared_at?: Date | null;
   completed_at?: Date | null;
 }
+
+export interface DocumentItem {
+  id: string;
+  label: string;
+  checked: boolean;
+  frequency: boolean;
+  isTemplate: boolean;
+  sharedOn?: string | Date;
+  status?: string;
+  isShared?: boolean;
+}
+
+export interface DocumentCategories {
+  consentDocuments: DocumentItem[];
+  scoredMeasures: DocumentItem[];
+  questionnaires: DocumentItem[];
+  uploadedFiles: DocumentItem[];
+}

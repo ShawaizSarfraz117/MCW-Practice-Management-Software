@@ -16,7 +16,7 @@ describe("Appointment Client Group Integration Tests", () => {
   beforeEach(async () => {
     // Clean database before each test
     await cleanupDatabase(prisma, { verbose: false });
-    
+
     // Create test user
     testUser = await prisma.user.create({
       data: {
