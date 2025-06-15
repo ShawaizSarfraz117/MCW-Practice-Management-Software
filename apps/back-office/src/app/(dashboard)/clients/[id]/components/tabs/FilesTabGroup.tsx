@@ -42,17 +42,13 @@ import {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { useClientGroupFiles, useUploadClientFile, useDeleteClientFile, useDownloadFile } from "@/(dashboard)/clients/hooks/useClientFiles";
-import { ClientFile } from "@mcw/types";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@mcw/ui";
-import { RadioGroup, RadioGroupItem } from "@mcw/ui";
-import { Label } from "@mcw/ui";
+  useClientGroupFiles,
+  useUploadClientFile,
+  useDeleteClientFile,
+  useDownloadFile,
+} from "@/(dashboard)/clients/hooks/useClientFiles";
+import { ClientFile } from "@mcw/types";
 
 type SortColumn = "name" | "type" | "status" | "updated";
 type SortDirection = "asc" | "desc";
@@ -136,7 +132,10 @@ function useFileActions(
   clientGroupId: string,
   onShareFile?: (file: ClientFile) => void,
 ) {
-  const deleteFileMutation = useDeleteClientFile(clients[0]?.id || '', clientGroupId);
+  const deleteFileMutation = useDeleteClientFile(
+    clients[0]?.id || "",
+    clientGroupId,
+  );
   const downloadFileMutation = useDownloadFile();
 
   const handleDownload = async (file: ClientFile) => {
@@ -165,38 +164,44 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
-    const [showClientDialog, setShowClientDialog] = useState(false);
-    const [selectedClientId, setSelectedClientId] = useState<string>("");
-    // Removed unused pendingFiles state
-    
+
     // Fetch client files from database
-    const { data: filesData = [], isLoading, error } = useClientGroupFiles(clientGroupId, clients);
-    const uploadFileMutation = useUploadClientFile(clients[0]?.id || '', clientGroupId);
-    
+    const {
+      data: filesData = [],
+      isLoading,
+      error,
+    } = useClientGroupFiles(clientGroupId, clients);
+    const uploadFileMutation = useUploadClientFile(
+      clients[0]?.id || "",
+      clientGroupId,
+    );
+
     const handleSendReminder = () => {
       // TODO: Implement send reminder functionality
       console.log("Send reminder clicked");
     };
-    
+
     // Filter files based on search and status
     const filteredFiles = useMemo(() => {
       let filtered = filesData;
-      
+
       // Apply search filter
       if (searchQuery) {
-        filtered = filtered.filter(file => 
-          file.name.toLowerCase().includes(searchQuery.toLowerCase())
+        filtered = filtered.filter((file) =>
+          file.name.toLowerCase().includes(searchQuery.toLowerCase()),
         );
       }
-      
+
       // Apply status filter
       if (statusFilter !== "all") {
-        filtered = filtered.filter(file => {
+        filtered = filtered.filter((file) => {
           switch (statusFilter) {
             case "pending":
               return file.status === "Pending";
             case "completed":
-              return file.status === "Completed" || file.status === "Completed JA";
+              return (
+                file.status === "Completed" || file.status === "Completed JA"
+              );
             case "scheduled":
               return file.status === "Scheduled";
             case "locked":
@@ -208,27 +213,26 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
           }
         });
       }
-      
+
       return filtered;
     }, [filesData, searchQuery, statusFilter]);
-    
+
     const { sortedFilesData, handleSort, getSortIcon } =
       useFileSorting(filteredFiles);
-    const {
-      handleDownload,
-      handleShareWithClient,
-      handleDelete,
-    } = useFileActions(clients, clientGroupId, onShareFile);
+    const { handleDownload, handleShareWithClient, handleDelete } =
+      useFileActions(clients, clientGroupId, onShareFile);
 
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (
+      event: React.ChangeEvent<HTMLInputElement>,
+    ) => {
       const files = event.target.files;
       if (!files) return;
 
       // Upload each file
       const uploadPromises = Array.from(files).map((file) => {
-        return uploadFileMutation.mutateAsync({ 
-          file, 
-          title: file.name 
+        return uploadFileMutation.mutateAsync({
+          file,
+          title: file.name,
         });
       });
 
@@ -242,7 +246,6 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
         fileInputRef.current.value = "";
       }
     };
-
 
     const triggerFileUpload = () => {
       fileInputRef.current?.click();
@@ -317,13 +320,20 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
                   <Upload className="h-4 w-4" />
                   Upload File
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="flex items-center gap-2"
-                  onClick={() => setShowClientDialog(true)}
-                >
-                  <Share className="h-4 w-4" />
-                  Share with client
-                </DropdownMenuItem>
+                {clients.length > 0 && (
+                  <DropdownMenuItem
+                    className="flex items-center gap-2"
+                    onClick={() => {
+                      // Trigger the parent's share modal
+                      if (onShareFile) {
+                        onShareFile({} as ClientFile); // Pass empty file since we're sharing from Actions menu
+                      }
+                    }}
+                  >
+                    <Share className="h-4 w-4" />
+                    Share with client
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   className="flex items-center gap-2"
                   onClick={() => handleSendReminder()}
@@ -388,9 +398,12 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
             <TableBody>
               {sortedFilesData.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center text-gray-500 py-8" colSpan={5}>
+                  <TableCell
+                    className="text-center text-gray-500 py-8"
+                    colSpan={5}
+                  >
                     {searchQuery || statusFilter !== "all"
-                      ? "No files match your filters" 
+                      ? "No files match your filters"
                       : "No files uploaded yet"}
                   </TableCell>
                 </TableRow>
@@ -419,43 +432,54 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
                           setOpenDropdown(open ? file.id : null)
                         }
                       >
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          className="h-8 w-8 p-0"
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        {(file.status === "Completed" || file.status === "Completed JA" || file.isPracticeUpload) && (
-                          <DropdownMenuItem
-                            className="flex items-center gap-2"
-                            onClick={() => handleDownload(file)}
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            className="h-8 w-8 p-0"
+                            size="sm"
+                            variant="ghost"
                           >
-                            <Download className="h-4 w-4" />
-                            Download
-                          </DropdownMenuItem>
-                        )}
-                        {file.isPracticeUpload && (
+                            <MoreHorizontal className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          {(file.status === "Completed" ||
+                            file.status === "Completed JA" ||
+                            file.isPracticeUpload) && (
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
+                              onClick={() => handleDownload(file)}
+                            >
+                              <Download className="h-4 w-4" />
+                              Download
+                            </DropdownMenuItem>
+                          )}
+                          {file.isPracticeUpload && (
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
+                              onClick={() => handleShareWithClient(file)}
+                            >
+                              <Share className="h-4 w-4" />
+                              Share with client
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
-                            className="flex items-center gap-2"
-                            onClick={() => handleShareWithClient(file)}
+                            className={`flex items-center gap-2 ${
+                              file.hasLockedChildren
+                                ? "text-gray-400 cursor-not-allowed"
+                                : "text-red-600 focus:text-red-600"
+                            }`}
+                            onClick={() =>
+                              !file.hasLockedChildren && handleDelete(file)
+                            }
+                            disabled={file.hasLockedChildren}
                           >
-                            <Share className="h-4 w-4" />
-                            Share with client
+                            <Trash2 className="h-4 w-4" />
+                            {file.hasLockedChildren
+                              ? "Delete (Locked)"
+                              : "Delete"}
                           </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          className="flex items-center gap-2 text-red-600 focus:text-red-600"
-                          onClick={() => handleDelete(file)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
@@ -463,51 +487,6 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
             </TableBody>
           </Table>
         </div>
-
-        {/* Client Selection Dialog */}
-        <Dialog open={showClientDialog} onOpenChange={setShowClientDialog}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Share with Client</DialogTitle>
-              <DialogDescription>
-                Select a client to share practice uploads with
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <RadioGroup value={selectedClientId} onValueChange={setSelectedClientId}>
-                {clients.map((client) => (
-                  <div key={client.id} className="flex items-center space-x-2">
-                    <RadioGroupItem value={client.id} id={client.id} />
-                    <Label htmlFor={client.id} className="cursor-pointer">
-                      {client.name}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowClientDialog(false);
-                  setSelectedClientId("");
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={!selectedClientId}
-                onClick={() => {
-                  console.log("Share with client:", selectedClientId);
-                  setShowClientDialog(false);
-                  setSelectedClientId("");
-                }}
-              >
-                Share
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   },

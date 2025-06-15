@@ -1,4 +1,3 @@
-
 import { beforeEach, describe, expect, it, vi, Mock } from "vitest";
 import {
   ClientFactory,
@@ -97,7 +96,9 @@ describe("Client Files API Unit Tests", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    (getBackOfficeSession as ReturnType<typeof vi.fn>).mockResolvedValue(mockSession);
+    (getBackOfficeSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockSession,
+    );
     (uploadToAzureStorage as ReturnType<typeof vi.fn>).mockResolvedValue({
       blobUrl: "https://storage.blob.core.windows.net/uploads/test-file.pdf",
     });
@@ -106,7 +107,9 @@ describe("Client Files API Unit Tests", () => {
   describe("GET /api/client/files", () => {
     it("should return 401 when not authenticated", async () => {
       // Arrange
-      (getBackOfficeSession as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+      (getBackOfficeSession as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        null,
+      );
 
       // Act
       const req = createRequest("/api/client/files?client_group_id=group1");
@@ -126,27 +129,36 @@ describe("Client Files API Unit Tests", () => {
       // Assert
       expect(response.status).toBe(400);
       const json = await response.json();
-      expect(json).toEqual({ error: "Either client_id or client_group_id is required" });
+      expect(json).toEqual({
+        error: "Either client_id or client_group_id is required",
+      });
     });
 
     it("should return files by client_group_id for share documents", async () => {
       // Arrange
       const mockPracticeFiles = [
-        ClientGroupFileFactory.build({
-          id: "file1",
-          title: "Document.pdf",
-          type: "Practice Upload",
-          url: "https://storage.example.com/doc.pdf",
-          created_at: new Date("2024-01-01"),
-          updated_at: new Date("2024-01-01"),
-          uploaded_by_id: MOCK_USER_ID,
-        }),
+        {
+          ...ClientGroupFileFactory.build({
+            id: "file1",
+            title: "Document.pdf",
+            type: "Practice Upload",
+            url: "https://storage.example.com/doc.pdf",
+            created_at: new Date("2024-01-01"),
+            updated_at: new Date("2024-01-01"),
+            uploaded_by_id: MOCK_USER_ID,
+          }),
+          ClientFiles: [{ status: "Pending" }, { status: "Locked" }],
+        },
       ];
 
-      (prisma.clientGroupFile.findMany as unknown as Mock).mockResolvedValue(mockPracticeFiles);
+      (prisma.clientGroupFile.findMany as unknown as Mock).mockResolvedValue(
+        mockPracticeFiles,
+      );
 
       // Act
-      const req = createRequest("/api/client/files?client_group_id=" + MOCK_CLIENT_GROUP_ID);
+      const req = createRequest(
+        "/api/client/files?client_group_id=" + MOCK_CLIENT_GROUP_ID,
+      );
       const response = await GET(req);
 
       // Assert
@@ -163,6 +175,52 @@ describe("Client Files API Unit Tests", () => {
         isShared: false,
         sharingEnabled: true,
         status: "uploaded",
+        hasLockedChildren: true, // One of the children is locked
+      });
+    });
+
+    it("should return practice uploads with hasLockedChildren: false when no locked children", async () => {
+      // Arrange
+      const mockPracticeFiles = [
+        {
+          ...ClientGroupFileFactory.build({
+            id: "file2",
+            title: "Report.pdf",
+            type: "Practice Upload",
+            url: "https://storage.example.com/report.pdf",
+            created_at: new Date("2024-01-02"),
+            updated_at: new Date("2024-01-02"),
+            uploaded_by_id: MOCK_USER_ID,
+          }),
+          ClientFiles: [{ status: "Pending" }, { status: "Completed" }],
+        },
+      ];
+
+      (prisma.clientGroupFile.findMany as unknown as Mock).mockResolvedValue(
+        mockPracticeFiles,
+      );
+
+      // Act
+      const req = createRequest(
+        "/api/client/files?client_group_id=" + MOCK_CLIENT_GROUP_ID,
+      );
+      const response = await GET(req);
+
+      // Assert
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(json.files).toHaveLength(1);
+      expect(json.files[0]).toMatchObject({
+        id: "file2",
+        title: "Report.pdf",
+        type: "Practice Upload",
+        url: "https://storage.example.com/report.pdf",
+        uploadedBy: MOCK_USER_ID,
+        isShared: false,
+        sharingEnabled: true,
+        status: "uploaded",
+        hasLockedChildren: false, // No locked children
       });
     });
 
@@ -188,7 +246,7 @@ describe("Client Files API Unit Tests", () => {
         survey_answers_id: null,
         completed_at: null,
       });
-      
+
       const mockSharedFiles = [
         {
           ...mockClientFile,
@@ -205,23 +263,34 @@ describe("Client Files API Unit Tests", () => {
       ];
 
       const mockPracticeFiles = [
-        ClientGroupFileFactory.build({
-          id: "file1",
-          title: "Document.pdf",
-          type: "Practice Upload",
-          url: "https://storage.example.com/doc.pdf",
-          created_at: new Date("2024-01-01"),
-          updated_at: new Date("2024-01-01"),
-          uploaded_by_id: MOCK_USER_ID,
-        }),
+        {
+          ...ClientGroupFileFactory.build({
+            id: "file1",
+            title: "Document.pdf",
+            type: "Practice Upload",
+            url: "https://storage.example.com/doc.pdf",
+            created_at: new Date("2024-01-01"),
+            updated_at: new Date("2024-01-01"),
+            uploaded_by_id: MOCK_USER_ID,
+          }),
+          ClientFiles: [{ status: "Pending" }, { status: "Completed" }],
+        },
       ];
 
-      (prisma.client.findUnique as unknown as Mock).mockResolvedValue(mockClient);
-      (prisma.clientFiles.findMany as unknown as Mock).mockResolvedValue(mockSharedFiles);
-      (prisma.clientGroupFile.findMany as unknown as Mock).mockResolvedValue(mockPracticeFiles);
+      (prisma.client.findUnique as unknown as Mock).mockResolvedValue(
+        mockClient,
+      );
+      (prisma.clientFiles.findMany as unknown as Mock).mockResolvedValue(
+        mockSharedFiles,
+      );
+      (prisma.clientGroupFile.findMany as unknown as Mock).mockResolvedValue(
+        mockPracticeFiles,
+      );
 
       // Act
-      const req = createRequest(`/api/client/files?client_id=${MOCK_CLIENT_ID}`);
+      const req = createRequest(
+        `/api/client/files?client_id=${MOCK_CLIENT_ID}`,
+      );
       const response = await GET(req);
 
       // Assert
@@ -248,12 +317,14 @@ describe("Client Files API Unit Tests", () => {
 
     it("should handle database errors", async () => {
       // Arrange
-      (prisma.clientGroupFile.findMany as unknown as Mock).mockRejectedValueOnce(
-        new Error("Database error")
-      );
+      (
+        prisma.clientGroupFile.findMany as unknown as Mock
+      ).mockRejectedValueOnce(new Error("Database error"));
 
       // Act
-      const req = createRequest("/api/client/files?client_group_id=" + MOCK_CLIENT_GROUP_ID);
+      const req = createRequest(
+        "/api/client/files?client_group_id=" + MOCK_CLIENT_GROUP_ID,
+      );
       const response = await GET(req);
 
       // Assert
@@ -266,9 +337,15 @@ describe("Client Files API Unit Tests", () => {
   describe("POST /api/client/files", () => {
     it("should return 401 when not authenticated", async () => {
       // Arrange
-      (getBackOfficeSession as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+      (getBackOfficeSession as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        null,
+      );
       const formData = new FormData();
-      formData.append("file", new Blob(["test"], { type: "application/pdf" }), "test.pdf");
+      formData.append(
+        "file",
+        new Blob(["test"], { type: "application/pdf" }),
+        "test.pdf",
+      );
 
       // Act
       const req = createFormDataRequest("/api/client/files", formData);
@@ -298,7 +375,11 @@ describe("Client Files API Unit Tests", () => {
     it("should return 400 when client_id or client_group_id missing", async () => {
       // Arrange
       const formData = new FormData();
-      formData.append("file", new Blob(["test"], { type: "application/pdf" }), "test.pdf");
+      formData.append(
+        "file",
+        new Blob(["test"], { type: "application/pdf" }),
+        "test.pdf",
+      );
 
       // Act
       const req = createFormDataRequest("/api/client/files", formData);
@@ -307,13 +388,19 @@ describe("Client Files API Unit Tests", () => {
       // Assert
       expect(response.status).toBe(400);
       const json = await response.json();
-      expect(json).toEqual({ error: "client_id and client_group_id are required" });
+      expect(json).toEqual({
+        error: "client_id and client_group_id are required",
+      });
     });
 
     it("should return 400 for invalid file type", async () => {
       // Arrange
       const formData = new FormData();
-      formData.append("file", new Blob(["test"], { type: "application/octet-stream" }), "test.bin");
+      formData.append(
+        "file",
+        new Blob(["test"], { type: "application/octet-stream" }),
+        "test.bin",
+      );
       formData.append("client_id", MOCK_CLIENT_ID);
       formData.append("client_group_id", MOCK_CLIENT_GROUP_ID);
 
@@ -331,7 +418,11 @@ describe("Client Files API Unit Tests", () => {
       // Arrange
       const largeContent = new Uint8Array(11 * 1024 * 1024); // 11MB
       const formData = new FormData();
-      formData.append("file", new Blob([largeContent], { type: "application/pdf" }), "large.pdf");
+      formData.append(
+        "file",
+        new Blob([largeContent], { type: "application/pdf" }),
+        "large.pdf",
+      );
       formData.append("client_id", MOCK_CLIENT_ID);
       formData.append("client_group_id", MOCK_CLIENT_GROUP_ID);
 
@@ -348,13 +439,19 @@ describe("Client Files API Unit Tests", () => {
     it("should successfully upload a file", async () => {
       // Arrange
       const formData = new FormData();
-      formData.append("file", new Blob(["test content"], { type: "application/pdf" }), "test.pdf");
+      formData.append(
+        "file",
+        new Blob(["test content"], { type: "application/pdf" }),
+        "test.pdf",
+      );
       formData.append("client_id", MOCK_CLIENT_ID);
       formData.append("client_group_id", MOCK_CLIENT_GROUP_ID);
       formData.append("title", "Test Document");
 
       const mockClient = ClientFactory.build({ id: MOCK_CLIENT_ID });
-      const mockClientGroup = ClientGroupFactory.build({ id: MOCK_CLIENT_GROUP_ID });
+      const mockClientGroup = ClientGroupFactory.build({
+        id: MOCK_CLIENT_GROUP_ID,
+      });
       const mockCreatedFile = ClientGroupFileFactory.build({
         id: MOCK_UUID,
         client_group_id: MOCK_CLIENT_GROUP_ID,
@@ -365,9 +462,15 @@ describe("Client Files API Unit Tests", () => {
         created_at: new Date(),
       });
 
-      (prisma.client.findUnique as unknown as Mock).mockResolvedValue(mockClient);
-      (prisma.clientGroup.findUnique as unknown as Mock).mockResolvedValue(mockClientGroup);
-      (prisma.clientGroupFile.create as unknown as Mock).mockResolvedValue(mockCreatedFile);
+      (prisma.client.findUnique as unknown as Mock).mockResolvedValue(
+        mockClient,
+      );
+      (prisma.clientGroup.findUnique as unknown as Mock).mockResolvedValue(
+        mockClientGroup,
+      );
+      (prisma.clientGroupFile.create as unknown as Mock).mockResolvedValue(
+        mockCreatedFile,
+      );
 
       // Act
       const req = createFormDataRequest("/api/client/files", formData);
@@ -388,7 +491,11 @@ describe("Client Files API Unit Tests", () => {
     it("should return 404 when client not found", async () => {
       // Arrange
       const formData = new FormData();
-      formData.append("file", new Blob(["test"], { type: "application/pdf" }), "test.pdf");
+      formData.append(
+        "file",
+        new Blob(["test"], { type: "application/pdf" }),
+        "test.pdf",
+      );
       formData.append("client_id", "nonexistent");
       formData.append("client_group_id", MOCK_CLIENT_GROUP_ID);
 
@@ -407,14 +514,22 @@ describe("Client Files API Unit Tests", () => {
     it("should handle upload errors", async () => {
       // Arrange
       const formData = new FormData();
-      formData.append("file", new Blob(["test"], { type: "application/pdf" }), "test.pdf");
+      formData.append(
+        "file",
+        new Blob(["test"], { type: "application/pdf" }),
+        "test.pdf",
+      );
       formData.append("client_id", MOCK_CLIENT_ID);
       formData.append("client_group_id", MOCK_CLIENT_GROUP_ID);
 
-      (prisma.client.findUnique as unknown as Mock).mockResolvedValue(ClientFactory.build({ id: MOCK_CLIENT_ID }));
-      (prisma.clientGroup.findUnique as unknown as Mock).mockResolvedValue(ClientGroupFactory.build({ id: MOCK_CLIENT_GROUP_ID }));
+      (prisma.client.findUnique as unknown as Mock).mockResolvedValue(
+        ClientFactory.build({ id: MOCK_CLIENT_ID }),
+      );
+      (prisma.clientGroup.findUnique as unknown as Mock).mockResolvedValue(
+        ClientGroupFactory.build({ id: MOCK_CLIENT_GROUP_ID }),
+      );
       (prisma.clientGroupFile.create as unknown as Mock).mockRejectedValueOnce(
-        new Error("Upload failed")
+        new Error("Upload failed"),
       );
 
       // Act

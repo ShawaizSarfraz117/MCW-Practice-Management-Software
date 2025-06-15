@@ -202,10 +202,15 @@ export default function ClientProfile({
       )}
       <ShareDocumentsFlow
         clientGroupId={id as string}
-        clients={clientGroup?.ClientGroupMembership?.map(m => ({
-          id: m.Client?.id || '',
-          name: `${m.Client?.legal_first_name || ''} ${m.Client?.legal_last_name || ''}`.trim()
-        })) || []}
+        clients={
+          clientGroup?.ClientGroupMembership?.map((m) => ({
+            id: m.Client?.id || "",
+            name: `${m.Client?.legal_first_name || ""} ${m.Client?.legal_last_name || ""}`.trim(),
+            email: m.Client?.ClientContact?.find(
+              (c) => c.contact_type === "EMAIL" && c.is_primary,
+            )?.value,
+          })) || []
+        }
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
       />
@@ -324,13 +329,15 @@ export default function ClientProfile({
             </TabsContent>
 
             <TabsContent value="files">
-              <FilesTabGroup 
-                ref={filesTabRef} 
+              <FilesTabGroup
+                ref={filesTabRef}
                 clientGroupId={id as string}
-                clients={clientGroup?.ClientGroupMembership?.map(m => ({
-                  id: m.Client?.id || '',
-                  name: `${m.Client?.legal_first_name || ''} ${m.Client?.legal_last_name || ''}`.trim()
-                })) || []}
+                clients={
+                  clientGroup?.ClientGroupMembership?.map((m) => ({
+                    id: m.Client?.id || "",
+                    name: `${m.Client?.legal_first_name || ""} ${m.Client?.legal_last_name || ""}`.trim(),
+                  })) || []
+                }
                 onShareFile={() => setShareModalOpen(true)}
               />
             </TabsContent>

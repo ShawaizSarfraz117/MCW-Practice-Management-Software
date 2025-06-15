@@ -35,6 +35,7 @@ export interface ClientFile {
   clientName?: string; // Client name for display
   clientInitials?: string; // Client initials to show after status
   clientId?: string; // Client ID for reference
+  hasLockedChildren?: boolean; // Flag to indicate if any shared instances are locked
 }
 
 export interface ClientFileResponse {
@@ -47,6 +48,7 @@ export interface ClientFileResponse {
   shared_at?: Date | string | null;
   completed_at?: Date | string | null;
   survey_answers_id?: string | null;
+  blob_url?: string | null;
   ClientGroupFile: {
     id: string;
     title: string;

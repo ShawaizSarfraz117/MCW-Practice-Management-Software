@@ -23,9 +23,16 @@ interface ReviewAndSendProps {
       id: string;
       checked: boolean;
       frequency?: string;
+      disabled?: boolean;
     }
   >;
-  selectedDocumentsByClient?: Record<string, Record<string, { id: string; checked: boolean; frequency?: string }>>;
+  selectedDocumentsByClient?: Record<
+    string,
+    Record<
+      string,
+      { id: string; checked: boolean; frequency?: string; disabled?: boolean }
+    >
+  >;
   emailContent: string;
   onBack: () => void;
   onComplete: () => void;
@@ -59,27 +66,33 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
 
   // Build steps dynamically based on clients
   const steps = useMemo(() => {
-    const clientSteps = clients && clients.length > 0
-      ? clients.map((client, index) => ({
-          number: index + 1,
-          label: client.name,
-        }))
-      : [{ number: 1, label: clientName }];
-    
+    const clientSteps =
+      clients && clients.length > 0
+        ? clients.map((client, index) => ({
+            number: index + 1,
+            label: client.name,
+          }))
+        : [{ number: 1, label: clientName }];
+
     return [
       ...clientSteps,
       { number: clientSteps.length + 1, label: "Compose Email" },
-      { number: clientSteps.length + 2, label: "Review & Send", isActive: true },
+      {
+        number: clientSteps.length + 2,
+        label: "Review & Send",
+        isActive: true,
+      },
     ];
   }, [clients, clientName]);
 
   // Get the names of selected documents per client
   const getSelectedItemsForClient = (clientId: string) => {
     const items: { name: string; frequency?: string }[] = [];
-    const clientDocs = selectedDocumentsByClient?.[clientId] || selectedDocuments;
+    const clientDocs =
+      selectedDocumentsByClient?.[clientId] || selectedDocuments;
 
     Object.entries(clientDocs)
-      .filter(([_, doc]) => doc.checked)
+      .filter(([_, doc]) => doc.checked && !doc.disabled) // Exclude disabled (already shared) documents
       .forEach(([id, doc]) => {
         // Check templates first
         const template = templates?.data?.find((t) => t.id === id);
@@ -134,7 +147,7 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
           const templateIdSet = new Set(templatesData.map((t) => t.id));
 
           Object.entries(clientDocs)
-            .filter(([_, doc]) => doc.checked)
+            .filter(([_, doc]) => doc.checked && !doc.disabled) // Exclude disabled (already shared) documents
             .forEach(([id, doc]) => {
               if (templateIdSet.has(id)) {
                 selectedTemplateIds.push(id);
@@ -168,7 +181,7 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
         const templateIdSet = new Set(templatesData.map((t) => t.id));
 
         Object.entries(selectedDocuments)
-          .filter(([_, doc]) => doc.checked)
+          .filter(([_, doc]) => doc.checked && !doc.disabled) // Exclude disabled (already shared) documents
           .forEach(([id, doc]) => {
             if (templateIdSet.has(id)) {
               selectedTemplateIds.push(id);
@@ -256,12 +269,14 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
             clients.map((client) => {
               const clientItems = getSelectedItemsForClient(client.id);
               if (clientItems.length === 0) return null;
-              
+
               return (
                 <div key={client.id} className="space-y-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8 bg-gray-100">
-                      <AvatarFallback>{getInitials(client.name)}</AvatarFallback>
+                      <AvatarFallback>
+                        {getInitials(client.name)}
+                      </AvatarFallback>
                     </Avatar>
                     <h3 className="text-lg">
                       Sharing {clientItems.length} item
@@ -282,8 +297,9 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
                         {item.frequency && (
                           <span className="text-sm text-gray-500">
                             Frequency:{" "}
-                            {FILE_FREQUENCY_LABELS[item.frequency as FileFrequency] ||
-                              item.frequency}
+                            {FILE_FREQUENCY_LABELS[
+                              item.frequency as FileFrequency
+                            ] || item.frequency}
                           </span>
                         )}
                       </div>
@@ -299,30 +315,37 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
                   <AvatarFallback>{getInitials(clientName)}</AvatarFallback>
                 </Avatar>
                 <h3 className="text-lg">
-                  Sharing {getSelectedItemsForClient(clientId || "").length} item
-                  {getSelectedItemsForClient(clientId || "").length !== 1 ? "s" : ""} with {clientName}
+                  Sharing {getSelectedItemsForClient(clientId || "").length}{" "}
+                  item
+                  {getSelectedItemsForClient(clientId || "").length !== 1
+                    ? "s"
+                    : ""}{" "}
+                  with {clientName}
                 </h3>
               </div>
 
               <div className="space-y-2">
-                {getSelectedItemsForClient(clientId || "").map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between gap-2 text-gray-600"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-emerald-600" />
-                      <span>{item.name}</span>
+                {getSelectedItemsForClient(clientId || "").map(
+                  (item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between gap-2 text-gray-600"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-emerald-600" />
+                        <span>{item.name}</span>
+                      </div>
+                      {item.frequency && (
+                        <span className="text-sm text-gray-500">
+                          Frequency:{" "}
+                          {FILE_FREQUENCY_LABELS[
+                            item.frequency as FileFrequency
+                          ] || item.frequency}
+                        </span>
+                      )}
                     </div>
-                    {item.frequency && (
-                      <span className="text-sm text-gray-500">
-                        Frequency:{" "}
-                        {FILE_FREQUENCY_LABELS[item.frequency as FileFrequency] ||
-                          item.frequency}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             </div>
           )}

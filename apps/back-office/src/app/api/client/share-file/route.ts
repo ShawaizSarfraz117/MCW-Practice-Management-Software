@@ -3,7 +3,12 @@ import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { generateUUID } from "@mcw/utils";
-import { FileFrequency, FILE_FREQUENCY_OPTIONS, FILE_TYPE_MAPPING } from "@mcw/types";
+import {
+  FileFrequency,
+  FILE_FREQUENCY_OPTIONS,
+  FILE_TYPE_MAPPING,
+} from "@mcw/types";
+import { copyBlobInAzureStorage } from "@/utils/azureStorage";
 
 interface FileSharePayload {
   client_group_id: string;
@@ -185,16 +190,19 @@ export async function POST(request: NextRequest) {
           throw new Error("Client ID is required for each client");
         }
 
+        // Only validate survey templates if no file_ids are provided
         if (
-          !client.survey_template_ids ||
-          !Array.isArray(client.survey_template_ids) ||
-          client.survey_template_ids.length === 0
+          (!client.file_ids || client.file_ids.length === 0) &&
+          (!client.survey_template_ids ||
+            !Array.isArray(client.survey_template_ids) ||
+            client.survey_template_ids.length === 0)
         ) {
           throw new Error(
-            `No survey templates specified for client ${client.client_id}`,
+            `No survey templates or files specified for client ${client.client_id}`,
           );
         }
 
+        // Process practice uploads (file_ids)
         for (const fileId of client.file_ids || []) {
           const file = await tx.clientGroupFile.findUnique({
             where: {
@@ -202,29 +210,57 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          const clientGroupFile = await tx.clientGroupFile.create({
-            data: {
-              client_group_id: payload.client_group_id,
-              survey_template_id: null,
-              title: file?.title || `Shared file - ${new Date().toISOString()}`,
-              type: "Practice Upload",
-              url: file?.url || null,
-              uploaded_by_id: file?.uploaded_by_id || null,
-              created_at: now,
-              updated_at: now,
-            },
-          });
+          if (!file) {
+            throw new Error(`File with ID ${fileId} not found`);
+          }
 
+          // For practice uploads, copy to client-specific folder in Azure
+          let clientBlobUrl: string | null = null;
+          if (file.type === "Practice Upload" && file.url) {
+            try {
+              // Generate destination path for client-specific folder
+              // Structure: {clientGroupId}/{clientId}/{timestamp}-{filename}
+              const timestamp = new Date().getTime();
+              const fileName = file.title || `shared-file-${timestamp}`;
+              const sanitizedFileName = fileName.replace(/\s+/g, "_");
+              const destinationPath = `${payload.client_group_id}/${client.client_id}/${timestamp}-${sanitizedFileName}`;
+
+              // Copy the file to the client's folder within the client group
+              clientBlobUrl = await copyBlobInAzureStorage(
+                file.url,
+                destinationPath,
+              );
+              logger.info({
+                message: "Successfully copied practice upload to client folder",
+                fileId,
+                clientId: client.client_id,
+                clientGroupId: payload.client_group_id,
+                destinationPath,
+              });
+            } catch (error) {
+              logger.error({
+                message: "Failed to copy practice upload to client folder",
+                error: error instanceof Error ? error.message : String(error),
+                fileId,
+                clientId: client.client_id,
+                clientGroupId: payload.client_group_id,
+              });
+              // Continue without client-specific copy
+            }
+          }
+
+          // Create client file record (individual association) - no new ClientGroupFile
           const clientFileId = generateUUID();
           const clientFile = await tx.clientFiles.create({
             data: {
               id: clientFileId,
               client_id: client.client_id,
-              client_group_file_id: clientGroupFile.id,
+              client_group_file_id: fileId, // Use existing ClientGroupFile ID
               status: "Pending",
               frequency: client.frequencies?.[fileId] || null,
               shared_at: now,
               next_due_date: calculateNextDueDate(client.frequencies?.[fileId]),
+              blob_url: clientBlobUrl, // Store the client-specific blob URL
             },
           });
           createdFiles.push({
@@ -236,7 +272,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create entries for each survey template
-        for (const surveyTemplateId of client.survey_template_ids) {
+        for (const surveyTemplateId of client.survey_template_ids || []) {
           // Create client group file record
           const surveyTemplate = await tx.surveyTemplate.findUnique({
             where: {
@@ -251,7 +287,10 @@ export async function POST(request: NextRequest) {
               title:
                 surveyTemplate?.name ||
                 `Shared file - ${new Date().toISOString()}`,
-              type: FILE_TYPE_MAPPING[surveyTemplate?.type || ""] || surveyTemplate?.type || "Document",
+              type:
+                FILE_TYPE_MAPPING[surveyTemplate?.type || ""] ||
+                surveyTemplate?.type ||
+                "Document",
               url: null,
               uploaded_by_id: userId,
               created_at: now,

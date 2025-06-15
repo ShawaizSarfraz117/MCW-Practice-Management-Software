@@ -80,11 +80,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all files for the client group (Practice Uploads)
+    // Get all files for the client group (Practice Uploads) with their child files
     const practiceUploads = await prisma.clientGroupFile.findMany({
       where: {
         client_group_id: clientGroupId,
         type: "Practice Upload",
+      },
+      include: {
+        ClientFiles: {
+          select: {
+            status: true,
+          },
+        },
       },
       orderBy: {
         created_at: "desc",
@@ -105,6 +112,11 @@ export async function GET(request: NextRequest) {
         sharedAt: null,
         sharingEnabled: true,
         status: "uploaded",
+        created_at: file.created_at,
+        updated_at: file.updated_at,
+        hasLockedChildren: file.ClientFiles.some(
+          (cf) => cf.status === "Locked",
+        ),
       }));
 
       return NextResponse.json({
@@ -114,9 +126,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Original response format for client files tab
+    const practiceUploadsWithLockStatus = practiceUploads.map((file) => ({
+      ...file,
+      hasLockedChildren: file.ClientFiles.some((cf) => cf.status === "Locked"),
+    }));
+
     return NextResponse.json({
       success: true,
-      practiceUploads,
+      practiceUploads: practiceUploadsWithLockStatus,
       sharedFiles,
     });
   } catch (error: unknown) {
@@ -222,7 +239,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Replace spaces with underscores in filename
-    const sanitizedFileName = file.name.replace(/\s+/g, '_');
+    const sanitizedFileName = file.name.replace(/\s+/g, "_");
 
     const virtualPath = `${clientGroupId}/practice-uploads`;
     const uploadResult = await uploadToAzureStorage(

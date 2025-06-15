@@ -815,6 +815,7 @@ model ClientFiles {
   next_due_date        DateTime?       @db.DateTime
   shared_at            DateTime?       @db.DateTime
   completed_at         DateTime?       @db.DateTime
+  blob_url             String?         @db.VarChar(500)
   Client               Client          @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientFiles_Client")
   ClientGroupFile      ClientGroupFile @relation(fields: [client_group_file_id], references: [id], onUpdate: NoAction, map: "FK_ClientFiles_ClientGroupFile")
   SurveyAnswers        SurveyAnswers?  @relation(fields: [survey_answers_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientFiles_SurveyAnswers")

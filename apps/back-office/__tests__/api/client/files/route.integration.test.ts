@@ -46,11 +46,13 @@ vi.mock("@mcw/logger", () => ({
 // Mock Azure Storage
 vi.mock("@/utils/azureStorage", () => {
   return {
-    uploadToAzureStorage: vi.fn(() => Promise.resolve({
-      blobUrl: "https://storage.blob.core.windows.net/uploads/test-file.pdf",
-      url: "https://storage.blob.core.windows.net/uploads/test-file.pdf?sas",
-      blobName: "test-file.pdf",
-    })),
+    uploadToAzureStorage: vi.fn(() =>
+      Promise.resolve({
+        blobUrl: "https://storage.blob.core.windows.net/uploads/test-file.pdf",
+        url: "https://storage.blob.core.windows.net/uploads/test-file.pdf?sas",
+        blobName: "test-file.pdf",
+      }),
+    ),
   };
 });
 
@@ -74,7 +76,9 @@ describe("Client Files API Integration Tests", () => {
   let clinician: Awaited<ReturnType<typeof ClinicianPrismaFactory.create>>;
   let client: Awaited<ReturnType<typeof ClientPrismaFactory.create>>;
   let clientGroup: Awaited<ReturnType<typeof ClientGroupPrismaFactory.create>>;
-  let clientGroupFile: Awaited<ReturnType<typeof ClientGroupFilePrismaFactory.create>>;
+  let clientGroupFile: Awaited<
+    ReturnType<typeof ClientGroupFilePrismaFactory.create>
+  >;
 
   beforeEach(async () => {
     await cleanupDatabase(prisma);
@@ -146,7 +150,9 @@ describe("Client Files API Integration Tests", () => {
 
   describe("GET /api/client/files", () => {
     it("should return files by client_group_id", async () => {
-      const req = createRequest(`/api/client/files?client_group_id=${clientGroup.id}`);
+      const req = createRequest(
+        `/api/client/files?client_group_id=${clientGroup.id}`,
+      );
       const response = await GET(req);
 
       expect(response.status).toBe(200);
@@ -162,6 +168,60 @@ describe("Client Files API Integration Tests", () => {
         isShared: false,
         sharingEnabled: true,
         status: "uploaded",
+        hasLockedChildren: false, // No children yet
+      });
+    });
+
+    it("should return practice uploads with hasLockedChildren flag", async () => {
+      // Create shared instances with different statuses
+      await ClientFilesPrismaFactory.create({
+        Client: {
+          connect: { id: client.id },
+        },
+        ClientGroupFile: {
+          connect: { id: clientGroupFile.id },
+        },
+        status: "Pending",
+        frequency: "ONCE",
+        shared_at: new Date(),
+      });
+
+      const anotherClient = await ClientPrismaFactory.create({
+        legal_first_name: "Jane",
+        legal_last_name: "Smith",
+      });
+
+      await ClientFilesPrismaFactory.create({
+        Client: {
+          connect: { id: anotherClient.id },
+        },
+        ClientGroupFile: {
+          connect: { id: clientGroupFile.id },
+        },
+        status: "Locked", // This one is locked
+        frequency: "ONCE",
+        shared_at: new Date(),
+      });
+
+      const req = createRequest(
+        `/api/client/files?client_group_id=${clientGroup.id}`,
+      );
+      const response = await GET(req);
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(json.files).toHaveLength(1);
+      expect(json.files[0]).toMatchObject({
+        id: clientGroupFile.id,
+        title: "Test Document.pdf",
+        type: "Practice Upload",
+        url: "https://storage.example.com/test-doc.pdf",
+        uploadedBy: user.id,
+        isShared: false,
+        sharingEnabled: true,
+        status: "uploaded",
+        hasLockedChildren: true, // One of the children is locked
       });
     });
 
@@ -198,7 +258,9 @@ describe("Client Files API Integration Tests", () => {
     it("should return 401 for unauthenticated requests", async () => {
       vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
-      const req = createRequest(`/api/client/files?client_group_id=${clientGroup.id}`);
+      const req = createRequest(
+        `/api/client/files?client_group_id=${clientGroup.id}`,
+      );
       const response = await GET(req);
 
       expect(response.status).toBe(401);
@@ -212,7 +274,9 @@ describe("Client Files API Integration Tests", () => {
 
       expect(response.status).toBe(400);
       const json = await response.json();
-      expect(json).toEqual({ error: "Either client_id or client_group_id is required" });
+      expect(json).toEqual({
+        error: "Either client_id or client_group_id is required",
+      });
     });
 
     it("should return 404 when client not found", async () => {
@@ -229,7 +293,11 @@ describe("Client Files API Integration Tests", () => {
   describe("POST /api/client/files", () => {
     it("should successfully upload a file", async () => {
       const formData = new FormData();
-      formData.append("file", new Blob(["test content"], { type: "application/pdf" }), "upload.pdf");
+      formData.append(
+        "file",
+        new Blob(["test content"], { type: "application/pdf" }),
+        "upload.pdf",
+      );
       formData.append("client_id", client.id);
       formData.append("client_group_id", clientGroup.id);
       formData.append("title", "Uploaded Document");
@@ -258,7 +326,11 @@ describe("Client Files API Integration Tests", () => {
       vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
       const formData = new FormData();
-      formData.append("file", new Blob(["test"], { type: "application/pdf" }), "test.pdf");
+      formData.append(
+        "file",
+        new Blob(["test"], { type: "application/pdf" }),
+        "test.pdf",
+      );
 
       const req = createFormDataRequest("/api/client/files", formData);
       const response = await POST(req);
@@ -284,7 +356,11 @@ describe("Client Files API Integration Tests", () => {
 
     it("should return 400 for invalid file type", async () => {
       const formData = new FormData();
-      formData.append("file", new Blob(["test"], { type: "application/octet-stream" }), "test.bin");
+      formData.append(
+        "file",
+        new Blob(["test"], { type: "application/octet-stream" }),
+        "test.bin",
+      );
       formData.append("client_id", client.id);
       formData.append("client_group_id", clientGroup.id);
 
@@ -299,7 +375,11 @@ describe("Client Files API Integration Tests", () => {
     it("should return 404 when client not found", async () => {
       const nonExistentId = generateUUID();
       const formData = new FormData();
-      formData.append("file", new Blob(["test"], { type: "application/pdf" }), "test.pdf");
+      formData.append(
+        "file",
+        new Blob(["test"], { type: "application/pdf" }),
+        "test.pdf",
+      );
       formData.append("client_id", nonExistentId);
       formData.append("client_group_id", clientGroup.id);
 
@@ -314,7 +394,11 @@ describe("Client Files API Integration Tests", () => {
     it("should return 404 when client group not found", async () => {
       const nonExistentGroupId = generateUUID();
       const formData = new FormData();
-      formData.append("file", new Blob(["test"], { type: "application/pdf" }), "test.pdf");
+      formData.append(
+        "file",
+        new Blob(["test"], { type: "application/pdf" }),
+        "test.pdf",
+      );
       formData.append("client_id", client.id);
       formData.append("client_group_id", nonExistentGroupId);
 

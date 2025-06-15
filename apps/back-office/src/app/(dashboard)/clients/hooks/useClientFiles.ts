@@ -70,32 +70,34 @@ export const useClientFiles = (clientId: string) => {
       const allFiles: ClientFile[] = [];
 
       if (data.practiceUploads) {
-        data.practiceUploads.forEach((file: ClientFileResponse["ClientGroupFile"]) => {
-          const formattedDate = new Date(file.created_at).toLocaleDateString(
-            "en-US",
-            {
-              month: "numeric",
-              day: "numeric",
-              year: "2-digit",
-            },
-          );
+        data.practiceUploads.forEach(
+          (file: ClientFileResponse["ClientGroupFile"]) => {
+            const formattedDate = new Date(file.created_at).toLocaleDateString(
+              "en-US",
+              {
+                month: "numeric",
+                day: "numeric",
+                year: "2-digit",
+              },
+            );
 
-          allFiles.push({
-            id: file.id,
-            name: file.title,
-            type: file.type,
-            status: "Uploaded" as FileStatus,
-            statusColor: FILE_STATUS_COLORS["Uploaded"] || "text-gray-600",
-            updated: formattedDate,
-            nameColor: "text-blue-500",
-            url: file.url,
-            clientGroupFileId: file.id,
-            frequency: null,
-            nextDueDate: null,
-            surveyAnswersId: null,
-            isPracticeUpload: true,
-          });
-        });
+            allFiles.push({
+              id: file.id,
+              name: file.title,
+              type: file.type,
+              status: "Uploaded" as FileStatus,
+              statusColor: FILE_STATUS_COLORS["Uploaded"] || "text-gray-600",
+              updated: formattedDate,
+              nameColor: "text-blue-500",
+              url: file.url,
+              clientGroupFileId: file.id,
+              frequency: null,
+              nextDueDate: null,
+              surveyAnswersId: null,
+              isPracticeUpload: true,
+            });
+          },
+        );
       }
 
       // Add shared files
@@ -161,13 +163,19 @@ export const useUploadClientFile = (
   });
 };
 
-export const useUploadFileToClient = (
-  clientGroupId: string,
-) => {
+export const useUploadFileToClient = (clientGroupId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ file, title, clientId }: { file: File; title?: string; clientId: string }) => {
+    mutationFn: async ({
+      file,
+      title,
+      clientId,
+    }: {
+      file: File;
+      title?: string;
+      clientId: string;
+    }) => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("client_id", clientId);
@@ -251,6 +259,53 @@ export const useShareFileWithClient = (clientId: string) => {
   });
 };
 
+export const useSharePracticeUploadsWithClients = (clientGroupId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      clientIds,
+      practiceUploadIds,
+    }: {
+      clientIds: string[];
+      practiceUploadIds: string[];
+    }) => {
+      const response = await fetch("/api/client/share-file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_group_id: clientGroupId,
+          clients: clientIds.map((clientId) => ({
+            client_id: clientId,
+            file_ids: practiceUploadIds,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to share files");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["clientGroupFiles", clientGroupId],
+      });
+      toast({
+        title: "Success",
+        description: "Files shared with selected clients successfully",
+      });
+    },
+    onError: (error: unknown) => {
+      showErrorToast(toast, error);
+    },
+  });
+};
+
 export const useDeleteClientFile = (
   clientId: string,
   clientGroupId?: string,
@@ -266,19 +321,27 @@ export const useDeleteClientFile = (
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.hasLockedChildren) {
+          throw new Error(
+            "Cannot delete file - one or more shared instances are locked",
+          );
+        }
         throw new Error(data.error || "Failed to delete file");
       }
 
       // Check if confirmation is required (practice upload with shares)
       if (data.requiresConfirmation) {
         // Automatically confirm deletion
-        const confirmResponse = await fetch(`/api/client/files/${fileId}/confirm-delete`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const confirmResponse = await fetch(
+          `/api/client/files/${fileId}/confirm-delete`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ confirmDelete: true }),
           },
-          body: JSON.stringify({ confirmDelete: true }),
-        });
+        );
 
         const confirmData = await confirmResponse.json();
 
@@ -314,14 +377,14 @@ export const useDownloadFile = () => {
   return useMutation({
     mutationFn: async (fileId: string) => {
       const response = await fetch(`/api/client/files/${fileId}`);
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to get download URL");
       }
 
       const data = await response.json();
-      
+
       if (data.downloadUrl) {
         // Open the SAS URL in a new tab
         window.open(data.downloadUrl, "_blank");
@@ -384,6 +447,7 @@ export const useConfirmDeleteClientFile = (
 export const useClientGroupFiles = (
   clientGroupId: string,
   clients: Array<{ id: string; name: string }>,
+  enabled = true,
 ) => {
   return useQuery({
     queryKey: ["clientGroupFiles", clientGroupId, clients.map((c) => c.id)],
@@ -399,32 +463,37 @@ export const useClientGroupFiles = (
 
         if (practiceData.success && practiceData.files) {
           // These are practice uploads - no client initials
-          practiceData.files.forEach((file: ClientFileResponse["ClientGroupFile"]) => {
-            allFiles.push({
-              id: file.id,
-              name: file.title,
-              type: file.type || "Practice Upload",
-              status: "Uploaded" as FileStatus,
-              statusColor: FILE_STATUS_COLORS["Uploaded"] || "text-gray-600",
-              updated: new Date(
-                file.created_at,
-              ).toLocaleDateString("en-US", {
-                month: "numeric",
-                day: "numeric",
-                year: "2-digit",
-              }),
-              nameColor: "text-blue-500",
-              url: file.url,
-              clientGroupFileId: file.id,
-              frequency: null,
-              nextDueDate: null,
-              surveyAnswersId: null,
-              isPracticeUpload: true,
-              clientName: undefined,
-              clientInitials: undefined, // No initials for practice uploads
-              clientId: undefined,
-            });
-          });
+          practiceData.files.forEach(
+            (
+              file: ClientFileResponse["ClientGroupFile"] & {
+                hasLockedChildren?: boolean;
+              },
+            ) => {
+              allFiles.push({
+                id: file.id,
+                name: file.title,
+                type: file.type || "Practice Upload",
+                status: "Uploaded" as FileStatus,
+                statusColor: FILE_STATUS_COLORS["Uploaded"] || "text-gray-600",
+                updated: new Date(file.created_at).toLocaleDateString("en-US", {
+                  month: "numeric",
+                  day: "numeric",
+                  year: "2-digit",
+                }),
+                nameColor: "text-blue-500",
+                url: file.url,
+                clientGroupFileId: file.id,
+                frequency: null,
+                nextDueDate: null,
+                surveyAnswersId: null,
+                isPracticeUpload: true,
+                clientName: undefined,
+                clientInitials: undefined, // No initials for practice uploads
+                clientId: undefined,
+                hasLockedChildren: file.hasLockedChildren || false,
+              });
+            },
+          );
         }
       }
 
@@ -468,7 +537,7 @@ export const useClientGroupFiles = (
       // Combine practice uploads with all client shared files
       return [...allFiles, ...clientSharedFiles.flat()];
     },
-    enabled: !!clientGroupId && clients.length > 0,
+    enabled: enabled && !!clientGroupId && clients.length > 0,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
   });

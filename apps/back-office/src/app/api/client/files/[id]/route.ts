@@ -113,11 +113,12 @@ export async function GET(
       });
     }
 
-    if (clientFile.ClientGroupFile.url) {
+    // Use client-specific blob URL if available, otherwise fall back to shared URL
+    const urlToDownload = clientFile.blob_url || clientFile.ClientGroupFile.url;
+
+    if (urlToDownload) {
       try {
-        const sasUrl = await generateDownloadUrl(
-          clientFile.ClientGroupFile.url,
-        );
+        const sasUrl = await generateDownloadUrl(urlToDownload);
 
         // Return the SAS URL as JSON instead of redirecting
         // The frontend will handle the redirect
@@ -170,6 +171,22 @@ export async function DELETE(
     });
 
     if (clientGroupFile) {
+      // Check if any child ClientFiles have status "Locked"
+      const hasLockedChildren = clientGroupFile.ClientFiles.some(
+        (file) => file.status === "Locked",
+      );
+
+      if (hasLockedChildren) {
+        return NextResponse.json(
+          {
+            error:
+              "Cannot delete file - one or more shared instances are locked",
+            hasLockedChildren: true,
+          },
+          { status: 403 },
+        );
+      }
+
       if (clientGroupFile.ClientFiles.length > 0) {
         return NextResponse.json(
           {
@@ -228,6 +245,16 @@ export async function DELETE(
       });
     }
 
+    // Delete client-specific blob if it exists
+    if (clientFile.blob_url) {
+      try {
+        await deleteFromAzureStorage(clientFile.blob_url);
+        console.log("Deleted client-specific blob:", clientFile.blob_url);
+      } catch (error) {
+        console.error("Failed to delete client-specific blob:", error);
+      }
+    }
+
     // Delete only the client file record (unshare)
     await prisma.clientFiles.delete({
       where: { id: fileId },
@@ -272,7 +299,13 @@ export async function POST(
     const clientGroupFile = await prisma.clientGroupFile.findFirst({
       where: { id: fileId },
       include: {
-        ClientFiles: true,
+        ClientFiles: {
+          select: {
+            id: true,
+            status: true,
+            blob_url: true,
+          },
+        },
       },
     });
 
@@ -280,14 +313,41 @@ export async function POST(
       return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
+    // Double-check for locked children before confirming delete
+    const hasLockedChildren = clientGroupFile.ClientFiles.some(
+      (file) => file.status === "Locked",
+    );
+
+    if (hasLockedChildren) {
+      return NextResponse.json(
+        {
+          error: "Cannot delete file - one or more shared instances are locked",
+          hasLockedChildren: true,
+        },
+        { status: 403 },
+      );
+    }
+
     // Proceed with deletion in transaction
     await prisma.$transaction(async (tx) => {
-      // Delete all ClientFiles records first
+      // First, delete client-specific blobs
+      for (const clientFile of clientGroupFile.ClientFiles) {
+        if (clientFile.blob_url) {
+          try {
+            await deleteFromAzureStorage(clientFile.blob_url);
+            console.log("Deleted client-specific blob:", clientFile.blob_url);
+          } catch (error) {
+            console.error("Failed to delete client-specific blob:", error);
+          }
+        }
+      }
+
+      // Delete all ClientFiles records
       await tx.clientFiles.deleteMany({
         where: { client_group_file_id: fileId },
       });
 
-      // Delete from Azure if it has a URL
+      // Delete from Azure if it has a URL (parent file)
       if (clientGroupFile.url) {
         try {
           await deleteFromAzureStorage(clientGroupFile.url);
