@@ -66,6 +66,11 @@ export default function TreatmentPlanTemplate({
   );
   const [searchTerms, setSearchTerms] = useState<{ [key: number]: string }>({});
   const [diagnosisInitialized, setDiagnosisInitialized] = useState(false);
+  const [loadedSurveyData, setLoadedSurveyData] = useState<Record<
+    string,
+    string
+  > | null>(null);
+  const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
 
   // Callback for survey completion
   const handleSurveyComplete = (answers: Record<string, unknown>) => {
@@ -79,13 +84,21 @@ export default function TreatmentPlanTemplate({
 
   // Get current survey data from the model
   const getCurrentSurveyData = () => {
+    console.log("Getting current survey data...");
     if (surveyModelRef.current && surveyModelRef.current.data) {
+      const modelData = surveyModelRef.current.data;
+      console.log("Survey model has data:", modelData);
+
       const stringAnswers: Record<string, string> = {};
-      Object.entries(surveyModelRef.current.data).forEach(([key, value]) => {
-        stringAnswers[key] = String(value ?? "");
+      Object.entries(modelData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          stringAnswers[key] = String(value);
+        }
       });
+      console.log("Converted survey data:", stringAnswers);
       return stringAnswers;
     }
+    console.log("No survey model data, returning state:", surveyAnswers);
     return surveyAnswers;
   };
 
@@ -99,13 +112,16 @@ export default function TreatmentPlanTemplate({
   // Load existing plan data if planId is provided
   useEffect(() => {
     const loadPlanData = async () => {
-      if (planId && clientId) {
+      if (planId) {
         try {
+          console.log("Loading plan data for editing, planId:", planId);
           const response = await fetch(
             `/api/diagnosis-treatment-plan?planId=${planId}`,
           );
           if (response.ok) {
             const plan = await response.json();
+            console.log("Loaded plan for editing:", plan);
+
             // Load existing diagnoses
             if (
               plan.DiagnosisTreatmentPlanItem &&
@@ -125,6 +141,31 @@ export default function TreatmentPlanTemplate({
               setDiagnoses(loadedDiagnoses);
               setDiagnosisInitialized(true);
             }
+
+            // Load survey data if available
+            if (plan.SurveyAnswers) {
+              console.log("Loading survey data from plan:", plan.SurveyAnswers);
+
+              // Parse content if it's a string
+              let content = plan.SurveyAnswers.content;
+              if (typeof content === "string") {
+                try {
+                  content = JSON.parse(content);
+                } catch (e) {
+                  console.error("Failed to parse survey content:", e);
+                }
+              }
+
+              if (content && typeof content === "object") {
+                setLoadedSurveyData(content as Record<string, string>);
+                setSurveyAnswers(content as Record<string, string>);
+              }
+
+              // Set the template ID if available
+              if (plan.SurveyAnswers.template_id) {
+                setLoadedTemplateId(plan.SurveyAnswers.template_id);
+              }
+            }
           }
         } catch (error) {
           console.error("Error loading plan data:", error);
@@ -133,7 +174,7 @@ export default function TreatmentPlanTemplate({
     };
 
     loadPlanData();
-  }, [planId, clientId]);
+  }, [planId]);
 
   // Get the most recent diagnosis from the treatment plans
   const latestDiagnosis = diagnosisPlans?.[0];
@@ -173,6 +214,30 @@ export default function TreatmentPlanTemplate({
           self.findIndex((t: SurveyTemplate) => t.name === template.name),
       )
     : [];
+
+  // Select the loaded template when templates are available
+  useEffect(() => {
+    if (loadedTemplateId && uniqueTemplates.length > 0 && !selectedTemplate) {
+      console.log("Looking for template with ID:", loadedTemplateId);
+      console.log(
+        "Available templates:",
+        uniqueTemplates.map((t: SurveyTemplate) => ({
+          id: t.id,
+          name: t.name,
+        })),
+      );
+
+      const template = uniqueTemplates.find(
+        (t: SurveyTemplate) => t.id === loadedTemplateId,
+      );
+      if (template) {
+        console.log("Auto-selecting loaded template:", template);
+        setSelectedTemplate(template);
+      } else {
+        console.log("Template not found in available templates");
+      }
+    }
+  }, [loadedTemplateId, uniqueTemplates, selectedTemplate]);
 
   // Debug: Log if duplicates were found
   if (
@@ -573,6 +638,22 @@ export default function TreatmentPlanTemplate({
                   (t: SurveyTemplate) => t.id === value,
                 );
                 setSelectedTemplate(template || null);
+
+                // Clear loaded survey data if user selects a different template
+                if (
+                  template &&
+                  loadedTemplateId &&
+                  template.id !== loadedTemplateId
+                ) {
+                  setLoadedSurveyData(null);
+                  setSurveyAnswers({});
+                  if (surveyModelRef.current) {
+                    surveyModelRef.current.data = {};
+                  }
+                  console.log(
+                    "Cleared survey data as user selected a different template",
+                  );
+                }
               }}
             >
               <SelectTrigger className="w-full max-w-md border border-gray-300 rounded h-10 px-3 text-sm">
@@ -660,6 +741,15 @@ export default function TreatmentPlanTemplate({
                           title={selectedTemplate.name}
                           type={selectedTemplate.type}
                           onComplete={handleSurveyComplete}
+                          onValueChanged={(name, value) => {
+                            console.log("Survey value changed:", name, value);
+                          }}
+                          initialData={
+                            loadedSurveyData &&
+                            selectedTemplate?.id === loadedTemplateId
+                              ? loadedSurveyData
+                              : undefined
+                          }
                         />
                       );
                     } catch (error) {
@@ -690,6 +780,7 @@ export default function TreatmentPlanTemplate({
                   onClick={() => {
                     setSelectedTemplate(null);
                     setSurveyAnswers({});
+                    setLoadedSurveyData(null);
                     setDiagnoses([{ code: "", description: "" }]);
                     setDiagnosisInitialized(false);
                   }}
@@ -716,6 +807,11 @@ export default function TreatmentPlanTemplate({
                     try {
                       // Get current survey data
                       const currentSurveyData = getCurrentSurveyData();
+                      console.log("Survey data being sent:", currentSurveyData);
+                      console.log(
+                        "Survey model ref data:",
+                        surveyModelRef.current?.data,
+                      );
 
                       // Prepare valid diagnoses
                       const validDiagnoses = diagnoses.filter(

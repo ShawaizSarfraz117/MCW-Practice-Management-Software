@@ -14,14 +14,6 @@ import { fetchDiagnosisTreatmentPlanById } from "../services/diagnosisTreatmentP
 import { fetchSurveyAnswer } from "@/(dashboard)/clients/[id]/mentalStatusExam/services/surveyAnswer.service";
 import type { DiagnosisTreatmentPlan } from "../services/diagnosisTreatmentPlan.service";
 
-interface DiagnosisTreatmentPlanWithSurvey extends DiagnosisTreatmentPlan {
-  SurveyAnswers?: {
-    id: string;
-    content: string;
-    [key: string]: unknown;
-  } | null;
-}
-
 interface TreatmentPlanViewProps {
   planId: string;
   onEdit?: () => void;
@@ -39,9 +31,7 @@ export default function TreatmentPlanView({
   onEdit,
   onSign,
 }: TreatmentPlanViewProps) {
-  const [plan, setPlan] = useState<DiagnosisTreatmentPlanWithSurvey | null>(
-    null,
-  );
+  const [plan, setPlan] = useState<DiagnosisTreatmentPlan | null>(null);
   const [surveyData, setSurveyData] = useState<
     Record<string, string | string[]>
   >({});
@@ -55,10 +45,13 @@ export default function TreatmentPlanView({
         setError(null);
 
         // Fetch the treatment plan
-        const planData = (await fetchDiagnosisTreatmentPlanById(
-          planId,
-        )) as DiagnosisTreatmentPlanWithSurvey;
+        const planData = await fetchDiagnosisTreatmentPlanById(planId);
         setPlan(planData);
+
+        // Debug logging
+        console.log("Treatment plan data:", planData);
+        console.log("Survey answers ID:", planData.survey_answers_id);
+        console.log("Survey answers data:", planData.SurveyAnswers);
 
         // Check if survey data is included in the response
         if (planData.SurveyAnswers && planData.SurveyAnswers.content) {
@@ -67,29 +60,47 @@ export default function TreatmentPlanView({
           if (typeof content === "string") {
             try {
               content = JSON.parse(content);
+              console.log("Parsed survey content:", content);
             } catch (e) {
               console.error("Failed to parse survey content:", e);
             }
           }
-          setSurveyData(content as Record<string, string | string[]>);
+          if (typeof content === "object" && content !== null) {
+            setSurveyData(content as Record<string, string | string[]>);
+          }
         } else if (planData.survey_answers_id) {
+          console.log(
+            "Fetching survey answer separately with ID:",
+            planData.survey_answers_id,
+          );
           // Fallback: fetch separately if not included
           const [surveyAnswer, surveyError] = await fetchSurveyAnswer({
             id: planData.survey_answers_id,
           });
 
           if (!surveyError && surveyAnswer && surveyAnswer.content) {
+            console.log("Fetched survey answer:", surveyAnswer);
             // Parse content if it's a string
             let content = surveyAnswer.content;
             if (typeof content === "string") {
               try {
                 content = JSON.parse(content);
+                console.log(
+                  "Parsed survey content from separate fetch:",
+                  content,
+                );
               } catch (e) {
                 console.error("Failed to parse survey content:", e);
               }
             }
-            setSurveyData(content as Record<string, string | string[]>);
+            if (typeof content === "object" && content !== null) {
+              setSurveyData(content as Record<string, string | string[]>);
+            }
+          } else if (surveyError) {
+            console.error("Error fetching survey answer:", surveyError);
           }
+        } else {
+          console.log("No survey data available for this treatment plan");
         }
       } catch (err) {
         console.error("Error loading treatment plan:", err);
@@ -108,107 +119,153 @@ export default function TreatmentPlanView({
   const getSurveyFields = (): SurveyField[] => {
     const fields: SurveyField[] = [];
 
-    // Add Presenting Problem
-    if (surveyData.presenting_problem) {
+    // Debug: Log all available fields
+    console.log("Available survey data fields:", Object.keys(surveyData));
+    console.log("Survey data values:", surveyData);
+
+    // If we have survey data, display it
+    if (Object.keys(surveyData).length > 0) {
+      // Group fields by sections based on field names
+      const presentingProblemFields: Array<[string, string | string[]]> = [];
+      const goalFields: Array<[string, string | string[]]> = [];
+      const objectiveFields: Array<[string, string | string[]]> = [];
+      const interventionFields: Array<[string, string | string[]]> = [];
+      const treatmentFields: Array<[string, string | string[]]> = [];
+      const otherFields: Array<[string, string | string[]]> = [];
+
+      // Categorize fields
+      Object.entries(surveyData).forEach(([key, value]) => {
+        if (!value || value === "") return;
+
+        const lowerKey = key.toLowerCase();
+
+        if (lowerKey.includes("presenting") || lowerKey.includes("problem")) {
+          presentingProblemFields.push([key, value]);
+        } else if (lowerKey.includes("goal")) {
+          goalFields.push([key, value]);
+        } else if (
+          lowerKey.includes("objective") ||
+          lowerKey.startsWith("question")
+        ) {
+          objectiveFields.push([key, value]);
+        } else if (lowerKey.includes("intervention")) {
+          interventionFields.push([key, value]);
+        } else if (
+          lowerKey.includes("treatment") ||
+          lowerKey.includes("approach")
+        ) {
+          treatmentFields.push([key, value]);
+        } else if (lowerKey !== "status" && !lowerKey.includes("id")) {
+          otherFields.push([key, value]);
+        }
+      });
+
+      // Add presenting problem fields
+      presentingProblemFields.forEach(([_key, value]) => {
+        fields.push({
+          label: "Presenting problem:",
+          value: String(value),
+          type: "text",
+        });
+      });
+
+      // Add Goals and Objectives section if any exist
+      if (goalFields.length > 0 || objectiveFields.length > 0) {
+        fields.push({
+          label: "GOALS AND OBJECTIVES",
+          value: "",
+          type: "section",
+        });
+
+        // Add goals
+        goalFields.forEach(([_key, value], index) => {
+          fields.push({
+            label: `Goal ${index + 1}`,
+            value: String(value),
+            type: "text",
+          });
+        });
+
+        // Add objectives
+        objectiveFields.forEach(([key, value], index) => {
+          const label = key.toLowerCase().includes("question")
+            ? `Objective ${index + 1}`
+            : formatFieldLabel(key);
+          fields.push({
+            label: label + ":",
+            value: String(value),
+            type: "text",
+          });
+        });
+
+        // Add status if exists
+        if (surveyData.status) {
+          fields.push({
+            label: "Status:",
+            value: String(surveyData.status),
+            type: "text",
+          });
+        }
+      }
+
+      // Add interventions
+      interventionFields.forEach(([_key, value]) => {
+        const interventions = Array.isArray(value) ? value : [value];
+        fields.push({
+          label: "Interventions:",
+          value: interventions.map((v) => String(v)).join("\n"),
+          type: "list",
+        });
+      });
+
+      // Add treatment approach section
+      if (treatmentFields.length > 0) {
+        fields.push({
+          label: "TREATMENT APPROACH",
+          value: "",
+          type: "section",
+        });
+
+        treatmentFields.forEach(([key, value]) => {
+          fields.push({
+            label: formatFieldLabel(key) + ":",
+            value: String(value),
+            type: "text",
+          });
+        });
+      }
+
+      // Add any other fields
+      if (otherFields.length > 0) {
+        otherFields.forEach(([key, value]) => {
+          fields.push({
+            label: formatFieldLabel(key) + ":",
+            value: String(value),
+            type: "text",
+          });
+        });
+      }
+    }
+
+    // If still no fields, show a message
+    if (fields.length === 0) {
       fields.push({
-        label: "Presenting problem:",
-        value: String(surveyData.presenting_problem),
+        label: "No survey data available",
+        value: "Survey data has not been filled out for this treatment plan.",
         type: "text",
       });
     }
 
-    // Add Goals and Objectives section
-    const hasGoalsSection =
-      surveyData.goal ||
-      surveyData.goal_1 ||
-      surveyData.objective_1a ||
-      surveyData.objective_1b ||
-      surveyData.objective_2a ||
-      surveyData.objective_2b;
-
-    if (hasGoalsSection) {
-      fields.push({
-        label: "GOALS AND OBJECTIVES",
-        value: "",
-        type: "section",
-      });
-
-      // Goal
-      if (surveyData.goal || surveyData.goal_1) {
-        fields.push({
-          label: "Goal 1",
-          value: String(surveyData.goal || surveyData.goal_1),
-          type: "text",
-        });
-      }
-
-      // Objectives
-      if (surveyData.objective_1a) {
-        fields.push({
-          label: "Objective 1A:",
-          value: String(surveyData.objective_1a),
-          type: "text",
-        });
-      }
-
-      if (surveyData.objective_1b) {
-        fields.push({
-          label: "Objective 1B:",
-          value: String(surveyData.objective_1b),
-          type: "text",
-        });
-      }
-
-      if (surveyData.objective_2a) {
-        fields.push({
-          label: "Objective 2B:",
-          value: String(surveyData.objective_2a),
-          type: "text",
-        });
-      }
-
-      if (surveyData.objective_2b) {
-        fields.push({
-          label: "Objective: ff",
-          value: String(surveyData.objective_2b),
-          type: "text",
-        });
-      }
-
-      // Status
-      if (surveyData.status) {
-        fields.push({
-          label: "Status:",
-          value: String(surveyData.status),
-          type: "text",
-        });
-      }
-
-      // Interventions
-      if (surveyData.interventions) {
-        const interventions = Array.isArray(surveyData.interventions)
-          ? surveyData.interventions
-          : [surveyData.interventions];
-
-        fields.push({
-          label: "Interventions:",
-          value: interventions.join("\n"),
-          type: "list",
-        });
-      }
-    }
-
-    // Treatment Approach section
-    if (surveyData.treatment_approach) {
-      fields.push({
-        label: "TREATMENT APPROACH",
-        value: "",
-        type: "section",
-      });
-      // Add any treatment approach content here if available
-    }
-
     return fields;
+  };
+
+  // Helper function to format field labels
+  const formatFieldLabel = (key: string): string => {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase())
+      .replace(/^\d+\s*/, "") // Remove leading numbers
+      .trim();
   };
 
   if (isLoading) {
@@ -237,6 +294,10 @@ export default function TreatmentPlanView({
   }
 
   const surveyFields = getSurveyFields();
+
+  // Debug logging for survey fields
+  console.log("Survey data state:", surveyData);
+  console.log("Generated survey fields:", surveyFields);
 
   return (
     <div className="bg-white">

@@ -21,6 +21,7 @@ interface SurveyPreviewProps {
   onComplete?: (result: Record<string, unknown>) => void;
   onValueChanged?: (name: string, value: unknown) => void;
   modelRef?: React.MutableRefObject<Model | null>;
+  initialData?: Record<string, unknown>;
 }
 
 export function SurveyPreview({
@@ -32,6 +33,7 @@ export function SurveyPreview({
   onComplete,
   onValueChanged,
   modelRef,
+  initialData,
 }: SurveyPreviewProps) {
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,12 @@ export function SurveyPreview({
           modelRef.current = model;
         }
 
+        // Set initial data if provided
+        if (initialData && mode === "edit") {
+          model.data = initialData;
+          console.log("Set initial survey data:", initialData);
+        }
+
         setSurveyModel(model);
         setError(null);
       } catch (err) {
@@ -97,6 +105,14 @@ export function SurveyPreview({
 
     setupSurvey();
   }, [content, title, type, mode, onComplete, onValueChanged, modelRef]);
+
+  // Separate effect to handle initial data updates
+  useEffect(() => {
+    if (surveyModel && initialData && mode === "edit") {
+      surveyModel.data = initialData;
+      console.log("Updated survey model with initial data:", initialData);
+    }
+  }, [surveyModel, initialData, mode]);
 
   if (!surveyModel) {
     return (

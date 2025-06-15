@@ -12,6 +12,19 @@ export interface DiagnosisTreatmentPlanItem {
   Diagnosis: DiagnosisItem;
 }
 
+export interface SurveyAnswers {
+  id: string;
+  template_id: string;
+  client_id: string;
+  client_group_id: string | null;
+  content: string;
+  status: string;
+  assigned_at: string;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DiagnosisTreatmentPlan {
   id: string;
   client_id: string;
@@ -22,6 +35,7 @@ export interface DiagnosisTreatmentPlan {
   title: string;
   survey_answers_id: string | null;
   DiagnosisTreatmentPlanItem: DiagnosisTreatmentPlanItem[];
+  SurveyAnswers?: SurveyAnswers | null;
 }
 
 export async function fetchDiagnosisTreatmentPlans(

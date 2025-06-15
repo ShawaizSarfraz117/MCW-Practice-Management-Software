@@ -217,23 +217,64 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      let createdSurveyAnswerId: string | null = null;
+    // First, get the existing plan to check if it has a survey answer
+    const existingPlan = await prisma.diagnosisTreatmentPlan.findUnique({
+      where: { id },
+      include: { SurveyAnswers: true },
+    });
 
-      // Create survey answer if survey data is provided
+    const result = await prisma.$transaction(async (tx) => {
+      let finalSurveyAnswerId: string | null =
+        existingPlan?.survey_answers_id || null;
+
+      // Handle survey answer - update existing or create new
       if (surveyData && surveyData.templateId && surveyData.content) {
-        const surveyAnswer = await tx.surveyAnswers.create({
-          data: {
-            template_id: surveyData.templateId,
-            client_id: data.clientId,
-            client_group_id: data?.clientGroupId || null,
-            content: JSON.stringify(surveyData.content),
-            status: "COMPLETED",
-            completed_at: new Date(),
-            assigned_at: new Date(),
-          },
-        });
-        createdSurveyAnswerId = surveyAnswer.id;
+        if (existingPlan?.survey_answers_id) {
+          // Update existing survey answer
+          logger.info({
+            message: "Updating existing survey answer",
+            surveyAnswerId: existingPlan.survey_answers_id,
+            templateId: surveyData.templateId,
+            contentKeys: Object.keys(surveyData.content),
+          });
+
+          const updatedSurvey = await tx.surveyAnswers.update({
+            where: { id: existingPlan.survey_answers_id },
+            data: {
+              content: JSON.stringify(surveyData.content),
+              status: "COMPLETED",
+              completed_at: new Date(),
+            },
+          });
+
+          logger.info({
+            message: "Updated survey answer successfully",
+            surveyAnswerId: updatedSurvey.id,
+            contentLength: updatedSurvey.content?.length,
+          });
+
+          finalSurveyAnswerId = existingPlan.survey_answers_id;
+        } else {
+          // Create new survey answer if none exists
+          logger.info({
+            message: "Creating new survey answer",
+            templateId: surveyData.templateId,
+            contentKeys: Object.keys(surveyData.content),
+          });
+
+          const surveyAnswer = await tx.surveyAnswers.create({
+            data: {
+              template_id: surveyData.templateId,
+              client_id: data.clientId,
+              client_group_id: data?.clientGroupId || null,
+              content: JSON.stringify(surveyData.content),
+              status: "COMPLETED",
+              completed_at: new Date(),
+              assigned_at: new Date(),
+            },
+          });
+          finalSurveyAnswerId = surveyAnswer.id;
+        }
       }
 
       // Update the treatment plan
@@ -242,7 +283,7 @@ export async function PUT(request: NextRequest) {
         data: {
           title,
           client_group_id: data?.clientGroupId || null,
-          survey_answers_id: surveyAnswersId || createdSurveyAnswerId || null,
+          survey_answers_id: surveyAnswersId || finalSurveyAnswerId || null,
           updated_at: new Date(),
         },
       });
@@ -254,11 +295,11 @@ export async function PUT(request: NextRequest) {
 
       // Create new diagnosis items
       const diagnosisItems = diagnoses
-        .filter((diag: DiagnosisItem) => diag.id || diag.description)
+        .filter((diag: DiagnosisItem) => diag.id && diag.id.length > 0)
         .map((diag: DiagnosisItem) => ({
           treatment_plan_id: treatmentPlan.id,
-          diagnosis_id: diag.id || "",
-          custom_description: !diag.id ? diag.description : null,
+          diagnosis_id: diag.id!,
+          custom_description: diag.description || null,
         }));
 
       if (diagnosisItems.length > 0) {
@@ -274,7 +315,7 @@ export async function PUT(request: NextRequest) {
       }
 
       // Return the updated plan with its items
-      return await tx.diagnosisTreatmentPlan.findUnique({
+      const updatedPlan = await tx.diagnosisTreatmentPlan.findUnique({
         where: { id: treatmentPlan.id },
         include: {
           DiagnosisTreatmentPlanItem: {
@@ -285,6 +326,15 @@ export async function PUT(request: NextRequest) {
           SurveyAnswers: true,
         },
       });
+
+      logger.info({
+        message: "Updated plan with survey data",
+        planId: updatedPlan?.id,
+        surveyAnswersId: updatedPlan?.survey_answers_id,
+        hasSurveyAnswers: !!updatedPlan?.SurveyAnswers,
+      });
+
+      return updatedPlan;
     });
 
     return NextResponse.json(result);
