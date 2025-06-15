@@ -2,22 +2,26 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import TreatmentPlanTemplate from "../components/TreatmentPlanTemplate";
-import DocumentationHistorySidebar from "../../components/DocumentationHistorySidebar";
-import { ClientInfoHeader } from "../../components/ClientInfoHeader";
+import TreatmentPlanView from "../../components/TreatmentPlanView";
+import SignAndLockModal from "../../components/SignAndLockModal";
+import DocumentationHistorySidebar from "../../../components/DocumentationHistorySidebar";
+import { ClientInfoHeader } from "../../../components/ClientInfoHeader";
 import { fetchSingleClientGroup } from "@/(dashboard)/clients/services/client.service";
-import { ClientGroupFromAPI } from "../../edit/components/ClientEdit";
+import { ClientGroupFromAPI } from "../../../edit/components/ClientEdit";
 
-export default function DiagnosisTreatmentPlanView() {
+export default function DiagnosisTreatmentPlanViewPage() {
   const params = useParams();
-  const _router = useRouter();
+  const router = useRouter();
   const clientGroupId = params.id as string;
   const planId = params.planId as string;
   const [clientInfo, setClientInfo] = useState<ClientGroupFromAPI | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [signModalOpen, setSignModalOpen] = useState(false);
+  const [name, setName] = useState("Shawaiz");
+  const [credentials, setCredentials] = useState("LMFT");
 
   // Get the first client's ID from the client group
-  const clientId = clientInfo?.ClientGroupMembership[0]?.Client?.id;
+  const _clientId = clientInfo?.ClientGroupMembership[0]?.Client?.id;
 
   useEffect(() => {
     const fetchClientData = async () => {
@@ -50,11 +54,33 @@ export default function DiagnosisTreatmentPlanView() {
         onDocumentationHistoryClick={() => setSidebarOpen(true)}
       />
 
-      <TreatmentPlanTemplate clientId={clientId} planId={planId} />
+      <TreatmentPlanView
+        planId={planId}
+        onEdit={() =>
+          router.push(
+            `/clients/${clientGroupId}/diagnosisAndTreatmentPlan/${planId}`,
+          )
+        }
+        onSign={() => setSignModalOpen(true)}
+      />
 
       <DocumentationHistorySidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+      />
+
+      <SignAndLockModal
+        open={signModalOpen}
+        onOpenChange={setSignModalOpen}
+        name={name}
+        setName={setName}
+        credentials={credentials}
+        setCredentials={setCredentials}
+        onSign={() => {
+          console.log("Signing with:", { name, credentials });
+          // TODO: Implement signing logic
+          setSignModalOpen(false);
+        }}
       />
     </div>
   );

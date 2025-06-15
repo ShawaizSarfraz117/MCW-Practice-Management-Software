@@ -15,6 +15,10 @@ interface DiagnosisTreatmentPlanRequest {
   dateTime: string;
   surveyAnswersId?: string;
   clientGroupId?: string;
+  surveyData?: {
+    templateId: string;
+    content: Record<string, string>;
+  };
 }
 
 // GET - Fetch diagnosis treatment plans for a client
@@ -34,6 +38,7 @@ export async function GET(request: NextRequest) {
             },
           },
           Client: true,
+          SurveyAnswers: true,
         },
       });
 
@@ -62,6 +67,7 @@ export async function GET(request: NextRequest) {
             Diagnosis: true,
           },
         },
+        SurveyAnswers: true,
       },
       orderBy: { created_at: "desc" },
     });
@@ -125,9 +131,20 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Only create diagnosis items if diagnosis_id is provided
+      // Check for existing diagnosis items for this treatment plan
+      const existingItems = await tx.diagnosisTreatmentPlanItem.findMany({
+        where: { treatment_plan_id: treatmentPlan.id },
+        select: { diagnosis_id: true },
+      });
+
+      const existingDiagnosisIds = new Set(
+        existingItems.map((item) => item.diagnosis_id),
+      );
+
+      // Only create diagnosis items if diagnosis_id is provided and not already exists
       const diagnosisItems = diagnoses
         .filter((diag) => diag.id && diag.id.length > 0)
+        .filter((diag) => !existingDiagnosisIds.has(diag.id!))
         .map((diag) => ({
           treatment_plan_id: treatmentPlan.id,
           diagnosis_id: diag.id!,
@@ -140,6 +157,23 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Update existing items if description changed
+      const itemsToUpdate = diagnoses
+        .filter((diag) => diag.id && existingDiagnosisIds.has(diag.id))
+        .filter((diag) => diag.description); // Only update if there's a description
+
+      for (const diag of itemsToUpdate) {
+        await tx.diagnosisTreatmentPlanItem.updateMany({
+          where: {
+            treatment_plan_id: treatmentPlan.id,
+            diagnosis_id: diag.id!,
+          },
+          data: {
+            custom_description: diag.description,
+          },
+        });
+      }
+
       // Return the created plan with its items
       return await tx.diagnosisTreatmentPlan.findUnique({
         where: { id: treatmentPlan.id },
@@ -149,6 +183,7 @@ export async function POST(request: NextRequest) {
               Diagnosis: true,
             },
           },
+          SurveyAnswers: true,
         },
       });
     });
@@ -173,7 +208,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
-    const { id, title, diagnoses, surveyAnswersId } = data;
+    const { id, title, diagnoses, surveyAnswersId, surveyData } = data;
 
     if (!id) {
       return NextResponse.json(
@@ -183,13 +218,31 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      let createdSurveyAnswerId: string | null = null;
+
+      // Create survey answer if survey data is provided
+      if (surveyData && surveyData.templateId && surveyData.content) {
+        const surveyAnswer = await tx.surveyAnswers.create({
+          data: {
+            template_id: surveyData.templateId,
+            client_id: data.clientId,
+            client_group_id: data?.clientGroupId || null,
+            content: JSON.stringify(surveyData.content),
+            status: "COMPLETED",
+            completed_at: new Date(),
+            assigned_at: new Date(),
+          },
+        });
+        createdSurveyAnswerId = surveyAnswer.id;
+      }
+
       // Update the treatment plan
       const treatmentPlan = await tx.diagnosisTreatmentPlan.update({
         where: { id },
         data: {
           title,
           client_group_id: data?.clientGroupId || null,
-          survey_answers_id: surveyAnswersId,
+          survey_answers_id: surveyAnswersId || createdSurveyAnswerId || null,
           updated_at: new Date(),
         },
       });
@@ -229,6 +282,7 @@ export async function PUT(request: NextRequest) {
               Diagnosis: true,
             },
           },
+          SurveyAnswers: true,
         },
       });
     });

@@ -19,6 +19,8 @@ interface SurveyPreviewProps {
   mode?: SurveyMode;
   showInstructions?: boolean;
   onComplete?: (result: Record<string, unknown>) => void;
+  onValueChanged?: (name: string, value: unknown) => void;
+  modelRef?: React.MutableRefObject<Model | null>;
 }
 
 export function SurveyPreview({
@@ -28,6 +30,8 @@ export function SurveyPreview({
   mode = "display",
   showInstructions = true,
   onComplete,
+  onValueChanged,
+  modelRef,
 }: SurveyPreviewProps) {
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +70,18 @@ export function SurveyPreview({
           });
         }
 
+        // Set up value change handler
+        if (onValueChanged) {
+          model.onValueChanged.add((_sender, options) => {
+            onValueChanged(options.name, options.value);
+          });
+        }
+
+        // Store model reference if provided
+        if (modelRef) {
+          modelRef.current = model;
+        }
+
         setSurveyModel(model);
         setError(null);
       } catch (err) {
@@ -80,7 +96,7 @@ export function SurveyPreview({
     };
 
     setupSurvey();
-  }, [content, title, type, mode, onComplete]);
+  }, [content, title, type, mode, onComplete, onValueChanged, modelRef]);
 
   if (!surveyModel) {
     return (
