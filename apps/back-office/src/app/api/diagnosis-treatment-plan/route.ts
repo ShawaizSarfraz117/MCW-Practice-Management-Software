@@ -366,15 +366,107 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // First, get the treatment plan to check if it exists and get survey_answers_id
+    const existingPlan = await prisma.diagnosisTreatmentPlan.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        survey_answers_id: true,
+        client_id: true,
+        title: true,
+      },
+    });
+
+    if (!existingPlan) {
+      return NextResponse.json(
+        { error: "Treatment plan not found" },
+        { status: 404 },
+      );
+    }
+
+    logger.info({
+      message: "Deleting diagnosis treatment plan",
+      planId: id,
+      clientId: existingPlan.client_id,
+      title: existingPlan.title,
+      hasSurveyAnswers: !!existingPlan.survey_answers_id,
+    });
+
     await prisma.$transaction(async (tx) => {
       // Delete diagnosis items first (due to foreign key constraint)
       await tx.diagnosisTreatmentPlanItem.deleteMany({
         where: { treatment_plan_id: id },
       });
 
-      // Delete the treatment plan
+      // Handle survey answers deletion properly
+      let surveyAnswersToDelete: string | null = null;
+
+      if (existingPlan.survey_answers_id) {
+        // Check if this survey answer is used by other treatment plans or records
+        const otherUsages = await tx.diagnosisTreatmentPlan.count({
+          where: {
+            survey_answers_id: existingPlan.survey_answers_id,
+            id: { not: id },
+          },
+        });
+
+        // Also check AppointmentNotes and ClientFiles that might reference this survey
+        const appointmentNotesCount = await tx.appointmentNotes.count({
+          where: { survey_answer_id: existingPlan.survey_answers_id },
+        });
+
+        const clientFilesCount = await tx.clientFiles.count({
+          where: { survey_answers_id: existingPlan.survey_answers_id },
+        });
+
+        // Only mark for deletion if not referenced elsewhere
+        if (
+          otherUsages === 0 &&
+          appointmentNotesCount === 0 &&
+          clientFilesCount === 0
+        ) {
+          surveyAnswersToDelete = existingPlan.survey_answers_id;
+          logger.info({
+            message: "Survey answers will be deleted",
+            surveyAnswersId: existingPlan.survey_answers_id,
+          });
+        } else {
+          logger.info({
+            message: "Survey answers preserved due to other references",
+            surveyAnswersId: existingPlan.survey_answers_id,
+            otherPlanReferences: otherUsages,
+            appointmentNotesReferences: appointmentNotesCount,
+            clientFilesReferences: clientFilesCount,
+          });
+        }
+      }
+
+      // Remove the foreign key reference first by updating the treatment plan
+      await tx.diagnosisTreatmentPlan.update({
+        where: { id },
+        data: { survey_answers_id: null },
+      });
+
+      // Now delete the treatment plan
       await tx.diagnosisTreatmentPlan.delete({
         where: { id },
+      });
+
+      // Finally, delete the survey answers if safe to do so
+      if (surveyAnswersToDelete) {
+        await tx.surveyAnswers.delete({
+          where: { id: surveyAnswersToDelete },
+        });
+
+        logger.info({
+          message: "Associated survey answers deleted",
+          surveyAnswersId: surveyAnswersToDelete,
+        });
+      }
+
+      logger.info({
+        message: "Treatment plan deleted successfully",
+        planId: id,
       });
     });
 

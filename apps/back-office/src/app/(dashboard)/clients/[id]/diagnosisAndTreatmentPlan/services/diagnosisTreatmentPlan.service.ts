@@ -85,3 +85,28 @@ export async function fetchDiagnosisTreatmentPlanById(
     throw error;
   }
 }
+
+export async function deleteDiagnosisTreatmentPlan(
+  planId: string,
+): Promise<{ message: string }> {
+  try {
+    const res = await fetch(`/api/diagnosis-treatment-plan?id=${planId}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      const error = await res
+        .json()
+        .catch(() => ({ error: "Failed to delete diagnosis treatment plan" }));
+      throw new Error(
+        error.error || "Failed to delete diagnosis treatment plan",
+      );
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error("Error deleting diagnosis treatment plan:", error);
+    throw error;
+  }
+}

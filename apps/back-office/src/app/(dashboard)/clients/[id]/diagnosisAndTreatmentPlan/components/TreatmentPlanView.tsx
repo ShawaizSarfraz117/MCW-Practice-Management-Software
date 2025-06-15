@@ -2,16 +2,23 @@
 
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { useRouter, useParams } from "next/navigation";
 import {
   Button,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  toast,
 } from "@mcw/ui";
 import { Pencil } from "lucide-react";
-import { fetchDiagnosisTreatmentPlanById } from "../services/diagnosisTreatmentPlan.service";
+import {
+  fetchDiagnosisTreatmentPlanById,
+  deleteDiagnosisTreatmentPlan,
+} from "../services/diagnosisTreatmentPlan.service";
 import { fetchSurveyAnswer } from "@/(dashboard)/clients/[id]/mentalStatusExam/services/surveyAnswer.service";
+import { showErrorToast } from "@mcw/utils";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import type { DiagnosisTreatmentPlan } from "../services/diagnosisTreatmentPlan.service";
 
 interface TreatmentPlanViewProps {
@@ -31,12 +38,18 @@ export default function TreatmentPlanView({
   onEdit,
   onSign,
 }: TreatmentPlanViewProps) {
+  const router = useRouter();
+  const params = useParams();
+  const clientGroupId = params.id as string;
+
   const [plan, setPlan] = useState<DiagnosisTreatmentPlan | null>(null);
   const [surveyData, setSurveyData] = useState<
     Record<string, string | string[]>
   >({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const loadPlanData = async () => {
@@ -114,6 +127,30 @@ export default function TreatmentPlanView({
       loadPlanData();
     }
   }, [planId]);
+
+  // Handle delete treatment plan
+  const handleDelete = async () => {
+    if (!plan) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteDiagnosisTreatmentPlan(planId);
+
+      toast({
+        title: "Success",
+        description: "Treatment plan deleted successfully",
+      });
+
+      // Navigate back to the main client page
+      router.push(`/clients/${clientGroupId}`);
+    } catch (error) {
+      console.error("Error deleting treatment plan:", error);
+      showErrorToast(toast, error);
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+    }
+  };
 
   // Transform survey data into display format
   const getSurveyFields = (): SurveyField[] => {
@@ -337,7 +374,10 @@ export default function TreatmentPlanView({
             <DropdownMenuContent align="end">
               <DropdownMenuItem>Print</DropdownMenuItem>
               <DropdownMenuItem>Download</DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -423,6 +463,15 @@ export default function TreatmentPlanView({
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
+        treatmentPlanTitle={plan?.title || ""}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
