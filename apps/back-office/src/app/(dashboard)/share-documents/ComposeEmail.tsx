@@ -42,7 +42,11 @@ export const ComposeEmail: React.FC<ComposeEmailProps> = ({
   } else {
     steps.push({ number: 1, label: clientName });
   }
-  steps.push({ number: steps.length + 1, label: "Compose Email", isActive: true });
+  steps.push({
+    number: steps.length + 1,
+    label: "Compose Email",
+    isActive: true,
+  });
   steps.push({ number: steps.length + 1, label: "Review & Send" });
 
   const getInitials = (name: string) => {
@@ -94,7 +98,9 @@ Please see below for important information about parking and access at each of o
                   {client.email ? (
                     <span>Sending to: {client.email}</span>
                   ) : (
-                    <span className="text-orange-600">No email address on file</span>
+                    <span className="text-orange-600">
+                      No email address on file
+                    </span>
                   )}
                 </div>
                 <Textarea
@@ -132,7 +138,10 @@ Please see below for important information about parking and access at each of o
             onClick={onBack}
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to {clients && clients.length > 0 ? clients[clients.length - 1].name : clientName}
+            Back to{" "}
+            {clients && clients.length > 0
+              ? clients[clients.length - 1].name
+              : clientName}
           </Button>
           <Button
             className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2"

@@ -61,7 +61,7 @@ export async function GET(
     }
 
     // Check if this is a survey template
-    if (clientFile.ClientGroupFile.survey_template_id) {
+    if (clientFile.ClientGroupFile?.survey_template_id) {
       // Fetch the survey template separately
       const surveyTemplate = await prisma.surveyTemplate.findUnique({
         where: { id: clientFile.ClientGroupFile.survey_template_id },
@@ -108,13 +108,14 @@ export async function GET(
       return new NextResponse(buffer, {
         headers: {
           "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${clientFile.ClientGroupFile.title || "survey"}.pdf"`,
+          "Content-Disposition": `attachment; filename="${clientFile.ClientGroupFile?.title || "survey"}.pdf"`,
         },
       });
     }
 
     // Use client-specific blob URL if available, otherwise fall back to shared URL
-    const urlToDownload = clientFile.blob_url || clientFile.ClientGroupFile.url;
+    const urlToDownload =
+      clientFile.blob_url || clientFile.ClientGroupFile?.url;
 
     if (urlToDownload) {
       try {

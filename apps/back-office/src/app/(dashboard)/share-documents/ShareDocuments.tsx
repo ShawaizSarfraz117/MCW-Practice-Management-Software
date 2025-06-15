@@ -172,7 +172,9 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
           const fileData = {
             frequency: file.frequency || undefined,
             status: file.status,
-            sharedAt: file.shared_at || undefined,
+            sharedAt: file.shared_at
+              ? new Date(file.shared_at).toISOString()
+              : undefined,
           };
 
           // Check if it's a survey template

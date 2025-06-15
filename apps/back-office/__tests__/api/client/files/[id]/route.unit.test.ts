@@ -195,6 +195,7 @@ describe("Client Files [id] API Unit Tests", () => {
         }),
         ClientGroupFile: ClientGroupFileFactory.build({
           url: "https://storage.blob.core.windows.net/uploads/original.pdf",
+          survey_template_id: null,
         }),
         SurveyAnswers: null,
       };

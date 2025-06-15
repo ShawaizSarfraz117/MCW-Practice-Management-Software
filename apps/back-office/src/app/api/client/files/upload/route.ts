@@ -4,8 +4,151 @@ import { logger } from "@mcw/logger";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { generateUUID } from "@mcw/utils";
 import { uploadToAzureStorage } from "@/utils/azureStorage";
+import { ClientFileResponse, FileFrequency } from "@mcw/types";
 
-// POST /api/client/files/client-upload - Upload a file directly to a specific client
+// GET /api/client/files - Get client files (if we need a list endpoint)
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getBackOfficeSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    const clientId = searchParams.get("client_id");
+    const clientGroupIdParam = searchParams.get("client_group_id");
+
+    // Support both client_id and client_group_id queries
+    if (!clientId && !clientGroupIdParam) {
+      return NextResponse.json(
+        { error: "Either client_id or client_group_id is required" },
+        { status: 400 },
+      );
+    }
+
+    let clientGroupId: string;
+    let sharedFiles: ClientFileResponse[] = [];
+
+    if (clientGroupIdParam) {
+      // Direct query by client_group_id - used by share documents
+      clientGroupId = clientGroupIdParam;
+    } else if (clientId) {
+      // Get client's group ID through ClientGroupMembership
+      const clientWithGroup = await prisma.client.findUnique({
+        where: { id: clientId },
+        include: {
+          ClientGroupMembership: {
+            select: {
+              client_group_id: true,
+            },
+          },
+        },
+      });
+
+      if (!clientWithGroup || !clientWithGroup.ClientGroupMembership[0]) {
+        return NextResponse.json(
+          { error: "Client or group not found" },
+          { status: 404 },
+        );
+      }
+
+      clientGroupId = clientWithGroup.ClientGroupMembership[0].client_group_id;
+
+      // Get all shared files for this specific client
+      const rawSharedFiles = await prisma.clientFiles.findMany({
+        where: {
+          client_id: clientId,
+        },
+        include: {
+          ClientGroupFile: true,
+          SurveyAnswers: true,
+        },
+        orderBy: {
+          shared_at: "desc",
+        },
+      });
+
+      // Map the raw data to proper ClientFileResponse type
+      sharedFiles = rawSharedFiles.map((file) => ({
+        ...file,
+        frequency: file.frequency as FileFrequency | null,
+      }));
+    } else {
+      return NextResponse.json(
+        { error: "Unable to determine client group" },
+        { status: 400 },
+      );
+    }
+
+    // Get all files for the client group (Practice Uploads) with their child files
+    const practiceUploads = await prisma.clientGroupFile.findMany({
+      where: {
+        client_group_id: clientGroupId,
+        type: "Practice Upload",
+      },
+      include: {
+        ClientFiles: {
+          select: {
+            status: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: "desc",
+      },
+    });
+
+    // Format response for share documents compatibility
+    if (clientGroupIdParam && !clientId) {
+      // Share documents expects a specific format
+      const files = practiceUploads.map((file) => ({
+        id: file.id,
+        title: file.title,
+        url: file.url,
+        type: file.type,
+        uploadedAt: file.created_at,
+        uploadedBy: file.uploaded_by_id,
+        isShared: false,
+        sharedAt: null,
+        sharingEnabled: true,
+        status: "uploaded",
+        created_at: file.created_at,
+        updated_at: file.updated_at,
+        hasLockedChildren: file.ClientFiles.some(
+          (cf) => cf.status === "Locked",
+        ),
+      }));
+
+      return NextResponse.json({
+        success: true,
+        files,
+      });
+    }
+
+    // Original response format for client files tab
+    const practiceUploadsWithLockStatus = practiceUploads.map((file) => ({
+      ...file,
+      hasLockedChildren: file.ClientFiles.some((cf) => cf.status === "Locked"),
+    }));
+
+    return NextResponse.json({
+      success: true,
+      practiceUploads: practiceUploadsWithLockStatus,
+      sharedFiles,
+    });
+  } catch (error: unknown) {
+    logger.error({
+      message: "Failed to fetch client files",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Failed to fetch files" },
+      { status: 500 },
+    );
+  }
+}
+
+// POST /api/client/files - Upload a new file
 export async function POST(request: NextRequest) {
   try {
     const session = await getBackOfficeSession();
@@ -70,21 +213,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate client exists and belongs to the group
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        ClientGroupMembership: {
-          some: {
-            client_group_id: clientGroupId,
-          },
-        },
-      },
+    // Validate client exists
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
     });
 
     if (!client) {
+      return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    // Validate client group exists
+    const clientGroup = await prisma.clientGroup.findUnique({
+      where: { id: clientGroupId },
+    });
+
+    if (!clientGroup) {
       return NextResponse.json(
-        { error: "Client not found or not in the specified group" },
+        { error: "Client group not found" },
         { status: 404 },
       );
     }
@@ -94,11 +239,9 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Replace spaces with underscores in filename
-    const sanitizedFileName = file.name.replace(/\s+/g, '_');
+    const sanitizedFileName = file.name.replace(/\s+/g, "_");
 
-    // Upload to Azure Blob Storage with new folder structure
-    // Client-specific files go to: client-groups/{clientGroupId}/{clientId}/
-    const virtualPath = `${clientGroupId}/${clientId}`;
+    const virtualPath = `${clientGroupId}/practice-uploads`;
     const uploadResult = await uploadToAzureStorage(
       buffer,
       sanitizedFileName,
@@ -106,48 +249,26 @@ export async function POST(request: NextRequest) {
       virtualPath,
     );
 
-    // Create transaction to ensure both records are created
-    const result = await prisma.$transaction(async (tx) => {
-      // Create ClientGroupFile record
-      const clientGroupFile = await tx.clientGroupFile.create({
-        data: {
-          id: generateUUID(),
-          client_group_id: clientGroupId,
-          title: title || file.name,
-          type: "Client Upload", // New type for client-specific uploads
-          url: uploadResult.blobUrl,
-          uploaded_by_id: session.user.id,
-        },
-      });
-
-      // Create ClientFiles record to link to specific client
-      const clientFile = await tx.clientFiles.create({
-        data: {
-          id: generateUUID(),
-          client_id: clientId,
-          client_group_file_id: clientGroupFile.id,
-          status: "Uploaded",
-          shared_at: new Date(),
-        },
-      });
-
-      return {
-        clientGroupFile,
-        clientFile,
-      };
+    const clientGroupFile = await prisma.clientGroupFile.create({
+      data: {
+        id: generateUUID(),
+        client_group_id: clientGroupId,
+        title: title || file.name,
+        type: "Practice Upload",
+        url: uploadResult.blobUrl,
+        uploaded_by_id: session.user.id,
+      },
     });
 
     return NextResponse.json(
       {
         success: true,
         file: {
-          id: result.clientFile.id,
-          clientGroupFileId: result.clientGroupFile.id,
-          title: result.clientGroupFile.title,
-          url: result.clientGroupFile.url,
-          type: result.clientGroupFile.type,
-          status: result.clientFile.status,
-          uploadedAt: result.clientGroupFile.created_at,
+          id: clientGroupFile.id,
+          title: clientGroupFile.title,
+          url: clientGroupFile.url,
+          type: clientGroupFile.type,
+          uploadedAt: clientGroupFile.created_at,
         },
       },
       { status: 201 },

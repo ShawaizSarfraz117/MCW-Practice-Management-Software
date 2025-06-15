@@ -2209,10 +2209,7 @@ export function CalendarView({
 
       {showIntakeForm && intakeClientData && (
         <IntakeForm
-          clientEmail={intakeClientData.clientEmail}
           clientGroupId={intakeClientData.clientGroupId}
-          clientId={intakeClientData.clientId}
-          clientName={intakeClientData.clientName}
           onClose={() => {
             setShowIntakeForm(false);
             setIntakeClientData(null);
