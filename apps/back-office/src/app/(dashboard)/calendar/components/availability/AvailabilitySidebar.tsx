@@ -26,6 +26,9 @@ import {
   Location,
 } from "./types";
 import { DeleteAvailabilityModal } from "./DeleteAvailabilityModal";
+import { EditRecurringAvailabilityModal } from "./EditRecurringAvailabilityModal";
+import { ValidationError } from "../appointment-dialog/components/ValidationError";
+import { useSession } from "next-auth/react";
 
 export function AvailabilitySidebar({
   open,
@@ -36,6 +39,10 @@ export function AvailabilitySidebar({
   isEditMode = false,
 }: AvailabilitySidebarProps) {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
+  const isClinician = session?.user?.roles?.includes("CLINICIAN") || false;
+  const userId = session?.user?.id;
 
   const startOfWeek = new Date(selectedDate);
   startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
@@ -76,6 +83,8 @@ export function AvailabilitySidebar({
       enabled:
         isEditMode &&
         (!!initialAvailabilityData?.id || (!!apiStartDate && !!apiEndDate)),
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
     });
 
   // Use fetched data if available, otherwise use initial data
@@ -98,12 +107,49 @@ export function AvailabilitySidebar({
   const [deleteOption, setDeleteOption] = useState<"single" | "future" | "all">(
     "single",
   );
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editOption, setEditOption] = useState<"single" | "future" | "all">(
+    "single",
+  );
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [duration, setDuration] = useState<string>("0 mins");
   const [localSelectedServices, setLocalSelectedServices] = useState<string[]>(
     [],
   );
+  const [validationState, setValidationState] = useState<
+    Record<string, boolean>
+  >({});
+
+  // State for user's clinician ID
+  const [userClinicianId, setUserClinicianId] = useState<string | null>(null);
+
+  // Fetch clinician ID for non-admin users
+  useEffect(() => {
+    const fetchClinicianId = async () => {
+      if (isClinician && !isAdmin && userId) {
+        try {
+          const response = await fetch(`/api/clinician?userId=${userId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.id) {
+              setUserClinicianId(data.id);
+            }
+          }
+        } catch (_error) {
+          // Error fetching clinician ID
+        }
+      }
+    };
+
+    fetchClinicianId();
+  }, [isClinician, isAdmin, userId]);
+
+  // Use user's clinician ID if they're a clinician, otherwise use selectedResource
+  const effectiveClinicianId =
+    isClinician && !isAdmin && userClinicianId
+      ? userClinicianId
+      : selectedResource;
 
   // Fetch availability services if we have an availability ID
   const {
@@ -119,11 +165,11 @@ export function AvailabilitySidebar({
         );
         if (response.ok) {
           const data = await response.json();
-          return data.services || [];
+          // The API returns an object with services array
+          return Array.isArray(data) ? data : data.services || [];
         }
         return [];
-      } catch (error) {
-        console.error("Error fetching availability services:", error);
+      } catch (_error) {
         return [];
       }
     },
@@ -131,7 +177,24 @@ export function AvailabilitySidebar({
   });
 
   const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
-    useFormTabs(selectedResource, selectedDate);
+    useFormTabs(effectiveClinicianId, selectedDate);
+
+  // Update form values when effective clinician ID changes
+  useEffect(() => {
+    if (
+      effectiveClinicianId &&
+      availabilityFormValues.clinician !== effectiveClinicianId
+    ) {
+      setAvailabilityFormValues((prev) => ({
+        ...prev,
+        clinician: effectiveClinicianId,
+      }));
+    }
+  }, [
+    effectiveClinicianId,
+    availabilityFormValues.clinician,
+    setAvailabilityFormValues,
+  ]);
 
   // Fetch locations
   const { data: locations = [] } = useQuery<Location[]>({
@@ -147,36 +210,104 @@ export function AvailabilitySidebar({
     },
   });
 
-  // Fetch all services for the dropdown
-  const { data: allServices = [] } = useQuery<Service[]>({
-    queryKey: [
-      "allServices",
-      availabilityData?.clinician_id || availabilityFormValues.clinician,
-    ],
-    queryFn: async (): Promise<Service[]> => {
-      try {
-        let url = "/api/service";
-        const clinicianId =
-          availabilityData?.clinician_id || availabilityFormValues.clinician;
+  // State to store fetched services
+  const [fetchedServices, setFetchedServices] = useState<Service[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
 
-        if (clinicianId) {
-          url += `?clinicianId=${clinicianId}&detailed=true`;
-          const response = await fetch(url);
-          if (response.ok) {
-            const data = await response.json();
-            return data.services || [];
-          }
-        }
-        return [];
-      } catch (error) {
-        console.error("Error fetching all services:", error);
-        return [];
+  // Fetch team members for admin users
+  const { data: teamMembers = [], isLoading: isLoadingTeamMembers } = useQuery({
+    queryKey: ["teamMembers"],
+    queryFn: async () => {
+      const response = await fetch("/api/clinician");
+      if (!response.ok) {
+        throw new Error("Failed to fetch team members");
       }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
-    enabled: !!(
-      availabilityData?.clinician_id || availabilityFormValues.clinician
-    ),
+    enabled: !!session?.user?.roles?.includes("ADMIN"),
   });
+
+  // Clear validation errors
+  const clearValidationError = (field: string) => {
+    setValidationState((prev) => ({
+      ...prev,
+      [field]: false,
+    }));
+  };
+
+  // Use React Query to fetch practice services
+  const {
+    data: servicesData,
+    isLoading: isLoadingServicesQuery,
+    refetch: refetchServices,
+  } = useQuery({
+    queryKey: ["practiceServices"],
+    queryFn: async () => {
+      const response = await fetch("/api/service");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          "Failed to fetch services:",
+          response.status,
+          response.statusText,
+        );
+        console.error("Error response:", errorText);
+        throw new Error("Failed to fetch services");
+      }
+      return response.json();
+    },
+    enabled: false, // Only fetch when explicitly triggered
+  });
+
+  // Update fetched services when data changes
+  useEffect(() => {
+    if (servicesData) {
+      let services: Service[] = [];
+      if (Array.isArray(servicesData)) {
+        // Map snake_case to camelCase if needed
+        services = servicesData.map((service: Record<string, unknown>) => ({
+          id: service.id as string,
+          type: service.type as string,
+          code: service.code as string,
+          duration: service.duration as number,
+          description: service.description as string,
+          rate: service.rate as number,
+          defaultRate: service.rate as number, // API returns rate, not defaultRate
+          color: service.color as string,
+          isActive: (service.is_active as boolean) ?? true,
+          isDefault: (service.is_default as boolean) ?? false,
+          billInUnits: (service.bill_in_units as boolean) ?? false,
+          availableOnline: (service.available_online as boolean) ?? false,
+          allowNewClients: (service.allow_new_clients as boolean) ?? false,
+          requireCall: (service.require_call as boolean) ?? false,
+          blockBefore: (service.block_before as number) ?? 0,
+          blockAfter: (service.block_after as number) ?? 0,
+        }));
+      } else if (
+        servicesData.services &&
+        Array.isArray(servicesData.services)
+      ) {
+        services = servicesData.services;
+      } else if (servicesData.data && Array.isArray(servicesData.data)) {
+        services = servicesData.data;
+      }
+      setFetchedServices(services);
+    }
+  }, [servicesData]);
+
+  // Update loading state when query loading changes
+  useEffect(() => {
+    setIsLoadingServices(isLoadingServicesQuery);
+  }, [isLoadingServicesQuery]);
+
+  // Function to fetch all practice services
+  const fetchServices = async () => {
+    await refetchServices();
+  };
+
+  // Use fetched services or empty array
+  const allServices = fetchedServices;
 
   // Update state when availabilityData changes
   useEffect(() => {
@@ -189,10 +320,7 @@ export function AvailabilitySidebar({
         availabilityData.location_id || availabilityData.location || "",
       );
 
-      // Initialize local selected services with fetched services when in edit mode
-      if (isEditMode && availabilityServices.length > 0) {
-        setLocalSelectedServices(availabilityServices.map((s) => s.id));
-      }
+      // Don't initialize services here - handled in separate effect
 
       // Handle recurring rule parsing
       if (availabilityData.recurring_rule && availabilityData.is_recurring) {
@@ -200,7 +328,21 @@ export function AvailabilitySidebar({
         const byDayMatch =
           availabilityData.recurring_rule.match(/BYDAY=([^;]+)/);
         if (byDayMatch) {
-          setSelectedDays(byDayMatch[1].split(","));
+          // Convert 2-letter RFC5545 codes to 3-letter codes for UI
+          const twoLetterToThreeLetter: Record<string, string> = {
+            SU: "SUN",
+            MO: "MON",
+            TU: "TUE",
+            WE: "WED",
+            TH: "THU",
+            FR: "FRI",
+            SA: "SAT",
+          };
+          const twoLetterDays = byDayMatch[1].split(",");
+          const threeLetterDays = twoLetterDays.map(
+            (day: string) => twoLetterToThreeLetter[day] || day,
+          );
+          setSelectedDays(threeLetterDays);
         }
 
         // Parse INTERVAL
@@ -286,8 +428,8 @@ export function AvailabilitySidebar({
           ? [availabilityData.service_id]
           : [],
       }));
-    } else {
-      // Reset all values if no availabilityData
+    } else if (!isEditMode) {
+      // Only reset values if not in edit mode
       setAllowOnlineRequests(false);
       setIsRecurring(false);
       setSelectedDays(["MON", "WED", "FRI"]);
@@ -299,18 +441,28 @@ export function AvailabilitySidebar({
       setSelectedLocation("");
       setLocalSelectedServices([]);
     }
-  }, [open, availabilityData, setAvailabilityFormValues]);
+  }, [open, availabilityData, setAvailabilityFormValues, isEditMode]);
 
-  // Sync local selected services when availabilityServices change
+  // Initialize selected services only once when they're first loaded
   useEffect(() => {
     if (
       isEditMode &&
       availabilityServices.length > 0 &&
-      localSelectedServices.length === 0
+      localSelectedServices.length === 0 &&
+      open
     ) {
       setLocalSelectedServices(availabilityServices.map((s) => s.id));
+      // Also fetch all services for the dropdown in edit mode
+      fetchServices();
     }
-  }, [availabilityServices, isEditMode, localSelectedServices.length]);
+  }, [availabilityServices.length, isEditMode, open]); // Only depend on length, not the array itself
+
+  // Fetch services when component opens
+  useEffect(() => {
+    if (open && !isEditMode) {
+      fetchServices();
+    }
+  }, [open, isEditMode]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -359,7 +511,20 @@ export function AvailabilitySidebar({
     }
 
     if (period === "week" && selectedDays.length > 0) {
-      parts.push(`BYDAY=${selectedDays.join(",")}`);
+      // Convert 3-letter codes to 2-letter RFC5545 codes
+      const threeLetterToTwoLetter: Record<string, string> = {
+        SUN: "SU",
+        MON: "MO",
+        TUE: "TU",
+        WED: "WE",
+        THU: "TH",
+        FRI: "FR",
+        SAT: "SA",
+      };
+      const twoLetterDays = selectedDays.map(
+        (day: string) => threeLetterToTwoLetter[day] || day,
+      );
+      parts.push(`BYDAY=${twoLetterDays.join(",")}`);
     }
 
     if (endType === "occurrences" && endValue) {
@@ -394,8 +559,8 @@ export function AvailabilitySidebar({
           const [hours, minutes] = timeStr.split(":").map(Number);
           newDate.setHours(hours, minutes, 0, 0);
         }
-      } catch (error) {
-        console.error("Error converting date/time:", error);
+      } catch (_error) {
+        // Error converting date/time
       }
     }
 
@@ -418,7 +583,9 @@ export function AvailabilitySidebar({
   // Add all services to availability
   const handleAddAllServices = () => {
     const availableServices = allServices.filter(
-      (service: Service) => !localSelectedServices.includes(service.id),
+      (service: Service) =>
+        !localSelectedServices.includes(service.id) &&
+        service.availableOnline === true,
     );
 
     setLocalSelectedServices((prev) => [
@@ -435,12 +602,6 @@ export function AvailabilitySidebar({
 
   const handleDelete = async () => {
     try {
-      console.log("Delete attempt - availabilityData:", availabilityData);
-      console.log(
-        "Delete attempt - availabilityData.id:",
-        availabilityData?.id,
-      );
-
       if (!availabilityData?.id) {
         setGeneralError("No availability ID found");
         return;
@@ -455,12 +616,8 @@ export function AvailabilitySidebar({
         method: "DELETE",
       });
 
-      console.log("Delete response status:", response.status);
-      console.log("Delete response ok:", response.ok);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.log("Delete error data:", errorData);
         throw new Error(errorData.error || "Failed to delete availability");
       }
 
@@ -468,13 +625,31 @@ export function AvailabilitySidebar({
       setIsDeleteDialogOpen(false);
       onOpenChange(false);
 
+      // Ensure API has processed the deletion
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Invalidate all availability-related queries
       await queryClient.invalidateQueries({
         queryKey: ["availabilities"],
       });
 
+      // Invalidate all calendarEvents queries regardless of their additional parameters
+      await queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "calendarEvents",
+      });
+
+      // Invalidate appointment limits as they might be affected
+      await queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "appointmentLimits",
+      });
+
       await queryClient.invalidateQueries({
         queryKey: ["availabilities", apiStartDate, apiEndDate],
+      });
+
+      // Force a refetch of all calendar events queries
+      await queryClient.refetchQueries({
+        predicate: (query) => query.queryKey[0] === "calendarEvents",
       });
 
       // Trigger custom event for calendar refresh
@@ -482,21 +657,9 @@ export function AvailabilitySidebar({
         window.dispatchEvent(new CustomEvent("refreshAvailabilities"));
       }
 
-      // Trigger a new fetch with date range
-      await queryClient.fetchQuery({
-        queryKey: ["availabilities", apiStartDate, apiEndDate],
-        queryFn: async () => {
-          const response = await fetch(
-            `/api/availability?startDate=${apiStartDate}&endDate=${apiEndDate}`,
-          );
-          if (!response.ok) {
-            throw new Error("Failed to fetch availabilities");
-          }
-          return response.json();
-        },
-      });
+      // Additional safety: invalidate all queries as a final step
+      await queryClient.invalidateQueries();
     } catch (error) {
-      console.error("Error deleting availability:", error);
       setGeneralError(
         error instanceof Error
           ? error.message
@@ -512,10 +675,31 @@ export function AvailabilitySidebar({
     try {
       // Validate required fields
       if (!availabilityFormValues.clinician) {
+        setValidationState((prev) => ({ ...prev, clinician: true }));
         setGeneralError("Please select a team member");
         return;
       }
 
+      // For recurring availabilities in edit mode, show the edit options modal
+      if (isEditMode && availabilityData?.is_recurring) {
+        setIsEditDialogOpen(true);
+        return;
+      }
+
+      // For non-recurring or new availabilities, proceed directly
+      await performSave();
+    } catch (error) {
+      setGeneralError(
+        error instanceof Error ? error.message : "Failed to save availability",
+      );
+    }
+  };
+
+  // Perform the actual save operation
+  const performSave = async (
+    selectedEditOption?: "single" | "future" | "all",
+  ) => {
+    try {
       // Construct the payload
       const payload = {
         title: title || "Availability",
@@ -535,20 +719,25 @@ export function AvailabilitySidebar({
         selectedServices: localSelectedServices,
       };
 
+      // Build the URL with editOption parameter if it's a recurring edit
+      let url = "/api/availability";
+      if (isEditMode && availabilityData?.id) {
+        url += `?id=${availabilityData.id}`;
+        if (selectedEditOption) {
+          url += `&editOption=${selectedEditOption}`;
+        }
+      }
+
       // Call the API to create/update availability
-      const response = await fetch(
-        "/api/availability" +
-          (isEditMode && availabilityData?.id
-            ? `?id=${availabilityData.id}`
-            : ""),
-        {
-          method: isEditMode ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
+      const method = isEditMode ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify(payload),
+      });
 
       const responseData = await response.json();
 
@@ -556,16 +745,28 @@ export function AvailabilitySidebar({
         throw new Error(responseData.error || "Failed to save availability");
       }
 
-      // Close sidebar first
-      onOpenChange(false);
-
-      // Invalidate all availability-related queries
+      // Invalidate all availability-related queries FIRST
       await queryClient.invalidateQueries({
         queryKey: ["availabilities"],
       });
 
+      // Invalidate all calendarEvents queries regardless of their additional parameters
+      await queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "calendarEvents",
+      });
+
+      // Invalidate appointment limits as they might be affected
+      await queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "appointmentLimits",
+      });
+
       await queryClient.invalidateQueries({
         queryKey: ["availabilities", apiStartDate, apiEndDate],
+      });
+
+      // Force a refetch of all calendar events queries
+      await queryClient.refetchQueries({
+        predicate: (query) => query.queryKey[0] === "calendarEvents",
       });
 
       // Trigger custom event for calendar refresh
@@ -573,24 +774,22 @@ export function AvailabilitySidebar({
         window.dispatchEvent(new CustomEvent("refreshAvailabilities"));
       }
 
-      // Trigger a new fetch with date range
-      await queryClient.fetchQuery({
-        queryKey: ["availabilities", apiStartDate, apiEndDate],
-        queryFn: async () => {
-          const response = await fetch(
-            `/api/availability?startDate=${apiStartDate}&endDate=${apiEndDate}`,
-          );
-          if (!response.ok) {
-            throw new Error("Failed to fetch availabilities");
-          }
-          return response.json();
-        },
-      });
+      // Additional safety: invalidate all queries as a final step
+      await queryClient.invalidateQueries();
+
+      // Close sidebar after refresh
+      onOpenChange(false);
     } catch (error) {
       setGeneralError(
         error instanceof Error ? error.message : "Failed to save availability",
       );
     }
+  };
+
+  // Handle edit confirmation
+  const handleEditConfirm = async () => {
+    setIsEditDialogOpen(false);
+    await performSave(editOption);
   };
 
   if (!open) return null;
@@ -653,8 +852,8 @@ export function AvailabilitySidebar({
               <div className="flex gap-2">
                 {isEditMode && (
                   <Button
-                    type="button"
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    type="button"
                     variant="ghost"
                     onClick={(e) => {
                       e.preventDefault();
@@ -706,6 +905,59 @@ export function AvailabilitySidebar({
                     onChange={(e) => setTitle(e.target.value)}
                   />
                 </div>
+
+                {/* Team Member Dropdown - Only for Admin */}
+                {session?.user?.roles?.includes("ADMIN") && (
+                  <div>
+                    <label className="block mb-2">Team member</label>
+                    <Select
+                      value={
+                        availabilityFormValues.clinician ||
+                        effectiveClinicianId ||
+                        ""
+                      }
+                      onValueChange={(value) => {
+                        setAvailabilityFormValues((prev) => ({
+                          ...prev,
+                          clinician: value,
+                        }));
+                        clearValidationError("clinician");
+                      }}
+                    >
+                      <SelectTrigger
+                        className={cn(
+                          "w-full",
+                          validationState.clinician && "border-red-500",
+                        )}
+                      >
+                        <SelectValue
+                          placeholder={
+                            isLoadingTeamMembers
+                              ? "Loading team members..."
+                              : "Select a team member *"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers.map(
+                          (member: {
+                            id: string;
+                            first_name: string;
+                            last_name: string;
+                          }) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.first_name} {member.last_name}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <ValidationError
+                      message="Team member is required"
+                      show={!!validationState.clinician}
+                    />
+                  </div>
+                )}
 
                 <DateTimeControls id="availability-date-time" />
                 <div className="bg-gray-50 p-6 space-y-4">
@@ -905,9 +1157,23 @@ export function AvailabilitySidebar({
                       <button
                         className=" inline-flex items-center gap-2 px-3 py-2 text-left text-gray-600 bg-[#E5E7EB] rounded-md"
                         type="button"
-                        onClick={() =>
-                          setShowServiceDropdown(!showServiceDropdown)
-                        }
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+
+                          // Toggle dropdown
+                          const newDropdownState = !showServiceDropdown;
+                          setShowServiceDropdown(newDropdownState);
+
+                          // Fetch services when opening
+                          if (newDropdownState === true) {
+                            try {
+                              await fetchServices();
+                            } catch (_error) {
+                              // Error in fetchServices
+                            }
+                          }
+                        }}
                       >
                         <span>Add service</span>
                       </button>
@@ -950,185 +1216,213 @@ export function AvailabilitySidebar({
                           </div>
 
                           <div className="max-h-64 overflow-y-auto">
-                            {/* Add all services option */}
-                            {allServices.filter(
-                              (service: Service) =>
-                                !localSelectedServices.includes(service.id),
-                            ).length > 0 && (
-                              <div className="px-4 py-2 bg-[#2D84671A] border-b border-blue-100">
-                                <button
-                                  className="w-full text-left py-2 px-3  rounded-lg text-[#2D8467] font-medium text-sm transition-colors duration-150"
-                                  type="button"
-                                  onClick={handleAddAllServices}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <svg
-                                      className="h-4 w-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                      />
-                                    </svg>
-                                    Add all services
-                                  </div>
-                                </button>
+                            {/* Loading state */}
+                            {isLoadingServices ? (
+                              <div className="px-4 py-8 text-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4" />
+                                <p className="text-sm text-gray-500">
+                                  Loading services...
+                                </p>
                               </div>
-                            )}
-
-                            {/* Filtered services list */}
-                            <div className="py-2">
-                              {allServices
-                                .filter(
+                            ) : (
+                              <>
+                                {/* Add all services option */}
+                                {allServices.filter(
                                   (service: Service) =>
-                                    searchTerm === "" ||
-                                    service.code
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()) ||
-                                    service.type
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()),
-                                )
-                                .map((service: Service) => {
-                                  const isAlreadyAdded =
-                                    localSelectedServices.includes(service.id);
-
-                                  return (
+                                    !localSelectedServices.includes(
+                                      service.id,
+                                    ) && service.availableOnline === true,
+                                ).length > 0 && (
+                                  <div className="px-4 py-2 bg-[#2D84671A] border-b border-blue-100">
                                     <button
-                                      key={service.id}
-                                      className={cn(
-                                        "w-full text-left px-4 py-3 transition-colors duration-150 border-b border-gray-50 last:border-b-0",
-                                        isAlreadyAdded
-                                          ? "bg-gray-50 cursor-not-allowed"
-                                          : "hover:bg-gray-50 cursor-pointer",
-                                      )}
-                                      disabled={isAlreadyAdded}
+                                      className="w-full text-left py-2 px-3  rounded-lg text-[#2D8467] font-medium text-sm transition-colors duration-150"
                                       type="button"
-                                      onClick={() => {
-                                        if (!isAlreadyAdded) {
-                                          handleAddServiceToAvailability(
-                                            service.id,
-                                          );
-                                          setShowServiceDropdown(false);
-                                          setSearchTerm("");
-                                        }
-                                      }}
+                                      onClick={handleAddAllServices}
                                     >
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                          <div
-                                            className={cn(
-                                              "font-medium text-sm",
-                                              isAlreadyAdded
-                                                ? "text-gray-500"
-                                                : "text-gray-900",
-                                            )}
-                                          >
-                                            {service.code} {service.type}
-                                          </div>
-                                          {service.duration && (
-                                            <div
-                                              className={cn(
-                                                "text-xs mt-1",
-                                                isAlreadyAdded
-                                                  ? "text-gray-400"
-                                                  : "text-gray-500",
-                                              )}
-                                            >
-                                              {service.duration} minutes
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          {service.defaultRate ||
-                                          service.rate ? (
-                                            <div
-                                              className={cn(
-                                                "text-sm font-medium",
-                                                isAlreadyAdded
-                                                  ? "text-gray-400"
-                                                  : "text-gray-700",
-                                              )}
-                                            >
-                                              $
-                                              {service.defaultRate ||
-                                                service.rate}
-                                            </div>
-                                          ) : null}
-                                        </div>
+                                      <div className="flex items-center gap-2">
+                                        <svg
+                                          className="h-4 w-4"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                          />
+                                        </svg>
+                                        Add all services
                                       </div>
                                     </button>
-                                  );
-                                })}
-                            </div>
-
-                            {/* No results message */}
-                            {allServices.filter(
-                              (service: Service) =>
-                                searchTerm === "" ||
-                                service.code
-                                  .toLowerCase()
-                                  .includes(searchTerm.toLowerCase()) ||
-                                service.type
-                                  .toLowerCase()
-                                  .includes(searchTerm.toLowerCase()),
-                            ).length === 0 &&
-                              searchTerm !== "" && (
-                                <div className="px-4 py-8 text-center">
-                                  <div className="text-gray-400 mb-2">
-                                    <svg
-                                      className="h-8 w-8 mx-auto"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                      />
-                                    </svg>
                                   </div>
-                                  <p className="text-sm text-gray-500">
-                                    No services found matching
-                                  </p>
-                                  <p className="text-sm font-medium text-gray-700">
-                                    "{searchTerm}"
-                                  </p>
-                                </div>
-                              )}
+                                )}
 
-                            {allServices.length === 0 && searchTerm === "" && (
-                              <div className="px-4 py-8 text-center">
-                                <div className="text-gray-400 mb-2">
-                                  <svg
-                                    className="h-8 w-8 mx-auto"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-1.414 0l-2.414-2.414a1 1 0 00-.707-.293H8"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                    />
-                                  </svg>
+                                {/* Filtered services list */}
+                                <div className="py-2">
+                                  {allServices
+                                    .filter(
+                                      (service: Service) =>
+                                        service.availableOnline === true &&
+                                        (searchTerm === "" ||
+                                          service.code
+                                            ?.toLowerCase()
+                                            .includes(
+                                              searchTerm.toLowerCase(),
+                                            ) ||
+                                          service.type
+                                            ?.toLowerCase()
+                                            .includes(
+                                              searchTerm.toLowerCase(),
+                                            ) ||
+                                          service.description
+                                            ?.toLowerCase()
+                                            .includes(
+                                              searchTerm.toLowerCase(),
+                                            )),
+                                    )
+                                    .map((service: Service) => {
+                                      const isAlreadyAdded =
+                                        localSelectedServices.includes(
+                                          service.id,
+                                        );
+
+                                      return (
+                                        <button
+                                          key={service.id}
+                                          className={cn(
+                                            "w-full text-left px-4 py-3 transition-colors duration-150 border-b border-gray-50 last:border-b-0",
+                                            isAlreadyAdded
+                                              ? "bg-gray-50 cursor-not-allowed"
+                                              : "hover:bg-gray-50 cursor-pointer",
+                                          )}
+                                          disabled={isAlreadyAdded}
+                                          type="button"
+                                          onClick={() => {
+                                            if (!isAlreadyAdded) {
+                                              handleAddServiceToAvailability(
+                                                service.id,
+                                              );
+                                              setShowServiceDropdown(false);
+                                              setSearchTerm("");
+                                            }
+                                          }}
+                                        >
+                                          <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                              <div
+                                                className={cn(
+                                                  "font-medium text-sm",
+                                                  isAlreadyAdded
+                                                    ? "text-gray-500"
+                                                    : "text-gray-900",
+                                                )}
+                                              >
+                                                {service.code} {service.type}
+                                              </div>
+                                              {service.duration && (
+                                                <div
+                                                  className={cn(
+                                                    "text-xs mt-1",
+                                                    isAlreadyAdded
+                                                      ? "text-gray-400"
+                                                      : "text-gray-500",
+                                                  )}
+                                                >
+                                                  {service.duration} minutes
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              {service.defaultRate ||
+                                              service.rate ? (
+                                                <div
+                                                  className={cn(
+                                                    "text-sm font-medium",
+                                                    isAlreadyAdded
+                                                      ? "text-gray-400"
+                                                      : "text-gray-700",
+                                                  )}
+                                                >
+                                                  $
+                                                  {service.defaultRate ||
+                                                    service.rate}
+                                                </div>
+                                              ) : null}
+                                            </div>
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
                                 </div>
-                                <p className="text-sm font-medium text-gray-700">
-                                  No services available
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  There are no services available for this
-                                  clinician
-                                </p>
-                              </div>
+
+                                {/* No results message */}
+                                {allServices.filter(
+                                  (service: Service) =>
+                                    service.availableOnline === true &&
+                                    (searchTerm === "" ||
+                                      service.code
+                                        .toLowerCase()
+                                        .includes(searchTerm.toLowerCase()) ||
+                                      service.type
+                                        .toLowerCase()
+                                        .includes(searchTerm.toLowerCase())),
+                                ).length === 0 &&
+                                  searchTerm !== "" && (
+                                    <div className="px-4 py-8 text-center">
+                                      <div className="text-gray-400 mb-2">
+                                        <svg
+                                          className="h-8 w-8 mx-auto"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                          />
+                                        </svg>
+                                      </div>
+                                      <p className="text-sm text-gray-500">
+                                        No services found matching
+                                      </p>
+                                      <p className="text-sm font-medium text-gray-700">
+                                        "{searchTerm}"
+                                      </p>
+                                    </div>
+                                  )}
+
+                                {allServices.length === 0 &&
+                                  searchTerm === "" &&
+                                  !isLoadingServices && (
+                                    <div className="px-4 py-8 text-center">
+                                      <div className="text-gray-400 mb-2">
+                                        <svg
+                                          className="h-8 w-8 mx-auto"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-1.414 0l-2.414-2.414a1 1 0 00-.707-.293H8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                          />
+                                        </svg>
+                                      </div>
+                                      <p className="text-sm font-medium text-gray-700">
+                                        No services available
+                                      </p>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        There are no services in the database
+                                      </p>
+                                    </div>
+                                  )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -1148,12 +1442,21 @@ export function AvailabilitySidebar({
 
       {/* Delete Availability Modal */}
       <DeleteAvailabilityModal
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleDelete}
-        selectedOption={deleteOption}
-        onOptionChange={setDeleteOption}
         isRecurring={availabilityData?.is_recurring}
+        open={isDeleteDialogOpen}
+        selectedOption={deleteOption}
+        onConfirm={handleDelete}
+        onOpenChange={setIsDeleteDialogOpen}
+        onOptionChange={setDeleteOption}
+      />
+
+      {/* Edit Recurring Availability Modal */}
+      <EditRecurringAvailabilityModal
+        open={isEditDialogOpen}
+        selectedOption={editOption}
+        onConfirm={handleEditConfirm}
+        onOpenChange={setIsEditDialogOpen}
+        onOptionChange={setEditOption}
       />
     </div>
   );

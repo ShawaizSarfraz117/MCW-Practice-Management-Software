@@ -68,7 +68,7 @@ function useClinicianData() {
         const response = await fetch(`/api/clinician?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
-          if (data && data.id) {
+          if (data?.id) {
             setUserClinicianId(data.id);
           } else {
             setError("Clinician record found but missing ID");

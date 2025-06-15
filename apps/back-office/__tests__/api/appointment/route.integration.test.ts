@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { prisma } from "@mcw/database";
-import type { User, Clinician, ClientGroup, Location, PracticeService } from "@mcw/database";
+import type { User, Clinician, Location, PracticeService } from "@mcw/database";
 import { cleanupDatabase } from "@mcw/database/test-utils";
 import { createRequest, createRequestWithBody, generateUUID } from "@mcw/utils";
 import { GET, POST, PUT, DELETE } from "@/api/appointment/route";
@@ -16,9 +16,18 @@ import {
 describe("Appointment API Integration Tests", () => {
   let testUser: User;
   let testClinician: Clinician;
-  let testClientGroup: ClientGroup;
   let testLocation: Location;
   let testService: PracticeService;
+
+  // Helper to create a client group for each test
+  const createTestClientGroup = async () => {
+    return await prisma.clientGroup.create({
+      data: {
+        ...ClientGroupFactory.build(),
+        clinician_id: testClinician.id,
+      },
+    });
+  };
 
   beforeAll(async () => {
     // Create test data
@@ -31,31 +40,33 @@ describe("Appointment API Integration Tests", () => {
         user_id: testUser.id,
       },
     });
-    testClientGroup = await prisma.clientGroup.create({
-      data: ClientGroupFactory.build(),
-    });
     testLocation = await prisma.location.create({
       data: LocationFactory.build(),
     });
     testService = await prisma.practiceService.create({
       data: PracticeServiceFactory.build(),
     });
-    
+
     // Create default tags
     await Promise.all([
-      prisma.tag.create({ data: TagFactory.build({ name: "Appointment Paid" }) }),
-      prisma.tag.create({ data: TagFactory.build({ name: "Appointment Unpaid" }) }),
+      prisma.tag.create({
+        data: TagFactory.build({ name: "Appointment Paid" }),
+      }),
+      prisma.tag.create({
+        data: TagFactory.build({ name: "Appointment Unpaid" }),
+      }),
       prisma.tag.create({ data: TagFactory.build({ name: "Note Added" }) }),
       prisma.tag.create({ data: TagFactory.build({ name: "No Note" }) }),
     ]);
   });
 
   afterEach(async () => {
-    // Clean up appointments after each test
+    // Clean up test data after each test
     await prisma.appointmentTag.deleteMany({});
     await prisma.payment.deleteMany({});
     await prisma.invoice.deleteMany({});
     await prisma.appointment.deleteMany({});
+    await prisma.clientGroup.deleteMany({});
   });
 
   afterAll(async () => {
@@ -65,6 +76,9 @@ describe("Appointment API Integration Tests", () => {
 
   describe("GET /api/appointment", () => {
     it("should retrieve a specific appointment by id", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       // Create test appointment
       const appointment = await prisma.appointment.create({
         data: {
@@ -101,6 +115,9 @@ describe("Appointment API Integration Tests", () => {
     });
 
     it("should retrieve all appointments with filters", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       // Create multiple appointments
       const appointment1 = await prisma.appointment.create({
         data: {
@@ -134,7 +151,7 @@ describe("Appointment API Integration Tests", () => {
 
       // Test filtering by date range
       const request = createRequest(
-        `/api/appointment?startDate=2024-01-14&endDate=2024-01-16`
+        `/api/appointment?startDate=2024-01-14&endDate=2024-01-16`,
       );
       const response = await GET(request);
       const data = await response.json();
@@ -145,6 +162,9 @@ describe("Appointment API Integration Tests", () => {
     });
 
     it("should correctly identify first appointment for client group", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       // Create first appointment
       await prisma.appointment.create({
         data: {
@@ -186,11 +206,13 @@ describe("Appointment API Integration Tests", () => {
 
       const response2 = await GET(request);
       const data2 = await response2.json();
-      
+
       // The second appointment added should have isFirstAppointmentForGroup = false
       // The response is sorted by start_date, so we need to check the proper one
-      const secondAppointment = data2.find((apt: { start_date: string | Date }) => 
-        new Date(apt.start_date).getTime() === new Date("2024-01-20T10:00:00Z").getTime()
+      const secondAppointment = data2.find(
+        (apt: { start_date: string | Date }) =>
+          new Date(apt.start_date).getTime() ===
+          new Date("2024-01-20T10:00:00Z").getTime(),
       );
       expect(secondAppointment.isFirstAppointmentForGroup).toBe(false);
     });
@@ -198,6 +220,9 @@ describe("Appointment API Integration Tests", () => {
 
   describe("POST /api/appointment", () => {
     it("should create a new appointment successfully", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       const appointmentData = {
         title: "Test Appointment",
         start_date: "2024-01-15T10:00:00Z",
@@ -209,7 +234,10 @@ describe("Appointment API Integration Tests", () => {
         service_id: testService.id,
       };
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -237,7 +265,10 @@ describe("Appointment API Integration Tests", () => {
         created_by: testUser.id,
       };
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -246,6 +277,9 @@ describe("Appointment API Integration Tests", () => {
     });
 
     it("should create recurring appointments", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       const appointmentData = {
         title: "Recurring Therapy Session",
         start_date: "2024-01-15T10:00:00Z",
@@ -259,7 +293,10 @@ describe("Appointment API Integration Tests", () => {
         recurring_end_date: "2024-02-05",
       };
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
       const data = await response.json();
 
@@ -269,7 +306,7 @@ describe("Appointment API Integration Tests", () => {
 
       // Verify appointments were created in database
       const appointments = await prisma.appointment.findMany({
-        where: { 
+        where: {
           client_group_id: testClientGroup.id,
           is_recurring: true,
           start_date: {
@@ -282,6 +319,9 @@ describe("Appointment API Integration Tests", () => {
     });
 
     it("should handle appointment conflicts gracefully", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       // Create existing appointment
       await prisma.appointment.create({
         data: {
@@ -310,9 +350,12 @@ describe("Appointment API Integration Tests", () => {
         created_by: testUser.id,
       };
 
-      const request = createRequestWithBody("/api/appointment", appointmentData);
+      const request = createRequestWithBody(
+        "/api/appointment",
+        appointmentData,
+      );
       const response = await POST(request);
-      
+
       // Should still create as the system allows overlapping appointments
       expect(response.status).toBe(201);
     });
@@ -320,6 +363,9 @@ describe("Appointment API Integration Tests", () => {
 
   describe("PUT /api/appointment", () => {
     it("should update a single appointment", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       const appointment = await prisma.appointment.create({
         data: {
           start_date: new Date("2024-01-15T10:00:00Z"),
@@ -360,6 +406,9 @@ describe("Appointment API Integration Tests", () => {
     });
 
     it("should update recurring appointments with 'this_only' option", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       // Create master recurring appointment
       const masterAppointment = await prisma.appointment.create({
         data: {
@@ -443,6 +492,9 @@ describe("Appointment API Integration Tests", () => {
 
   describe("DELETE /api/appointment", () => {
     it("should delete a single appointment", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       const appointment = await prisma.appointment.create({
         data: {
           start_date: new Date("2024-01-15T10:00:00Z"),
@@ -459,7 +511,7 @@ describe("Appointment API Integration Tests", () => {
       });
 
       const request = createRequest(
-        `/api/appointment?id=${appointment.id}&deleteOption=single`
+        `/api/appointment?id=${appointment.id}&deleteOption=single`,
       );
       const response = await DELETE(request);
       const data = await response.json();
@@ -475,6 +527,9 @@ describe("Appointment API Integration Tests", () => {
     });
 
     it("should delete all recurring appointments", async () => {
+      // Create test client group for this test
+      const testClientGroup = await createTestClientGroup();
+
       // Create master recurring appointment
       const masterAppointment = await prisma.appointment.create({
         data: {
@@ -493,7 +548,7 @@ describe("Appointment API Integration Tests", () => {
           is_recurring: true,
         },
       });
-      
+
       // Create child recurring appointments
       await Promise.all([
         prisma.appointment.create({
@@ -533,21 +588,23 @@ describe("Appointment API Integration Tests", () => {
       ]);
 
       const request = createRequest(
-        `/api/appointment?id=${masterAppointment.id}&deleteOption=all`
+        `/api/appointment?id=${masterAppointment.id}&deleteOption=all`,
       );
       const response = await DELETE(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.message).toBe("All appointments in the series deleted successfully");
+      expect(data.message).toBe(
+        "All appointments in the series deleted successfully",
+      );
 
       // Verify all were deleted
       const remaining = await prisma.appointment.findMany({
-        where: { 
+        where: {
           OR: [
             { id: masterAppointment.id },
-            { recurring_appointment_id: masterAppointment.id }
-          ]
+            { recurring_appointment_id: masterAppointment.id },
+          ],
         },
       });
       expect(remaining).toHaveLength(0);

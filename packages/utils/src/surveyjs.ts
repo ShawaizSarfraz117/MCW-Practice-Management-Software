@@ -61,7 +61,7 @@ export const createSurveyModel = (
   survey.showCompletedPage = options?.showCompletedPage ?? false;
   survey.showQuestionNumbers = options?.showQuestionNumbers ?? "on";
   survey.showProgressBar = options?.showProgressBar ?? "off";
-
+  survey.showCompleteButton = true;
   // Configure for preview/display mode
   if (mode === "display" || mode === "preview") {
     survey.showNavigationButtons = false;

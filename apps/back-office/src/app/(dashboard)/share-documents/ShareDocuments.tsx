@@ -246,7 +246,7 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
 
     // Process uploaded files
     const uploadedFiles = (uploadedFilesData?.files || [])
-      .filter((file) => file.sharingEnabled !== false && !file.isShared)
+      .filter((file) => !file.isShared)
       .map((file) => ({
         id: file.id,
         label: file.title,

@@ -52,6 +52,10 @@ export function AppointmentSidebar({
   isEditMode = false,
 }: AppointmentSidebarProps) {
   const { data: session } = useSession();
+  const isAdmin = session?.user?.roles?.includes("ADMIN") || false;
+  const isClinician = session?.user?.roles?.includes("CLINICIAN") || false;
+  const userId = session?.user?.id;
+
   const [allowOnlineRequests, setAllowOnlineRequests] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([
@@ -77,8 +81,186 @@ export function AppointmentSidebar({
   const [preSelectedServices, setPreSelectedServices] = useState<string[]>([]);
   const [_removedAutoServices, setRemovedAutoServices] = useState<string[]>([]);
 
+  // State to store fetched services
+  const [fetchedServices, setFetchedServices] = useState<DetailedService[]>([]);
+  const [isLoadingPracticeServices, setIsLoadingPracticeServices] =
+    useState(false);
+
+  // State for user's clinician ID
+  const [userClinicianId, setUserClinicianId] = useState<string | null>(null);
+
+  // Fetch clinician ID for non-admin users
+  useEffect(() => {
+    const fetchClinicianId = async () => {
+      if (isClinician && !isAdmin && userId) {
+        try {
+          const response = await fetch(`/api/clinician?userId=${userId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data?.id) {
+              setUserClinicianId(data.id);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching clinician ID:", error);
+        }
+      }
+    };
+
+    fetchClinicianId();
+  }, [isClinician, isAdmin, userId]);
+
+  // Use user's clinician ID if they're a clinician, otherwise use selectedResource
+  const effectiveClinicianId =
+    isClinician && !isAdmin && userClinicianId
+      ? userClinicianId
+      : selectedResource;
+
   const { availabilityFormValues, setAvailabilityFormValues, forceUpdate } =
-    useFormTabs(selectedResource, selectedDate);
+    useFormTabs(effectiveClinicianId, selectedDate);
+
+  // Update form values when effective clinician ID changes
+  useEffect(() => {
+    if (
+      effectiveClinicianId &&
+      availabilityFormValues.clinician !== effectiveClinicianId
+    ) {
+      setAvailabilityFormValues((prev) => ({
+        ...prev,
+        clinician: effectiveClinicianId,
+      }));
+    }
+  }, [
+    effectiveClinicianId,
+    availabilityFormValues.clinician,
+    setAvailabilityFormValues,
+  ]);
+
+  // Use React Query to fetch services
+  const {
+    data: servicesData,
+    isLoading: isLoadingServicesQuery,
+    refetch: _refetchServices,
+  } = useQuery({
+    queryKey: ["practiceServices"],
+    queryFn: async () => {
+      const response = await fetch("/api/service");
+      if (!response.ok) throw new Error("Failed to fetch services");
+      return response.json();
+    },
+    enabled: false, // Only fetch when explicitly triggered
+  });
+
+  // Update fetched services when data changes
+  useEffect(() => {
+    if (servicesData && Array.isArray(servicesData)) {
+      const services: DetailedService[] = servicesData.map(
+        (service: unknown) => {
+          const svc = service as Record<string, unknown>;
+          return {
+            id: svc.id as string,
+            type: svc.type as string,
+            code: svc.code as string,
+            duration: svc.duration as number,
+            description: svc.description as string,
+            rate: svc.rate as number,
+            defaultRate: svc.rate as number,
+            customRate: undefined,
+            effectiveRate: svc.rate as number,
+            color: svc.color as string,
+            isActive: true,
+            isDefault: (svc.is_default as boolean) ?? false,
+            billInUnits: (svc.bill_in_units as boolean) ?? false,
+            availableOnline: (svc.available_online as boolean) ?? false,
+            allowNewClients: (svc.allow_new_clients as boolean) ?? false,
+            requireCall: (svc.require_call as boolean) ?? false,
+            blockBefore: (svc.block_before as number) ?? 0,
+            blockAfter: (svc.block_after as number) ?? 0,
+          };
+        },
+      );
+      setFetchedServices(services);
+    }
+  }, [servicesData]);
+
+  // Update loading state when query loading changes
+  useEffect(() => {
+    setIsLoadingPracticeServices(isLoadingServicesQuery);
+  }, [isLoadingServicesQuery]);
+
+  // Function to fetch all practice services
+  const fetchAllPracticeServices = async () => {
+    setIsLoadingPracticeServices(true);
+
+    try {
+      const response = await fetch("/api/service", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Map to DetailedService format
+        let services: DetailedService[] = [];
+        if (Array.isArray(data)) {
+          services = data.map((service: unknown) => {
+            const svc = service as Record<string, unknown>;
+            return {
+              id: svc.id as string,
+              type: svc.type as string,
+              code: svc.code as string,
+              duration: svc.duration as number,
+              description: svc.description as string,
+              rate: svc.rate as number,
+              defaultRate: svc.rate as number,
+              customRate: undefined,
+              effectiveRate: svc.rate as number,
+              color: svc.color as string,
+              isActive: true,
+              isDefault: (svc.is_default as boolean) ?? false,
+              billInUnits: (svc.bill_in_units as boolean) ?? false,
+              availableOnline: (svc.available_online as boolean) ?? false,
+              allowNewClients: (svc.allow_new_clients as boolean) ?? false,
+              requireCall: (svc.require_call as boolean) ?? false,
+              blockBefore: (svc.block_before as number) ?? 0,
+              blockAfter: (svc.block_after as number) ?? 0,
+            };
+          });
+        }
+
+        setFetchedServices(services);
+      } else {
+        console.error("Failed to fetch services:", response.status);
+        setFetchedServices([]);
+      }
+    } catch (error) {
+      console.error("Error fetching practice services:", error);
+      setFetchedServices([]);
+    } finally {
+      setIsLoadingPracticeServices(false);
+    }
+  };
+
+  // Add all services to availability (like AvailabilitySidebar)
+  const handleAddAllServices = () => {
+    const availableServices = fetchedServices.filter(
+      (service: DetailedService) =>
+        (searchTerm === "" ||
+          service.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          service.type.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        !preSelectedServices.includes(service.id),
+    );
+
+    setPreSelectedServices((prev) => [
+      ...prev,
+      ...availableServices.map((s) => s.id),
+    ]);
+    setShowServiceDropdown(false);
+    setSearchTerm("");
+  };
 
   // Stable function to read session storage and update form values
   const updateFormWithSessionStorage = useCallback(() => {
@@ -108,12 +290,42 @@ export function AppointmentSidebar({
     }
   }, [open, isEditMode, updateFormWithSessionStorage]);
 
-  // Clean up session storage when sidebar closes
+  // Fetch services when component opens
+  useEffect(() => {
+    if (open && fetchedServices.length === 0) {
+      fetchAllPracticeServices();
+    }
+  }, [open]);
+
+  // Clean up session storage and clear state when sidebar closes
   useEffect(() => {
     if (!open) {
       window.sessionStorage.removeItem("selectedTimeSlot");
+      // Clear all state when closing
+      setAvailabilityFormValues({
+        title: "",
+        startDate: new Date(),
+        endDate: new Date(),
+        startTime: "",
+        endTime: "",
+        allDay: false,
+        type: "availability",
+        clinician: "",
+        location: "",
+        allowOnlineRequests: false,
+        isRecurring: false,
+      });
+      setTitle("");
+      setSelectedLocation("");
+      setAllowOnlineRequests(false);
+      setIsRecurring(false);
+      setPreSelectedServices([]);
+      setSearchTerm("");
+      setGeneralError(null);
+      setValidationState({});
+      setAvailabilityId(null);
     }
-  }, [open]);
+  }, [open, setAvailabilityFormValues]);
 
   // Stable function to update clinician
   const updateClinicianInForm = useCallback(() => {
@@ -128,6 +340,7 @@ export function AppointmentSidebar({
   // Handle selected resource (clinician) when sidebar opens or resource changes
   useEffect(() => {
     if (selectedResource && open) {
+      // Always update the clinician when the sidebar opens with a new resource
       updateClinicianInForm();
     }
   }, [selectedResource, open, updateClinicianInForm]);
@@ -145,7 +358,21 @@ export function AppointmentSidebar({
         const byDayMatch =
           availabilityData.recurring_rule.match(/BYDAY=([^;]+)/);
         if (byDayMatch) {
-          setSelectedDays(byDayMatch[1].split(","));
+          // Convert 2-letter RFC5545 codes to 3-letter codes for UI
+          const twoLetterToThreeLetter: Record<string, string> = {
+            SU: "SUN",
+            MO: "MON",
+            TU: "TUE",
+            WE: "WED",
+            TH: "THU",
+            FR: "FRI",
+            SA: "SAT",
+          };
+          const twoLetterDays = byDayMatch[1].split(",");
+          const threeLetterDays = twoLetterDays.map(
+            (day: string) => twoLetterToThreeLetter[day] || day,
+          );
+          setSelectedDays(threeLetterDays);
         }
 
         // Parse INTERVAL
@@ -236,7 +463,7 @@ export function AppointmentSidebar({
     enabled: !!session?.user && !!availabilityFormValues.clinician,
   });
 
-  const { data: allServices = [], isLoading: isLoadingAllServices } = useQuery<
+  const { data: allServices = [], isLoading: _isLoadingAllServices } = useQuery<
     DetailedService[]
   >({
     queryKey: ["allServices", availabilityFormValues.clinician],
@@ -254,7 +481,7 @@ export function AppointmentSidebar({
         }
         return [];
       } catch (error) {
-        console.error("Error fetching all services:", error);
+        console.error("Error fetching services:", error);
         return [];
       }
     },
@@ -279,7 +506,7 @@ export function AppointmentSidebar({
         }
         return [];
       } catch (error) {
-        console.error("Error fetching availability services:", error);
+        console.error("Error fetching services:", error);
         return [];
       }
     },
@@ -298,6 +525,20 @@ export function AppointmentSidebar({
     },
   });
 
+  // Fetch team members for admin users
+  const { data: teamMembers = [], isLoading: isLoadingTeamMembers } = useQuery({
+    queryKey: ["teamMembers"],
+    queryFn: async () => {
+      const response = await fetch("/api/clinician");
+      if (!response.ok) {
+        throw new Error("Failed to fetch team members");
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!session?.user?.roles?.includes("ADMIN"),
+  });
+
   const createRecurringRule = () => {
     if (!isRecurring) return null;
 
@@ -308,7 +549,20 @@ export function AppointmentSidebar({
     }
 
     if (period === "week" && selectedDays.length > 0) {
-      parts.push(`BYDAY=${selectedDays.join(",")}`);
+      // Convert 3-letter codes to 2-letter RFC5545 codes
+      const threeLetterToTwoLetter: Record<string, string> = {
+        SUN: "SU",
+        MON: "MO",
+        TUE: "TU",
+        WED: "WE",
+        THU: "TH",
+        FRI: "FR",
+        SAT: "SA",
+      };
+      const twoLetterDays = selectedDays.map(
+        (day: string) => threeLetterToTwoLetter[day] || day,
+      );
+      parts.push(`BYDAY=${twoLetterDays.join(",")}`);
     }
 
     if (endType === "occurrences" && endValue) {
@@ -358,9 +612,6 @@ export function AppointmentSidebar({
 
     const localISOTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
 
-    console.log("getDateTimeUTC input:", { date, timeStr });
-    console.log("getDateTimeUTC output:", localISOTime);
-
     return localISOTime;
   };
 
@@ -370,7 +621,12 @@ export function AppointmentSidebar({
       setGeneralError(null);
 
       if (!availabilityFormValues.clinician) {
-        setGeneralError("No team member selected from calendar");
+        if (session?.user?.roles?.includes("ADMIN")) {
+          setValidationState((prev) => ({ ...prev, clinician: true }));
+          setGeneralError("Please select a team member");
+        } else {
+          setGeneralError("No team member selected from calendar");
+        }
         return;
       }
 
@@ -573,16 +829,13 @@ export function AppointmentSidebar({
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            {session?.user?.roles?.includes("CLINICIAN") ||
-              (session?.user?.roles?.includes("ADMIN") && (
-                <Button
-                  className="bg-[#16A34A] hover:bg-[#16A34A]/90 text-white"
-                  disabled={!!generalError}
-                  onClick={handleSave}
-                >
-                  Save
-                </Button>
-              ))}
+            <Button
+              className="bg-[#16A34A] hover:bg-[#16A34A]/90 text-white"
+              disabled={!!generalError}
+              onClick={handleSave}
+            >
+              Save
+            </Button>
           </div>
         </div>
 
@@ -644,6 +897,57 @@ export function AppointmentSidebar({
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
+
+            {/* Team Member Dropdown - Only for Admin */}
+            {session?.user?.roles?.includes("ADMIN") && (
+              <div>
+                <label className="block mb-2">Team member</label>
+                <Select
+                  value={
+                    availabilityFormValues.clinician || selectedResource || ""
+                  }
+                  onValueChange={(value) => {
+                    setAvailabilityFormValues((prev) => ({
+                      ...prev,
+                      clinician: value,
+                    }));
+                    clearValidationError("clinician");
+                  }}
+                >
+                  <SelectTrigger
+                    className={cn(
+                      "w-full",
+                      validationState.clinician && "border-red-500",
+                    )}
+                  >
+                    <SelectValue
+                      placeholder={
+                        isLoadingTeamMembers
+                          ? "Loading team members..."
+                          : "Select a team member *"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teamMembers.map(
+                      (member: {
+                        id: string;
+                        first_name: string;
+                        last_name: string;
+                      }) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.first_name} {member.last_name}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+                <ValidationError
+                  message="Team member is required"
+                  show={!!validationState.clinician}
+                />
+              </div>
+            )}
 
             <DateTimeControls id="availability-date-time" />
 
@@ -941,7 +1245,17 @@ export function AppointmentSidebar({
                   <button
                     className="inline-flex items-center gap-2 px-3 py-2 text-left text-gray-600 bg-[#E5E7EB] rounded-md"
                     type="button"
-                    onClick={() => setShowServiceDropdown(!showServiceDropdown)}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+
+                      const newDropdownState = !showServiceDropdown;
+                      setShowServiceDropdown(newDropdownState);
+
+                      if (newDropdownState === true) {
+                        await fetchAllPracticeServices();
+                      }
+                    }}
                   >
                     <span>Add service</span>
                   </button>
@@ -983,7 +1297,7 @@ export function AppointmentSidebar({
                         </div>
                       </div>
 
-                      {isLoadingAllServices ? (
+                      {isLoadingPracticeServices ? (
                         <div className="px-4 py-8 text-center">
                           <div className="text-gray-400 mb-2">
                             <svg
@@ -1004,7 +1318,7 @@ export function AppointmentSidebar({
                             Loading services...
                           </p>
                         </div>
-                      ) : allServices.length === 0 ? (
+                      ) : fetchedServices.length === 0 ? (
                         <div className="px-4 py-8 text-center">
                           <div className="text-gray-400 mb-2">
                             <svg
@@ -1025,13 +1339,13 @@ export function AppointmentSidebar({
                             No services available
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            No services found for the selected team member
+                            No services found in the database
                           </p>
                         </div>
                       ) : (
                         <div className="max-h-64 overflow-y-auto">
                           {!availabilityId &&
-                            allServices.filter(
+                            fetchedServices.filter(
                               (service: DetailedService) =>
                                 searchTerm === "" ||
                                 service.code
@@ -1045,33 +1359,24 @@ export function AppointmentSidebar({
                                 <button
                                   className="w-full text-left py-2 px-3  rounded-lg text-[#2D8467] font-medium text-sm transition-colors duration-150"
                                   type="button"
-                                  onClick={() => {
-                                    const filteredServices = allServices.filter(
-                                      (service: DetailedService) =>
-                                        searchTerm === "" ||
-                                        service.code
-                                          .toLowerCase()
-                                          .includes(searchTerm.toLowerCase()) ||
-                                        service.type
-                                          .toLowerCase()
-                                          .includes(searchTerm.toLowerCase()),
-                                    );
-                                    filteredServices.forEach(
-                                      (service: DetailedService) => {
-                                        if (
-                                          !preSelectedServices.includes(
-                                            service.id,
-                                          )
-                                        ) {
-                                          handlePreSelectService(service.id);
-                                        }
-                                      },
-                                    );
-                                    setShowServiceDropdown(false);
-                                    setSearchTerm("");
-                                  }}
+                                  onClick={handleAddAllServices}
                                 >
-                                  Add all services
+                                  <div className="flex items-center gap-2">
+                                    <svg
+                                      className="h-4 w-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                      />
+                                    </svg>
+                                    Add all services
+                                  </div>
                                 </button>
                               </div>
                             )}
@@ -1080,7 +1385,7 @@ export function AppointmentSidebar({
                           <div className="py-2">
                             {availabilityId
                               ? // After availability is created - show all services with disabled state for added ones
-                                allServices
+                                fetchedServices
                                   .filter(
                                     (service: DetailedService) =>
                                       searchTerm === "" ||
@@ -1167,7 +1472,7 @@ export function AppointmentSidebar({
                                     );
                                   })
                               : // Before availability is created - show all services with disabled state for pre-selected ones
-                                allServices
+                                fetchedServices
                                   .filter(
                                     (service: DetailedService) =>
                                       searchTerm === "" ||
@@ -1250,7 +1555,7 @@ export function AppointmentSidebar({
                                   })}
 
                             {/* No results message */}
-                            {allServices.filter(
+                            {fetchedServices.filter(
                               (service: DetailedService) =>
                                 searchTerm === "" ||
                                 service.code

@@ -97,7 +97,16 @@ describe("Client Share File API - Integration Tests", () => {
       },
     });
 
-    // Create test client group file
+    // Create test client group file (verify client group exists first)
+    const groupExists = await prisma.clientGroup.findUnique({
+      where: { id: clientGroupId },
+    });
+    if (!groupExists) {
+      throw new Error(
+        `Client group ${clientGroupId} not found - beforeEach setup failed`,
+      );
+    }
+
     clientGroupFileId = generateUUID();
     await prisma.clientGroupFile.create({
       data: {

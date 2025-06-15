@@ -28,6 +28,9 @@ export interface ApiResponse<T> {
 // Re-export team member types
 export * from "./team-members";
 
+// Re-export calendar types
+export * from "./calendar";
+
 // Re-export file sharing types
 export * from "./fileSharing";
 
@@ -39,3 +42,6 @@ export * from "./appointment";
 
 // Re-export client files types
 export * from "./clientFiles";
+
+// Re-export client overview types
+export * from "./client-overview";

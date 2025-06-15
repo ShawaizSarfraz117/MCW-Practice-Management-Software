@@ -176,581 +176,284 @@ The following API routes exist but appear to have limited or no UI integration:
 
 **Context**: The Activity page has an existing API that fetches audit logs but the UI is using mock data. The page has 3 tabs: History, Sign In Events, and HIPAA Audit Log.
 
-#### Q1.1: Should the activity logs include IP address and location tracking?
+**Questions**:
 
-**Answer**: Yes, we need IP tracking for all events.
+1. Should the activity logs include IP address and location tracking? If yes:
 
-**Sub-questions and answers:**
+   - Should we track IP addresses for all user actions or just login events?
+   - Do we need to use a geolocation service to convert IPs to locations?
+   - Are there any HIPAA considerations for storing IP addresses?
 
-- **Q: Should we track IP addresses for all user actions or just login events?**
-  - **A**: We need IP addresses for all events
-- **Q: Do we need to use a geolocation service to convert IPs to locations?**
-  - **A**: Yes, we can use https://geolocation-db.com/json/ API for IP geolocation
-- **Q: Are there any HIPAA considerations for storing IP addresses?**
-  - **A**: Not sure about specific HIPAA requirements for IP storage
+2. For the HIPAA Audit Log tab:
 
-**Additional requirement**: Replace client dropdown with team member dropdown and only show team members in the activity filter.
+   - Which specific events should be classified as HIPAA-relevant?
+   - Should HIPAA events include: patient record access, modifications, exports, sharing?
+   - Do we need additional fields like "reason for access" for HIPAA compliance?
 
-#### Q1.2: For the HIPAA Audit Log tab
-
-**Answer**: Skip this tab implementation for now.
-
-#### Q1.3: For filtering and search
-
-**Q: Should the search function search across all fields or specific ones?**
-
-- **A**: Search only for client names
-
-**Q: What should be the maximum allowed date range for the time filter?**
-
-- **A**: No maximum limit needed, this is already well defined
-
-**Q: Should we implement pagination or infinite scroll for large result sets?**
-
-- **A**: Infinite scroll would work best
+3. For filtering and search:
+   - Should the search function search across all fields or specific ones (event text, user email, client name)?
+   - For the time range filter, what should be the maximum allowed date range?
+   - Should we implement pagination or infinite scroll for large result sets?
 
 ### 2. Analytics - Income Report (/api/analytics/income)
 
 **Context**: The income report needs to show daily/weekly/monthly income with client payments, gross income, and net income.
 
-#### Q2.1: Income calculation
+**Questions**:
 
-**Q: How should gross income be calculated?**
+1. Income calculation:
 
-- **A**: Sum of all invoiced amounts
+   - How should gross income be calculated? (Sum of all invoiced amounts? Only paid amounts?)
+   - How is net income calculated? (Gross income minus what expenses?)
+   - Should income include pending/unpaid invoices or only completed payments?
 
-**Q: How is net income calculated?**
+2. Data aggregation:
 
-- **A**: All invoiced amounts minus average of clinician percentages
+   - Should the report show data per clinician or practice-wide?
+   - Do we need to track income by service type or payment method?
+   - Should refunds/adjustments be tracked separately?
 
-**Q: Should income include pending/unpaid invoices or only completed payments?**
-
-- **A**: Include both pending/unpaid invoices
-
-#### Q2.2: Data aggregation
-
-**Q: Should the report show data per clinician or practice-wide?**
-
-- **A**: Practice-wide
-
-**Q: Do we need to track income by service type or payment method?**
-
-- **A**: Track by appointment total - sum of all appointments
-
-**Q: Should refunds/adjustments be tracked separately?**
-
-- **A**: No, we don't need this in this report
-
-#### Q2.3: Export functionality
-
-**Q: What specific fields should be included in CSV/PDF exports?**
-
-- **A**: CSV and Excel formats needed
-
-**Q: Should exports include patient names or use anonymized IDs for HIPAA compliance?**
-
-- **A**: We are only exporting: date, client payments, gross income, and net income
+3. Export functionality:
+   - What specific fields should be included in CSV/PDF exports?
+   - Should exports include patient names or use anonymized IDs for HIPAA compliance?
 
 ### 3. Analytics - Outstanding Balances (/api/analytics/outstanding-balances)
 
 **Context**: Report showing client balances with services provided, uninvoiced amounts, invoiced amounts, and payments.
 
-#### Q3.1: Balance calculations
+**Questions**:
 
-**Q: How do we determine "services provided" - all completed appointments?**
+1. Balance calculations:
 
-- **A**: Yes, all completed appointments
+   - How do we determine "services provided" - all completed appointments?
+   - What constitutes "uninvoiced" - appointments without associated invoices?
+   - Should we track partial payments and payment plans?
 
-**Q: What constitutes "uninvoiced" - appointments without associated invoices?**
+2. Filtering options:
 
-- **A**: Yes, appointments without associated invoices
+   - Should we allow filtering by balance threshold (e.g., show only balances > $100)?
+   - Filter by age of debt (30, 60, 90+ days)?
+   - Filter by insurance vs self-pay clients?
 
-**Q: Should we track partial payments and payment plans?**
-
-- **A**: No, we don't need that for this report
-
-#### Q3.2: Filtering options
-
-**Q: Should we allow filtering by balance threshold (e.g., show only balances > $100)?**
-
-- **A**: Show all clients who have any balance
-
-**Q: Filter by age of debt (30, 60, 90+ days)?**
-
-- **A**: No filter like this exists
-
-**Q: Filter by insurance vs self-pay clients?**
-
-- **A**: No need for this filter
-
-#### Q3.3: Data presentation
-
-**Q: Should client names be sortable while maintaining HIPAA compliance?**
-
-- **A**: Yes
-
-**Q: Do we need to show last payment date or payment history?**
-
-- **A**: No, we don't need that
+3. Data presentation:
+   - Should client names be sortable while maintaining HIPAA compliance?
+   - Do we need to show last payment date or payment history?
 
 ### 4. Analytics - Appointment Status (/api/analytics/appointment-status)
 
 **Context**: Report with 3 tabs showing appointment details, documentation status, and client responsibility.
 
-#### Q4.1: Appointment data
+**Questions**:
 
-**Q: How are billing codes determined for each appointment?**
+1. Appointment data:
 
-- **A**: Each appointment has invoice and each invoice has code - get the code from there
+   - How are billing codes determined for each appointment?
+   - How do we calculate rate per unit and units?
+   - What defines the different progress note statuses (no note, unlocked, supervision, locked)?
 
-**Q: How do we calculate rate per unit and units?**
+2. Documentation tab:
 
-- **A**: Each practice service is considered as a unit. Get the rate from the practice services table
+   - What specific documentation is tracked?
+   - What are the compliance requirements for documentation?
+   - How long after an appointment can documentation be modified?
 
-**Q: What defines the different progress note statuses (no note, unlocked, supervision, locked)?**
-
-- **A**: Use the AppointmentNotes table - for each appointment we can add a note and lock/unlock it
-
-#### Q4.2: Documentation tab
-
-**Q: What specific documentation is tracked?**
-
-- **A**: When include documentation is enabled, look into AppointmentNotes table and check the status. If no note exists, show "no note", otherwise show "locked/unlocked" depending on the table value
-
-**Q: What are the compliance requirements for documentation?**
-
-- **A**: Ignore this
-
-**Q: How long after an appointment can documentation be modified?**
-
-- **A**: Ignore this
-
-#### Q4.3: Client responsibility
-
-**Q: How is client responsibility calculated vs insurance coverage?**
-
-- **A**: We don't need to look into insurance coverage. For client responsibility, find the amount for appointment, what client paid, if it's uninvoiced, etc.
-
-**Q: Should we track copays, deductibles, and coinsurance separately?**
-
-- **A**: No
+3. Client responsibility:
+   - How is client responsibility calculated vs insurance coverage?
+   - Should we track copays, deductibles, and coinsurance separately?
 
 ### 5. Billing Integration
 
 **Context**: Billing pages have existing APIs but aren't fully integrated with the UI.
 
-#### Q5.1: Payment processing
+**Questions**:
 
-**Answer**: Ignore payment processing questions for now.
+1. Payment processing:
 
-#### Q5.2: Invoice generation
+   - Do you use a specific payment processor (Stripe, Square, etc.)?
+   - Should we store payment method details for recurring billing?
+   - What payment methods need to be supported (credit card, ACH, check)?
 
-**Q: Should invoices be automatically generated after appointments?**
+2. Invoice generation:
 
-- **A**: Right now we need to create invoice from clients page or we can do this by editing the appointment
+   - Should invoices be automatically generated after appointments?
+   - What numbering scheme should be used for invoices?
+   - Do we need to support batch invoicing?
 
-**Q: What numbering scheme should be used for invoices?**
-
-- **A**: INV #127 (format)
-
-**Q: Do we need to support batch invoicing?**
-
-- **A**: No
-
-#### Q5.3: Export functionality
-
-**Q: What format should payment exports use for accounting software compatibility?**
-
-- **A**: Excel/CSV
-
-**Q: Should exports include patient PHI or use anonymized data?**
-
-- **A**: We can ignore this for now
+3. Export functionality:
+   - What format should payment exports use for accounting software compatibility?
+   - Should exports include patient PHI or use anonymized data?
 
 ### 6. Appointment Requests System (New API)
 
 **Context**: No API exists. Need to build complete request management system.
 
-#### Q6.1: Request workflow
+**Questions**:
 
-**Q: Where do appointment requests originate from?**
+1. Request workflow:
 
-- **A**: Client portal and we have an AppointmentRequest table where we can see them
+   - Where do appointment requests originate from? (Client portal, website widget, phone?)
+   - What information is required for a request?
+   - Should requests auto-expire after a certain time?
 
-**Q: What information is required for a request?**
+2. Approval process:
 
-- **A**: Look into AppointmentRequest table for required fields
+   - Who can approve/deny requests (specific clinicians, any admin)?
+   - Should approved requests automatically create appointments?
+   - Do we need to track reason for denial?
 
-**Q: Should requests auto-expire after a certain time?**
+3. Client matching:
 
-- **A**: No, we can skip this for now
+   - How do we match requests to existing clients vs new clients?
+   - What validation is needed for new client requests?
+   - Should we check for duplicate requests?
 
-#### Q6.2: Approval process
-
-**Q: Who can approve/deny requests (specific clinicians, any admin)?**
-
-- **A**: Both clinicians and admins
-
-**Q: Should approved requests automatically create appointments?**
-
-- **A**: Yes, we need to move data from AppointmentRequest to Appointment table
-
-**Q: Do we need to track reason for denial?**
-
-- **A**: Yes, this is a good suggestion
-
-#### Q6.3: Client matching
-
-**Q: How do we match requests to existing clients vs new clients?**
-
-- **A**: Based on client_id which is nullable in AppointmentRequest
-
-**Q: What validation is needed for new client requests?**
-
-- **A**: Look into AppointmentRequest table for validation requirements
-
-**Q: Should we check for duplicate requests?**
-
-- **A**: No
-
-#### Q6.4: Notifications
-
-**Q: Should email/SMS notifications be sent for new requests?**
-
-- **A**: No
-
-**Q: Who should receive notifications?**
-
-- **A**: No notifications needed
-
-**Q: What happens after approval/denial - notify the requester?**
-
-- **A**: Not sure, we don't have email template for that
+4. Notifications:
+   - Should email/SMS notifications be sent for new requests?
+   - Who should receive notifications (assigned clinician, all admins)?
+   - What happens after approval/denial - notify the requester?
 
 ### 7. Forgot Password Flow
 
 **Context**: No forgot password functionality exists.
 
-#### Q7.1: Security requirements
+**Questions**:
 
-**Q: How long should password reset tokens be valid?**
+1. Security requirements:
 
-- **A**: 1 hour
+   - How long should password reset tokens be valid?
+   - Should we implement rate limiting for reset requests?
+   - Do we need to notify users of password reset attempts?
 
-**Q: Should we implement rate limiting for reset requests?**
-
-- **A**: Yes please
-
-**Q: Do we need to notify users of password reset attempts?**
-
-- **A**: Yes
-
-#### Q7.2: Verification
-
-**Q: Should we use email-only verification or additional factors?**
-
-- **A**: Email-only verification would be fine
-
-**Q: Do we need security questions as backup?**
-
-- **A**: No
-
-**Q: Should we force password change on next login after reset?**
-
-- **A**: No
+2. Verification:
+   - Should we use email-only verification or additional factors?
+   - Do we need security questions as backup?
+   - Should we force password change on next login after reset?
 
 ### 8. Settings - Appointment Request Widget (/api/appointment-request-widget)
 
-#### Q8.1: Widget customization
+**Questions**:
 
-**Answer**: For this we just need to store the widget HTML in practice settings table, nothing else.
+1. Widget customization:
 
-**Q: What visual customization options are needed?**
+   - What visual customization options are needed (colors, logo, text)?
+   - Should the widget be embeddable on external websites?
+   - Do we need multiple widget configurations for different use cases?
 
-- **A**: Covered by storing HTML in practice settings
-
-**Q: Should the widget be embeddable on external websites?**
-
-- **A**: Covered by storing HTML in practice settings
-
-**Q: Do we need multiple widget configurations for different use cases?**
-
-- **A**: Covered by storing HTML in practice settings
-
-#### Q8.2: Widget behavior
-
-**Note**: All questions below are covered by the simple HTML storage approach.
+2. Widget behavior:
+   - Should widgets be tied to specific clinicians or services?
+   - How do we handle after-hours requests?
+   - Do we need CAPTCHA or spam protection?
 
 ### 9. Settings - Contact Form (/api/contact-form)
 
-**Note**: Need to save this in Practice Settings table.
+**Questions**:
 
-#### Q9.1: Form configuration
+1. Form configuration:
 
-**Q: What fields should be configurable (required vs optional)?**
+   - What fields should be configurable (required vs optional)?
+   - Should forms support custom fields?
+   - Do we need different forms for different purposes?
 
-- **A**: To be determined based on practice settings requirements
-
-**Q: Should forms support custom fields?**
-
-- **A**: To be determined based on practice settings requirements
-
-**Q: Do we need different forms for different purposes?**
-
-- **A**: To be determined based on practice settings requirements
-
-#### Q9.2: Form handling
-
-**Q: Where should form submissions be routed?**
-
-- **A**: To be determined based on practice settings requirements
-
-**Q: Do we need auto-response functionality?**
-
-- **A**: To be determined based on practice settings requirements
-
-**Q: Should submissions create leads in the system?**
-
-- **A**: To be determined based on practice settings requirements
+2. Form handling:
+   - Where should form submissions be routed (email, database, both)?
+   - Do we need auto-response functionality?
+   - Should submissions create leads in the system?
 
 ### 10. Settings - Shareable Documents (/api/shareable-documents)
 
-**Answer**: Ignore this entire section.
+**Questions**:
+
+1. Document types:
+
+   - What types of documents need to be shareable (consent forms, intake forms, educational materials)?
+   - Should documents be version-controlled?
+   - Do we need to track who accessed shared documents?
+
+2. Sharing mechanism:
+   - How should documents be shared (secure links, client portal, email)?
+   - Should shared links expire?
+   - Do we need to track document completion/signature?
 
 ### 11. Settings - Payroll (/api/payroll)
 
-**Answer**: We don't have this option in our simple practice - skip this section.
+**Questions**:
+
+1. Payroll configuration:
+
+   - What payroll periods need to be supported (weekly, bi-weekly, semi-monthly, monthly)?
+   - Should payroll be calculated based on appointments, hours, or salary?
+   - Do we need to track different pay rates for different services?
+
+2. Integration:
+   - Do you use a specific payroll service that needs integration?
+   - Should the system generate payroll reports or just track configuration?
+   - Do we need to track PTO, sick leave, or other time-off?
 
 ### 12. Settings - Payment (/api/payment-settings)
 
-**Note**: These questions need to be answered to implement payment settings.
+**Questions**:
 
-#### Q12.1: Payment processing
+1. Payment processing:
 
-**Q: Which payment processor(s) need to be supported?**
+   - Which payment processor(s) need to be supported?
+   - Should we store encrypted payment credentials?
+   - Do we need separate configurations for different locations?
 
-- **A**: To be determined
-
-**Q: Should we store encrypted payment credentials?**
-
-- **A**: To be determined
-
-**Q: Do we need separate configurations for different locations?**
-
-- **A**: To be determined
-
-#### Q12.2: Payment policies
-
-**Q: Should we support payment plans or recurring payments?**
-
-- **A**: To be determined
-
-**Q: What fee structures need to be configurable?**
-
-- **A**: To be determined
-
-**Q: Do we need to handle refund policies?**
-
-- **A**: To be determined
+2. Payment policies:
+   - Should we support payment plans or recurring payments?
+   - What fee structures need to be configurable?
+   - Do we need to handle refund policies?
 
 ### 13. Settings - Text Messaging (/api/text-messaging)
 
-**Note**: These questions need to be answered to implement text messaging.
+**Questions**:
 
-#### Q13.1: SMS provider
+1. SMS provider:
 
-**Q: Which SMS service should we integrate with?**
+   - Which SMS service should we integrate with (Twilio, AWS SNS, other)?
+   - Do we need two-way messaging or just outbound?
+   - Should we support MMS for document sharing?
 
-- **A**: To be determined (Twilio, AWS SNS, other)
+2. Message templates:
 
-**Q: Do we need two-way messaging or just outbound?**
+   - What types of automated messages are needed (appointment reminders, confirmations, follow-ups)?
+   - How far in advance should reminders be sent?
+   - Should messages be customizable per clinician or practice-wide?
 
-- **A**: To be determined
-
-**Q: Should we support MMS for document sharing?**
-
-- **A**: To be determined
-
-#### Q13.2: Message templates
-
-**Q: What types of automated messages are needed?**
-
-- **A**: To be determined (appointment reminders, confirmations, follow-ups)
-
-**Q: How far in advance should reminders be sent?**
-
-- **A**: To be determined
-
-**Q: Should messages be customizable per clinician or practice-wide?**
-
-- **A**: To be determined
-
-#### Q13.3: Compliance
-
-**Q: How do we handle opt-in/opt-out for TCPA compliance?**
-
-- **A**: To be determined
-
-**Q: Should we log all messages for audit purposes?**
-
-- **A**: To be determined
-
-**Q: Do we need to support quiet hours?**
-
-- **A**: To be determined
-
-## Pages with UI but No API Routes (Using Static/Mock Data)
-
-The following pages have functional UI components but are currently using static or mock data instead of API integration:
-
-### Activity Page
-
-- **Status**: UI exists with mock data, API exists but not integrated
-- **Location**: `/activity`
-- **Mock Data**: Tab navigation, activity logs, filters all use hardcoded data
-- **Existing API**: `/api/activity` endpoint exists but UI doesn't use it
-
-### Analytics Pages
-
-- **Main Dashboard** (`/analytics`)
-  - Income chart uses mock data
-  - Outstanding balances chart uses mock data
-  - Time range filters partially functional
-- **Income Report** (`/analytics/income`)
-  - Complete UI with mock financial data
-  - No API endpoint exists
-- **Outstanding Balances** (`/analytics/outstanding-balances`)
-  - Grid displays static balance data
-  - No API endpoint exists
-
-### Billing Pages
-
-- **Main Billing** (`/billing`)
-  - Date range selector uses mock data
-  - Invoice list partially integrated
-  - Export functionality exists but incomplete
-- **Documents** (`/billing/documents`)
-  - Table structure exists
-  - API exists but integration incomplete
-
-### Requests Page
-
-- **Status**: Complete UI with no backend
-- **Location**: `/requests`
-- **Features**: Tab navigation (Pending/Archived), approve/deny/archive buttons
-- **Mock Data**: All request data is hardcoded
-- **Missing**: No API routes for appointment request management
-
-### Settings Pages with No API
-
-The following settings pages have complete UI but no corresponding API endpoints:
-
-1. **Appointment Request Widget** (`/settings/appointment-request-widget`)
-
-   - Widget configuration UI exists
-   - No persistence layer
-
-2. **Contact Form** (`/settings/contact-form`)
-
-   - Form settings interface complete
-   - No API for saving configuration
-
-3. **Shareable Documents** (`/settings/shareable-documents`)
-
-   - Document management UI exists
-   - No backend storage
-
-4. **Payroll** (`/settings/payroll`)
-
-   - Payroll settings interface present
-   - No API implementation
-
-5. **Payment Settings** (`/settings/payment`)
-
-   - Payment configuration UI complete
-   - No persistence endpoints
-
-6. **Text Messaging** (`/settings/text`)
-   - SMS configuration interface exists
-   - No API for SMS provider integration
-
-### Implementation Notes
-
-- These pages demonstrate the UI-first development approach
-- Mock data allows for UI/UX testing before backend implementation
-- Each page requires corresponding API endpoints for production use
-- Priority should be given to pages that block critical workflows (e.g., Requests, Analytics)
+3. Compliance:
+   - How do we handle opt-in/opt-out for TCPA compliance?
+   - Should we log all messages for audit purposes?
+   - Do we need to support quiet hours?
 
 ### 14. General Architecture Questions
 
-**Note**: These architectural questions need to be answered for proper system design.
+1. **Data Retention**:
 
-#### Q14.1: Data Retention
+   - How long should different types of data be retained?
+   - Do we need soft delete for all entities or hard delete for some?
+   - What are the HIPAA requirements for data retention?
 
-**Q: How long should different types of data be retained?**
+2. **Multi-tenancy**:
 
-- **A**: To be determined based on HIPAA requirements
+   - How is practice-level data isolation currently handled?
+   - Do practices share any data or completely isolated?
+   - How are user permissions structured across practices?
 
-**Q: Do we need soft delete for all entities or hard delete for some?**
+3. **Audit Trail**:
 
-- **A**: To be determined based on data type and compliance
+   - Should all API endpoints log to the audit trail?
+   - What level of detail is needed in audit logs?
+   - How long should audit logs be retained?
 
-**Q: What are the HIPAA requirements for data retention?**
+4. **Performance**:
 
-- **A**: To be determined - need to consult HIPAA guidelines
+   - What are acceptable response times for reports with large datasets?
+   - Should we implement caching for analytics data?
+   - Do we need real-time updates or can some data be eventually consistent?
 
-#### Q14.2: Multi-tenancy
+5. **Security**:
+   - Are there specific encryption requirements for data at rest?
+   - Should we implement API rate limiting?
+   - Do we need additional authentication for sensitive operations?
 
-**Q: How is practice-level data isolation currently handled?**
-
-- **A**: To be determined based on current architecture
-
-**Q: Do practices share any data or are they completely isolated?**
-
-- **A**: To be determined
-
-**Q: How are user permissions structured across practices?**
-
-- **A**: To be determined
-
-#### Q14.3: Audit Trail
-
-**Q: Should all API endpoints log to the audit trail?**
-
-- **A**: To be determined based on HIPAA requirements
-
-**Q: What level of detail is needed in audit logs?**
-
-- **A**: To be determined
-
-**Q: How long should audit logs be retained?**
-
-- **A**: To be determined based on compliance requirements
-
-#### Q14.4: Performance
-
-**Q: What are acceptable response times for reports with large datasets?**
-
-- **A**: To be determined based on user expectations
-
-**Q: Should we implement caching for analytics data?**
-
-- **A**: To be determined based on data freshness requirements
-
-**Q: Do we need real-time updates or can some data be eventually consistent?**
-
-- **A**: To be determined based on use cases
-
-#### Q14.5: Security
-
-**Q: Are there specific encryption requirements for data at rest?**
-
-- **A**: To be determined based on HIPAA requirements
-
-**Q: Should we implement API rate limiting?**
-
-- **A**: To be determined based on security best practices
-
-**Q: Do we need additional authentication for sensitive operations?**
-
-- **A**: To be determined based on security requirements
+Please provide answers to these questions so I can implement the missing functionality with the correct business logic and requirements.

@@ -164,12 +164,21 @@ export const TagFactory = {
 export const AppointmentFactory = {
   build: <T extends Partial<Appointment>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    User: UserPrismaFactory,
+    created_by: faker.string.uuid(),
     start_date: faker.date.future(),
     end_date: faker.date.future(),
     type: faker.helpers.arrayElement(["APPOINTMENT", "EVENT"]),
-    status: faker.helpers.arrayElement(["scheduled", "completed", "cancelled"]),
-    notes: faker.lorem.paragraph(),
+    status: faker.helpers.arrayElement([
+      "SHOW",
+      "NO_SHOW",
+      "CANCELLED",
+      "LATE_CANCELLED",
+      "CLINICIAN_CANCELLED",
+    ]),
+    title: faker.lorem.words(3),
+    is_all_day: false,
+    is_recurring: false,
+    appointment_fee: faker.number.int({ min: 50, max: 300 }),
     ...overrides,
   }),
 };
@@ -203,6 +212,7 @@ export const ClientGroupFactory = {
     id: faker.string.uuid(),
     type: faker.helpers.arrayElement(["FAMILY", "INDIVIDUAL", "ORGANIZATION"]),
     name: faker.company.name(),
+    administrative_notes: null,
     ...overrides,
   }),
 };
@@ -332,25 +342,43 @@ export const RoleFactory = {
 export const SurveyTemplateFactory = {
   build: <T extends Partial<SurveyTemplate>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    title: faker.lorem.words(3),
-    description: faker.lorem.sentence(),
-    questions: JSON.stringify([
-      {
-        question: faker.lorem.sentence(),
-        type: faker.helpers.arrayElement(["text", "multiple_choice", "rating"]),
-        options: faker.helpers.arrayElements(
-          ["option1", "option2", "option3"],
-          3,
-        ),
-      },
+    name: faker.lorem.words(3),
+    content: JSON.stringify({
+      pages: [
+        {
+          elements: [
+            {
+              type: "text",
+              name: "question1",
+              title: faker.lorem.sentence(),
+            },
+          ],
+        },
+      ],
+    }),
+    type: faker.helpers.arrayElement([
+      "INTAKE",
+      "CONSENT",
+      "ASSESSMENT",
+      "CUSTOM",
+      "PROGRESS_NOTES",
     ]),
+    is_active: true,
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
+    description: faker.lorem.sentence(),
+    is_default: false,
+    requires_signature: false,
+    is_shareable: false,
     ...overrides,
   }),
 };
 export const SurveyAnswersFactory = {
   build: <T extends Partial<SurveyAnswers>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    answers: JSON.stringify({
+    template_id: faker.string.uuid(),
+    client_id: faker.string.uuid(),
+    content: JSON.stringify({
       answers: [
         {
           question_id: faker.string.uuid(),
@@ -358,7 +386,16 @@ export const SurveyAnswersFactory = {
         },
       ],
     }),
-    submitted_at: faker.date.recent(),
+    status: faker.helpers.arrayElement([
+      "ASSIGNED",
+      "IN_PROGRESS",
+      "COMPLETED",
+      "EXPIRED",
+      "SUBMITTED",
+    ]),
+    assigned_at: faker.date.recent(),
+    completed_at: faker.date.recent(),
+    is_intake: false,
     ...overrides,
   }),
 };
@@ -372,13 +409,13 @@ export const TagPrismaFactory = defineTagFactory({
 });
 // Appointment Prisma factory
 export const AppointmentPrismaFactory = defineAppointmentFactory({
-  defaultData: () => ({
-    ...AppointmentFactory.build(),
-    Client: ClientPrismaFactory,
-    Clinician: ClinicianPrismaFactory,
-    User: UserPrismaFactory,
-    Location: LocationPrismaFactory,
-  }),
+  defaultData: () => {
+    const { created_by, ...appointmentData } = AppointmentFactory.build();
+    return {
+      ...appointmentData,
+      User: UserPrismaFactory,
+    };
+  },
 });
 // AppointmentTag Prisma factory
 export const AppointmentTagPrismaFactory = defineAppointmentTagFactory({
@@ -427,7 +464,8 @@ export const ClientGroupChartNoteFactory = {
 // ClientGroupChartNote Prisma factory
 export const ClientGroupChartNotePrismaFactory =
   defineClientGroupChartNoteFactory({
-    defaultData: async (options) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    defaultData: async (options: any) => {
       const { client_group_id, ...baseData } =
         ClientGroupChartNoteFactory.build(
           options.overrides as Partial<ClientGroupChartNote>,
@@ -509,12 +547,19 @@ export const SurveyTemplatePrismaFactory = defineSurveyTemplateFactory({
 });
 // SurveyAnswers Prisma factory
 export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
-  defaultData: () => ({
-    ...SurveyAnswersFactory.build(),
-    Appointment: AppointmentPrismaFactory,
-    Client: ClientPrismaFactory,
-    SurveyTemplate: SurveyTemplatePrismaFactory,
-  }),
+  defaultData: () => {
+    const { template_id, client_id, appointment_id, ...surveyData } =
+      SurveyAnswersFactory.build();
+    return {
+      ...surveyData,
+      SurveyTemplate: {
+        connect: { id: template_id },
+      },
+      Client: {
+        connect: { id: client_id },
+      },
+    };
+  },
 });
 // Helper to create a valid invoice object with proper UUID formats
 export const mockInvoice = (overrides = {}) => {
@@ -861,7 +906,8 @@ export const ClientGroupFileFactory = {
 // ClientGroupFile Prisma factory
 export const ClientGroupFilePrismaFactory = defineClientGroupFileFactory({
   defaultData: () => {
-    const { client_group_id, uploaded_by_id, ...rest } = ClientGroupFileFactory.build();
+    const { client_group_id, uploaded_by_id, ...rest } =
+      ClientGroupFileFactory.build();
     return {
       ...rest,
       ClientGroup: ClientGroupPrismaFactory,
@@ -873,32 +919,34 @@ export const ClientGroupFilePrismaFactory = defineClientGroupFileFactory({
 // ClientFiles factory for generating mock data
 export const ClientFilesFactory = {
   build: <T extends Partial<ClientFiles>>(
-    overrides: T = {} as T
-  ): ClientFiles & T => ({
-    id: faker.string.uuid(),
-    client_group_file_id: faker.string.uuid(),
-    client_id: faker.string.uuid(),
-    status: faker.helpers.arrayElement([
-      "pending",
-      "shared",
-      "completed",
-      "expired",
-    ]),
-    survey_answers_id: faker.helpers.maybe(() => faker.string.uuid()),
-    frequency: faker.helpers.maybe(() =>
-      faker.helpers.arrayElement(["once", "weekly", "monthly", "yearly"]),
-    ),
-    next_due_date: faker.helpers.maybe(() => faker.date.future()),
-    shared_at: faker.helpers.maybe(() => faker.date.recent()),
-    completed_at: faker.helpers.maybe(() => faker.date.recent()),
-    ...overrides,
-  } as ClientFiles & T),
+    overrides: T = {} as T,
+  ): ClientFiles & T =>
+    ({
+      id: faker.string.uuid(),
+      client_group_file_id: faker.string.uuid(),
+      client_id: faker.string.uuid(),
+      status: faker.helpers.arrayElement([
+        "pending",
+        "shared",
+        "completed",
+        "expired",
+      ]),
+      survey_answers_id: faker.helpers.maybe(() => faker.string.uuid()),
+      frequency: faker.helpers.maybe(() =>
+        faker.helpers.arrayElement(["once", "weekly", "monthly", "yearly"]),
+      ),
+      next_due_date: faker.helpers.maybe(() => faker.date.future()),
+      shared_at: faker.helpers.maybe(() => faker.date.recent()),
+      completed_at: faker.helpers.maybe(() => faker.date.recent()),
+      ...overrides,
+    }) as ClientFiles & T,
 };
 
 // ClientFiles Prisma factory
 export const ClientFilesPrismaFactory = defineClientFilesFactory({
   defaultData: () => {
-    const { client_id, client_group_file_id, survey_answers_id, ...rest } = ClientFilesFactory.build();
+    const { client_id, client_group_file_id, survey_answers_id, ...rest } =
+      ClientFilesFactory.build();
     return {
       ...rest,
       Client: ClientPrismaFactory,
