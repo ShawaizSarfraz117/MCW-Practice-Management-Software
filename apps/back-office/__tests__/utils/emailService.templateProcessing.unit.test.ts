@@ -48,7 +48,7 @@ describe("Email Template Processing - Unit Tests", () => {
       let processed = template;
       Object.entries(variables).forEach(([key, value]) => {
         const regex = new RegExp(`{\\s*${key}\\s*}`, "g");
-        processed = processed.replace(regex, value?.toString() || "");
+        processed = processed.replace(regex, String(value ?? ""));
       });
 
       expect(processed).toBe("Name: , Email: ");

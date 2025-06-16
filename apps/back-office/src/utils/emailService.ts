@@ -1,4 +1,5 @@
 import { showErrorToast } from "@mcw/utils";
+import type { ReactNode } from "react";
 
 export interface EmailRecipient {
   email: string;
@@ -25,6 +26,12 @@ export interface SendEmailOptions {
   attachments?: EmailAttachment[];
 }
 
+type ToastFunction = (options: {
+  title: string;
+  description?: React.ReactNode;
+  variant?: "default" | "success" | "destructive";
+}) => void;
+
 /**
  * Email Service that handles all email operations
  * - Fetches templates from database
@@ -38,7 +45,10 @@ class EmailService {
   /**
    * Send email using a database template
    */
-  async sendEmail(options: SendEmailOptions, toast?: unknown): Promise<void> {
+  async sendEmail(
+    options: SendEmailOptions,
+    toast?: ToastFunction,
+  ): Promise<void> {
     const recipients = Array.isArray(options.to) ? options.to : [options.to];
 
     try {
@@ -179,7 +189,7 @@ class EmailService {
       replyTo?: string;
       attachments?: EmailAttachment[];
     },
-    toast?: unknown,
+    toast?: ToastFunction,
   ): Promise<void> {
     try {
       const promises = recipientsWithData.map(({ recipient, variables }) =>
@@ -266,7 +276,7 @@ export const emailHelpers = {
       clinicianName: string;
       portalLink: string;
     },
-    toast?: unknown,
+    toast?: ToastFunction,
   ) {
     await emailService.sendEmail(
       {
@@ -300,7 +310,7 @@ export const emailHelpers = {
       clinicianName: string;
       location?: string;
     },
-    toast?: unknown,
+    toast?: ToastFunction,
   ) {
     await emailService.sendEmail(
       {

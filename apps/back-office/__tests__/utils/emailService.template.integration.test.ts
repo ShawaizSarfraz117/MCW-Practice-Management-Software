@@ -131,7 +131,7 @@ describe("Email Template Integration Tests", () => {
 
       const results = await Promise.all(promises);
 
-      expect(results[0]?.id).toBe(testTemplate.id);
+      expect((results[0] as EmailTemplate | null)?.id).toBe(testTemplate.id);
       expect(Array.isArray(results[1])).toBe(true);
       expect(Array.isArray(results[2])).toBe(true);
     });
