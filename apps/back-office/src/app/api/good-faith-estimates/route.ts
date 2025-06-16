@@ -119,7 +119,6 @@ export async function POST(request: NextRequest) {
       const estimate = await tx.goodFaithEstimate.create({
         data: {
           clinician_id: requestData.clinician_id,
-          client_group_id: requestData.client_group_id || null,
           clinician_npi: requestData.clinician_npi,
           clinician_tin: requestData.clinician_tin,
           clinician_location_id: requestData.clinician_location_id,
@@ -168,18 +167,22 @@ export async function POST(request: NextRequest) {
 
       // Create services
       const services = await Promise.all(
-        requestData.services.map((service: ServiceData) =>
-          tx.goodFaithServices.create({
-            data: {
-              good_faith_id: estimate.id,
-              service_id: service.service_id,
-              diagnosis_id: service.diagnosis_id,
-              location_id: service.location_id,
-              quantity: service.quantity,
-              fee: service.fee,
-            },
-          }),
-        ),
+        requestData.services.map((service: ServiceData) => {
+          const baseData = {
+            good_faith_id: estimate.id,
+            service_id: service.service_id,
+            location_id: service.location_id,
+            quantity: service.quantity,
+            fee: service.fee,
+          };
+
+          const data = {
+            ...baseData,
+            diagnosis_id: service.diagnosis_id || "",
+          };
+
+          return tx.goodFaithServices.create({ data });
+        }),
       );
 
       return { estimate, clients, services };

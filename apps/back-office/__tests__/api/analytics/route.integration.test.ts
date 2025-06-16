@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  afterAll,
+  vi,
+} from "vitest";
 import { GET } from "@/api/analytics/route";
 import { prisma } from "@mcw/database";
+import { cleanupDatabase } from "@mcw/database/test-utils";
 import { startOfMonth, subMonths } from "date-fns";
 import { createRequest } from "@mcw/utils";
 import { v4 as uuidv4 } from "uuid";
@@ -15,15 +24,18 @@ vi.mock("@mcw/logger", () => ({
 
 describe("Analytics API Integration", () => {
   beforeEach(async () => {
-    // Clean up the database before each test
-    // Delete in order to respect foreign key constraints
-    await prisma.payment.deleteMany();
-    await prisma.invoice.deleteMany();
-    await prisma.appointment.deleteMany();
-    await prisma.surveyAnswers.deleteMany();
-    await prisma.clinician.deleteMany();
-    await prisma.userRole.deleteMany();
-    await prisma.user.deleteMany();
+    // Clean up the database before each test to ensure clean state
+    await cleanupDatabase(prisma, { verbose: false });
+  });
+
+  afterEach(async () => {
+    // Clean up after each test
+    await cleanupDatabase(prisma, { verbose: false });
+  });
+
+  afterAll(async () => {
+    // Final cleanup
+    await cleanupDatabase(prisma, { verbose: false });
   });
 
   describe("GET /api/analytics", () => {

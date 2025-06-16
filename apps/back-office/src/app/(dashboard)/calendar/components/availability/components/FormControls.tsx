@@ -148,7 +148,7 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             className="border-gray-200"
             disabledOptions={(time) => !isTimeAfterStart(time)}
             disablePastTimes={true}
-            format="24h"
+            format="12h"
             value={form.getFieldValue<string>("endTime")}
             onChange={(time) => {
               if (isTimeAfterStart(time)) {

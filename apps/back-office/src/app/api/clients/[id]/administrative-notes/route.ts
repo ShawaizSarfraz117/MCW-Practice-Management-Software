@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { backofficeAuthOptions } from "../../../auth/[...nextauth]/auth-options";
+import { backofficeAuthOptions } from "@/api/auth/[...nextauth]/auth-options";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 
@@ -10,52 +10,6 @@ interface AdministrativeNote {
   createdBy: string;
   createdAt: Date;
   authorName: string;
-}
-
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  try {
-    const session = await getServerSession(backofficeAuthOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const clientGroupId = params.id;
-
-    // Get the client group with administrative notes
-    const clientGroup = await prisma.clientGroup.findUnique({
-      where: { id: clientGroupId },
-      select: {
-        administrative_notes: true,
-      },
-    });
-
-    if (!clientGroup) {
-      return NextResponse.json({ error: "Client not found" }, { status: 404 });
-    }
-
-    // Parse the administrative notes if they exist
-    let notes: AdministrativeNote[] = [];
-    if (clientGroup.administrative_notes) {
-      try {
-        const parsed = JSON.parse(clientGroup.administrative_notes);
-        notes = Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        logger.error({ error }, "Failed to parse administrative notes");
-        notes = [];
-      }
-    }
-
-    return NextResponse.json({ notes });
-  } catch (error) {
-    logger.error({ error }, "Failed to fetch administrative notes");
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
 }
 
 export async function POST(

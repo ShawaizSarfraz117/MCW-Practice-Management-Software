@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 export function CalendarToolbar({
   currentView,
   isAdmin,
+  isScheduledPage = false,
   initialClinicians,
   initialLocations,
   selectedLocations,
@@ -94,13 +95,13 @@ export function CalendarToolbar({
               size="sm"
               variant={
                 currentView ===
-                (isAdmin ? "resourceTimeGridDay" : "timeGridDay")
+                (isScheduledPage ? "resourceTimeGridDay" : "timeGridDay")
                   ? "secondary"
                   : "ghost"
               }
               onClick={() =>
                 handleViewChange(
-                  isAdmin ? "resourceTimeGridDay" : "timeGridDay",
+                  isScheduledPage ? "resourceTimeGridDay" : "timeGridDay",
                 )
               }
             >
@@ -111,16 +112,12 @@ export function CalendarToolbar({
               className="rounded-none text-sm px-3"
               size="sm"
               variant={
-                currentView ===
-                (isAdmin ? "resourceTimeGridWeek" : "timeGridWeek")
+                currentView === "timeGridWeek" ||
+                currentView === "resourceTimeGridWeek"
                   ? "secondary"
                   : "ghost"
               }
-              onClick={() =>
-                handleViewChange(
-                  isAdmin ? "resourceTimeGridWeek" : "timeGridWeek",
-                )
-              }
+              onClick={() => handleViewChange("timeGridWeek")}
             >
               Week
             </Button>

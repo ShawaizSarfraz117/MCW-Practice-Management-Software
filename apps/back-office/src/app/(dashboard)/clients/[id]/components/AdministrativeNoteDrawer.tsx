@@ -152,8 +152,8 @@ export default function AdministrativeNoteDrawer({
           </div>
           <Button
             className="bg-[#2d8467] hover:bg-[#236c53]"
-            onClick={handleSave}
             disabled={isSaving}
+            onClick={handleSave}
           >
             {isSaving ? "Saving..." : "Save"}
           </Button>
@@ -173,16 +173,16 @@ export default function AdministrativeNoteDrawer({
           {/* React Quill Editor */}
           <div className="min-h-[200px] mb-4">
             <ReactQuill
-              theme="snow"
-              value={noteContent}
-              onChange={setNoteContent}
-              modules={modules}
               formats={formats}
+              modules={modules}
               placeholder="Begin typing here..."
               style={{
                 height: "200px",
                 marginBottom: "50px", // Add space for toolbar
               }}
+              theme="snow"
+              value={noteContent}
+              onChange={setNoteContent}
             />
           </div>
 

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -430,7 +431,8 @@ export function EditAppointmentTab({
           appointmentData={appointmentData}
           onAddNote={() => {
             // TODO: Implement add note functionality
-            console.log("Add note clicked");
+            console.log("Add note clicked", appointmentData?.id);
+            router.push(`/appointmentNote/${appointmentData?.id}`);
           }}
         />
 

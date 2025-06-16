@@ -64,7 +64,7 @@ const get = async ({
         // If response is not JSON (like 404 from Next.js), create error object
         errorData = {
           error: {
-            message: `Request failed: ${promise.status} ${promise.statusText} - GET ${newurl}`,
+            message: `Request failed: ${promise.status} ${promise.statusText} - GET ${url}`,
             status: promise.status,
           },
         };

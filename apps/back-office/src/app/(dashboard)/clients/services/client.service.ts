@@ -363,7 +363,7 @@ export const fetchGoodFaithEstimate = async (id: string) => {
 
 export const createGoodFaithEstimate = async ({ body = {} }) => {
   try {
-    const response: unknown = await FETCH.post({
+    const response = await FETCH.post({
       url: "/good-faith-estimates",
       body,
       isFormData: false,
@@ -439,6 +439,20 @@ export const updateDiagnosisTreatmentPlan = async ({ body = {} }) => {
   try {
     const response: unknown = await FETCH.update({
       url: "/diagnosis-treatment-plan",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const createBillingPreference = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/client/group/billing-preference",
       body,
       isFormData: false,
     });

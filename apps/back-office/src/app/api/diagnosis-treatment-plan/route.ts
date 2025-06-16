@@ -124,7 +124,6 @@ export async function POST(request: NextRequest) {
       const treatmentPlan = await tx.diagnosisTreatmentPlan.create({
         data: {
           client_id: clientId,
-          client_group_id: data?.clientGroupId || null,
           title,
           survey_answers_id: surveyAnswersId || null,
           created_at: dateTime ? new Date(dateTime) : new Date(),

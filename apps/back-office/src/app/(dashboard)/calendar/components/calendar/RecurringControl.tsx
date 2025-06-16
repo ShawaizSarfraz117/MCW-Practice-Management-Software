@@ -73,7 +73,6 @@ export function RecurringControl({
   // Update state when initialValues change
   useEffect(() => {
     if (initialValues) {
-      console.log("Updating state with initialValues:", initialValues);
       setFrequency(initialValues.frequency || "1");
       setPeriod(initialValues.period || "WEEKLY");
       setSelectedDays(initialValues.selectedDays || []);

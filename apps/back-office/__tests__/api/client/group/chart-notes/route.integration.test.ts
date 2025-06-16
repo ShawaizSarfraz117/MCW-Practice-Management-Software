@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest";
 import {
   POST as createChartNote,
@@ -20,12 +21,78 @@ describe("/api/client/group/chart-notes API endpoint integration tests", () => {
   let clientGroup: ClientGroup;
   let createdEntityIds: string[] = [];
 
+  // Helper function to clean up all test data in the correct order
+  async function cleanupTestData() {
+    try {
+      // Delete in reverse order of foreign key dependencies
+      // First, get all appointments to clean their dependencies
+      const appointments = await prisma.appointment.findMany({
+        select: { id: true },
+      });
+      const appointmentIds = appointments.map((a) => a.id);
+
+      // Delete appointment dependencies
+      if (appointmentIds.length > 0) {
+        await prisma.appointmentTag.deleteMany({
+          where: { appointment_id: { in: appointmentIds } },
+        });
+        await prisma.invoice.deleteMany({
+          where: { appointment_id: { in: appointmentIds } },
+        });
+      }
+
+      // Delete other dependencies
+      await prisma.clientGroupChartNote.deleteMany({});
+      await prisma.clientGroupMembership.deleteMany({});
+      await prisma.statement.deleteMany({});
+      await prisma.appointment.deleteMany({});
+      await prisma.clientGroup.deleteMany({});
+    } catch (error) {
+      console.error("Error during cleanup, trying alternate approach:", error);
+      // Alternative: delete only test-created data if we can identify it
+      if (createdEntityIds.length > 0) {
+        try {
+          await prisma.clientGroupChartNote.deleteMany({
+            where: { client_group_id: { in: createdEntityIds } },
+          });
+          await prisma.clientGroupMembership.deleteMany({
+            where: { client_group_id: { in: createdEntityIds } },
+          });
+          await prisma.statement.deleteMany({
+            where: { client_group_id: { in: createdEntityIds } },
+          });
+
+          const appointments = await prisma.appointment.findMany({
+            where: { client_group_id: { in: createdEntityIds } },
+            select: { id: true },
+          });
+
+          const appointmentIds = appointments.map((a) => a.id);
+          if (appointmentIds.length > 0) {
+            await prisma.appointmentTag.deleteMany({
+              where: { appointment_id: { in: appointmentIds } },
+            });
+            await prisma.invoice.deleteMany({
+              where: { appointment_id: { in: appointmentIds } },
+            });
+            await prisma.appointment.deleteMany({
+              where: { id: { in: appointmentIds } },
+            });
+          }
+
+          await prisma.clientGroup.deleteMany({
+            where: { id: { in: createdEntityIds } },
+          });
+        } catch (altError) {
+          console.error("Alternative cleanup also failed:", altError);
+        }
+      }
+    }
+  }
+
   beforeEach(async () => {
-    // Clean up any existing data - order matters due to foreign key constraints
-    await prisma.clientGroupChartNote.deleteMany({});
-    await prisma.clientGroupMembership.deleteMany({});
-    await prisma.appointment.deleteMany({}); // Delete appointments before client groups
-    await prisma.clientGroup.deleteMany({});
+    // Clean up any existing data
+    await cleanupTestData();
 
     // Create a test client group
     clientGroup = await ClientGroupPrismaFactory.create();
@@ -45,11 +112,8 @@ describe("/api/client/group/chart-notes API endpoint integration tests", () => {
   });
 
   afterAll(async () => {
-    // Final cleanup - order matters due to foreign key constraints
-    await prisma.clientGroupChartNote.deleteMany({});
-    await prisma.clientGroupMembership.deleteMany({});
-    await prisma.appointment.deleteMany({}); // Delete appointments before client groups
-    await prisma.clientGroup.deleteMany({});
+    // Final cleanup
+    await cleanupTestData();
     await prisma.$disconnect();
   });
 

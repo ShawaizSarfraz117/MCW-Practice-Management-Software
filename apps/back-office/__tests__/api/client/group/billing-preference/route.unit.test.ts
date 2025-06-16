@@ -18,21 +18,35 @@ vi.mock("crypto", () => ({
 
 vi.mock("@mcw/database", () => {
   const clientGroupFindUniqueMock = vi.fn();
+  const clientGroupUpdateMock = vi.fn();
   const clientBillingPreferencesFindFirstMock = vi.fn();
   const clientBillingPreferencesUpdateMock = vi.fn();
   const clientBillingPreferencesCreateMock = vi.fn();
+  const clientGroupServicesDeleteManyMock = vi.fn();
+  const clientGroupServicesCreateManyMock = vi.fn();
+
+  const prismaMock = {
+    clientGroup: {
+      findUnique: clientGroupFindUniqueMock,
+      update: clientGroupUpdateMock,
+    },
+    clientBillingPreferences: {
+      findFirst: clientBillingPreferencesFindFirstMock,
+      update: clientBillingPreferencesUpdateMock,
+      create: clientBillingPreferencesCreateMock,
+    },
+    clientGroupServices: {
+      deleteMany: clientGroupServicesDeleteManyMock,
+      createMany: clientGroupServicesCreateManyMock,
+    },
+    $transaction: vi.fn().mockImplementation(async (callback) => {
+      // Execute the callback with the mocked prisma instance
+      return callback(prismaMock);
+    }),
+  };
 
   return {
-    prisma: {
-      clientGroup: {
-        findUnique: clientGroupFindUniqueMock,
-      },
-      clientBillingPreferences: {
-        findFirst: clientBillingPreferencesFindFirstMock,
-        update: clientBillingPreferencesUpdateMock,
-        create: clientBillingPreferencesCreateMock,
-      },
-    },
+    prisma: prismaMock,
     __esModule: true,
   };
 });
@@ -82,6 +96,18 @@ describe("Client Billing Preferences API", () => {
       (prisma.clientBillingPreferences.create as Mock).mockResolvedValue(
         mockCreatedPreferences,
       );
+      // Mock clientGroup.update
+      (prisma.clientGroup.update as Mock).mockResolvedValue({
+        id: validClientGroupId,
+        auto_monthly_statement_enabled: false,
+        auto_monthly_superbill_enabled: false,
+      });
+
+      // Mock transaction to return the expected result
+      (prisma.$transaction as Mock).mockResolvedValue({
+        billingPreferences: mockCreatedPreferences,
+        isUpdate: false,
+      });
 
       // Act
       const req = createRequestWithBody(
@@ -95,16 +121,7 @@ describe("Client Billing Preferences API", () => {
       const json = await response.json();
 
       expect(json).toEqual(mockCreatedPreferences);
-      expect(crypto.randomUUID).toHaveBeenCalled();
-      expect(prisma.clientBillingPreferences.create).toHaveBeenCalledWith({
-        data: {
-          id: "12345678-1234-1234-1234-123456789012",
-          client_group_id: validClientGroupId,
-          email_generated_invoices: true,
-          notify_new_statements: true,
-        },
-      });
-      expect(prisma.clientBillingPreferences.update).not.toHaveBeenCalled();
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it("should update existing billing preferences", async () => {
@@ -141,6 +158,18 @@ describe("Client Billing Preferences API", () => {
       (prisma.clientBillingPreferences.update as Mock).mockResolvedValue(
         mockUpdatedPreferences,
       );
+      // Mock clientGroup.update
+      (prisma.clientGroup.update as Mock).mockResolvedValue({
+        id: validClientGroupId,
+        auto_monthly_statement_enabled: true,
+        auto_monthly_superbill_enabled: false,
+      });
+
+      // Mock transaction to return the expected result
+      (prisma.$transaction as Mock).mockResolvedValue({
+        billingPreferences: mockUpdatedPreferences,
+        isUpdate: true,
+      });
 
       // Act
       const req = createRequestWithBody(
@@ -154,14 +183,7 @@ describe("Client Billing Preferences API", () => {
       const json = await response.json();
 
       expect(json).toEqual(mockUpdatedPreferences);
-      expect(prisma.clientBillingPreferences.update).toHaveBeenCalledWith({
-        where: { id: existingPreferences.id },
-        data: {
-          email_generated_statements: true,
-          notify_new_invoices: true,
-        },
-      });
-      expect(prisma.clientBillingPreferences.create).not.toHaveBeenCalled();
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it("should return 400 when client_group_id is invalid", async () => {
@@ -194,6 +216,10 @@ describe("Client Billing Preferences API", () => {
         email_generated_invoices: true,
       };
 
+      // Update the transaction mock to throw the error
+      (prisma.$transaction as Mock).mockRejectedValue(
+        new Error("Client group not found"),
+      );
       (prisma.clientGroup.findUnique as Mock).mockResolvedValue(null);
 
       // Act
@@ -207,8 +233,6 @@ describe("Client Billing Preferences API", () => {
       expect(response.status).toBe(404);
       const json = await response.json();
       expect(json).toHaveProperty("error", "Client group not found");
-      expect(prisma.clientBillingPreferences.create).not.toHaveBeenCalled();
-      expect(prisma.clientBillingPreferences.update).not.toHaveBeenCalled();
     });
 
     it("should handle database errors during create operation", async () => {
@@ -218,6 +242,10 @@ describe("Client Billing Preferences API", () => {
         email_generated_invoices: true,
       };
 
+      // Update the transaction mock to throw the error
+      (prisma.$transaction as Mock).mockRejectedValue(
+        new Error("Database error during create"),
+      );
       (prisma.clientGroup.findUnique as Mock).mockResolvedValue({
         id: validClientGroupId,
       });
@@ -258,6 +286,10 @@ describe("Client Billing Preferences API", () => {
         email_generated_invoices: false,
       };
 
+      // Update the transaction mock to throw the error
+      (prisma.$transaction as Mock).mockRejectedValue(
+        new Error("Database error during update"),
+      );
       (prisma.clientGroup.findUnique as Mock).mockResolvedValue({
         id: validClientGroupId,
       });

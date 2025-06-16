@@ -25,11 +25,12 @@ export default function BillingInvoicesSection({
           {["daily", "weekly", "monthly"].map((option) => (
             <div key={option} className="flex items-start gap-3">
               <input
-                type="radio"
-                name="autoInvoiceCreation"
-                id={`invoice-${option}`}
-                value={option}
                 checked={formData.autoInvoiceCreation === option}
+                className="mt-0.5 accent-[#2D8467]"
+                id={`invoice-${option}`}
+                name="autoInvoiceCreation"
+                type="radio"
+                value={option}
                 onChange={() =>
                   setFormData({
                     ...formData,
@@ -37,7 +38,6 @@ export default function BillingInvoicesSection({
                       option as BillingSettingsFormData["autoInvoiceCreation"],
                   })
                 }
-                className="mt-0.5 accent-[#2D8467]"
               />
               <label className="cursor-pointer" htmlFor={`invoice-${option}`}>
                 <span className="font-normal text-gray-900 capitalize">
@@ -90,15 +90,15 @@ export default function BillingInvoicesSection({
 
           <label className="flex items-center gap-2">
             <input
-              type="checkbox"
               checked={formData.emailClientPastDue}
+              className="checked:bg-[#2D8467] checked:border-[#2D8467]"
+              type="checkbox"
               onChange={(e) =>
                 setFormData({
                   ...formData,
                   emailClientPastDue: e.target.checked,
                 })
               }
-              className="data-[state=checked]:bg-[#2D8467] data-[state=checked]:border-[#2D8467]"
             />
             <span className="text-[#111827]">
               Email clients about past due invoices

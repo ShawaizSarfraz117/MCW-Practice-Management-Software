@@ -33,17 +33,22 @@ const MemberTable = ({ rows, onRowClick }: MemberTableProps) => {
       return "No role assigned";
     }
 
-    const roleNames = member.UserRole.map((ur) => ur.Role.name);
+    // Map role names to display-friendly names
+    const roleDisplayMap: Record<string, string> = {
+      ADMIN: "Admin",
+      "ADMIN.PRACTICE-MANAGER": "Admin - Practice Manager",
+      "ADMIN.PRACTICE-BILLER": "Admin - Practice Biller",
+      "CLINICIAN.BASIC": "Clinician - Basic Access",
+      "CLINICIAN.BILLING": "Clinician - Billing Access",
+      "CLINICIAN.FULL-CLIENT-LIST": "Clinician - Full Client List",
+      "CLINICIAN.ENTIRE-PRACTICE": "Clinician - Entire Practice",
+      "CLINICIAN.SUPERVISOR": "Clinician - Supervisor",
+    };
 
-    if (roleNames.includes("Admin")) {
-      return "Admin";
-    }
-
-    if (roleNames.includes("Clinician")) {
-      return member.Clinician
-        ? "Clinician with entire practice access"
-        : "Clinician";
-    }
+    const roleNames = member.UserRole.map((ur) => {
+      const roleName = ur.Role.name;
+      return roleDisplayMap[roleName] || roleName;
+    });
 
     return roleNames.join(", ");
   };
@@ -63,6 +68,30 @@ const MemberTable = ({ rows, onRowClick }: MemberTableProps) => {
       hour12: true,
     });
     return `${formattedDate} at ${formattedTime}`;
+  };
+
+  const getLicenseInfo = (member: TeamMember) => {
+    if (
+      !member.Clinician ||
+      !member.Clinician.License ||
+      member.Clinician.License.length === 0
+    ) {
+      return "No license";
+    }
+
+    const license = member.Clinician.License[0];
+    const expirationDate = new Date(license.expiration_date);
+    const isExpired = expirationDate < new Date();
+
+    return {
+      number: license.license_number,
+      state: license.state,
+      isExpired,
+      expirationDate: expirationDate.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      }),
+    };
   };
 
   const columns = [
@@ -95,6 +124,34 @@ const MemberTable = ({ rows, onRowClick }: MemberTableProps) => {
       formatter: (value: unknown) => {
         const member = value as TeamMember;
         return <div className="text-gray-700">{getRoleName(member)}</div>;
+      },
+    },
+    {
+      key: "license",
+      label: "License",
+      value: "license",
+      formatter: (value: unknown) => {
+        const member = value as TeamMember;
+        const licenseInfo = getLicenseInfo(member);
+
+        if (licenseInfo === "No license") {
+          return <div className="text-gray-500 text-sm">{licenseInfo}</div>;
+        }
+
+        return (
+          <div className="text-sm">
+            <div className="text-gray-700">
+              {licenseInfo.number} ({licenseInfo.state})
+            </div>
+            <div
+              className={
+                licenseInfo.isExpired ? "text-red-600" : "text-gray-500"
+              }
+            >
+              Exp: {licenseInfo.expirationDate}
+            </div>
+          </div>
+        );
       },
     },
     {

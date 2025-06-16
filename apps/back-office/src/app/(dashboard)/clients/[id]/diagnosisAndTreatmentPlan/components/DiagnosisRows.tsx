@@ -110,7 +110,7 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
         <div className="flex-1">
           <span className="text-sm font-medium text-gray-700">Description</span>
         </div>
-        <div className="w-20"></div>
+        <div className="w-20" />
       </div>
 
       <form className="space-y-2">
@@ -128,8 +128,8 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
               >
                 <PopoverTrigger asChild>
                   <button
-                    type="button"
                     className="w-full h-10 px-3 text-left border rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2d8467] flex items-center justify-between"
+                    type="button"
                   >
                     <span
                       className={diag.code ? "text-gray-900" : "text-gray-400"}
@@ -143,10 +143,10 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
                       viewBox="0 0 24 24"
                     >
                       <path
+                        d="M19 9l-7 7-7-7"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
                       />
                     </svg>
                   </button>
@@ -155,9 +155,10 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
                   <div className="flex flex-col">
                     <div className="px-3 py-2 border-b">
                       <input
-                        type="text"
+                        autoFocus
                         className="w-full px-2 py-1 text-sm outline-none"
                         placeholder="Type here to search through 1000's of ICD-10 codes"
+                        type="text"
                         value={searchTerms[idx] || ""}
                         onChange={(e) => {
                           setSearchTerms((prev) => ({
@@ -165,7 +166,6 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
                             [idx]: e.target.value,
                           }));
                         }}
-                        autoFocus
                       />
                     </div>
                     <div className="max-h-64 overflow-y-auto">
@@ -177,8 +177,8 @@ const DiagnosisRows: React.FC<DiagnosisRowsProps> = ({
                         filteredOptions(idx).map((option) => (
                           <button
                             key={option.id}
-                            type="button"
                             className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                            type="button"
                             onClick={() => {
                               handleDiagnosisSelect(idx, option);
                             }}

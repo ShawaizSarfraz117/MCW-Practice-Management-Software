@@ -876,7 +876,7 @@ model DiagnosisTreatmentPlanItem {
   treatment_plan_id      String                 @db.UniqueIdentifier
   diagnosis_id           String                 @db.UniqueIdentifier
   custom_description     String?                @db.VarChar(255)
-  Diagnosis              Diagnosis              @relation(fields: [diagnosis_id], references: [id], onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlanItem_Diagnosis")
+  Diagnosis              Diagnosis?             @relation(fields: [diagnosis_id], references: [id], onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlanItem_Diagnosis")
   DiagnosisTreatmentPlan DiagnosisTreatmentPlan @relation(fields: [treatment_plan_id], references: [id], onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlanItem_DiagnosisTreatmentPlan")
 
   @@index([diagnosis_id], map: "IX_DiagnosisTreatmentPlanItem_DiagnosisId")
@@ -934,11 +934,11 @@ model GoodFaithServices {
   id                String            @id(map: "PK_GoodFaithServices") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   good_faith_id     String            @db.UniqueIdentifier
   service_id        String            @db.UniqueIdentifier
-  diagnosis_id      String            @db.UniqueIdentifier
+  diagnosis_id      String?           @db.UniqueIdentifier
   location_id       String            @db.UniqueIdentifier
   quantity          Int
   fee               Int
-  Diagnosis         Diagnosis         @relation(fields: [diagnosis_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_Diagnosis")
+  Diagnosis         Diagnosis?        @relation(fields: [diagnosis_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_Diagnosis")
   GoodFaithEstimate GoodFaithEstimate @relation(fields: [good_faith_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_GoodFaithEstimate")
   Location          Location          @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_Location")
   PracticeService   PracticeService   @relation(fields: [service_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_PracticeService")
