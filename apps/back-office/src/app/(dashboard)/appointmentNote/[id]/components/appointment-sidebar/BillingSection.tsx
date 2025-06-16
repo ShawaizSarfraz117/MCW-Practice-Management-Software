@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "@mcw/ui";
+import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
 interface AppointmentData {
@@ -12,6 +12,9 @@ interface AppointmentData {
     fee?: number | string;
   } | null;
   Invoice?: Array<unknown>;
+  ClientGroup?: {
+    id: string;
+  } | null;
 }
 
 interface BillingSectionProps {
@@ -26,6 +29,10 @@ export function BillingSection({ appointment }: BillingSectionProps) {
     "0";
 
   const isInvoiced = appointment?.Invoice && appointment.Invoice.length > 0;
+
+  const billingUrl = appointment?.ClientGroup?.id
+    ? `/clients/${appointment.ClientGroup.id}?tab=billing`
+    : "#";
 
   return (
     <div>
@@ -50,13 +57,16 @@ export function BillingSection({ appointment }: BillingSectionProps) {
           </span>
         </div>
       </div>
-      <Button
-        className="text-blue-600 p-0 h-auto text-sm mt-3 flex items-center"
-        variant="link"
+
+      <Link
+        href={billingUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:underline text-sm mt-3 flex items-center"
       >
         <ExternalLink className="h-3 w-3 mr-1" />
         Open billing
-      </Button>
+      </Link>
     </div>
   );
 }
