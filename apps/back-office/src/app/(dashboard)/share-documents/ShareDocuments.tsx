@@ -28,6 +28,11 @@ export interface ShareDocumentsProps {
   clientId?: string;
   clientGroupId?: string;
   onSuccess?: (selectedDocumentIds: string[]) => void;
+  // Appointment details for reminder dialog
+  appointmentDate?: Date | string;
+  appointmentTime?: string;
+  clinicianName?: string;
+  locationName?: string;
 }
 
 interface SelectedDocument {
@@ -47,6 +52,10 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
   clientId,
   clientGroupId,
   onSuccess,
+  appointmentDate,
+  appointmentTime,
+  clinicianName,
+  locationName,
 }) => {
   const [showReminders, setShowReminders] = useState(showRemindersInitial);
   const [currentStep, setCurrentStep] = useState<
@@ -407,6 +416,11 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
             clientName={clientName}
             isOpen={showReminders}
             onClose={() => setShowReminders(false)}
+            appointmentDate={appointmentDate}
+            appointmentTime={appointmentTime}
+            clinicianName={clinicianName}
+            locationName={locationName}
+            appointmentId={appointmentId}
           />
         )}
       </div>

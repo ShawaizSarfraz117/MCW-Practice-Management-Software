@@ -7,6 +7,11 @@ interface IntakeFormProps {
   clientId: string;
   clientGroupId: string;
   onClose: () => void;
+  appointmentDate?: Date | string;
+  appointmentTime?: string;
+  clinicianName?: string;
+  locationName?: string;
+  appointmentId?: string;
 }
 
 export const IntakeForm: React.FC<IntakeFormProps> = ({
@@ -15,6 +20,11 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
   clientId,
   clientGroupId,
   onClose,
+  appointmentDate,
+  appointmentTime,
+  clinicianName,
+  locationName,
+  appointmentId,
 }) => {
   return (
     <ShareDocuments
@@ -25,6 +35,11 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
       context="appointment"
       showReminders={true}
       onClose={onClose}
+      appointmentDate={appointmentDate}
+      appointmentTime={appointmentTime}
+      clinicianName={clinicianName}
+      locationName={locationName}
+      appointmentId={appointmentId}
     />
   );
 };

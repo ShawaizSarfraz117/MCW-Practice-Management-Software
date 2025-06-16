@@ -320,12 +320,13 @@ async function main() {
     {
       id: uuidv4(),
       name: "Appointment Reminder",
-      subject: "Appointment Reminder for {{client_full_name}}",
-      content: "Hi {client_first_name},\n\nThis is a reminder that you have an appointment with {practice_full_name} at {appointment_time} on {appointment_date}.\n\nAdd to your Calendar:\n{appointment_reminder_links}\n",
+      subject: "Appointment Reminder for {client_full_name}",
+      content: "Hi {client_first_name},\n\nThis is a reminder that you have an appointment with {practice_full_name} at {appointment_time} on {appointment_date}.\n\nAdd to your Calendar:\n{appointment_reminder_links}\n\n{practice_full_name}\n\n{practice_address_line1}\n{practice_address_line2}\n{practice_map_link}\n\nPlease contact our office with any questions or changes.\n\n{practice_phone_number}",
       type: "reminder",
       created_at: new Date("2025-05-06T18:34:05.860Z"),
       updated_at: new Date("2025-05-09T08:00:48.505Z"),
-      created_by: admin.id
+      created_by: admin.id,
+      email_type: "appointment_reminder"
     },
     {
       id: uuidv4(),
@@ -346,6 +347,17 @@ async function main() {
       created_at: new Date("2025-05-06T18:19:22.490Z"),
       updated_at: new Date("2025-05-11T10:12:06.733Z"),
       created_by: admin.id
+    },
+    {
+      id: uuidv4(),
+      name: "Document reminder",
+      subject: "Document reminder",
+      content: "This is a reminder that you have documents to complete before your appointment on {appointment_date} at {appointment_time} with {clinician_full_name}.\n\nThe documents include:\n\n{client_document_request_names}\n\nSign in to your Client Portal to get started.\n\n{practice_client_portal_login_link}",
+      type: "reminder",
+      created_at: new Date("2025-05-06T18:34:05.860Z"),
+      updated_at: new Date("2025-05-09T08:00:48.505Z"),
+      created_by: admin.id,
+      email_type: "document_reminder"
     }
   ];
 
