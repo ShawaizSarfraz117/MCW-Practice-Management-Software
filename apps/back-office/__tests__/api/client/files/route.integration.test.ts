@@ -64,10 +64,12 @@ function createRequest(url: string): NextRequest {
 }
 
 function createFormDataRequest(url: string, formData: FormData): NextRequest {
-  return new NextRequest(`http://localhost${url}`, {
-    method: "POST",
-    body: formData,
-  });
+  return new NextRequest(
+    new Request(`http://localhost${url}`, {
+      method: "POST",
+      body: formData,
+    }),
+  );
 }
 
 describe("Client Files API Integration Tests", () => {
@@ -82,7 +84,7 @@ describe("Client Files API Integration Tests", () => {
 
   beforeEach(async () => {
     await cleanupDatabase(prisma);
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
 
     // Create test data using factories
     user = await UserPrismaFactory.create({

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi, Mock } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Mock } from "vitest";
 import {
   ClientFactory,
   ClientGroupFactory,

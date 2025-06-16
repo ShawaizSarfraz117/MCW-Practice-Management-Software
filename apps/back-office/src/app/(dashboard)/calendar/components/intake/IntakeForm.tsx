@@ -8,28 +8,11 @@ import {
   fetchSingleClientGroup,
   ClientGroupWithMembership,
 } from "@/(dashboard)/clients/services/client.service";
+import { useMultipleClientEmails } from "@/(dashboard)/calendar/hooks/useClientContact";
 
 interface IntakeFormProps {
   clientGroupId: string;
   onClose: () => void;
-}
-
-async function getClientEmail(clientId: string): Promise<string | null> {
-  try {
-    const response = await fetch(`/api/client/contact?clientId=${clientId}`);
-    if (response.ok) {
-      const result = await response.json();
-      const contacts = result.data || [];
-      const emailContact = contacts.find(
-        (c: { contact_type: string; value: string }) =>
-          c.contact_type === "EMAIL",
-      );
-      return emailContact?.value || null;
-    }
-  } catch (error) {
-    console.error("Failed to fetch client email:", error);
-  }
-  return null;
 }
 
 export const IntakeForm: React.FC<IntakeFormProps> = ({
@@ -37,9 +20,16 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
   onClose,
 }) => {
   const [clients, setClients] = useState<ShareClient[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [clientIds, setClientIds] = useState<string[]>([]);
+  const [isLoadingGroup, setIsLoadingGroup] = useState(true);
+
+  // Use the hook to fetch emails for all clients
+  const { data: emailMap, isLoading: isLoadingEmails } =
+    useMultipleClientEmails(clientIds);
 
   useEffect(() => {
+    let mounted = true;
+
     // Fetch all clients in the group
     const fetchClients = async () => {
       try {
@@ -48,39 +38,68 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
           searchParams: {},
         });
 
+        // Check if component is still mounted before updating state
+        if (!mounted) return;
+
         if (response && typeof response === "object" && "data" in response) {
           const clientGroupData = response.data as ClientGroupWithMembership;
 
           if (clientGroupData.ClientGroupMembership?.length) {
-            // Get all clients from the group
-            const clientsPromises = clientGroupData.ClientGroupMembership.map(
-              async (membership) => {
-                const client = membership.Client;
-                const email = await getClientEmail(client.id);
+            // Extract client IDs for email fetching
+            const ids = clientGroupData.ClientGroupMembership.map(
+              (membership) => membership.Client.id,
+            );
 
+            // Check again before state updates
+            if (!mounted) return;
+
+            setClientIds(ids);
+
+            // Set basic client data immediately
+            const clientsData = clientGroupData.ClientGroupMembership.map(
+              (membership) => {
+                const client = membership.Client;
                 return {
                   id: client.id,
                   name: `${client.legal_first_name || ""} ${client.legal_last_name || ""}`.trim(),
-                  email: email || undefined,
+                  email: undefined,
                 };
               },
             );
 
-            const clientsData = await Promise.all(clientsPromises);
+            if (!mounted) return;
             setClients(clientsData);
           }
         }
       } catch (error) {
         console.error("Failed to fetch clients:", error);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoadingGroup(false);
+        }
       }
     };
 
     if (clientGroupId) {
       fetchClients();
     }
+
+    return () => {
+      mounted = false;
+    };
   }, [clientGroupId]);
+
+  useEffect(() => {
+    if (emailMap && clients.length > 0) {
+      const updatedClients = clients.map((client) => ({
+        ...client,
+        email: emailMap.get(client.id) || undefined,
+      }));
+      setClients(updatedClients);
+    }
+  }, [emailMap, clients.length]);
+
+  const isLoading = isLoadingGroup || isLoadingEmails;
 
   if (isLoading) {
     return (

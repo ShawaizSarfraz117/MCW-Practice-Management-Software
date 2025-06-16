@@ -75,14 +75,22 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
       return clientsProp;
     }
     if (clientName) {
-      return [{ id: clientId || "1", name: clientName, email: clientEmail }];
+      if (!clientId) {
+        console.error(
+          "ShareDocuments: clientId is required when clientName is provided",
+        );
+        return [];
+      }
+      return [{ id: clientId, name: clientName, email: clientEmail }];
     }
     return [];
   }, [clientsProp, clientName, clientEmail, clientId]);
 
   const isMultiClient = clients.length > 1;
   const [showReminders, setShowReminders] = useState(showRemindersInitial);
-  const [currentStep, setCurrentStep] = useState<string>("client-0");
+  const [currentStep, setCurrentStep] = useState<string>(
+    clients.length > 0 ? "client-0" : "",
+  );
   const [selectedDocumentsByClient, setSelectedDocumentsByClient] =
     useState<AllClientsDocumentState>({});
   const [emailContent, setEmailContent] = useState<string>("");
@@ -113,15 +121,32 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
 
       const clientData = new Map();
 
-      for (const client of clients) {
-        const response = await fetch(
-          `/api/client/files?client_id=${client.id}`,
-        );
-        if (response.ok) {
-          const data = await response.json();
-          clientData.set(client.id, data.sharedFiles || []);
+      // Fetch all client files in parallel
+      const fetchPromises = clients.map(async (client) => {
+        try {
+          const response = await fetch(
+            `/api/client/files?client_id=${client.id}`,
+          );
+          if (response.ok) {
+            const data = await response.json();
+            return { clientId: client.id, sharedFiles: data.sharedFiles || [] };
+          }
+          return { clientId: client.id, sharedFiles: [] };
+        } catch (error) {
+          console.error(
+            `Failed to fetch files for client ${client.id}:`,
+            error,
+          );
+          return { clientId: client.id, sharedFiles: [] };
         }
-      }
+      });
+
+      const results = await Promise.all(fetchPromises);
+
+      // Populate the map with results
+      results.forEach(({ clientId, sharedFiles }) => {
+        clientData.set(clientId, sharedFiles);
+      });
 
       return clientData;
     },
@@ -304,10 +329,10 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
 
           clientDocuments[doc.id] = {
             id: doc.id,
-            checked: isAlreadyShared || doc.checked, // Auto-check if already shared
+            checked: doc.checked, // Only use the original checked state
             frequency:
               sharedFileData?.frequency ||
-              ((isAlreadyShared || doc.checked) && doc.frequency
+              (doc.checked && doc.frequency
                 ? FILE_FREQUENCY_OPTIONS.ONCE
                 : undefined),
             disabled: isAlreadyShared, // Mark as disabled if already shared
@@ -378,7 +403,7 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
   // Check if any documents are selected across all clients
   const hasAnyDocumentsSelected = () => {
     return Object.entries(selectedDocumentsByClient).some(([_, clientDocs]) =>
-      Object.values(clientDocs).some((doc) => doc.checked),
+      Object.values(clientDocs).some((doc) => doc.checked && !doc.disabled),
     );
   };
 
@@ -395,7 +420,7 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
       Object.entries(selectedDocumentsByClient).forEach(
         ([clientId, clientDocs]) => {
           const selectedIds = Object.entries(clientDocs)
-            .filter(([_, doc]) => doc.checked)
+            .filter(([_, doc]) => doc.checked && !doc.disabled)
             .map(([id]) => id);
 
           if (selectedIds.length > 0) {
@@ -411,7 +436,7 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
       // Single client mode
       const clientDocs = selectedDocumentsByClient[clients[0]?.id] || {};
       const selectedIds = Object.entries(clientDocs)
-        .filter(([_, doc]) => doc.checked)
+        .filter(([_, doc]) => doc.checked && !doc.disabled)
         .map(([id]) => id);
 
       if (onSuccess) {

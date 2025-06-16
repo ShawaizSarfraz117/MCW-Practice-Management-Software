@@ -116,6 +116,7 @@ export async function POST(request: NextRequest) {
             client_group_file_id: payload.file_id,
             status: "Shared",
             shared_at: new Date(),
+            blob_url: _fileUrl,
           },
           include: {
             Client: true,

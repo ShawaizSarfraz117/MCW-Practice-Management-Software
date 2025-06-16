@@ -45,10 +45,12 @@ import {
 import {
   useClientGroupFiles,
   useUploadClientFile,
-  useDeleteClientFile,
   useDownloadFile,
 } from "@/(dashboard)/clients/hooks/useClientFiles";
 import { ClientFile } from "@mcw/types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@mcw/ui";
+import { showErrorToast } from "@mcw/utils";
 
 type SortColumn = "name" | "type" | "status" | "updated";
 type SortDirection = "asc" | "desc";
@@ -132,11 +134,9 @@ function useFileActions(
   clientGroupId: string,
   onShareFile?: (file: ClientFile) => void,
 ) {
-  const deleteFileMutation = useDeleteClientFile(
-    clients[0]?.id || "",
-    clientGroupId,
-  );
+  const queryClient = useQueryClient();
   const downloadFileMutation = useDownloadFile();
+  const { toast } = useToast();
 
   const handleDownload = async (file: ClientFile) => {
     // For practice uploads or shared files, use the API to get SAS token
@@ -149,9 +149,80 @@ function useFileActions(
     }
   };
 
+  const deleteFileMutation = useMutation({
+    mutationFn: async ({
+      fileId,
+      clientId,
+    }: {
+      fileId: string;
+      clientId: string;
+    }) => {
+      const response = await fetch(`/api/client/files/${fileId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.hasLockedChildren) {
+          throw new Error(
+            "Cannot delete file - one or more shared instances are locked",
+          );
+        }
+        throw new Error(data.error || "Failed to delete file");
+      }
+
+      // Check if confirmation is required (practice upload with shares)
+      if (data.requiresConfirmation) {
+        // Automatically confirm deletion
+        const confirmResponse = await fetch(
+          `/api/client/files/${fileId}/confirm-delete`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ confirmDelete: true }),
+          },
+        );
+
+        const confirmData = await confirmResponse.json();
+
+        if (!confirmResponse.ok) {
+          throw new Error(confirmData.error || "Failed to delete file");
+        }
+
+        return { ...confirmData, clientId };
+      }
+
+      return { ...data, clientId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: ["clientFiles", data.clientId],
+      });
+      if (clientGroupId) {
+        queryClient.invalidateQueries({
+          queryKey: ["clientGroupFiles", clientGroupId],
+        });
+      }
+      toast({
+        title: "Success",
+        description: "File deleted successfully",
+      });
+    },
+    onError: (error: unknown) => {
+      showErrorToast(toast, error);
+    },
+  });
+
   const handleDelete = async (file: ClientFile) => {
     if (confirm(`Are you sure you want to delete "${file.name}"?`)) {
-      await deleteFileMutation.mutateAsync(file.id);
+      const targetClientId = file.clientId || clients[0]?.id || "";
+      await deleteFileMutation.mutateAsync({
+        fileId: file.id,
+        clientId: targetClientId,
+      });
     }
   };
 

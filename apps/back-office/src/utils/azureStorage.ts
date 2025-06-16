@@ -238,10 +238,49 @@ export async function copyBlobInAzureStorage(
     const destinationBlobClient =
       containerClient.getBlockBlobClient(destinationPath);
 
-    // Start the copy operation
-    const copyPoller =
-      await destinationBlobClient.beginCopyFromURL(sourceBlobUrl);
-    await copyPoller.pollUntilDone();
+    // Create an AbortController with a timeout
+    const abortController = new AbortController();
+    const timeoutMs = 5 * 60 * 1000; // 5 minutes timeout
+    const timeout = setTimeout(() => abortController.abort(), timeoutMs);
+
+    try {
+      // Start the copy operation with abort signal
+      const copyPoller = await destinationBlobClient.beginCopyFromURL(
+        sourceBlobUrl,
+        {
+          abortSignal: abortController.signal,
+        },
+      );
+
+      // Poll with a maximum duration
+      const maxPollDuration = 5 * 60 * 1000; // 5 minutes max polling
+      const startTime = Date.now();
+
+      while (!copyPoller.isDone()) {
+        // Check if we've exceeded max polling duration
+        if (Date.now() - startTime > maxPollDuration) {
+          abortController.abort();
+          throw new Error("Copy operation timed out after 5 minutes");
+        }
+
+        // Poll with a reasonable interval
+        await copyPoller.poll();
+
+        // Wait a bit before next poll to avoid overwhelming the API
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      // Get the final result
+      const result = copyPoller.getResult();
+      if (!result || result.copyStatus !== "success") {
+        throw new Error(
+          `Copy operation failed with status: ${result?.copyStatus}`,
+        );
+      }
+    } finally {
+      // Clean up the timeout
+      clearTimeout(timeout);
+    }
 
     return destinationBlobClient.url;
   } catch (error) {

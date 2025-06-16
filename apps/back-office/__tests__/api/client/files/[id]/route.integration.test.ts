@@ -36,7 +36,9 @@ vi.mock("@mcw/logger", () => ({
 
 // Mock Azure Storage
 vi.mock("@/utils/azureStorage", () => ({
-  generateDownloadUrl: vi.fn().mockResolvedValue("https://storage.azure.com/test-sas-url"),
+  generateDownloadUrl: vi
+    .fn()
+    .mockResolvedValue("https://storage.azure.com/test-sas-url"),
   deleteFromAzureStorage: vi.fn().mockResolvedValue(true),
 }));
 
@@ -58,17 +60,19 @@ import { getBackOfficeSession } from "@/utils/helpers";
 
 // Helper function to create request
 function createRequest(url: string, method: string = "GET"): NextRequest {
-  return new NextRequest(`http://localhost${url}`, { method });
+  return new NextRequest(new Request(`http://localhost${url}`, { method }));
 }
 
 function createRequestWithBody(url: string, body: unknown): NextRequest {
-  return new NextRequest(`http://localhost${url}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  return new NextRequest(
+    new Request(`http://localhost${url}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }),
+  );
 }
 
 describe("Client Files [id] API Integration Tests", () => {
@@ -242,7 +246,7 @@ describe("Client Files [id] API Integration Tests", () => {
             assigned_at: new Date(),
           },
         });
-        
+
         // Update the client file with the survey answer
         await tx.clientFiles.update({
           where: { id: sharedFileId },
@@ -257,7 +261,9 @@ describe("Client Files [id] API Integration Tests", () => {
 
       expect(response.status).toBe(200);
       expect(response.headers.get("Content-Type")).toBe("application/pdf");
-      expect(response.headers.get("Content-Disposition")).toContain("PHQ-9.pdf");
+      expect(response.headers.get("Content-Disposition")).toContain(
+        "PHQ-9.pdf",
+      );
     });
 
     it("should return 401 for unauthenticated requests", async () => {
