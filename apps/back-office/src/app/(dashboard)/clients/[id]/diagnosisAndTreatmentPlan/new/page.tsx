@@ -135,9 +135,7 @@ export default function NewDiagnosisAndTreatmentPlan() {
 
   const handleSkipToTreatmentPlan = () => {
     // Navigate to template selection page
-    router.push(
-      `/clients/${clientGroupId}/diagnosisAndTreatmentPlan/template-selection`,
-    );
+    handleSave();
   };
 
   return (
