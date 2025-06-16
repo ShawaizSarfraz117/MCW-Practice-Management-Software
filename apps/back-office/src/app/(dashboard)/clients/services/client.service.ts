@@ -219,10 +219,10 @@ export const useUpdateClientGroup = () => {
 
 export const fetchSingleClientGroup = async ({
   id,
-  searchParams,
+  searchParams = {},
 }: {
   id: string;
-  searchParams: Record<string, string | number | boolean>;
+  searchParams?: Record<string, string | number | boolean>;
 }) => {
   try {
     const response = await FETCH.get({
@@ -231,8 +231,9 @@ export const fetchSingleClientGroup = async ({
     });
 
     return response;
-  } catch (_error) {
-    return null;
+  } catch (error) {
+    console.error("Error fetching client group:", error);
+    throw new Error("Failed to fetch client information");
   }
 };
 

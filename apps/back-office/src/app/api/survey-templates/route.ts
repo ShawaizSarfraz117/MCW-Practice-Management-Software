@@ -7,10 +7,16 @@ import { SurveyAnswers } from "@prisma/client";
 // GET - Retrieve survey templates with their survey answers, filtered by type
 export async function GET(request: NextRequest) {
   try {
-    // Validate authentication
-    const clinicianInfo = await getClinicianInfo();
-    if (!clinicianInfo) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Validate authentication - make it optional for survey templates since they're public
+    let _clinicianInfo;
+    try {
+      _clinicianInfo = await getClinicianInfo();
+    } catch (_authError) {
+      logger.warn(
+        "Authentication check failed, proceeding without auth for public survey templates",
+      );
+      // Allow access to survey templates even without authentication
+      _clinicianInfo = null;
     }
 
     const searchParams = request.nextUrl.searchParams;

@@ -3,6 +3,7 @@ import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { getClinicianInfo } from "@/utils/helpers";
 import { Prisma } from "@prisma/client";
+import { calculateSurveyScore, getSurveyType } from "@mcw/utils";
 
 const VALID_STATUSES = ["PENDING", "IN_PROGRESS", "COMPLETED"];
 
@@ -74,13 +75,17 @@ export async function GET(
 
     logger.info("Survey answer retrieved successfully");
 
-    // Parse content if it's a string
+    // Parse content and score if they're strings
     const parsedSurveyAnswer = {
       ...surveyAnswer,
       content:
         typeof surveyAnswer.content === "string"
           ? JSON.parse(surveyAnswer.content)
           : surveyAnswer.content,
+      score:
+        typeof surveyAnswer.score === "string"
+          ? JSON.parse(surveyAnswer.score)
+          : surveyAnswer.score,
       SurveyTemplate: {
         ...surveyAnswer.SurveyTemplate,
         content:
@@ -132,10 +137,13 @@ export async function PUT(
     const requestData = await request.json();
     const { content, status, appointment_id } = requestData;
 
-    // Check if survey answer exists
+    // Check if survey answer exists and get template for scoring
     const existingSurveyAnswer = await prisma.surveyAnswers.findUnique({
       where: {
         id: surveyAnswerId,
+      },
+      include: {
+        SurveyTemplate: true,
       },
     });
 
@@ -179,6 +187,7 @@ export async function PUT(
       status: string;
       appointment_id: string | null;
       completed_at: Date | null;
+      score: string | null;
     }> = {};
 
     if (content !== undefined) {
@@ -188,6 +197,24 @@ export async function PUT(
     if (status !== undefined) {
       updateData.status = status;
       updateData.completed_at = status === "COMPLETED" ? new Date() : null;
+
+      // Calculate score if status is changing to completed and content is provided
+      if (status === "COMPLETED" && (content || existingSurveyAnswer.content)) {
+        const surveyType = getSurveyType(
+          existingSurveyAnswer.SurveyTemplate.name,
+        );
+        if (surveyType) {
+          const surveyContent =
+            content ||
+            (existingSurveyAnswer.content
+              ? JSON.parse(existingSurveyAnswer.content as string)
+              : null);
+          if (surveyContent) {
+            const score = calculateSurveyScore(surveyType, surveyContent);
+            updateData.score = JSON.stringify(score);
+          }
+        }
+      }
     }
 
     if (appointment_id !== undefined) {
@@ -230,6 +257,9 @@ export async function PUT(
       ...updatedSurveyAnswer,
       content: updatedSurveyAnswer.content
         ? JSON.parse(updatedSurveyAnswer.content)
+        : null,
+      score: updatedSurveyAnswer.score
+        ? JSON.parse(updatedSurveyAnswer.score)
         : null,
     };
 
