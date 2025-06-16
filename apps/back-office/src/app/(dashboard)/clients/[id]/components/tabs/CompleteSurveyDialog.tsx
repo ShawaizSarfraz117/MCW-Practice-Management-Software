@@ -205,6 +205,7 @@ export default function CompleteSurveyDialog({
 
             {/* Show warning for PHQ-9 if suicidal ideation is indicated */}
             {surveyAnswer.SurveyTemplate.name.includes("PHQ-9") &&
+            currentAnswers &&
             currentAnswers.phq9_q10 &&
             currentAnswers.phq9_q10 !== "Item 1" ? (
               <Alert className="mt-4 border-red-500 bg-red-50">

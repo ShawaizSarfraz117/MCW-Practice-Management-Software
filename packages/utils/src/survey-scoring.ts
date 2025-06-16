@@ -15,6 +15,11 @@ export interface SurveyScore {
 export function calculateGAD7Score(
   answers: Record<string, string>,
 ): SurveyScore {
+  // Handle null/undefined input
+  if (!answers || typeof answers !== "object") {
+    return { totalScore: 0, interpretation: "Invalid input" };
+  }
+
   const scoreMap: Record<string, number> = {
     "Item 1": 0, // Not at all
     "Item 2": 1, // Several days
@@ -71,6 +76,11 @@ export function calculateGAD7Score(
 export function calculatePHQ9Score(
   answers: Record<string, string>,
 ): SurveyScore {
+  // Handle null/undefined input
+  if (!answers || typeof answers !== "object") {
+    return { totalScore: 0, interpretation: "Invalid input" };
+  }
+
   const scoreMap: Record<string, number> = {
     "Item 1": 0, // Not at all
     "Item 2": 1, // Several days
@@ -148,6 +158,11 @@ export function calculatePHQ9Score(
 export function calculateARM5Score(
   answers: Record<string, string>,
 ): SurveyScore {
+  // Handle null/undefined input
+  if (!answers || typeof answers !== "object") {
+    return { totalScore: 0, interpretation: "Invalid input" };
+  }
+
   const scoreMap: Record<string, number> = {
     "Item 1": 1, // Strongly Disagree
     "Item 2": 2, // Disagree
@@ -159,18 +174,29 @@ export function calculateARM5Score(
   };
 
   let totalScore = 0;
+  let answeredQuestions = 0;
   // ARM-5 only has 4 questions in the common implementation
   const questions = ["arm5_q1", "arm5_q2", "arm5_q3", "arm5_q4"];
 
   questions.forEach((question) => {
     if (answers[question] && scoreMap[answers[question]] !== undefined) {
       totalScore += scoreMap[answers[question]];
+      answeredQuestions++;
     }
   });
 
   // ARM-5 interpretation (for 4-item version, scale 4-28)
   let interpretation = "";
-  const averageScore = totalScore / 4;
+
+  // Avoid division by zero
+  if (answeredQuestions === 0) {
+    return {
+      totalScore: 0,
+      interpretation: "No questions answered",
+    };
+  }
+
+  const averageScore = totalScore / answeredQuestions;
 
   if (averageScore >= 6.5) {
     interpretation = "Strong therapeutic alliance";

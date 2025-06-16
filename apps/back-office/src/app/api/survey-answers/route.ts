@@ -10,15 +10,11 @@ const VALID_STATUSES = ["PENDING", "IN_PROGRESS", "COMPLETED"];
 // POST - Create a new survey answer
 export async function POST(request: NextRequest) {
   try {
-    // Validate authentication - temporarily disabled for testing
-    let _clinicianInfo;
-    try {
-      _clinicianInfo = await getClinicianInfo();
-    } catch (_authError) {
-      logger.warn(
-        "Authentication check failed, proceeding without auth for testing",
-      );
-      _clinicianInfo = null;
+    // Validate authentication
+    const clinicianInfo = await getClinicianInfo();
+    if (!clinicianInfo) {
+      logger.warn("Unauthorized access attempt to create survey answer");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const requestData = await request.json();
@@ -166,7 +162,7 @@ export async function POST(request: NextRequest) {
         status,
         assigned_at: new Date(),
         completed_at: completedAt,
-        // score: scoreData, // Temporarily commented out until schema is properly updated
+        score: scoreData,
       },
       include: {
         SurveyTemplate: {
@@ -253,8 +249,12 @@ export async function GET(request: NextRequest) {
     const template_type = searchParams.get("template_type");
     const status = searchParams.get("status");
     const appointment_id = searchParams.get("appointment_id");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    // Validate and sanitize pagination parameters
+    const pageParam = parseInt(searchParams.get("page") || "1") || 1;
+    const limitParam = parseInt(searchParams.get("limit") || "20") || 20;
+
+    const page = Math.max(1, pageParam); // Ensure page is at least 1
+    const limit = Math.min(100, Math.max(1, limitParam)); // Ensure limit is between 1 and 100
 
     logger.info("Retrieving survey answers");
 
@@ -326,18 +326,43 @@ export async function GET(request: NextRequest) {
 
     logger.info(`Retrieved ${surveyAnswers.length} survey answers`);
 
-    // Parse content and score for all survey answers
-    const parsedSurveyAnswers = surveyAnswers.map((answer) => ({
-      ...answer,
-      content:
-        typeof answer.content === "string"
-          ? JSON.parse(answer.content)
-          : answer.content,
-      score:
-        typeof answer.score === "string"
-          ? JSON.parse(answer.score)
-          : answer.score,
-    }));
+    // Parse content and score for all survey answers with error handling
+    const parsedSurveyAnswers = surveyAnswers.map((answer) => {
+      let parsedContent = answer.content;
+      let parsedScore = answer.score;
+
+      // Safely parse content
+      if (typeof answer.content === "string") {
+        try {
+          parsedContent = JSON.parse(answer.content);
+        } catch (error) {
+          logger.error(
+            { error, answerId: answer.id, content: answer.content },
+            "Failed to parse survey answer content",
+          );
+          parsedContent = null;
+        }
+      }
+
+      // Safely parse score
+      if (typeof answer.score === "string") {
+        try {
+          parsedScore = JSON.parse(answer.score);
+        } catch (error) {
+          logger.error(
+            { error, answerId: answer.id, score: answer.score },
+            "Failed to parse survey answer score",
+          );
+          parsedScore = null;
+        }
+      }
+
+      return {
+        ...answer,
+        content: parsedContent,
+        score: parsedScore,
+      };
+    });
 
     return NextResponse.json({
       data: parsedSurveyAnswers,

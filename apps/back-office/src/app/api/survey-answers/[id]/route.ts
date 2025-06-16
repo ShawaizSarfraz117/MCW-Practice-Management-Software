@@ -75,23 +75,58 @@ export async function GET(
 
     logger.info("Survey answer retrieved successfully");
 
-    // Parse content and score if they're strings
+    // Parse content and score if they're strings with error handling
+    let parsedContent = surveyAnswer.content;
+    let parsedScore = surveyAnswer.score;
+    let parsedTemplateContent: string | Record<string, unknown> | null =
+      surveyAnswer.SurveyTemplate.content;
+
+    // Safely parse content
+    if (typeof surveyAnswer.content === "string") {
+      try {
+        parsedContent = JSON.parse(surveyAnswer.content);
+      } catch (error) {
+        logger.error(
+          { error, answerId: surveyAnswerId, content: surveyAnswer.content },
+          "Failed to parse survey answer content",
+        );
+        parsedContent = null;
+      }
+    }
+
+    // Safely parse score
+    if (typeof surveyAnswer.score === "string") {
+      try {
+        parsedScore = JSON.parse(surveyAnswer.score);
+      } catch (error) {
+        logger.error(
+          { error, answerId: surveyAnswerId, score: surveyAnswer.score },
+          "Failed to parse survey answer score",
+        );
+        parsedScore = null;
+      }
+    }
+
+    // Safely parse template content
+    if (typeof surveyAnswer.SurveyTemplate.content === "string") {
+      try {
+        parsedTemplateContent = JSON.parse(surveyAnswer.SurveyTemplate.content);
+      } catch (error) {
+        logger.error(
+          { error, templateId: surveyAnswer.SurveyTemplate.id },
+          "Failed to parse survey template content",
+        );
+        parsedTemplateContent = null;
+      }
+    }
+
     const parsedSurveyAnswer = {
       ...surveyAnswer,
-      content:
-        typeof surveyAnswer.content === "string"
-          ? JSON.parse(surveyAnswer.content)
-          : surveyAnswer.content,
-      score:
-        typeof surveyAnswer.score === "string"
-          ? JSON.parse(surveyAnswer.score)
-          : surveyAnswer.score,
+      content: parsedContent,
+      score: parsedScore,
       SurveyTemplate: {
         ...surveyAnswer.SurveyTemplate,
-        content:
-          typeof surveyAnswer.SurveyTemplate.content === "string"
-            ? JSON.parse(surveyAnswer.SurveyTemplate.content)
-            : surveyAnswer.SurveyTemplate.content,
+        content: parsedTemplateContent,
       },
     };
 
@@ -204,11 +239,23 @@ export async function PUT(
           existingSurveyAnswer.SurveyTemplate.name,
         );
         if (surveyType) {
-          const surveyContent =
-            content ||
-            (existingSurveyAnswer.content
-              ? JSON.parse(existingSurveyAnswer.content as string)
-              : null);
+          let surveyContent = content;
+
+          // Safely parse existing content if new content not provided
+          if (!content && existingSurveyAnswer.content) {
+            try {
+              surveyContent =
+                typeof existingSurveyAnswer.content === "string"
+                  ? JSON.parse(existingSurveyAnswer.content)
+                  : existingSurveyAnswer.content;
+            } catch (error) {
+              logger.error(
+                { error, answerId: surveyAnswerId },
+                "Failed to parse existing survey content",
+              );
+              surveyContent = null;
+            }
+          }
           if (surveyContent) {
             const score = calculateSurveyScore(surveyType, surveyContent);
             updateData.score = JSON.stringify(score);
