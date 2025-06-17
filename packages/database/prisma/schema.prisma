@@ -507,6 +507,8 @@ model SurveyAnswers {
   /// Whether this document is locked from further edits (e.g., after signing).
   is_locked              Boolean?
   created_at             DateTime                 @default(now()) @db.DateTime
+  /// JSON content of the survey score (e.g., totalScore, severity, interpretation).
+  score                  String?                  @db.Text
   AppointmentNotes       AppointmentNotes[]
   ClientFiles            ClientFiles[]
   DiagnosisTreatmentPlan DiagnosisTreatmentPlan[]

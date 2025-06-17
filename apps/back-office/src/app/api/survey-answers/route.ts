@@ -3,6 +3,7 @@ import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { getClinicianInfo } from "@/utils/helpers";
 import { Prisma } from "@prisma/client";
+import { calculateSurveyScore, getSurveyType } from "@mcw/utils";
 
 const VALID_STATUSES = ["PENDING", "IN_PROGRESS", "COMPLETED"];
 
@@ -12,6 +13,7 @@ export async function POST(request: NextRequest) {
     // Validate authentication
     const clinicianInfo = await getClinicianInfo();
     if (!clinicianInfo) {
+      logger.warn("Unauthorized access attempt to create survey answer");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -19,16 +21,20 @@ export async function POST(request: NextRequest) {
     const {
       template_id,
       client_id,
+      client_group_id,
       appointment_id,
       content,
       status = "PENDING",
     } = requestData;
 
     // Validate required fields
-    if (!template_id || !client_id) {
+    if (!template_id || (!client_id && !client_group_id)) {
       logger.warn("Survey answer POST request missing required fields");
       return NextResponse.json(
-        { error: "template_id and client_id are required" },
+        {
+          error:
+            "template_id and either client_id or client_group_id are required",
+        },
         { status: 400 },
       );
     }
@@ -55,9 +61,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate client exists
+    // Determine client_id and client_group_id
+    let finalClientId = client_id;
+    let finalClientGroupId = client_group_id;
+
+    if (client_group_id && !client_id) {
+      // Find the primary client from the client group
+      const clientGroup = await prisma.clientGroup.findUnique({
+        where: { id: client_group_id },
+        include: {
+          ClientGroupMembership: {
+            where: { is_contact_only: false },
+            include: { Client: true },
+            orderBy: { created_at: "asc" },
+            take: 1,
+          },
+        },
+      });
+
+      if (!clientGroup) {
+        return NextResponse.json(
+          { error: "Client group not found" },
+          { status: 404 },
+        );
+      }
+
+      if (!clientGroup.ClientGroupMembership.length) {
+        return NextResponse.json(
+          { error: "No primary client found in group" },
+          { status: 404 },
+        );
+      }
+
+      finalClientId = clientGroup.ClientGroupMembership[0].Client.id;
+    } else if (client_id && !client_group_id) {
+      // Find the client group for the client
+      const clientMembership = await prisma.clientGroupMembership.findFirst({
+        where: { client_id },
+        include: { ClientGroup: true },
+      });
+
+      if (clientMembership) {
+        finalClientGroupId = clientMembership.client_group_id;
+      }
+    }
+
+    // Validate final client exists
     const client = await prisma.client.findUnique({
-      where: { id: client_id },
+      where: { id: finalClientId },
     });
 
     if (!client) {
@@ -78,19 +129,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    logger.info("Creating new survey answer");
+    logger.info(
+      {
+        template_id,
+        client_id,
+        client_group_id,
+        finalClientId,
+        finalClientGroupId,
+      },
+      "Creating new survey answer",
+    );
 
     const completedAt = status === "COMPLETED" ? new Date() : null;
+
+    // Calculate score if survey is completed and is a scored measure
+    let scoreData = null;
+    if (status === "COMPLETED" && content) {
+      const surveyType = getSurveyType(template.name);
+      if (surveyType) {
+        const score = calculateSurveyScore(surveyType, content);
+        scoreData = JSON.stringify(score);
+      }
+    }
 
     const newSurveyAnswer = await prisma.surveyAnswers.create({
       data: {
         template_id,
-        client_id,
+        client_id: finalClientId,
+        client_group_id: finalClientGroupId,
         appointment_id: appointment_id || null,
         content: content ? JSON.stringify(content) : null,
         status,
         assigned_at: new Date(),
         completed_at: completedAt,
+        score: scoreData,
       },
       include: {
         SurveyTemplate: {
@@ -121,19 +193,23 @@ export async function POST(request: NextRequest) {
 
     logger.info("Survey answer created successfully");
 
-    // Parse content for response
+    // Parse content and score for response
     const responseData = {
       ...newSurveyAnswer,
       content: newSurveyAnswer.content
         ? JSON.parse(newSurveyAnswer.content)
         : null,
+      score: scoreData ? JSON.parse(scoreData) : null, // Use calculated score data
     };
 
     return NextResponse.json(responseData, { status: 201 });
   } catch (error: unknown) {
-    logger.error(`Error creating survey answer: ${error}`);
+    logger.error(error as Error, "Error creating survey answer");
+    console.error("Full error details:", error);
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      logger.error({ code: error.code }, "Prisma error code");
+      logger.error({ message: error.message }, "Prisma error message");
       switch (error.code) {
         case "P2002":
           return NextResponse.json(
@@ -142,14 +218,16 @@ export async function POST(request: NextRequest) {
           );
         default:
           return NextResponse.json(
-            { error: "Database operation failed" },
+            { error: `Database operation failed: ${error.message}` },
             { status: 500 },
           );
       }
     }
 
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: `Internal server error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      },
       { status: 500 },
     );
   }
@@ -166,12 +244,17 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const client_id = searchParams.get("client_id");
+    const client_group_id = searchParams.get("client_group_id");
     const template_id = searchParams.get("template_id");
     const template_type = searchParams.get("template_type");
     const status = searchParams.get("status");
     const appointment_id = searchParams.get("appointment_id");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    // Validate and sanitize pagination parameters
+    const pageParam = parseInt(searchParams.get("page") || "1") || 1;
+    const limitParam = parseInt(searchParams.get("limit") || "20") || 20;
+
+    const page = Math.max(1, pageParam); // Ensure page is at least 1
+    const limit = Math.min(100, Math.max(1, limitParam)); // Ensure limit is between 1 and 100
 
     logger.info("Retrieving survey answers");
 
@@ -180,6 +263,10 @@ export async function GET(request: NextRequest) {
 
     if (client_id) {
       whereClause.client_id = client_id;
+    }
+
+    if (client_group_id) {
+      whereClause.client_group_id = client_group_id;
     }
 
     if (template_id) {
@@ -239,14 +326,43 @@ export async function GET(request: NextRequest) {
 
     logger.info(`Retrieved ${surveyAnswers.length} survey answers`);
 
-    // Parse content for all survey answers
-    const parsedSurveyAnswers = surveyAnswers.map((answer) => ({
-      ...answer,
-      content:
-        typeof answer.content === "string"
-          ? JSON.parse(answer.content)
-          : answer.content,
-    }));
+    // Parse content and score for all survey answers with error handling
+    const parsedSurveyAnswers = surveyAnswers.map((answer) => {
+      let parsedContent = answer.content;
+      let parsedScore = answer.score;
+
+      // Safely parse content
+      if (typeof answer.content === "string") {
+        try {
+          parsedContent = JSON.parse(answer.content);
+        } catch (error) {
+          logger.error(
+            { error, answerId: answer.id, content: answer.content },
+            "Failed to parse survey answer content",
+          );
+          parsedContent = null;
+        }
+      }
+
+      // Safely parse score
+      if (typeof answer.score === "string") {
+        try {
+          parsedScore = JSON.parse(answer.score);
+        } catch (error) {
+          logger.error(
+            { error, answerId: answer.id, score: answer.score },
+            "Failed to parse survey answer score",
+          );
+          parsedScore = null;
+        }
+      }
+
+      return {
+        ...answer,
+        content: parsedContent,
+        score: parsedScore,
+      };
+    });
 
     return NextResponse.json({
       data: parsedSurveyAnswers,
@@ -258,7 +374,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    logger.error(`Error retrieving survey answers: ${error}`);
+    logger.error(error as Error, "Error retrieving survey answers");
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return NextResponse.json(

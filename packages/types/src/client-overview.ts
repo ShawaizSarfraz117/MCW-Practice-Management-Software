@@ -21,6 +21,7 @@ export interface ClientDocument {
   clientGroupId: string;
   clientGroupName: string;
   content?: string;
+  score?: string; // JSON string containing score data for scored_measures
 }
 
 export interface ClientOverviewResponse {

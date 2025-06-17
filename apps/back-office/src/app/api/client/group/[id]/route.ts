@@ -27,9 +27,18 @@ export async function GET(
             orderBy: {
               created_at: "asc",
             },
-            where: {
-              is_contact_only: isContactOnly === "true",
-            },
+            where:
+              isContactOnly === "true"
+                ? {
+                    is_contact_only: true,
+                  }
+                : isContactOnly === "false"
+                  ? {
+                      is_contact_only: false,
+                    }
+                  : {
+                      // If isContactOnly is not specified, get all members
+                    },
             include: {
               Client: {
                 include: {

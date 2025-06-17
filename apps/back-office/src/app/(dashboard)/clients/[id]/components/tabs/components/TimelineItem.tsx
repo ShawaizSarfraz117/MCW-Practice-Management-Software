@@ -181,7 +181,15 @@ export default function TimelineItem({ document }: TimelineItemProps) {
     }
   };
 
-  // Handle action buttons
+  // Handle title click for scored measures - navigate to intake notes
+  const handleTitleClick = () => {
+    if (document.documentType === "scored_measures") {
+      router.push(
+        `/clients/${document.clientGroupId}/intake_notes/${document.id}`,
+      );
+    }
+  };
+
   const handleEdit = () => {
     if (document.documentType === "chart_notes") {
       // Initialize edit state with current values
@@ -200,6 +208,10 @@ export default function TimelineItem({ document }: TimelineItemProps) {
     } else if (document.documentType === "mental_status_exams") {
       router.push(
         `/clients/${document.clientGroupId}/mentalStatusExam/${document.id}`,
+      );
+    } else if (document.documentType === "scored_measures") {
+      router.push(
+        `/clients/${document.clientGroupId}/scoredMeasure/${document.id}`,
       );
     }
   };
@@ -401,7 +413,20 @@ export default function TimelineItem({ document }: TimelineItemProps) {
             {format(date, "MMM d").toUpperCase()}
           </div>
           <div className="flex-1">
-            <div className="font-medium text-gray-900">{document.title}</div>
+            <div
+              className={`font-medium text-gray-900 ${
+                document.documentType === "scored_measures"
+                  ? "cursor-pointer hover:text-blue-600 hover:underline"
+                  : ""
+              }`}
+              onClick={
+                document.documentType === "scored_measures"
+                  ? handleTitleClick
+                  : undefined
+              }
+            >
+              {document.title}
+            </div>
             {document.documentType === "appointments" && document.status && (
               <div className="text-sm text-gray-600 mt-1">
                 BILLING CODE: {document.id.slice(-5).toUpperCase()}
@@ -409,6 +434,24 @@ export default function TimelineItem({ document }: TimelineItemProps) {
             )}
             {document.content &&
               renderJsonContent(document.content, document.documentType)}
+            {document.documentType === "scored_measures" &&
+              document.score &&
+              (() => {
+                try {
+                  const scoreData = JSON.parse(document.score);
+                  // Only show clinical alerts if they exist, without the gray box
+                  return scoreData.flaggedItems &&
+                    scoreData.flaggedItems.length > 0 ? (
+                    <div className="mt-2">
+                      <div className="text-sm text-red-600 font-medium">
+                        ⚠️ Clinical Alert: {scoreData.flaggedItems.join(", ")}
+                      </div>
+                    </div>
+                  ) : null;
+                } catch {
+                  return null;
+                }
+              })()}
             {document.documentType === "diagnosis_and_treatment_plans" && (
               <>
                 <div className="text-sm text-gray-600 mt-1">

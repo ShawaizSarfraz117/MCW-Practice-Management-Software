@@ -458,7 +458,7 @@ export default function ClientProfile({
             </TabsContent>
 
             <TabsContent value="measures">
-              <MeasuresTab />
+              <MeasuresTab clientId={Array.isArray(id) ? id[0] : id} />
             </TabsContent>
 
             <TabsContent value="files">
