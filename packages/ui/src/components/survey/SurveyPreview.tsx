@@ -100,7 +100,6 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
 
           // Set default answers if provided
           if (defaultAnswers && typeof defaultAnswers === "object") {
-            console.log("Setting default answers:", defaultAnswers);
             model.data = defaultAnswers;
           }
 

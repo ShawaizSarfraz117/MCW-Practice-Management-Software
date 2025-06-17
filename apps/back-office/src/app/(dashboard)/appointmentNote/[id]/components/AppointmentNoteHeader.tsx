@@ -1,5 +1,5 @@
 import { Button } from "@mcw/ui";
-import { FileText, Video, MoreHorizontal } from "lucide-react";
+import { MessageSquare, Repeat, Paperclip } from "lucide-react";
 
 interface AppointmentNoteHeaderProps {
   clientInfo: {
@@ -29,13 +29,13 @@ export function AppointmentNoteHeader({
         </div>
         <div className="flex items-center gap-2">
           <Button size="icon" variant="ghost">
-            <FileText className="h-5 w-5" />
+            <Paperclip className="h-5 w-5" />
           </Button>
           <Button size="icon" variant="ghost">
-            <MoreHorizontal className="h-5 w-5" />
+            <Repeat className="h-5 w-5" />
           </Button>
           <Button size="icon" variant="ghost">
-            <Video className="h-5 w-5" />
+            <MessageSquare className="h-5 w-5" />
           </Button>
         </div>
       </div>
