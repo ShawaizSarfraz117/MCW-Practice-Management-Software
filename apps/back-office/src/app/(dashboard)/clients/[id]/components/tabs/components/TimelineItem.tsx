@@ -201,6 +201,10 @@ export default function TimelineItem({ document }: TimelineItemProps) {
       router.push(
         `/clients/${document.clientGroupId}/mentalStatusExam/${document.id}`,
       );
+    } else if (document.documentType === "scored_measures") {
+      router.push(
+        `/clients/${document.clientGroupId}/scoredMeasure/${document.id}`,
+      );
     }
   };
 
@@ -409,6 +413,24 @@ export default function TimelineItem({ document }: TimelineItemProps) {
             )}
             {document.content &&
               renderJsonContent(document.content, document.documentType)}
+            {document.documentType === "scored_measures" &&
+              document.score &&
+              (() => {
+                try {
+                  const scoreData = JSON.parse(document.score);
+                  // Only show clinical alerts if they exist, without the gray box
+                  return scoreData.flaggedItems &&
+                    scoreData.flaggedItems.length > 0 ? (
+                    <div className="mt-2">
+                      <div className="text-sm text-red-600 font-medium">
+                        ⚠️ Clinical Alert: {scoreData.flaggedItems.join(", ")}
+                      </div>
+                    </div>
+                  ) : null;
+                } catch {
+                  return null;
+                }
+              })()}
             {document.documentType === "diagnosis_and_treatment_plans" && (
               <>
                 <div className="text-sm text-gray-600 mt-1">

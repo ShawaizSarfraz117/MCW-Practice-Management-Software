@@ -7,6 +7,10 @@ export interface SurveyScore {
   severity?: string;
   interpretation?: string;
   flaggedItems?: string[];
+  // ARM-5 specific subscale scores
+  bond?: number;
+  partnership?: number;
+  confidence?: number;
 }
 
 /**
@@ -173,10 +177,25 @@ export function calculateARM5Score(
     "Item 7": 7, // Strongly Agree
   };
 
+  // Calculate sub-scale scores based on ARM-5 documentation:
+  // Bond: Question 1
+  // Partnership: Questions 2-3 (average)
+  // Confidence: Questions 4-5 (average)
+
+  const bond = scoreMap[answers["arm5_q1"]] || 0;
+  const partnership =
+    ((scoreMap[answers["arm5_q2"]] || 0) +
+      (scoreMap[answers["arm5_q3"]] || 0)) /
+    2;
+  const confidence =
+    ((scoreMap[answers["arm5_q4"]] || 0) +
+      (scoreMap[answers["arm5_q5"]] || 0)) /
+    2;
+
+  // ARM-5 has 5 questions
+  const questions = ["arm5_q1", "arm5_q2", "arm5_q3", "arm5_q4", "arm5_q5"];
   let totalScore = 0;
   let answeredQuestions = 0;
-  // ARM-5 only has 4 questions in the common implementation
-  const questions = ["arm5_q1", "arm5_q2", "arm5_q3", "arm5_q4"];
 
   questions.forEach((question) => {
     if (answers[question] && scoreMap[answers[question]] !== undefined) {
@@ -185,7 +204,7 @@ export function calculateARM5Score(
     }
   });
 
-  // ARM-5 interpretation (for 4-item version, scale 4-28)
+  // ARM-5 interpretation (for 5-item version, scale 5-35)
   let interpretation = "";
 
   // Avoid division by zero
@@ -193,6 +212,9 @@ export function calculateARM5Score(
     return {
       totalScore: 0,
       interpretation: "No questions answered",
+      bond: 0,
+      partnership: 0,
+      confidence: 0,
     };
   }
 
@@ -213,6 +235,9 @@ export function calculateARM5Score(
   return {
     totalScore,
     interpretation,
+    bond,
+    partnership,
+    confidence,
   };
 }
 

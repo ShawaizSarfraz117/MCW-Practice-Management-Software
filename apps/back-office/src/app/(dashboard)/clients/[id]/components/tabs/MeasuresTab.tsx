@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@mcw/ui";
-import { Alert, AlertTitle, AlertDescription } from "@mcw/ui";
 import {
   Card,
   CardContent,
@@ -10,16 +9,15 @@ import {
   CardTitle,
 } from "@mcw/ui";
 import { Badge } from "@mcw/ui";
-import { X, FileText, Plus } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useState, useMemo } from "react";
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   ResponsiveContainer,
-  ReferenceLine,
+  CartesianGrid,
   Tooltip,
 } from "recharts";
 import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
@@ -34,6 +32,10 @@ interface SurveyScore {
   severity?: string;
   interpretation?: string;
   flaggedItems?: string[];
+  // ARM-5 specific subscale scores
+  bond?: number;
+  partnership?: number;
+  confidence?: number;
 }
 
 interface SurveyAnswer {
@@ -55,6 +57,23 @@ interface SurveyAnswer {
 
 interface MeasuresTabProps {
   clientId: string;
+}
+
+interface ChartDataPoint {
+  date: string;
+  displayDate: string;
+  score: number;
+  severity?: string;
+}
+
+interface ARM5DataPoint {
+  date: string;
+  displayDate: string;
+  month: string;
+  bond: number;
+  partnership: number;
+  confidence: number;
+  total: number;
 }
 
 // Helper function to get date range based on selection
@@ -93,78 +112,6 @@ const getDateRangeFromSelection = (selection: string) => {
   return { startDate, endDate };
 };
 
-// Custom dot component for the highlighted data point
-const CustomDot = (props: {
-  cx?: number;
-  cy?: number;
-  payload?: { score: number };
-}) => {
-  const { cx, cy } = props;
-  if (cx && cy) {
-    return (
-      <g>
-        <circle
-          cx={cx}
-          cy={cy}
-          fill="#f59e0b"
-          r={6}
-          stroke="white"
-          strokeWidth={2}
-        />
-      </g>
-    );
-  }
-  return null;
-};
-
-// Custom tooltip component
-interface TooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    payload: {
-      displayDate: string;
-      score: number;
-      severity?: string;
-    };
-  }>;
-}
-
-const CustomTooltip = ({ active, payload }: TooltipProps) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
-        <p className="text-sm font-medium">{data.displayDate}</p>
-        <p className="text-sm">Score: {data.score}</p>
-        {data.severity && (
-          <p className="text-sm text-gray-600">Severity: {data.severity}</p>
-        )}
-      </div>
-    );
-  }
-  return null;
-};
-
-// Severity level background component
-const SeverityBackground = () => (
-  <defs>
-    <linearGradient id="severityGradient" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stopColor="#ef4444" stopOpacity={0.1} />
-      <stop offset="33%" stopColor="#f97316" stopOpacity={0.1} />
-      <stop offset="66%" stopColor="#22c55e" stopOpacity={0.1} />
-      <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.1} />
-    </linearGradient>
-  </defs>
-);
-
-// Get color based on survey type
-const getSurveyColor = (surveyName: string) => {
-  if (surveyName.includes("GAD-7")) return "#f59e0b";
-  if (surveyName.includes("PHQ-9")) return "#3b82f6";
-  if (surveyName.includes("ARM-5")) return "#10b981";
-  return "#6b7280";
-};
-
 export default function MeasuresTab({ clientId }: MeasuresTabProps) {
   const queryClient = useQueryClient();
   const [dateRangePickerOpen, setDateRangePickerOpen] = useState(false);
@@ -177,13 +124,15 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
   const [completeSurveyOpen, setCompleteSurveyOpen] = useState(false);
   const [selectedSurveyAnswer, setSelectedSurveyAnswer] =
     useState<SurveyAnswer | null>(null);
-  const [showNewMeasuresAlert, setShowNewMeasuresAlert] = useState(true);
 
   // Fetch survey answers for the client
   const { data: surveyAnswersData, isLoading } = useQuery({
     queryKey: ["surveyAnswers", clientId],
     queryFn: async () => {
-      const response = await fetch(`/api/survey-answers?client_id=${clientId}`);
+      // Note: clientId here is actually the client_group_id from the URL
+      const response = await fetch(
+        `/api/survey-answers?client_group_id=${clientId}`,
+      );
       if (!response.ok) throw new Error("Failed to fetch survey answers");
       return response.json();
     },
@@ -193,16 +142,9 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
   const chartData = useMemo(() => {
     if (!surveyAnswersData?.data) return { gad7: [], phq9: [], arm5: [] };
 
-    interface ChartDataPoint {
-      date: string;
-      displayDate: string;
-      score: number;
-      severity?: string;
-    }
-
     const gad7Data: ChartDataPoint[] = [];
     const phq9Data: ChartDataPoint[] = [];
-    const arm5Data: ChartDataPoint[] = [];
+    const arm5Data: ARM5DataPoint[] = [];
 
     surveyAnswersData.data
       .filter(
@@ -230,7 +172,47 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
         } else if (answer.SurveyTemplate.name.includes("PHQ-9")) {
           phq9Data.push(dataPoint);
         } else if (answer.SurveyTemplate.name.includes("ARM-5")) {
-          arm5Data.push(dataPoint);
+          // Extract individual scores from content
+          const content = answer.content as Record<string, string>;
+          const scoreMap: Record<string, number> = {
+            "Item 1": 1,
+            "Item 2": 2,
+            "Item 3": 3,
+            "Item 4": 4,
+            "Item 5": 5,
+            "Item 6": 6,
+            "Item 7": 7,
+          };
+
+          // ARM-5 Sub-scale mapping based on the documentation:
+          // Bond: Question 1 (arm5_q1)
+          // Partnership: Questions 2-3 (arm5_q2, arm5_q3 average)
+          // Confidence: Questions 4-5 (arm5_q4, arm5_q5 average)
+          const bond = scoreMap[content?.arm5_q1] || 0;
+          const partnership =
+            ((scoreMap[content?.arm5_q2] || 0) +
+              (scoreMap[content?.arm5_q3] || 0)) /
+            2;
+          const confidence =
+            ((scoreMap[content?.arm5_q4] || 0) +
+              (scoreMap[content?.arm5_q5] || 0)) /
+            2;
+          const total = (bond + partnership + confidence) / 3;
+
+          arm5Data.push({
+            date: date.toISOString().split("T")[0],
+            displayDate: date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            }),
+            month: date.toLocaleDateString("en-US", {
+              month: "short",
+            }),
+            bond,
+            partnership,
+            confidence,
+            total,
+          });
         }
       });
 
@@ -262,10 +244,17 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
       });
     };
 
+    const filterARM5ByDateRange = (data: ARM5DataPoint[]) => {
+      return data.filter((item) => {
+        const itemDate = new Date(item.date);
+        return itemDate >= startDate && itemDate <= endDate;
+      });
+    };
+
     return {
       gad7: filterByDateRange(chartData.gad7),
       phq9: filterByDateRange(chartData.phq9),
-      arm5: filterByDateRange(chartData.arm5),
+      arm5: filterARM5ByDateRange(chartData.arm5),
     };
   }, [chartData, selectedDateRangeDisplay, customStartDate, customEndDate]);
 
@@ -275,13 +264,6 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
       (answer: SurveyAnswer) =>
         answer.status === "PENDING" || answer.status === "IN_PROGRESS",
     ) || [];
-
-  interface ChartDataPoint {
-    date: string;
-    displayDate: string;
-    score: number;
-    severity?: string;
-  }
 
   const renderChart = (
     data: ChartDataPoint[],
@@ -297,231 +279,474 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
     const changeFromBaseline = latestScore - firstScore;
     const changeFromLast = latestScore - previousScore;
 
+    // Custom Y-axis ticks for GAD-7 and PHQ-9
+    let yAxisTicks: number[] = [];
+    if (surveyType === "GAD-7") {
+      yAxisTicks = [0, 5, 10, 15, 21];
+    } else if (surveyType === "PHQ-9") {
+      yAxisTicks = [0, 5, 10, 15, 20, 27];
+    }
+
     return (
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-4">
-            <h3 className="font-medium text-lg">{surveyType}</h3>
-            <span className="text-lg font-medium">{latestScore}</span>
-            {data[data.length - 1]?.severity && (
-              <Badge variant="outline">{data[data.length - 1].severity}</Badge>
-            )}
-          </div>
-          <div className="flex gap-4">
-            {changeFromBaseline !== 0 && (
-              <span
-                className={`text-sm flex items-center ${changeFromBaseline < 0 ? "text-green-500" : "text-red-500"}`}
-              >
-                <span className="mr-1">
-                  {changeFromBaseline < 0 ? "↓" : "↑"}
-                </span>
-                {Math.abs(changeFromBaseline)} since baseline
-              </span>
-            )}
-            {changeFromLast !== 0 && (
-              <span
-                className={`text-sm flex items-center ${changeFromLast < 0 ? "text-green-500" : "text-red-500"}`}
-              >
-                <span className="mr-1">{changeFromLast < 0 ? "↓" : "↑"}</span>
-                {Math.abs(changeFromLast)} since last
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Chart Container */}
-        <div className="relative">
-          <div className="flex">
-            {/* Main Chart */}
-            <div className="flex-1 h-[280px]">
-              <ResponsiveContainer height="100%" width="100%">
-                <LineChart
-                  data={data}
-                  margin={{ top: 20, right: 100, left: 20, bottom: 40 }}
+      <Card className="mb-6 rounded-xl border border-gray-200 bg-white">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-6">
+            {/* Left section with title and stats (modern, compact) */}
+            <div className="w-28">
+              <h3 className="font-medium text-base mb-2">{surveyType}</h3>
+              <div className="space-y-1 text-sm">
+                <div
+                  className={`flex items-center ${changeFromBaseline < 0 ? "text-green-600" : changeFromBaseline > 0 ? "text-red-600" : "text-gray-600"}`}
                 >
-                  {surveyType !== "ARM-5" && <SeverityBackground />}
-                  <CartesianGrid stroke="#e5e7eb" strokeDasharray="1 1" />
-
-                  {/* Reference lines for severity levels */}
-                  {surveyType === "GAD-7" && (
-                    <>
-                      <ReferenceLine
-                        stroke="#ef4444"
-                        strokeDasharray="none"
-                        strokeOpacity={0.3}
-                        y={15}
-                      />
-                      <ReferenceLine
-                        stroke="#f97316"
-                        strokeDasharray="none"
-                        strokeOpacity={0.3}
-                        y={10}
-                      />
-                      <ReferenceLine
-                        stroke="#22c55e"
-                        strokeDasharray="none"
-                        strokeOpacity={0.3}
-                        y={5}
-                      />
-                    </>
-                  )}
-                  {surveyType === "PHQ-9" && (
-                    <>
-                      <ReferenceLine
-                        stroke="#ef4444"
-                        strokeDasharray="none"
-                        strokeOpacity={0.3}
-                        y={20}
-                      />
-                      <ReferenceLine
-                        stroke="#f97316"
-                        strokeDasharray="none"
-                        strokeOpacity={0.3}
-                        y={15}
-                      />
-                      <ReferenceLine
-                        stroke="#fbbf24"
-                        strokeDasharray="none"
-                        strokeOpacity={0.3}
-                        y={10}
-                      />
-                      <ReferenceLine
-                        stroke="#22c55e"
-                        strokeDasharray="none"
-                        strokeOpacity={0.3}
-                        y={5}
-                      />
-                    </>
-                  )}
-
-                  <XAxis
-                    axisLine={false}
-                    dataKey="displayDate"
-                    tick={{ fontSize: 12, fill: "#6b7280" }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    domain={[0, maxScore]}
-                    tick={{ fontSize: 12, fill: "#6b7280" }}
-                    tickLine={false}
-                  />
-
-                  <Tooltip content={<CustomTooltip />} />
-
-                  <Line
-                    dataKey="score"
-                    dot={<CustomDot />}
-                    stroke={getSurveyColor(surveyType)}
-                    strokeWidth={2}
-                    type="monotone"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Severity Level Labels */}
-            {surveyType !== "ARM-5" && (
-              <div className="flex flex-col justify-between h-[280px] py-8 ml-4">
-                {surveyType === "GAD-7" && (
-                  <>
-                    <div className="flex items-center">
-                      <div className="w-3 h-8 bg-red-500 mr-2" />
-                      <span className="text-sm text-gray-500">Severe</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-8 bg-orange-500 mr-2" />
-                      <span className="text-sm text-gray-500">Moderate</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-8 bg-green-500 mr-2" />
-                      <span className="text-sm text-gray-500">Mild</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-8 bg-teal-500 mr-2" />
-                      <span className="text-sm text-gray-500">
-                        None—minimal
-                      </span>
-                    </div>
-                  </>
-                )}
-                {surveyType === "PHQ-9" && (
-                  <>
-                    <div className="flex items-center">
-                      <div className="w-3 h-6 bg-red-500 mr-2" />
-                      <span className="text-sm text-gray-500">Severe</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-6 bg-orange-500 mr-2" />
-                      <span className="text-sm text-gray-500">
-                        Moderately Severe
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-6 bg-yellow-500 mr-2" />
-                      <span className="text-sm text-gray-500">Moderate</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-6 bg-green-500 mr-2" />
-                      <span className="text-sm text-gray-500">Mild</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-6 bg-teal-500 mr-2" />
-                      <span className="text-sm text-gray-500">
-                        None-Minimal
-                      </span>
-                    </div>
-                  </>
-                )}
+                  <span className="mr-1">
+                    {changeFromBaseline < 0
+                      ? "↓"
+                      : changeFromBaseline > 0
+                        ? "↑"
+                        : ""}
+                  </span>
+                  <span>
+                    {changeFromBaseline === 0
+                      ? "0"
+                      : Math.abs(changeFromBaseline)}{" "}
+                    since baseline
+                  </span>
+                </div>
+                <div
+                  className={`flex items-center ${changeFromLast < 0 ? "text-green-600" : changeFromLast > 0 ? "text-red-600" : "text-gray-600"}`}
+                >
+                  <span className="mr-1">
+                    {changeFromLast < 0 ? "↓" : changeFromLast > 0 ? "↑" : ""}
+                  </span>
+                  <span>
+                    {changeFromLast === 0 ? "0" : Math.abs(changeFromLast)}{" "}
+                    since last
+                  </span>
+                </div>
               </div>
-            )}
+            </div>
+            {/* Chart section (horizontal, modern) */}
+            <div className="flex-1">
+              <div className="flex items-start">
+                {/* Main chart */}
+                <div className="flex-1 h-[260px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={data}
+                      margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        stroke="#e5e7eb"
+                        strokeDasharray="0"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="displayDate"
+                        axisLine={{ stroke: "#9ca3af" }}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: "#6b7280" }}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        domain={[0, maxScore]}
+                        tick={{ fontSize: 11, fill: "#6b7280" }}
+                        axisLine={{ stroke: "#e5e7eb" }}
+                        tickLine={false}
+                        width={24}
+                        ticks={yAxisTicks.length > 0 ? yAxisTicks : undefined}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-white p-2 border border-gray-200 rounded shadow-lg">
+                                <p className="text-xs font-medium">
+                                  {data.displayDate}
+                                </p>
+                                <p className="text-xs">Score: {data.score}</p>
+                                {data.severity && (
+                                  <p className="text-xs text-gray-600">
+                                    Severity: {data.severity}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke="#6b7280"
+                        strokeWidth={2}
+                        dot={(props) => {
+                          const { cx, cy, payload } = props;
+                          const isLast =
+                            data.indexOf(payload) === data.length - 1;
+                          if (cx && cy) {
+                            if (isLast) {
+                              return (
+                                <g key={`last-${cx}-${cy}`}>
+                                  <circle
+                                    cx={cx}
+                                    cy={cy}
+                                    r={8}
+                                    fill="#22c55e"
+                                    stroke="white"
+                                    strokeWidth={2}
+                                  />
+                                  <text
+                                    x={cx}
+                                    y={cy}
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    fill="white"
+                                    fontSize="11"
+                                    fontWeight="500"
+                                  >
+                                    {payload.score}
+                                  </text>
+                                </g>
+                              );
+                            }
+                            return (
+                              <g key={`dot-${cx}-${cy}`}>
+                                <circle
+                                  cx={cx}
+                                  cy={cy}
+                                  r={3.5}
+                                  fill="white"
+                                  stroke="#6b7280"
+                                  strokeWidth={1.5}
+                                />
+                                <circle cx={cx} cy={cy} r={2} fill="#6b7280" />
+                              </g>
+                            );
+                          }
+                          return (
+                            <g key={`empty-${cx}-${cy}`}>
+                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                            </g>
+                          );
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Severity scale (thin, modern, small labels) */}
+                <div className="flex items-center">
+                  <div className="flex items-stretch h-[220px]">
+                    <div className="w-1 rounded overflow-hidden relative">
+                      {surveyType === "GAD-7" ? (
+                        <div
+                          className="h-full"
+                          style={{
+                            background:
+                              "linear-gradient(to bottom, #ef4444 0%, #ef4444 28.5%, #f59e0b 28.5%, #f59e0b 52.5%, #22c55e 52.5%, #22c55e 76%, #06b6d4 76%, #06b6d4 100%)",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          className="h-full"
+                          style={{
+                            background:
+                              "linear-gradient(to bottom, #dc2626 0%, #dc2626 25.9%, #f87171 25.9%, #f87171 44.4%, #f59e0b 44.4%, #f59e0b 63%, #fbbf24 63%, #fbbf24 81.5%, #22c55e 81.5%, #22c55e 100%)",
+                          }}
+                        />
+                      )}
+                    </div>
+                    <div className="ml-2 flex flex-col justify-between text-xs text-gray-600">
+                      {surveyType === "GAD-7" ? (
+                        <>
+                          <span>Severe</span>
+                          <span>Moderate</span>
+                          <span>Mild</span>
+                          <span>None</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Severe</span>
+                          <span>Mod. severe</span>
+                          <span>Moderate</span>
+                          <span>Mild</span>
+                          <span>None</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
-        {/* Data Summary */}
-        <div className="mt-4 text-sm text-gray-500">
-          Showing {data.length} data points for{" "}
-          {selectedDateRangeDisplay === "Custom Range"
-            ? customDateRange
-            : selectedDateRangeDisplay.toLowerCase()}
+  // Custom tooltip for ARM-5
+  const ARM5CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ payload: ARM5DataPoint }>;
+  }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
+          <p className="text-sm font-medium">{data.displayDate}</p>
+          <p className="text-sm">Bond: {data.bond}</p>
+          <p className="text-sm">Partnership: {data.partnership}</p>
+          <p className="text-sm">Confidence: {data.confidence.toFixed(1)}</p>
+          <p className="text-sm font-medium">Total: {data.total.toFixed(1)}</p>
         </div>
-      </div>
+      );
+    }
+    return null;
+  };
+
+  const renderARM5Chart = (data: ARM5DataPoint[]) => {
+    if (data.length === 0) return null;
+
+    const latestData = data[data.length - 1];
+    const firstData = data[0];
+    const previousData = data.length > 1 ? data[data.length - 2] : firstData;
+
+    const totalChangeFromBaseline = latestData.total - firstData.total;
+    const totalChangeFromLast = latestData.total - previousData.total;
+
+    return (
+      <Card className="mb-6 rounded-xl border border-gray-200 bg-white">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-6">
+            {/* Left stats */}
+            <div className="w-28">
+              <h3 className="font-medium text-base mb-2">ARM-5</h3>
+              <div className="mb-2 font-semibold text-[17px]">Total:</div>
+              <div className="space-y-1 text-sm">
+                <div
+                  className={`flex items-center ${totalChangeFromBaseline < 0 ? "text-red-600" : totalChangeFromBaseline > 0 ? "text-green-600" : "text-gray-600"}`}
+                >
+                  <span className="mr-1">
+                    {totalChangeFromBaseline < 0
+                      ? "↓"
+                      : totalChangeFromBaseline > 0
+                        ? "↑"
+                        : ""}
+                  </span>
+                  <span>
+                    {Math.abs(totalChangeFromBaseline).toFixed(1)} since
+                    baseline
+                  </span>
+                </div>
+                <div
+                  className={`flex items-center ${totalChangeFromLast < 0 ? "text-red-600" : totalChangeFromLast > 0 ? "text-green-600" : "text-gray-600"}`}
+                >
+                  <span className="mr-1">
+                    {totalChangeFromLast < 0
+                      ? "↓"
+                      : totalChangeFromLast > 0
+                        ? "↑"
+                        : ""}
+                  </span>
+                  <span>
+                    {Math.abs(totalChangeFromLast).toFixed(1)} since last
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* Chart and legend */}
+            <div className="flex-1">
+              <div className="flex items-start">
+                {/* Main chart */}
+                <div className="flex-1 h-[260px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={data}
+                      margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        stroke="#e5e7eb"
+                        strokeDasharray="0"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="month"
+                        axisLine={{ stroke: "#9ca3af" }}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#6b7280" }}
+                        ticks={[...new Set(data.map((d) => d.month))]}
+                      />
+                      <YAxis
+                        domain={[0, 7]}
+                        tick={{ fontSize: 11, fill: "#6b7280" }}
+                        axisLine={{ stroke: "#e5e7eb" }}
+                        tickLine={false}
+                        width={24}
+                        ticks={[0, 1, 2, 3, 4, 5, 6, 7]}
+                      />
+                      <Tooltip content={<ARM5CustomTooltip />} />
+                      {/* Total line (blue) - Circle */}
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        dot={(props) => {
+                          const { cx, cy } = props;
+                          if (cx && cy) {
+                            return (
+                              <g key={`total-${cx}-${cy}`}>
+                                <circle
+                                  cx={cx}
+                                  cy={cy}
+                                  r={5}
+                                  fill="#3b82f6"
+                                  stroke="white"
+                                  strokeWidth={1}
+                                />
+                              </g>
+                            );
+                          }
+                          return (
+                            <g key={`total-empty-${cx}-${cy}`}>
+                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                            </g>
+                          );
+                        }}
+                      />
+
+                      {/* Bond line (red) - Diamond */}
+                      <Line
+                        type="monotone"
+                        dataKey="bond"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        dot={(props) => {
+                          const { cx, cy } = props;
+                          if (cx && cy) {
+                            return (
+                              <g key={`bond-${cx}-${cy}`}>
+                                <polygon
+                                  points={`${cx},${cy - 5} ${cx + 5},${cy} ${cx},${cy + 5} ${cx - 5},${cy}`}
+                                  fill="#ef4444"
+                                  stroke="white"
+                                  strokeWidth={1}
+                                />
+                              </g>
+                            );
+                          }
+                          return (
+                            <g key={`bond-empty-${cx}-${cy}`}>
+                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                            </g>
+                          );
+                        }}
+                      />
+
+                      {/* Partnership line (purple) - Triangle */}
+                      <Line
+                        type="monotone"
+                        dataKey="partnership"
+                        stroke="#8b5cf6"
+                        strokeWidth={2}
+                        dot={(props) => {
+                          const { cx, cy } = props;
+                          if (cx && cy) {
+                            return (
+                              <g key={`partnership-${cx}-${cy}`}>
+                                <polygon
+                                  points={`${cx},${cy - 5} ${cx + 4.5},${cy + 4} ${cx - 4.5},${cy + 4}`}
+                                  fill="#8b5cf6"
+                                  stroke="white"
+                                  strokeWidth={1}
+                                />
+                              </g>
+                            );
+                          }
+                          return (
+                            <g key={`partnership-empty-${cx}-${cy}`}>
+                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                            </g>
+                          );
+                        }}
+                      />
+
+                      {/* Confidence line (cyan) - Square */}
+                      <Line
+                        type="monotone"
+                        dataKey="confidence"
+                        stroke="#06b6d4"
+                        strokeWidth={2}
+                        dot={(props) => {
+                          const { cx, cy } = props;
+                          if (cx && cy) {
+                            return (
+                              <g key={`confidence-${cx}-${cy}`}>
+                                <rect
+                                  x={cx - 4.5}
+                                  y={cy - 4.5}
+                                  width={9}
+                                  height={9}
+                                  fill="#06b6d4"
+                                  stroke="white"
+                                  strokeWidth={1}
+                                />
+                              </g>
+                            );
+                          }
+                          return (
+                            <g key={`confidence-empty-${cx}-${cy}`}>
+                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                            </g>
+                          );
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Legend with different shapes */}
+                <div className="ml-6 flex items-center">
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <svg width="12" height="12" viewBox="0 0 12 12">
+                        <circle cx="6" cy="6" r="4" fill="#3b82f6" />
+                      </svg>
+                      <span>Total</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg width="12" height="12" viewBox="0 0 12 12">
+                        <polygon points="6,1 11,6 6,11 1,6" fill="#ef4444" />
+                      </svg>
+                      <span>Bond</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg width="12" height="12" viewBox="0 0 12 12">
+                        <polygon points="6,2 9,10 3,10" fill="#8b5cf6" />
+                      </svg>
+                      <span>Partnership</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg width="12" height="12" viewBox="0 0 12 12">
+                        <rect x="2" y="2" width="8" height="8" fill="#06b6d4" />
+                      </svg>
+                      <span>Confidence</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
   return (
     <div className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
-      {/* New Measures Available Alert */}
-      {showNewMeasuresAlert && pendingSurveys.length === 0 && (
-        <Alert className="mb-6 bg-white border-[#e5e7eb]">
-          <div className="flex justify-between items-start">
-            <div>
-              <AlertTitle className="text-black font-medium mb-1">
-                New measures available
-              </AlertTitle>
-              <AlertDescription className="text-gray-600">
-                Track new measurements such as anxiety (GAD-7), depression
-                (PHQ-9), or therapeutic alliance (ARM-5).
-              </AlertDescription>
-            </div>
-            <Button
-              className="text-gray-400 hover:text-gray-500"
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowNewMeasuresAlert(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button
-            className="mt-3 bg-[#2d8467] hover:bg-[#236c53]"
-            onClick={() => setAssignSurveyOpen(true)}
-          >
-            Assign measures
-          </Button>
-        </Alert>
-      )}
-
       {/* Pending Surveys */}
       {pendingSurveys.length > 0 && (
         <div className="mb-6">
@@ -602,14 +827,6 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
               onClose={() => setDateRangePickerOpen(false)}
             />
           </div>
-          <Button
-            onClick={() => setAssignSurveyOpen(true)}
-            size="sm"
-            variant="outline"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Assign Survey
-          </Button>
         </div>
       </div>
 
@@ -625,7 +842,7 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
           {filteredChartData.phq9.length > 0 &&
             renderChart(filteredChartData.phq9, "PHQ-9", 27)}
           {filteredChartData.arm5.length > 0 &&
-            renderChart(filteredChartData.arm5, "ARM-5", 35)}
+            renderARM5Chart(filteredChartData.arm5)}
 
           {filteredChartData.gad7.length === 0 &&
             filteredChartData.phq9.length === 0 &&
