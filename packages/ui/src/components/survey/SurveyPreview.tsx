@@ -17,6 +17,8 @@ import {
   initializeCustomWidgets,
 } from "@mcw/utils";
 
+/* eslint-disable max-lines-per-function */
+
 interface SurveyPreviewProps {
   content: string;
   title?: string;
@@ -73,8 +75,6 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
     useEffect(() => {
       const setupSurvey = async () => {
         console.log("=== DEBUG SurveyPreview: Setting up survey ===");
-        console.log("Initial data received:", initialData);
-        console.log("Default answers received:", defaultAnswers);
         console.log("Mode:", mode);
 
         // Initialize custom widgets
@@ -102,54 +102,6 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
             theme,
           });
 
-          // Set up completion handler
-          if (onComplete && mode === "edit") {
-            model.onComplete.add((sender) => {
-              onComplete(sender.data as Record<string, unknown>);
-            });
-          }
-
-          // Set up value change handler
-          if (onValueChanged) {
-            model.onValueChanged.add((_sender, options) => {
-              onValueChanged(options.name, options.value);
-            });
-          }
-
-          // Set initial data if provided before setting model
-          const dataToSet = initialData || defaultAnswers;
-          if (dataToSet && mode === "edit") {
-            console.log(
-              "=== DEBUG SurveyPreview: Setting initial data on model ===",
-            );
-            console.log("Data to set:", dataToSet);
-            // Use setValue for each field to ensure proper binding
-            Object.keys(dataToSet).forEach((key) => {
-              if (dataToSet[key] !== undefined && dataToSet[key] !== null) {
-                const value = dataToSet[key];
-                // Convert string boolean values to actual booleans for checkboxes
-                let finalValue = value;
-                if (value === "true") finalValue = true;
-                else if (value === "false") finalValue = false;
-                else if (
-                  typeof value === "string" &&
-                  value.startsWith("[") &&
-                  value.endsWith("]")
-                ) {
-                  // Try to parse array strings (for multiple checkbox values)
-                  try {
-                    finalValue = JSON.parse(value);
-                  } catch (_e) {
-                    console.log("Failed to parse array string:", value);
-                  }
-                }
-
-                model.setValue(key, finalValue);
-              }
-            });
-            console.log("Model data after setting:", model.data);
-          }
-
           // Ensure mode is properly set
           console.log(
             "=== DEBUG SurveyPreview: Final model mode ===",
@@ -159,11 +111,6 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
             "=== DEBUG SurveyPreview: Model is read-only? ===",
             model.isReadOnly,
           );
-
-          // Store model reference if provided (after data is set)
-          if (modelRef) {
-            modelRef.current = model;
-          }
 
           setSurveyModel(model);
           setError(null);
@@ -179,7 +126,51 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
       };
 
       setupSurvey();
-    }, [content, title, type, mode]); // Remove initialData/defaultAnswers from deps to prevent re-creation
+    }, [content, title, type, mode]);
+
+    // Set up event handlers when callbacks or model changes
+    useEffect(() => {
+      if (!surveyModel) return;
+
+      // Set up completion handler
+      if (onComplete && mode === "edit") {
+        const handler = (sender: Model) => {
+          onComplete(sender.data as Record<string, unknown>);
+        };
+        surveyModel.onComplete.add(handler);
+
+        // Cleanup function to remove handler
+        return () => {
+          surveyModel.onComplete.remove(handler);
+        };
+      }
+    }, [surveyModel, onComplete, mode]);
+
+    // Set up value change handler
+    useEffect(() => {
+      if (!surveyModel || !onValueChanged) return;
+
+      const handler = (
+        _sender: Model,
+        options: { name: string; value: unknown },
+      ) => {
+        onValueChanged(options.name, options.value);
+      };
+
+      surveyModel.onValueChanged.add(handler);
+
+      // Cleanup function to remove handler
+      return () => {
+        surveyModel.onValueChanged.remove(handler);
+      };
+    }, [surveyModel, onValueChanged]);
+
+    // Update model reference when model changes
+    useEffect(() => {
+      if (modelRef && surveyModel) {
+        modelRef.current = surveyModel;
+      }
+    }, [modelRef, surveyModel]);
 
     // Handle initial data updates separately
     useEffect(() => {

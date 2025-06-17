@@ -72,11 +72,15 @@ function TreatmentPlanTemplate({
   > | null>(null);
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  
+
   // Store original data for cancel functionality
   const [originalDiagnoses, setOriginalDiagnoses] = useState<Diagnosis[]>([]);
-  const [originalTemplate, setOriginalTemplate] = useState<SurveyTemplate | null>(null);
-  const [originalSurveyData, setOriginalSurveyData] = useState<Record<string, unknown> | null>(null);
+  const [originalTemplate, setOriginalTemplate] =
+    useState<SurveyTemplate | null>(null);
+  const [originalSurveyData, setOriginalSurveyData] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   // Callback for survey completion
   const handleSurveyComplete = (answers: Record<string, unknown>) => {
@@ -90,11 +94,11 @@ function TreatmentPlanTemplate({
     console.log("Field name:", name);
     console.log("New value:", value);
     console.log("Value type:", typeof value);
-    
+
     // Update survey answers state - preserve original types
-    setSurveyAnswers(prev => ({
+    setSurveyAnswers((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -105,7 +109,7 @@ function TreatmentPlanTemplate({
     console.log("surveyModelRef.current?.data:", surveyModelRef.current?.data);
     console.log("loadedSurveyData:", loadedSurveyData);
     console.log("surveyAnswers state:", surveyAnswers);
-    
+
     if (surveyModelRef.current && surveyModelRef.current.data) {
       const modelData = surveyModelRef.current.data;
       console.log("Survey model has data:", modelData);
@@ -115,13 +119,16 @@ function TreatmentPlanTemplate({
       // Return the data as-is to preserve types
       return modelData;
     }
-    
+
     // If no model data but we have loaded survey data (edit mode), use it
     if (isEditMode && loadedSurveyData) {
-      console.log("No survey model data but in edit mode, returning loadedSurveyData:", loadedSurveyData);
+      console.log(
+        "No survey model data but in edit mode, returning loadedSurveyData:",
+        loadedSurveyData,
+      );
       return loadedSurveyData;
     }
-    
+
     console.log("No survey model data, returning state:", surveyAnswers);
     return surveyAnswers;
   };
@@ -186,7 +193,10 @@ function TreatmentPlanTemplate({
                   content = JSON.parse(content);
                   console.log("Parsed content:", content);
                 } catch (e) {
-                  console.error("=== DEBUG: Failed to parse survey content ===", e);
+                  console.error(
+                    "=== DEBUG: Failed to parse survey content ===",
+                    e,
+                  );
                 }
               }
 
@@ -197,18 +207,24 @@ function TreatmentPlanTemplate({
                 setLoadedSurveyData(surveyDataToLoad);
                 setSurveyAnswers(surveyDataToLoad);
                 setOriginalSurveyData(surveyDataToLoad); // Store original for cancel
-                
-                console.log("loadedSurveyData state will be:", surveyDataToLoad);
+
+                console.log(
+                  "loadedSurveyData state will be:",
+                  surveyDataToLoad,
+                );
                 console.log("surveyAnswers state will be:", surveyDataToLoad);
               }
 
               // Set the template ID if available
               if (plan.SurveyAnswers.template_id) {
                 console.log("=== DEBUG: Setting template ID ===");
-                console.log("Template ID to set:", plan.SurveyAnswers.template_id);
+                console.log(
+                  "Template ID to set:",
+                  plan.SurveyAnswers.template_id,
+                );
                 setLoadedTemplateId(plan.SurveyAnswers.template_id);
               }
-              
+
               // Mark as edit mode when we have survey data
               setIsEditMode(true);
             } else {
@@ -272,7 +288,7 @@ function TreatmentPlanTemplate({
     console.log("uniqueTemplates length:", uniqueTemplates.length);
     console.log("selectedTemplate:", selectedTemplate);
     console.log("loadedSurveyData:", loadedSurveyData);
-    
+
     if (loadedTemplateId && uniqueTemplates.length > 0 && !selectedTemplate) {
       console.log("=== DEBUG: Looking for template ===");
       console.log("Looking for template with ID:", loadedTemplateId);
@@ -306,7 +322,7 @@ function TreatmentPlanTemplate({
     console.log("loadedSurveyData:", loadedSurveyData);
     console.log("isEditMode:", isEditMode);
     console.log("selectedTemplate:", selectedTemplate);
-    
+
     // We don't need to manually update the survey model here
     // The SurveyPreview component will handle it through the initialData prop
   }, [loadedSurveyData, isEditMode, selectedTemplate]);
@@ -721,9 +737,9 @@ function TreatmentPlanTemplate({
                 ) {
                   // Warn user about losing unsaved changes
                   const confirmChange = window.confirm(
-                    "Changing the template will clear all current survey answers. Do you want to continue?"
+                    "Changing the template will clear all current survey answers. Do you want to continue?",
                   );
-                  
+
                   if (confirmChange) {
                     setLoadedSurveyData(null);
                     setSurveyAnswers({});
@@ -824,19 +840,32 @@ function TreatmentPlanTemplate({
                       console.log("selectedTemplate.id:", selectedTemplate?.id);
                       console.log("loadedTemplateId:", loadedTemplateId);
                       console.log("loadedSurveyData:", loadedSurveyData);
-                      console.log("Condition check - loadedSurveyData exists:", !!loadedSurveyData);
-                      console.log("Condition check - IDs match:", selectedTemplate?.id === loadedTemplateId);
-                      
+                      console.log(
+                        "Condition check - loadedSurveyData exists:",
+                        !!loadedSurveyData,
+                      );
+                      console.log(
+                        "Condition check - IDs match:",
+                        selectedTemplate?.id === loadedTemplateId,
+                      );
+
                       // Use loaded survey data if we're in edit mode and have data
-                      const initialDataToPass = isEditMode && loadedSurveyData
+                      const initialDataToPass =
+                        isEditMode && loadedSurveyData
                           ? loadedSurveyData
                           : undefined;
-                      
+
                       console.log("=== DEBUG: Initial data decision ===");
                       console.log("isEditMode:", isEditMode);
-                      console.log("loadedSurveyData exists:", !!loadedSurveyData);
-                      console.log("initialData being passed:", initialDataToPass);
-                      
+                      console.log(
+                        "loadedSurveyData exists:",
+                        !!loadedSurveyData,
+                      );
+                      console.log(
+                        "initialData being passed:",
+                        initialDataToPass,
+                      );
+
                       return (
                         <SurveyPreview
                           content={contentString}
@@ -878,35 +907,44 @@ function TreatmentPlanTemplate({
                   onClick={() => {
                     if (isEditMode && planId) {
                       // In edit mode, restore original data
-                      console.log("=== DEBUG: Cancel in edit mode - restoring original data ===");
-                      
+                      console.log(
+                        "=== DEBUG: Cancel in edit mode - restoring original data ===",
+                      );
+
                       // Restore diagnoses
                       if (originalDiagnoses.length > 0) {
                         setDiagnoses(originalDiagnoses);
                       } else {
                         setDiagnoses([{ code: "", description: "" }]);
                       }
-                      
+
                       // Restore template
                       setSelectedTemplate(originalTemplate);
-                      
+
                       // Restore survey data
                       if (originalSurveyData) {
                         setSurveyAnswers(originalSurveyData);
                         setLoadedSurveyData(originalSurveyData);
-                        
+
                         // Update the survey model if it exists
-                        if (surveyModelRef.current && surveyModelRef.current.setValue) {
-                          Object.keys(originalSurveyData).forEach(key => {
+                        if (surveyModelRef.current) {
+                          Object.keys(originalSurveyData).forEach((key) => {
                             const value = originalSurveyData[key];
                             let finalValue = value;
                             if (value === "true") finalValue = true;
                             else if (value === "false") finalValue = false;
-                            else if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
+                            else if (
+                              typeof value === "string" &&
+                              value.startsWith("[") &&
+                              value.endsWith("]")
+                            ) {
                               try {
                                 finalValue = JSON.parse(value);
                               } catch (_e) {
-                                console.log("Failed to parse array string:", value);
+                                console.log(
+                                  "Failed to parse array string:",
+                                  value,
+                                );
                               }
                             }
                             surveyModelRef.current!.setValue(key, finalValue);
@@ -916,18 +954,22 @@ function TreatmentPlanTemplate({
                         setSurveyAnswers({});
                         setLoadedSurveyData(null);
                       }
-                      
+
                       // Navigate back to view page
-                      router.push(`/clients/${params.id}/diagnosisAndTreatmentPlan/view/${planId}`);
+                      router.push(
+                        `/clients/${params.id}/diagnosisAndTreatmentPlan/view/${planId}`,
+                      );
                     } else {
                       // For new plans, clear everything
-                      console.log("=== DEBUG: Cancel for new plan - clearing all data ===");
+                      console.log(
+                        "=== DEBUG: Cancel for new plan - clearing all data ===",
+                      );
                       setSelectedTemplate(null);
                       setSurveyAnswers({});
                       setLoadedSurveyData(null);
                       setDiagnoses([{ code: "", description: "" }]);
                       setDiagnosisInitialized(false);
-                      
+
                       // Navigate back to client overview
                       router.push(`/clients/${params.id}`);
                     }
