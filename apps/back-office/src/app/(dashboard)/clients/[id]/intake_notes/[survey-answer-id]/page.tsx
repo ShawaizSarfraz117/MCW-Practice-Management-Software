@@ -32,10 +32,10 @@ import { Skeleton } from "@mcw/ui";
 export default function AssessmentPage({
   params,
 }: {
-  params: { id: string; "survery-answer-id": string };
+  params: { id: string; "survey-answer-id": string };
 }) {
   const router = useRouter();
-  const surveyAnswerId = params["survery-answer-id"];
+  const surveyAnswerId = params["survey-answer-id"];
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showScoringGuide, setShowScoringGuide] = useState(false);
   const { toast } = useToast();
