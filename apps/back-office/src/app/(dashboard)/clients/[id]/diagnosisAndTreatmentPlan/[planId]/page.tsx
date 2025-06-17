@@ -17,7 +17,7 @@ export default function DiagnosisTreatmentPlanView() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Get the first client's ID from the client group
-  const clientId = clientInfo?.ClientGroupMembership[0]?.Client?.id;
+  const clientId = clientInfo?.ClientGroupMembership?.[0]?.Client?.id;
 
   useEffect(() => {
     const fetchClientData = async () => {

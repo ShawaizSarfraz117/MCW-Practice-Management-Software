@@ -27,8 +27,9 @@ export default function NewDiagnosisAndTreatmentPlan() {
   const [diagnoses, setDiagnoses] = useState<DiagnosisData[]>([
     { code: "", description: "" },
   ]);
-  const [date, setDate] = useState("2025-03-29");
-  const [time, setTime] = useState("19:08");
+  const now = new Date();
+  const [date, setDate] = useState(now.toISOString().slice(0, 10));
+  const [time, setTime] = useState(now.toTimeString().slice(0, 5));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
