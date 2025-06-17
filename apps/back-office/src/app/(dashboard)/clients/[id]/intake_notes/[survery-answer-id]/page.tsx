@@ -83,134 +83,90 @@ export default function AssessmentPage({
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    try {
+      const pdfUrl = `/api/survey-answers/${surveyAnswerId}/pdf`;
+
+      // Create a hidden iframe
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+
+      // Set the iframe source to the PDF URL
+      iframe.src = pdfUrl;
+
+      // Wait for iframe to load
+      iframe.onload = () => {
+        setTimeout(() => {
+          // Trigger print dialog from iframe
+          iframe.contentWindow?.print();
+
+          // Clean up iframe after a delay
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 1000);
+        }, 500);
+      };
+
+      // Handle errors
+      iframe.onerror = () => {
+        document.body.removeChild(iframe);
+        throw new Error("Failed to load PDF content");
+      };
+
+      toast({
+        title: "Print Ready",
+        description:
+          "Your assessment is ready to print. The print dialog should open shortly.",
+      });
+    } catch (error) {
+      console.error("Failed to print:", error);
+      toast({
+        title: "Print Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to load content for printing. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDownload = async () => {
     try {
       const pdfUrl = `/api/survey-answers/${surveyAnswerId}/pdf`;
 
-      // Log request for debugging
-      console.log("=== PDF DOWNLOAD REQUEST DEBUG ===");
-      console.log("Full URL:", window.location.origin + pdfUrl);
-      console.log("Survey Answer ID:", surveyAnswerId);
-      console.log("Survey Answer exists:", !!surveyAnswer);
-      console.log("Survey Answer Data:", {
-        id: surveyAnswer?.id,
-        templateName: surveyAnswer?.SurveyTemplate?.name,
-        score: surveyAnswer?.score,
-        content: surveyAnswer?.content ? "Present" : "Missing",
-        status: surveyAnswer?.status,
-      });
+      // Create a hidden iframe
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
 
-      const response = await fetch(pdfUrl, {
-        method: "GET",
-        headers: {
-          Accept: "text/html",
-        },
-        credentials: "include", // Include cookies for authentication
-      });
+      // Set the iframe source to the PDF URL
+      iframe.src = pdfUrl;
 
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch (_jsonError) {
-          // If response is not JSON, try to get text
-          try {
-            const errorText = await response.text();
-            if (errorText) {
-              errorMessage = errorText;
-            }
-          } catch (_textError) {
-            // Use default error message
-          }
-        }
+      // Wait for iframe to load
+      iframe.onload = () => {
+        setTimeout(() => {
+          // Trigger print dialog from iframe
+          iframe.contentWindow?.print();
 
-        // Log error details
-        console.error("=== PDF DOWNLOAD ERROR ===", {
-          status: response.status,
-          statusText: response.statusText,
-          url: response.url,
-          errorMessage,
-          surveyAnswerId,
-        });
-
-        throw new Error(`Failed to generate PDF: ${errorMessage}`);
-      }
-
-      const htmlContent = await response.text();
-
-      // Log HTML content info for debugging
-      console.log("=== PDF RESPONSE DEBUG ===");
-      console.log("HTML content length:", htmlContent.length);
-      console.log(
-        "HTML starts with DOCTYPE:",
-        htmlContent.includes("<!DOCTYPE html>"),
-      );
-      console.log(
-        "HTML contains score:",
-        htmlContent.includes(surveyAnswer?.score?.totalScore?.toString() || ""),
-      );
-      console.log(
-        "HTML contains client name:",
-        htmlContent.includes(getClientDisplayName()),
-      );
-
-      // Validate that we received HTML content
-      if (!htmlContent || !htmlContent.includes("<!DOCTYPE html>")) {
-        throw new Error("Invalid PDF content received");
-      }
-
-      // Open the HTML content in a new window for printing/saving as PDF
-      const printWindow = window.open("", "_blank", "width=800,height=600");
-      if (!printWindow) {
-        throw new Error(
-          "Failed to open print window. Please allow pop-ups for this site.",
-        );
-      }
-
-      // Write content and ensure it's properly loaded
-      printWindow.document.open();
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-
-      // Wait for content to be fully loaded before triggering print
-      const waitForLoad = () => {
-        return new Promise<void>((resolve) => {
-          if (printWindow.document.readyState === "complete") {
-            resolve();
-          } else {
-            printWindow.addEventListener("load", () => resolve());
-          }
-        });
+          // Clean up iframe after a delay
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 1000);
+        }, 500);
       };
 
-      await waitForLoad();
-
-      // Give additional time for styling to apply
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-
-        // Handle post-print cleanup
-        const cleanup = () => {
-          printWindow.close();
-        };
-
-        // Close window after print dialog
-        printWindow.addEventListener("afterprint", cleanup);
-
-        // Fallback: close after 30 seconds if user doesn't print
-        setTimeout(cleanup, 30000);
-      }, 1000);
+      // Handle errors
+      iframe.onerror = () => {
+        document.body.removeChild(iframe);
+        throw new Error("Failed to load PDF content");
+      };
 
       toast({
         title: "PDF Ready",
         description:
-          "Your assessment PDF is ready for download. The print dialog should open shortly.",
+          "Your assessment PDF is ready. The save dialog should open shortly.",
       });
     } catch (error) {
       console.error("Failed to download PDF:", error);
