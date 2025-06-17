@@ -13,6 +13,18 @@ import { format } from "date-fns";
 import { Skeleton } from "@mcw/ui";
 import { Alert, AlertDescription } from "@mcw/ui";
 import { AlertCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@mcw/ui";
+import { useState } from "react";
+import { useToast } from "@mcw/ui";
 import { GAD7Content } from "@/types/survey-answer";
 import {
   PHQ9Content,
@@ -32,6 +44,8 @@ export default function AssessmentPage({
 }) {
   const router = useRouter();
   const surveyAnswerId = params["survery-answer-id"];
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { toast } = useToast();
 
   const {
     data: surveyAnswer,
@@ -46,19 +60,184 @@ export default function AssessmentPage({
   };
 
   const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this survey answer?")) {
+    try {
       await deleteMutation.mutateAsync(surveyAnswerId);
       router.push(`/clients/${params.id}`);
+    } catch (error) {
+      // Error is handled by the mutation's onError callback
+      console.error("Failed to delete survey answer:", error);
+    } finally {
+      setShowDeleteDialog(false);
     }
   };
 
   const handlePrint = () => {
-    window.print();
+    // Log current page data for comparison with download
+    console.log("=== PRINT DEBUG INFO ===");
+    console.log("Current page survey data for print:", {
+      id: surveyAnswer?.id,
+      templateName: surveyAnswer?.SurveyTemplate.name,
+      totalScore: surveyAnswer?.score?.totalScore,
+      severity: surveyAnswer?.score?.severity,
+      interpretation: surveyAnswer?.score?.interpretation,
+      contentKeys: surveyAnswer?.content
+        ? Object.keys(surveyAnswer.content)
+        : [],
+      clientName: getClientDisplayName(),
+      date: getFormattedDate(),
+    });
+
+    // Add a small delay to ensure the DOM is ready
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
-  const handleDownload = () => {
-    // TODO: Implement PDF download functionality
-    console.log("Download functionality to be implemented");
+  const handleDownload = async () => {
+    try {
+      // Log current page data for comparison
+      console.log("=== DOWNLOAD DEBUG INFO ===");
+      console.log("Current page survey data:", {
+        id: surveyAnswer?.id,
+        templateName: surveyAnswer?.SurveyTemplate.name,
+        totalScore: surveyAnswer?.score?.totalScore,
+        severity: surveyAnswer?.score?.severity,
+        interpretation: surveyAnswer?.score?.interpretation,
+        contentKeys: surveyAnswer?.content
+          ? Object.keys(surveyAnswer.content)
+          : [],
+        clientName: getClientDisplayName(),
+        date: getFormattedDate(),
+      });
+
+      toast({
+        title: "Generating PDF",
+        description: "Please wait while we prepare your assessment PDF...",
+      });
+
+      const pdfUrl = `/api/survey-answers/${surveyAnswerId}/pdf`;
+      console.log("=== PDF REQUEST DEBUG ===");
+      console.log("Making request to:", pdfUrl);
+      console.log("Survey Answer ID:", surveyAnswerId);
+
+      const response = await fetch(pdfUrl, {
+        method: "GET",
+        headers: {
+          Accept: "text/html",
+        },
+      });
+
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (_jsonError) {
+          // If response is not JSON, try to get text
+          try {
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+          } catch (_textError) {
+            // Use the HTTP status as fallback
+          }
+        }
+
+        console.error("PDF generation failed:", {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          errorMessage,
+          surveyAnswerId,
+        });
+
+        throw new Error(`Failed to generate PDF: ${errorMessage}`);
+      }
+
+      const htmlContent = await response.text();
+
+      // Log HTML content info for debugging
+      console.log("=== PDF RESPONSE DEBUG ===");
+      console.log("HTML content length:", htmlContent.length);
+      console.log(
+        "HTML starts with DOCTYPE:",
+        htmlContent.includes("<!DOCTYPE html>"),
+      );
+      console.log(
+        "HTML contains score:",
+        htmlContent.includes(surveyAnswer?.score?.totalScore?.toString() || ""),
+      );
+      console.log(
+        "HTML contains client name:",
+        htmlContent.includes(getClientDisplayName()),
+      );
+
+      // Validate that we received HTML content
+      if (!htmlContent || !htmlContent.includes("<!DOCTYPE html>")) {
+        throw new Error("Invalid PDF content received");
+      }
+
+      // Open the HTML content in a new window for printing/saving as PDF
+      const printWindow = window.open("", "_blank", "width=800,height=600");
+      if (!printWindow) {
+        throw new Error(
+          "Failed to open print window. Please allow pop-ups for this site.",
+        );
+      }
+
+      // Write content and ensure it's properly loaded
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
+      // Wait for content to be fully loaded before triggering print
+      const waitForLoad = () => {
+        return new Promise<void>((resolve) => {
+          if (printWindow.document.readyState === "complete") {
+            resolve();
+          } else {
+            printWindow.addEventListener("load", () => resolve());
+          }
+        });
+      };
+
+      await waitForLoad();
+
+      // Give additional time for styling to apply
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+
+        // Handle post-print cleanup
+        const cleanup = () => {
+          printWindow.close();
+        };
+
+        // Close window after print dialog
+        printWindow.addEventListener("afterprint", cleanup);
+
+        // Fallback: close after 30 seconds if user doesn't print
+        setTimeout(cleanup, 30000);
+      }, 1000);
+
+      toast({
+        title: "PDF Ready",
+        description:
+          "Your assessment PDF is ready for download. The print dialog should open shortly.",
+      });
+    } catch (error) {
+      console.error("Failed to download PDF:", error);
+      toast({
+        title: "Download Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getClientDisplayName = () => {
@@ -129,38 +308,51 @@ export default function AssessmentPage({
     );
   }
 
-  const totalScore = surveyAnswer.score?.totalScore || 0;
-  const severity = surveyAnswer.score?.severity || "Unknown";
-  const interpretation = surveyAnswer.score?.interpretation || "";
+  // Parse score and content data consistently with PDF endpoint
+  const scoreData =
+    typeof surveyAnswer.score === "string"
+      ? JSON.parse(surveyAnswer.score)
+      : surveyAnswer.score;
+
+  const contentData =
+    typeof surveyAnswer.content === "string"
+      ? JSON.parse(surveyAnswer.content)
+      : surveyAnswer.content;
+
+  const totalScore = scoreData?.totalScore || 0;
+  const severity = scoreData?.severity || "Unknown";
+  const interpretation = scoreData?.interpretation || "";
 
   // Detect survey type
   const surveyType = detectSurveyType(surveyAnswer.SurveyTemplate.name);
   const surveyMetadata =
     surveyType !== "UNKNOWN" ? getSurveyMetadata(surveyType) : null;
 
-  // Map content based on survey type
+  // Map content based on survey type using parsed content
   const questions = (() => {
     switch (surveyType) {
       case "GAD7":
-        return mapGAD7ContentToQuestions(
-          surveyAnswer.content as GAD7Content | null,
-        );
+        return mapGAD7ContentToQuestions(contentData as GAD7Content | null);
       case "PHQ9":
-        return mapPHQ9ContentToQuestions(
-          surveyAnswer.content as PHQ9Content | null,
-        );
+        return mapPHQ9ContentToQuestions(contentData as PHQ9Content | null);
       case "ARM5":
-        return mapARM5ContentToQuestions(
-          surveyAnswer.content as ARM5Content | null,
-        );
+        return mapARM5ContentToQuestions(contentData as ARM5Content | null);
       default:
         return [];
     }
   })();
 
+  // Log questions data for debugging (only in development)
+  if (process.env.NODE_ENV === "development") {
+    console.log("=== PAGE QUESTIONS DEBUG ===");
+    console.log("Survey type:", surveyType);
+    console.log("Questions count:", questions.length);
+    console.log("First 3 questions:", questions.slice(0, 3));
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6 print-content">
         {/* Patient Header */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between">
@@ -214,17 +406,28 @@ export default function AssessmentPage({
                 <Plus className="h-4 w-4 mr-2" />
                 Note
               </Button>
-              <Button size="sm" variant="ghost" onClick={handlePrint}>
+              <Button
+                size="sm"
+                title="Print this assessment"
+                variant="ghost"
+                onClick={handlePrint}
+              >
                 <Printer className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="ghost" onClick={handleDownload}>
+              <Button
+                size="sm"
+                title="Download as PDF"
+                variant="ghost"
+                onClick={handleDownload}
+              >
                 <Download className="h-4 w-4" />
               </Button>
               <Button
                 disabled={deleteMutation.isPending}
                 size="sm"
+                title="Delete this assessment"
                 variant="ghost"
-                onClick={handleDelete}
+                onClick={() => setShowDeleteDialog(true)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -411,16 +614,12 @@ export default function AssessmentPage({
                     <div className="text-sm text-gray-700">
                       {(() => {
                         let difficultyResponse = "";
-                        if (surveyType === "GAD7" && surveyAnswer.content) {
+                        if (surveyType === "GAD7" && contentData) {
                           difficultyResponse =
-                            (surveyAnswer.content as GAD7Content).gad7_q8 || "";
-                        } else if (
-                          surveyType === "PHQ9" &&
-                          surveyAnswer.content
-                        ) {
+                            (contentData as GAD7Content).gad7_q8 || "";
+                        } else if (surveyType === "PHQ9" && contentData) {
                           difficultyResponse =
-                            (surveyAnswer.content as PHQ9Content).phq9_q10 ||
-                            "";
+                            (contentData as PHQ9Content).phq9_q10 || "";
                         }
                         return difficultyResponse
                           ? getDifficultyLabel(difficultyResponse)
@@ -468,7 +667,159 @@ export default function AssessmentPage({
             </Button>
           </div>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Assessment</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this{" "}
+                <strong>{surveyAnswer?.SurveyTemplate.name}</strong> assessment
+                for <strong>{getClientDisplayName()}</strong>?
+                <br />
+                <br />
+                This action cannot be undone and will permanently remove:
+                <br />• All survey responses and scores
+                <br />• Assessment date: {getFormattedDate()}
+                <br />• Any associated notes or data
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteMutation.isPending}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                disabled={deleteMutation.isPending}
+                onClick={handleDelete}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Delete Assessment"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
+
+      {/* Print Styles */}
+      <style global jsx>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 0.75in;
+          }
+
+          body * {
+            visibility: hidden;
+          }
+
+          .print-content,
+          .print-content * {
+            visibility: visible;
+          }
+
+          .print-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white;
+          }
+
+          /* Hide buttons and interactive elements when printing */
+          button,
+          .no-print {
+            display: none !important;
+          }
+
+          /* Fix grid layouts for print */
+          .grid {
+            display: block !important;
+          }
+
+          .lg\\:grid-cols-2 > * {
+            width: 100% !important;
+            margin-bottom: 20px !important;
+            break-inside: avoid;
+          }
+
+          .lg\\:grid-cols-5 > * {
+            width: 100% !important;
+            margin-bottom: 10px !important;
+          }
+
+          /* Ensure good contrast for printing */
+          .bg-gray-50 {
+            background-color: white !important;
+          }
+
+          .bg-gray-100 {
+            background-color: #f8f9fa !important;
+          }
+
+          /* Fix score visualization for print */
+          .relative.w-48.h-48 {
+            width: 120px !important;
+            height: 120px !important;
+            margin: 0 auto !important;
+          }
+
+          /* Improve table printing */
+          table {
+            break-inside: auto;
+          }
+
+          tr {
+            break-inside: avoid;
+            break-after: auto;
+          }
+
+          thead {
+            display: table-header-group;
+          }
+
+          /* Page breaks */
+          .print-page-break {
+            page-break-before: always;
+          }
+
+          /* Remove shadows and borders for cleaner print */
+          .shadow-sm,
+          .shadow {
+            box-shadow: none !important;
+            border: 1px solid #e5e7eb !important;
+          }
+
+          /* Ensure text is readable */
+          .text-gray-600,
+          .text-gray-700 {
+            color: #374151 !important;
+          }
+
+          /* Reduce padding for print */
+          .p-6 {
+            padding: 1rem !important;
+          }
+
+          .py-4 {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+          }
+
+          /* Fix flex layouts */
+          .flex {
+            display: block !important;
+          }
+
+          .justify-between {
+            text-align: left !important;
+          }
+
+          .items-center {
+            align-items: flex-start !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

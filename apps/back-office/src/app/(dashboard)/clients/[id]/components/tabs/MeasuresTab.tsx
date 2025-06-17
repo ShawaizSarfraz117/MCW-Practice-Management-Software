@@ -24,6 +24,7 @@ import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@mcw/ui";
 import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "next/navigation";
 import AssignSurveyDialog from "./AssignSurveyDialog";
 import CompleteSurveyDialog from "./CompleteSurveyDialog";
 
@@ -114,6 +115,7 @@ const getDateRangeFromSelection = (selection: string) => {
 
 export default function MeasuresTab({ clientId }: MeasuresTabProps) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [dateRangePickerOpen, setDateRangePickerOpen] = useState(false);
   const [selectedDateRangeDisplay, setSelectedDateRangeDisplay] =
     useState<string>("All time");
@@ -889,6 +891,12 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
               title: "Survey completed",
               description: "The survey has been completed and scored.",
             });
+            // Navigate to intake notes page
+            if (selectedSurveyAnswer) {
+              router.push(
+                `/clients/${clientId}/intake_notes/${selectedSurveyAnswer.id}`,
+              );
+            }
           }}
         />
       )}

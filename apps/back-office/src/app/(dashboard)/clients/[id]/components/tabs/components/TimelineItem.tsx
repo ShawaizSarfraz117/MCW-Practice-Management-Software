@@ -181,7 +181,16 @@ export default function TimelineItem({ document }: TimelineItemProps) {
     }
   };
 
-  // Handle action buttons
+  // Handle title click for scored measures - navigate to intake notes
+  const handleTitleClick = () => {
+    if (document.documentType === "scored_measures") {
+      router.push(
+        `/clients/${document.clientGroupId}/intake_notes/${document.id}`,
+      );
+    }
+  };
+
+  // Handle action buttons (edit icon)
   const handleEdit = () => {
     if (document.documentType === "chart_notes") {
       // Initialize edit state with current values
@@ -405,7 +414,20 @@ export default function TimelineItem({ document }: TimelineItemProps) {
             {format(date, "MMM d").toUpperCase()}
           </div>
           <div className="flex-1">
-            <div className="font-medium text-gray-900">{document.title}</div>
+            <div
+              className={`font-medium text-gray-900 ${
+                document.documentType === "scored_measures"
+                  ? "cursor-pointer hover:text-blue-600 hover:underline"
+                  : ""
+              }`}
+              onClick={
+                document.documentType === "scored_measures"
+                  ? handleTitleClick
+                  : undefined
+              }
+            >
+              {document.title}
+            </div>
             {document.documentType === "appointments" && document.status && (
               <div className="text-sm text-gray-600 mt-1">
                 BILLING CODE: {document.id.slice(-5).toUpperCase()}
