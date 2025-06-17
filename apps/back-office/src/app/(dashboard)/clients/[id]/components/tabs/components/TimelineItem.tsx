@@ -190,7 +190,6 @@ export default function TimelineItem({ document }: TimelineItemProps) {
     }
   };
 
-  // Handle action buttons (edit icon)
   const handleEdit = () => {
     if (document.documentType === "chart_notes") {
       // Initialize edit state with current values
