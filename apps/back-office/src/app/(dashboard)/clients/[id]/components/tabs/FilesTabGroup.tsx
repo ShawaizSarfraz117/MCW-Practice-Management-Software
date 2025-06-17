@@ -51,6 +51,7 @@ import { ClientFile } from "@mcw/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@mcw/ui";
 import { showErrorToast } from "@mcw/utils";
+import SendRemindersSidebar from "./SendRemindersSidebar";
 
 type SortColumn = "name" | "type" | "status" | "updated";
 type SortDirection = "asc" | "desc";
@@ -63,6 +64,8 @@ interface FilesTabGroupProps {
   clientGroupId: string;
   clients: Array<{ id: string; name: string }>;
   onShareFile?: (file: ClientFile) => void;
+  practiceName?: string;
+  clientEmail?: string;
 }
 
 function useFileSorting(filesData: ClientFile[]) {
@@ -230,11 +233,12 @@ function useFileActions(
 }
 
 const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
-  ({ clientGroupId, clients, onShareFile }, ref) => {
+  ({ clientGroupId, clients, onShareFile, practiceName, clientEmail }, ref) => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [showReminderSidebar, setShowReminderSidebar] = useState(false);
 
     // Fetch client files from database
     const {
@@ -248,8 +252,7 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
     );
 
     const handleSendReminder = () => {
-      // TODO: Implement send reminder functionality
-      console.log("Send reminder clicked");
+      setShowReminderSidebar(true);
     };
 
     // Filter files based on search and status
@@ -558,6 +561,24 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
             </TableBody>
           </Table>
         </div>
+
+        {/* Send Reminders Sidebar */}
+        <SendRemindersSidebar
+          isOpen={showReminderSidebar}
+          onClose={() => setShowReminderSidebar(false)}
+          filesData={sortedFilesData.map((file) => ({
+            id: parseInt(file.id),
+            name: file.name,
+            type: file.type,
+            status: file.status,
+            statusColor: file.statusColor,
+            updated: file.updated,
+            nameColor: file.nameColor,
+          }))}
+          clientName={clients[0]?.name || ""}
+          clientEmail={clientEmail || ""}
+          practiceName={practiceName || "Practice"}
+        />
       </div>
     );
   },
