@@ -21,7 +21,7 @@ vi.mock("@mcw/database", () => {
 });
 
 // Import after mocking
-import { GET } from "@/app/api/analytics/route";
+import { GET } from "@/api/analytics/route";
 
 // Get references to the mocked functions
 const { prisma } = await import("@mcw/database");
