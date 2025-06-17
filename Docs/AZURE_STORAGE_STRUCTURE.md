@@ -25,18 +25,21 @@ client-groups/ (container)
 ## File Types and Locations
 
 ### 1. Practice Uploads
+
 - **Location**: `client-groups/{client-group-id}/practice-uploads/`
 - **Purpose**: Files uploaded by practice staff that can be shared with multiple clients
 - **Type in DB**: `Practice Upload`
 - **Example**: Forms, general documents, templates
 
 ### 2. Client Uploads
+
 - **Location**: `client-groups/{client-group-id}/{client-id}/`
 - **Purpose**: Files uploaded specifically for one client
 - **Type in DB**: `Client Upload`
 - **Example**: Client-specific documents, personalized forms
 
 ### 3. Shared Files (Optional Copy)
+
 - **Location**: `client-groups/{client-group-id}/{client-id}/`
 - **Purpose**: When sharing a practice upload with a client, optionally copy it to their folder
 - **Type in DB**: Still shows as original type (e.g., `Practice Upload`)
@@ -45,18 +48,21 @@ client-groups/ (container)
 ## API Endpoints
 
 ### Upload Practice File (Shared)
+
 - **Endpoint**: `POST /api/client/files`
 - **Uploads to**: `client-groups/{client-group-id}/practice-uploads/`
 - **Creates**: Only `ClientGroupFile` record
 
 ### Upload Client-Specific File
+
 - **Endpoint**: `POST /api/client/files/client-upload`
 - **Uploads to**: `client-groups/{client-group-id}/{client-id}/`
 - **Creates**: Both `ClientGroupFile` and `ClientFiles` records
 
 ### Share File with Clients
+
 - **Endpoint**: `POST /api/client/files/share`
-- **Options**: 
+- **Options**:
   - Link only: Creates `ClientFiles` record pointing to original
   - Copy to client folder: Copies file to client's folder and creates `ClientFiles` record
 
@@ -71,6 +77,7 @@ client-groups/ (container)
 ## Migration Notes
 
 For existing files:
+
 - Files in `client-files` container should be migrated to new structure
 - Existing URLs in database need to be updated
 - Consider batch migration script for production data

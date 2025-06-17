@@ -1,110 +1,318 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withErrorHandling } from "@mcw/utils";
 import { prisma } from "@mcw/database";
+import { getBackOfficeSession } from "@/utils/helpers";
 import { logger } from "@mcw/logger";
-import { z } from "zod";
 
-// Validation schema for request body
-const updatePortalPermissionsSchema = z.object({
-  client_id: z.string().uuid(),
-  allow_online_appointment: z.boolean().optional(),
-  access_billing_documents: z.boolean().optional(),
-  use_secure_messaging: z.boolean().optional(),
-});
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-/**
- * Update client portal permissions
- * This endpoint allows updating the three client portal permission fields:
- * - allow_online_appointment
- * - access_billing_documents
- * - use_secure_messaging
- */
-export async function PUT(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const clientId = searchParams.get("clientId");
+
+  if (!clientId) {
+    return NextResponse.json(
+      { error: "Client ID is required" },
+      { status: 400 },
+    );
+  }
+
   try {
-    const body = await request.json();
-
-    // Validate request body
-    const validationResult = updatePortalPermissionsSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid request data",
-          details: validationResult.error.errors,
-        },
-        { status: 400 },
-      );
-    }
-
-    const { client_id, ...permissions } = validationResult.data;
-
-    // Check if client exists
-    const clientExists = await prisma.client.findUnique({
-      where: { id: client_id },
-      select: { id: true },
+    const portalPermission = await prisma.clientPortalPermission.findUnique({
+      where: {
+        client_id: clientId,
+      },
     });
 
-    if (!clientExists) {
-      return NextResponse.json({ error: "Client not found" }, { status: 404 });
-    }
+    return NextResponse.json({ data: portalPermission });
+  } catch (error) {
+    logger.error({
+      message: "Error fetching client portal permission",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Failed to fetch client portal permission" },
+      { status: 500 },
+    );
+  }
+});
 
-    // Only include fields that were actually provided in the request
-    const updateData: Record<string, boolean> = {};
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    if (permissions.allow_online_appointment !== undefined) {
-      updateData.allow_online_appointment =
-        permissions.allow_online_appointment;
-    }
+  const body = await request.json();
+  const {
+    client_id,
+    email,
+    allow_appointment_requests = true,
+    use_secure_messaging = true,
+    access_billing_documents = true,
+    receive_announcements = true,
+    subject,
+    message,
+  } = body;
 
-    if (permissions.access_billing_documents !== undefined) {
-      updateData.access_billing_documents =
-        permissions.access_billing_documents;
-    }
+  if (!client_id || !email) {
+    return NextResponse.json(
+      { error: "Client ID and email are required" },
+      { status: 400 },
+    );
+  }
 
-    if (permissions.use_secure_messaging !== undefined) {
-      updateData.use_secure_messaging = permissions.use_secure_messaging;
-    }
+  try {
+    // Check if permission already exists
+    const existingPermission = await prisma.clientPortalPermission.findUnique({
+      where: {
+        client_id,
+      },
+    });
 
-    // Don't perform update if no fields were provided
-    if (Object.keys(updateData).length === 0) {
+    if (existingPermission) {
       return NextResponse.json(
-        { error: "No portal permission fields provided to update" },
-        { status: 400 },
+        { error: "Client portal permission already exists" },
+        { status: 409 },
       );
     }
 
-    // Update client portal permissions
-    const updatedClient = await prisma.client.update({
-      where: { id: client_id },
-      data: updateData,
-      select: {
-        id: true,
-        legal_first_name: true,
-        legal_last_name: true,
-        allow_online_appointment: true,
-        access_billing_documents: true,
-        use_secure_messaging: true,
+    // Create new permission
+    const portalPermission = await prisma.clientPortalPermission.create({
+      data: {
+        client_id,
+        email,
+        allow_appointment_requests,
+        use_secure_messaging,
+        access_billing_documents,
+        receive_announcements,
       },
     });
 
     logger.info({
-      message: "Client portal permissions updated successfully",
+      message: "Client portal permission created successfully",
       client_id,
-      updated_fields: Object.keys(updateData),
+      email,
     });
 
-    return NextResponse.json(updatedClient);
+    // Send invitation email if subject and message are provided
+    if (subject && message) {
+      try {
+        // Send email using the email API
+        const emailResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || ""}/api/email/send`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Cookie: request.headers.get("cookie") || "",
+            },
+            body: JSON.stringify({
+              to: email,
+              subject,
+              html: message,
+              text: message.replace(/<[^>]*>/g, ""), // Strip HTML for text version
+            }),
+          },
+        );
+
+        if (!emailResponse.ok) {
+          logger.error({
+            message: "Failed to send portal invitation email",
+            client_id,
+            email,
+            status: emailResponse.status,
+          });
+          // Don't fail the whole request if email fails
+        } else {
+          logger.info({
+            message: "Portal invitation email sent successfully",
+            client_id,
+            email,
+          });
+        }
+      } catch (emailError) {
+        logger.error({
+          message: "Error sending portal invitation email",
+          error:
+            emailError instanceof Error
+              ? emailError.message
+              : String(emailError),
+          client_id,
+          email,
+        });
+        // Don't fail the whole request if email fails
+      }
+    }
+
+    return NextResponse.json({ data: portalPermission });
   } catch (error) {
+    console.log("🚀 ~ POST ~ error:", error);
     logger.error({
-      message: "Error updating client portal permissions",
+      message: "Error creating client portal permission",
       error: error instanceof Error ? error.message : String(error),
     });
+    return NextResponse.json({ error: error }, { status: 500 });
+  }
+});
 
+export const PUT = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const {
+    client_id,
+    email,
+    allow_appointment_requests,
+    use_secure_messaging,
+    access_billing_documents,
+    receive_announcements,
+    is_active,
+    subject,
+    message,
+    resend_email,
+  } = body;
+
+  if (!client_id) {
     return NextResponse.json(
-      {
-        error: "Failed to update client portal permissions",
-        message: error instanceof Error ? error.message : "Unknown error",
+      { error: "Client ID is required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const portalPermission = await prisma.clientPortalPermission.update({
+      where: {
+        client_id,
       },
+      data: {
+        ...(email !== undefined && { email }),
+        ...(allow_appointment_requests !== undefined && {
+          allow_appointment_requests,
+        }),
+        ...(use_secure_messaging !== undefined && { use_secure_messaging }),
+        ...(access_billing_documents !== undefined && {
+          access_billing_documents,
+        }),
+        ...(receive_announcements !== undefined && { receive_announcements }),
+        ...(is_active !== undefined && { is_active }),
+      },
+    });
+
+    logger.info({
+      message: "Client portal permission updated successfully",
+      client_id,
+      updated_fields: Object.keys(body).filter((key) => key !== "client_id"),
+    });
+
+    // Send invitation email if resend is requested and subject/message are provided
+    if (resend_email && subject && message) {
+      try {
+        const emailToUse = portalPermission.email || email;
+
+        // Send email using the email API
+        const emailResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || ""}/api/email/send`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Cookie: request.headers.get("cookie") || "",
+            },
+            body: JSON.stringify({
+              to: emailToUse,
+              subject,
+              html: message,
+              text: message.replace(/<[^>]*>/g, ""), // Strip HTML for text version
+            }),
+          },
+        );
+
+        if (!emailResponse.ok) {
+          logger.error({
+            message: "Failed to resend portal invitation email",
+            client_id,
+            email: emailToUse,
+            status: emailResponse.status,
+          });
+          // Don't fail the whole request if email fails
+        } else {
+          logger.info({
+            message: "Portal invitation email resent successfully",
+            client_id,
+            email: emailToUse,
+          });
+        }
+      } catch (emailError) {
+        logger.error({
+          message: "Error resending portal invitation email",
+          error:
+            emailError instanceof Error
+              ? emailError.message
+              : String(emailError),
+          client_id,
+        });
+        // Don't fail the whole request if email fails
+      }
+    }
+
+    return NextResponse.json({ data: portalPermission });
+  } catch (error) {
+    logger.error({
+      message: "Error updating client portal permission",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Failed to update client portal permission" },
       { status: 500 },
     );
   }
-}
+});
+
+export const DELETE = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const clientId = searchParams.get("clientId");
+
+  if (!clientId) {
+    return NextResponse.json(
+      { error: "Client ID is required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    // Delete the portal permission
+    await prisma.clientPortalPermission.delete({
+      where: {
+        client_id: clientId,
+      },
+    });
+
+    logger.info({
+      message: "Client portal permission deleted successfully",
+      client_id: clientId,
+    });
+
+    return NextResponse.json({ data: { success: true } });
+  } catch (error) {
+    logger.error({
+      message: "Error deleting client portal permission",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Failed to delete client portal permission" },
+      { status: 500 },
+    );
+  }
+});

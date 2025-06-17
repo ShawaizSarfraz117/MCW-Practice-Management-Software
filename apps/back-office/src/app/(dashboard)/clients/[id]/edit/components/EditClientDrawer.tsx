@@ -7,6 +7,7 @@ import { ClientFormValues } from "../types";
 import { EditClientForm } from "./EditClientForm";
 import { ClientMembership } from "./ClientEdit";
 import { EditNotificationPreferences } from "./EditNotificationPreferences";
+import { ClientPortalPermissions } from "./ClientPortalPermissions";
 import {
   fetchClientContacts,
   updateClientReminderPref,
@@ -61,8 +62,9 @@ interface EditClientDrawerProps {
   clientData: ClientMembership;
   onSave: (data: ClientFormValues) => Promise<void>;
   title?: string;
-  drawerType: "edit" | "reminders";
+  drawerType: "edit" | "reminders" | "clientPortal";
   type?: "client" | "contact";
+  onSwitchToEdit?: () => void;
 }
 
 export function EditClientDrawer({
@@ -73,9 +75,11 @@ export function EditClientDrawer({
   clientData,
   onSave,
   title = "Create New Contact",
+  onSwitchToEdit,
 }: EditClientDrawerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientContacts, setClientContacts] = useState<ClientContact[]>([]);
+  const [isPortalFormLoading, setIsPortalFormLoading] = useState(false);
 
   // Add notification options state
   const [notificationOptions, setNotificationOptions] =
@@ -330,14 +334,23 @@ export function EditClientDrawer({
             </div>
             <Button
               className="bg-[#2c8466] hover:bg-[#206e52]"
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting ||
+                (drawerType === "clientPortal" && isPortalFormLoading)
+              }
               form={drawerType === "edit" ? "client-edit-form" : undefined}
               size="sm"
               type={drawerType === "edit" ? "submit" : "button"}
               onClick={
                 drawerType === "reminders"
                   ? saveNotificationPreferences
-                  : undefined
+                  : drawerType === "clientPortal"
+                    ? () => {
+                        const saveButton =
+                          document.getElementById("client-portal-save");
+                        if (saveButton) saveButton.click();
+                      }
+                    : undefined
               }
             >
               Save
@@ -363,6 +376,21 @@ export function EditClientDrawer({
                   (contact) => contact.contact_type === "PHONE",
                 )}
                 onNotificationOptionsChange={handleNotificationOptionsChange}
+              />
+            </div>
+          )}
+          {drawerType === "clientPortal" && isOpen && (
+            <div className="overflow-y-auto flex-1 h-full">
+              <ClientPortalPermissions
+                clientData={clientData}
+                onSave={() => onClose()}
+                onClose={onClose}
+                onOpenEditDrawer={() => {
+                  if (onSwitchToEdit) {
+                    onSwitchToEdit();
+                  }
+                }}
+                onLoadingChange={setIsPortalFormLoading}
               />
             </div>
           )}
