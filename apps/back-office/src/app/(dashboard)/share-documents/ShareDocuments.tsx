@@ -44,6 +44,11 @@ export interface ShareDocumentsProps {
   onSuccess?: (
     selectedDocumentIds: string[] | Record<string, string[]>,
   ) => void;
+  // Appointment details for reminder dialog
+  appointmentDate?: Date | string;
+  appointmentTime?: string;
+  clinicianName?: string;
+  locationName?: string;
 }
 
 interface SelectedDocument {
@@ -68,6 +73,10 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
   clientId,
   clientGroupId,
   onSuccess,
+  appointmentDate,
+  appointmentTime,
+  clinicianName,
+  locationName,
 }) => {
   // Normalize props to always work with array of clients
   const clients = useMemo(() => {
@@ -652,6 +661,11 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
             clientName={clients[0].name}
             isOpen={showReminders}
             onClose={() => setShowReminders(false)}
+            appointmentDate={appointmentDate}
+            appointmentTime={appointmentTime}
+            clinicianName={clinicianName}
+            locationName={locationName}
+            appointmentId={appointmentId}
           />
         )}
       </div>

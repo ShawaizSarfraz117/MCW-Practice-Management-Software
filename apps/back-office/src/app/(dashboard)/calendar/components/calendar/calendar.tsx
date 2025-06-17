@@ -167,6 +167,11 @@ export function CalendarView({
     clientEmail: string;
     clientId: string;
     clientGroupId: string;
+    appointmentDate?: Date | string;
+    appointmentTime?: string;
+    clinicianName?: string;
+    locationName?: string;
+    appointmentId?: string;
   } | null>(null);
 
   const calendarRef = useRef<FullCalendar>(null);
@@ -546,6 +551,7 @@ export function CalendarView({
 
       // Check the first appointment (main appointment for recurring) for "New Client" tag
       const firstAppointment = appointments[0];
+      console.log("First appointment:", firstAppointment);
       const hasNewClientTag = firstAppointment?.AppointmentTag?.some(
         (tag: { Tag?: { name?: string } }) => {
           console.log("Checking tag:", tag);
@@ -572,6 +578,21 @@ export function CalendarView({
               clientEmail: clientEmail || "",
               clientId: client.id,
               clientGroupId: clientGroup.id,
+              appointmentDate: firstAppointment.start_date,
+              appointmentTime: new Date(
+                firstAppointment.start_date,
+              ).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              }),
+              clinicianName:
+                firstAppointment.Clinician?.legal_first_name &&
+                firstAppointment.Clinician?.legal_last_name
+                  ? `${firstAppointment.Clinician.legal_first_name} ${firstAppointment.Clinician.legal_last_name}`
+                  : "Your Provider",
+              locationName: firstAppointment.Location?.name || "Our Office",
+              appointmentId: firstAppointment.id,
             });
             console.log("Setting intake form to show with data:", {
               clientName: `${client.legal_first_name} ${client.legal_last_name}`,
@@ -2214,6 +2235,11 @@ export function CalendarView({
             setShowIntakeForm(false);
             setIntakeClientData(null);
           }}
+          appointmentDate={intakeClientData.appointmentDate}
+          appointmentTime={intakeClientData.appointmentTime}
+          clinicianName={intakeClientData.clinicianName}
+          locationName={intakeClientData.locationName}
+          appointmentId={intakeClientData.appointmentId}
         />
       )}
     </div>

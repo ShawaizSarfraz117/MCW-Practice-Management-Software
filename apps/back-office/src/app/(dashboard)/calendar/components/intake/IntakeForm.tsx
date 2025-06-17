@@ -13,11 +13,21 @@ import { useMultipleClientEmails } from "@/(dashboard)/calendar/hooks/useClientC
 interface IntakeFormProps {
   clientGroupId: string;
   onClose: () => void;
+  appointmentDate?: Date | string;
+  appointmentTime?: string;
+  clinicianName?: string;
+  locationName?: string;
+  appointmentId?: string;
 }
 
 export const IntakeForm: React.FC<IntakeFormProps> = ({
   clientGroupId,
   onClose,
+  appointmentDate,
+  appointmentTime,
+  clinicianName,
+  locationName,
+  appointmentId,
 }) => {
   const [clients, setClients] = useState<ShareClient[]>([]);
   const [clientIds, setClientIds] = useState<string[]>([]);
@@ -119,6 +129,11 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
       context="appointment"
       showReminders={true}
       onClose={onClose}
+      appointmentDate={appointmentDate}
+      appointmentTime={appointmentTime}
+      clinicianName={clinicianName}
+      locationName={locationName}
+      appointmentId={appointmentId}
     />
   );
 };

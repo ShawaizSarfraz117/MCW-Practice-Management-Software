@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
 import ShareDocumentsFlow from "./ShareDocumentsFlow";
@@ -99,6 +99,11 @@ export default function ClientProfile({
   const [editingNote, setEditingNote] = useState<AdministrativeNote | null>(
     null,
   );
+  const [practiceInfo, setPracticeInfo] = useState<{
+    practice_name: string;
+    practice_email: string;
+  } | null>(null);
+  const [clientEmail, setClientEmail] = useState<string>("");
   const { id } = useParams();
   const searchParams = useSearchParams();
 
@@ -138,6 +143,19 @@ export default function ClientProfile({
     }
   };
 
+  // Fetch practice information
+  const fetchPracticeInfo = useCallback(async () => {
+    try {
+      const response = await fetch("/api/practiceInformation");
+      if (response.ok) {
+        const data = await response.json();
+        setPracticeInfo(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch practice information:", error);
+    }
+  }, []);
+
   const { data: clientGroup } = useQuery({
     queryKey: ["clientGroup", id],
     queryFn: async () => {
@@ -153,6 +171,18 @@ export default function ClientProfile({
         if (clientGroupData.ClientGroupMembership?.length) {
           const name = getClientGroupInfo(clientGroupData);
           setClientName(name || "");
+
+          // Get the primary email for the first client in the group
+          const firstClient = clientGroupData.ClientGroupMembership[0]?.Client;
+          if (firstClient?.ClientContact) {
+            const primaryEmail = firstClient.ClientContact.find(
+              (contact) =>
+                contact.contact_type === "EMAIL" && contact.is_primary,
+            );
+            if (primaryEmail) {
+              setClientEmail(primaryEmail.value);
+            }
+          }
         }
 
         // Parse and set administrative notes from the response
@@ -169,7 +199,7 @@ export default function ClientProfile({
     enabled: !!id, // Only run when id exists
   });
 
-  const fetchInvoicesData = async () => {
+  const fetchInvoicesData = useCallback(async () => {
     const [response, error] = await fetchInvoices({
       searchParams: { clientGroupId: id },
     });
@@ -180,11 +210,12 @@ export default function ClientProfile({
         setInvoices(invoiceResponse);
       }
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchInvoicesData();
-  }, [id]);
+    fetchPracticeInfo();
+  }, [fetchInvoicesData, fetchPracticeInfo]);
 
   useEffect(() => {
     // Handle invoice related URL parameters
@@ -471,6 +502,8 @@ export default function ClientProfile({
                     name: `${m.Client?.legal_first_name || ""} ${m.Client?.legal_last_name || ""}`.trim(),
                   })) || []
                 }
+                practiceName={practiceInfo?.practice_name || ""}
+                clientEmail={clientEmail || ""}
                 onShareFile={() => setShareModalOpen(true)}
               />
             </TabsContent>
