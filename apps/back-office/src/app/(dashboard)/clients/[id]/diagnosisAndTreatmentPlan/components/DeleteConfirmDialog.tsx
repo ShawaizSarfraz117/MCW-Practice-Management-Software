@@ -51,9 +51,9 @@ export default function DeleteConfirmDialog({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
             className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             disabled={isDeleting}
+            onClick={onConfirm}
           >
             {isDeleting ? "Deleting..." : "Delete Treatment Plan"}
           </AlertDialogAction>

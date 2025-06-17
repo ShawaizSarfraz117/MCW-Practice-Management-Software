@@ -466,11 +466,11 @@ export default function TreatmentPlanView({
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        onConfirm={handleDelete}
-        treatmentPlanTitle={plan?.title || ""}
         isDeleting={isDeleting}
+        open={deleteDialogOpen}
+        treatmentPlanTitle={plan?.title || ""}
+        onConfirm={handleDelete}
+        onOpenChange={setDeleteDialogOpen}
       />
     </div>
   );

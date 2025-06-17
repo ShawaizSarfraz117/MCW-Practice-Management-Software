@@ -869,6 +869,7 @@ function TreatmentPlanTemplate({
                       return (
                         <SurveyPreview
                           content={contentString}
+                          initialData={initialDataToPass}
                           mode="edit"
                           modelRef={surveyModelRef}
                           showInstructions={true}
@@ -876,7 +877,6 @@ function TreatmentPlanTemplate({
                           type={selectedTemplate.type}
                           onComplete={handleSurveyComplete}
                           onValueChanged={handleSurveyValueChanged}
-                          initialData={initialDataToPass}
                         />
                       );
                     } catch (error) {

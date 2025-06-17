@@ -83,8 +83,8 @@ export default function TemplateSelectionPage() {
   return (
     <div className="px-4 py-8 w-full max-w-6xl mx-auto">
       <ClientInfoHeader
-        clientInfo={clientInfo}
         clientGroupId={clientGroupId}
+        clientInfo={clientInfo}
         showDocumentationHistory={true}
         onDocumentationHistoryClick={() => setSidebarOpen(true)}
       />
@@ -94,10 +94,10 @@ export default function TemplateSelectionPage() {
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
               className="flex items-center gap-2"
+              size="sm"
+              variant="ghost"
+              onClick={() => router.back()}
             >
               <ArrowLeft className="h-4 w-4" />
               Back
@@ -151,7 +151,7 @@ export default function TemplateSelectionPage() {
                             {template.name}
                           </span>
                           {template.is_default && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge className="text-xs" variant="secondary">
                               Default
                             </Badge>
                           )}
@@ -170,16 +170,16 @@ export default function TemplateSelectionPage() {
               {/* Action Buttons */}
               <div className="flex items-center justify-between pt-6 border-t border-gray-200">
                 <Button
+                  className="text-gray-600 hover:text-gray-900"
                   variant="ghost"
                   onClick={handleSkipTemplate}
-                  className="text-gray-600 hover:text-gray-900"
                 >
                   Continue without template
                 </Button>
                 <Button
-                  onClick={handleContinue}
-                  disabled={!selectedTemplate}
                   className="bg-green-700 hover:bg-green-800 disabled:bg-gray-300"
+                  disabled={!selectedTemplate}
+                  onClick={handleContinue}
                 >
                   Continue with selected template
                 </Button>
@@ -202,8 +202,8 @@ export default function TemplateSelectionPage() {
                   Manage Templates
                 </Button>
                 <Button
-                  onClick={handleSkipTemplate}
                   className="bg-green-700 hover:bg-green-800"
+                  onClick={handleSkipTemplate}
                 >
                   Continue without template
                 </Button>

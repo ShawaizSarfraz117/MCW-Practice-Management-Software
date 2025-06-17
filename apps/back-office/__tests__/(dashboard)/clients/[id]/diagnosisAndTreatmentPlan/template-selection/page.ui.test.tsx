@@ -167,9 +167,10 @@ describe("Template Selection Page", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Standard Treatment Plan")).toBeDefined();
-      expect(screen.getByText("Brief Treatment Plan")).toBeDefined();
-      expect(screen.getByText("Default")).toBeDefined();
     });
+
+    expect(screen.getByText("Brief Treatment Plan")).toBeDefined();
+    expect(screen.getByText("Default")).toBeDefined();
   });
 
   it("should handle template selection", async () => {
@@ -211,21 +212,18 @@ describe("Template Selection Page", () => {
       expect(templateElements.length).toBeGreaterThan(0);
     });
 
-    // Click the first template by getting the parent div and clicking it
+    // Click the first template - use text element directly
     const templates = screen.getAllByText("Standard Treatment Plan");
-    const firstTemplate = templates[0];
-    const templateContainer =
-      firstTemplate.parentElement?.parentElement?.parentElement;
-    if (templateContainer) {
-      fireEvent.click(templateContainer);
-    }
+    fireEvent.click(templates[0]);
 
-    // Wait for selection to be reflected
+    // Wait for visual changes that indicate selection
     await waitFor(() => {
-      const selectedTemplates = screen.getAllByText("Standard Treatment Plan");
-      const selectedParent =
-        selectedTemplates[0].parentElement?.parentElement?.parentElement;
-      expect(selectedParent?.className).toContain("bg-green-50");
+      // Look for other visual indicators of selection without accessing DOM nodes
+      const continueButton = screen.getByRole("button", {
+        name: /continue with selected template/i,
+      });
+      // If a template is selected, the continue button should be enabled
+      expect(continueButton).not.toBeDisabled();
     });
   });
 
@@ -267,16 +265,15 @@ describe("Template Selection Page", () => {
     const templateTexts = await screen.findAllByText("Standard Treatment Plan");
     expect(templateTexts.length).toBeGreaterThan(0);
 
-    // Click on the template container to select it
-    const firstTemplateText = templateTexts[0];
-    const templateContainer =
-      firstTemplateText.parentElement?.parentElement?.parentElement;
-    expect(templateContainer).toBeDefined();
-    fireEvent.click(templateContainer!);
+    // Click on the template text to select it
+    fireEvent.click(templateTexts[0]);
 
-    // Wait for the template to be selected
+    // Wait for the template to be selected by checking if continue button is enabled
     await waitFor(() => {
-      expect(templateContainer?.className).toContain("bg-green-50");
+      const continueBtn = screen.getByRole("button", {
+        name: /continue with selected template/i,
+      });
+      expect(continueBtn).not.toBeDisabled();
     });
 
     // Now click the continue button

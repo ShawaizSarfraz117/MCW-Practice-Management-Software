@@ -142,8 +142,8 @@ export default function NewDiagnosisAndTreatmentPlan() {
   return (
     <div className="px-4 py-8 w-full max-w-6xl mx-auto">
       <ClientInfoHeader
-        clientInfo={clientInfo}
         clientGroupId={clientGroupId}
+        clientInfo={clientInfo}
         showDocumentationHistory={true}
         onDocumentationHistoryClick={() => setSidebarOpen(true)}
       />
@@ -156,9 +156,9 @@ export default function NewDiagnosisAndTreatmentPlan() {
         renderSkipLink={
           <button
             className="text-[#2d8467] hover:underline"
+            disabled={isSaving}
             type="button"
             onClick={handleSkipToTreatmentPlan}
-            disabled={isSaving}
           >
             Skip to treatment plan
           </button>

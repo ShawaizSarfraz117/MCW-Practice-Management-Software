@@ -159,8 +159,8 @@ export default function MentalStatusExam() {
     return (
       <div className="px-4 w-full max-w-6xl mx-auto mt-4">
         <ClientInfoHeader
-          clientInfo={clientInfo}
           clientGroupId={clientGroupId}
+          clientInfo={clientInfo}
         />
         <div className="flex items-center justify-center p-8">
           <p className="text-gray-500">Loading mental status exam form...</p>
@@ -189,12 +189,12 @@ export default function MentalStatusExam() {
       <div className="border rounded-lg bg-white p-6">
         <SurveyPreview
           content={templateContent}
+          defaultAnswers={defaultAnswers}
           mode="edit"
           showInstructions={false}
           title="Mental Status Exam"
           type="mental_status_exam"
           onComplete={handleSaveMentalStatusExam}
-          defaultAnswers={defaultAnswers}
         />
       </div>
 
@@ -206,8 +206,8 @@ export default function MentalStatusExam() {
         <Button
           className="bg-[#2d8467] hover:bg-[#236c53] text-white"
           disabled={isSubmitting}
-          type="submit"
           form="sq-root-form"
+          type="submit"
         >
           {isSubmitting ? "Saving..." : "Save Mental Status Exam"}
         </Button>

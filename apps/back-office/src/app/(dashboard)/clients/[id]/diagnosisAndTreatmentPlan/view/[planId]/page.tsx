@@ -48,8 +48,8 @@ export default function DiagnosisTreatmentPlanViewPage() {
   return (
     <div className="px-4 py-8 w-full max-w-6xl mx-auto">
       <ClientInfoHeader
-        clientInfo={clientInfo}
         clientGroupId={clientGroupId}
+        clientInfo={clientInfo}
         showDocumentationHistory={true}
         onDocumentationHistoryClick={() => setSidebarOpen(true)}
       />
@@ -70,12 +70,12 @@ export default function DiagnosisTreatmentPlanViewPage() {
       />
 
       <SignAndLockModal
-        open={signModalOpen}
-        onOpenChange={setSignModalOpen}
-        name={name}
-        setName={setName}
         credentials={credentials}
+        name={name}
+        open={signModalOpen}
         setCredentials={setCredentials}
+        setName={setName}
+        onOpenChange={setSignModalOpen}
         onSign={() => {
           console.log("Signing with:", { name, credentials });
           // TODO: Implement signing logic
