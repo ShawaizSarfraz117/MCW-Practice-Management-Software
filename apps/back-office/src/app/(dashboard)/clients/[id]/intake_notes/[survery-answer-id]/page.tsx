@@ -1,15 +1,5 @@
 "use client";
 import { Alert, AlertDescription } from "@mcw/ui";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@mcw/ui";
 import { useState } from "react";
 import { useToast } from "@mcw/ui";
 import { GAD7Content, SurveyType } from "@/types/survey-answer";
@@ -29,6 +19,7 @@ import { AssessmentScore } from "./components/assessment-score";
 import { AssessmentQuestions } from "./components/assessment-questions";
 import { AssessmentSummary } from "./components/assessment-summary";
 import { PrintStyles } from "./components/print-styles";
+import { DeleteAssessmentDialog } from "./components/delete-assessment-dialog";
 import {
   useSurveyAnswer,
   useUpdateSurveyAnswer,
@@ -310,14 +301,6 @@ export default function AssessmentPage({
     }
   })();
 
-  // Log questions data for debugging (only in development)
-  if (process.env.NODE_ENV === "development") {
-    console.log("=== PAGE QUESTIONS DEBUG ===");
-    console.log("Survey type:", surveyType);
-    console.log("Questions count:", questions.length);
-    console.log("First 3 questions:", questions.slice(0, 3));
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6 print-content">
@@ -381,36 +364,15 @@ export default function AssessmentPage({
         />
 
         {/* Delete Confirmation Dialog */}
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Assessment</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this{" "}
-                <strong>{surveyAnswer?.SurveyTemplate.name}</strong> assessment
-                for <strong>{getClientDisplayName()}</strong>?
-                <br />
-                <br />
-                This action cannot be undone and will permanently remove:
-                <br />• All survey responses and scores
-                <br />• Assessment date: {getFormattedDate()}
-                <br />• Any associated notes or data
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleteMutation.isPending}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-                disabled={deleteMutation.isPending}
-                onClick={handleDelete}
-              >
-                {deleteMutation.isPending ? "Deleting..." : "Delete Assessment"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeleteAssessmentDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          assessmentName={surveyAnswer?.SurveyTemplate.name || ""}
+          clientName={getClientDisplayName()}
+          assessmentDate={getFormattedDate()}
+          isPending={deleteMutation.isPending}
+          onConfirm={handleDelete}
+        />
 
         {/* Scoring Guide Sheet */}
         {surveyType && (
