@@ -33,7 +33,7 @@ export const createClientPortalPermission = async (
 ) => {
   try {
     const response = await FETCH.post({
-      url: "/client/portal-permission",
+      url: "client/portal-permission",
       body: data,
     });
     return [response, null];
@@ -47,7 +47,7 @@ export const updateClientPortalPermission = async (
 ) => {
   try {
     const response = await FETCH.update({
-      url: "/client/portal-permission",
+      url: "client/portal-permission",
       body: data,
       method: "PUT",
     });
@@ -59,24 +59,11 @@ export const updateClientPortalPermission = async (
 
 export const deleteClientPortalPermission = async (clientId: string) => {
   try {
-    // Use native fetch for DELETE with query params since FETCH.remove doesn't support searchParams
-    const response = await fetch(
-      `/api/client/portal-permission?clientId=${clientId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
+    const response = await FETCH.remove({
+      url: `/client/portal-permission?clientId=${clientId}`,
+    });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw errorData;
-    }
-
-    const data = await response.json();
-    return [data, null];
+    return [response, null];
   } catch (error) {
     return [null, error];
   }
