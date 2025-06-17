@@ -4,13 +4,6 @@ import { Button } from "@mcw/ui";
 import { ProgressSteps } from "./ProgressSteps";
 import { Avatar, AvatarFallback } from "@mcw/ui";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@mcw/ui";
 import { SendingDialog } from "./SendingDialog";
 import { SuccessDialog } from "./SuccessDialog";
 import { useShareableTemplates } from "@/(dashboard)/settings/shareable-documents/hooks/useShareableTemplates";
@@ -18,17 +11,27 @@ import { useShareDocuments } from "./hooks/useShareDocuments";
 import { FileFrequency, FILE_FREQUENCY_LABELS } from "@mcw/types";
 import { useUploadedFiles } from "./hooks/useUploadedFiles";
 import { useSendEmail } from "./hooks/useSendEmail";
+import type { ShareClient } from "./ShareDocuments";
 
 interface ReviewAndSendProps {
   clientName: string;
   clientEmail: string;
+  clients?: ShareClient[];
   selectedDocuments: Record<
     string,
     {
       id: string;
       checked: boolean;
       frequency?: string;
+      disabled?: boolean;
     }
+  >;
+  selectedDocumentsByClient?: Record<
+    string,
+    Record<
+      string,
+      { id: string; checked: boolean; frequency?: string; disabled?: boolean }
+    >
   >;
   emailContent: string;
   onBack: () => void;
@@ -42,7 +45,9 @@ interface ReviewAndSendProps {
 export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
   clientName,
   clientEmail,
+  clients,
   selectedDocuments,
+  selectedDocumentsByClient,
   emailContent,
   onBack,
   onComplete,
@@ -59,18 +64,35 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
   const shareDocumentsMutation = useShareDocuments();
   const sendEmailMutation = useSendEmail();
 
-  const steps = [
-    { number: 1, label: clientName },
-    { number: 2, label: "Compose Email" },
-    { number: 3, label: "Review & Send", isActive: true },
-  ];
+  // Build steps dynamically based on clients
+  const steps = useMemo(() => {
+    const clientSteps =
+      clients && clients.length > 0
+        ? clients.map((client, index) => ({
+            number: index + 1,
+            label: client.name,
+          }))
+        : [{ number: 1, label: clientName }];
 
-  // Get the names of selected documents with frequency info
-  const selectedItems = useMemo(() => {
+    return [
+      ...clientSteps,
+      { number: clientSteps.length + 1, label: "Compose Email" },
+      {
+        number: clientSteps.length + 2,
+        label: "Review & Send",
+        isActive: true,
+      },
+    ];
+  }, [clients, clientName]);
+
+  // Get the names of selected documents per client
+  const getSelectedItemsForClient = (clientId: string) => {
     const items: { name: string; frequency?: string }[] = [];
+    const clientDocs =
+      selectedDocumentsByClient?.[clientId] || selectedDocuments;
 
-    Object.entries(selectedDocuments)
-      .filter(([_, doc]) => doc.checked)
+    Object.entries(clientDocs)
+      .filter(([_, doc]) => doc.checked && !doc.disabled) // Exclude disabled (already shared) documents
       .forEach(([id, doc]) => {
         // Check templates first
         const template = templates?.data?.find((t) => t.id === id);
@@ -93,7 +115,7 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
       });
 
     return items;
-  }, [selectedDocuments, templates, uploadedFilesData]);
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -105,54 +127,84 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
   };
 
   const handleSendNow = async () => {
-    if (!clientId || !clientGroupId) {
-      console.error("Missing clientId or clientGroupId");
+    if (!clientGroupId) {
+      console.error("Missing clientGroupId");
       return;
     }
 
     setIsSending(true);
 
     try {
-      // Separate template IDs and file IDs
-      const selectedTemplateIds: string[] = [];
-      const selectedFileIds: string[] = [];
+      // Handle multiple clients if provided
+      if (clients && clients.length > 0 && selectedDocumentsByClient) {
+        const clientsData = clients.map((client) => {
+          const clientDocs = selectedDocumentsByClient[client.id] || {};
+          const selectedTemplateIds: string[] = [];
+          const selectedFileIds: string[] = [];
+          const frequencies: Record<string, FileFrequency> = {};
 
-      // Get templates data to check which are files vs templates
-      const templatesData = templates?.data || [];
-      const templateIdSet = new Set(templatesData.map((t) => t.id));
+          const templatesData = templates?.data || [];
+          const templateIdSet = new Set(templatesData.map((t) => t.id));
 
-      Object.entries(selectedDocuments)
-        .filter(([_, doc]) => doc.checked)
-        .forEach(([id]) => {
-          if (templateIdSet.has(id)) {
-            selectedTemplateIds.push(id);
-          } else {
-            selectedFileIds.push(id);
-          }
-        });
+          Object.entries(clientDocs)
+            .filter(([_, doc]) => doc.checked && !doc.disabled) // Exclude disabled (already shared) documents
+            .forEach(([id, doc]) => {
+              if (templateIdSet.has(id)) {
+                selectedTemplateIds.push(id);
+              } else {
+                selectedFileIds.push(id);
+              }
+              if (doc.frequency) {
+                frequencies[id] = doc.frequency as FileFrequency;
+              }
+            });
 
-      // Build frequencies map
-      const frequencies: Record<string, FileFrequency> = {};
-      Object.entries(selectedDocuments)
-        .filter(([_, doc]) => doc.checked && doc.frequency)
-        .forEach(([id, doc]) => {
-          if (doc.frequency) {
-            frequencies[id] = doc.frequency as FileFrequency;
-          }
-        });
-
-      // Call the API to share documents
-      await shareDocumentsMutation.mutateAsync({
-        client_group_id: clientGroupId,
-        clients: [
-          {
-            client_id: clientId,
+          return {
+            client_id: client.id,
             survey_template_ids: selectedTemplateIds,
             file_ids: selectedFileIds,
             frequencies,
-          },
-        ],
-      });
+          };
+        });
+
+        await shareDocumentsMutation.mutateAsync({
+          client_group_id: clientGroupId,
+          clients: clientsData,
+        });
+      } else if (clientId) {
+        // Single client fallback
+        const selectedTemplateIds: string[] = [];
+        const selectedFileIds: string[] = [];
+        const frequencies: Record<string, FileFrequency> = {};
+
+        const templatesData = templates?.data || [];
+        const templateIdSet = new Set(templatesData.map((t) => t.id));
+
+        Object.entries(selectedDocuments)
+          .filter(([_, doc]) => doc.checked && !doc.disabled) // Exclude disabled (already shared) documents
+          .forEach(([id, doc]) => {
+            if (templateIdSet.has(id)) {
+              selectedTemplateIds.push(id);
+            } else {
+              selectedFileIds.push(id);
+            }
+            if (doc.frequency) {
+              frequencies[id] = doc.frequency as FileFrequency;
+            }
+          });
+
+        await shareDocumentsMutation.mutateAsync({
+          client_group_id: clientGroupId,
+          clients: [
+            {
+              client_id: clientId,
+              survey_template_ids: selectedTemplateIds,
+              file_ids: selectedFileIds,
+              frequencies,
+            },
+          ],
+        });
+      }
 
       // Send email to client
       const subject =
@@ -203,63 +255,100 @@ export const ReviewAndSend: React.FC<ReviewAndSendProps> = ({
             {clientName} will receive an email directing them to your Client
             Portal
           </span>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                className="text-emerald-600 hover:text-emerald-600 hover:bg-emerald-50"
-                variant="ghost"
-              >
-                View Message
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Email Preview</DialogTitle>
-              </DialogHeader>
-              <div className="mt-4 space-y-4">
-                <div className="prose prose-sm max-h-[60vh] overflow-y-auto">
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: emailContent.replace(/\n/g, "<br/>"),
-                    }}
-                  />
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button
+            className="text-emerald-600 hover:text-emerald-600 hover:bg-emerald-50"
+            variant="ghost"
+            onClick={onBack}
+          >
+            View Message
+          </Button>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8 bg-gray-100">
-              <AvatarFallback>{getInitials(clientName)}</AvatarFallback>
-            </Avatar>
-            <h3 className="text-lg">
-              Sharing {selectedItems.length} item
-              {selectedItems.length !== 1 ? "s" : ""} with {clientName}
-            </h3>
-          </div>
+        <div className="space-y-8">
+          {clients && clients.length > 0 ? (
+            clients.map((client) => {
+              const clientItems = getSelectedItemsForClient(client.id);
+              if (clientItems.length === 0) return null;
 
-          <div className="space-y-2">
-            {selectedItems.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between gap-2 text-gray-600"
-              >
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-emerald-600" />
-                  <span>{item.name}</span>
+              return (
+                <div key={client.id} className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8 bg-gray-100">
+                      <AvatarFallback>
+                        {getInitials(client.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <h3 className="text-lg">
+                      Sharing {clientItems.length} item
+                      {clientItems.length !== 1 ? "s" : ""} with {client.name}
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2">
+                    {clientItems.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between gap-2 text-gray-600"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-emerald-600" />
+                          <span>{item.name}</span>
+                        </div>
+                        {item.frequency && (
+                          <span className="text-sm text-gray-500">
+                            Frequency:{" "}
+                            {FILE_FREQUENCY_LABELS[
+                              item.frequency as FileFrequency
+                            ] || item.frequency}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                {item.frequency && (
-                  <span className="text-sm text-gray-500">
-                    Frequency:{" "}
-                    {FILE_FREQUENCY_LABELS[item.frequency as FileFrequency] ||
-                      item.frequency}
-                  </span>
+              );
+            })
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8 bg-gray-100">
+                  <AvatarFallback>{getInitials(clientName)}</AvatarFallback>
+                </Avatar>
+                <h3 className="text-lg">
+                  Sharing {getSelectedItemsForClient(clientId || "").length}{" "}
+                  item
+                  {getSelectedItemsForClient(clientId || "").length !== 1
+                    ? "s"
+                    : ""}{" "}
+                  with {clientName}
+                </h3>
+              </div>
+
+              <div className="space-y-2">
+                {getSelectedItemsForClient(clientId || "").map(
+                  (item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between gap-2 text-gray-600"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-emerald-600" />
+                        <span>{item.name}</span>
+                      </div>
+                      {item.frequency && (
+                        <span className="text-sm text-gray-500">
+                          Frequency:{" "}
+                          {FILE_FREQUENCY_LABELS[
+                            item.frequency as FileFrequency
+                          ] || item.frequency}
+                        </span>
+                      )}
+                    </div>
+                  ),
                 )}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-between">

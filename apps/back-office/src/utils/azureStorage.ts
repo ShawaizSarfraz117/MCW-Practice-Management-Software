@@ -130,3 +130,161 @@ export async function uploadToAzureStorage(
     throw new Error("Failed to upload file to Azure Blob Storage");
   }
 }
+
+/**
+ * Generates a download URL for a blob in Azure Storage
+ * @param blobUrl - The blob URL
+ * @returns Promise containing the SAS URL for downloading
+ */
+export async function generateDownloadUrl(blobUrl: string): Promise<string> {
+  if (!AZURE_STORAGE_CONNECTION_STRING) {
+    throw new Error(
+      "AZURE_STORAGE_CONNECTION_STRING environment variable is not configured",
+    );
+  }
+
+  try {
+    const blobServiceClient = BlobServiceClient.fromConnectionString(
+      AZURE_STORAGE_CONNECTION_STRING,
+    );
+
+    // Extract container and blob name from URL
+    const url = new URL(blobUrl);
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    const containerName = pathParts[0];
+    const blobName = pathParts.slice(1).join("/");
+
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+    const permissions = new BlobSASPermissions();
+    permissions.read = true;
+
+    const sasToken = await blockBlobClient.generateSasUrl({
+      permissions,
+      expiresOn: new Date(new Date().valueOf() + 60 * 60 * 1000), // 1 hour from now
+    });
+
+    return sasToken;
+  } catch (error) {
+    console.error("Error generating download URL:", error);
+    throw new Error("Failed to generate download URL");
+  }
+}
+
+/**
+ * Deletes a file from Azure Blob Storage
+ * @param blobUrl - The blob URL to delete
+ * @returns Promise<boolean> indicating success
+ */
+export async function deleteFromAzureStorage(
+  blobUrl: string,
+): Promise<boolean> {
+  if (!AZURE_STORAGE_CONNECTION_STRING) {
+    throw new Error(
+      "AZURE_STORAGE_CONNECTION_STRING environment variable is not configured",
+    );
+  }
+
+  try {
+    const blobServiceClient = BlobServiceClient.fromConnectionString(
+      AZURE_STORAGE_CONNECTION_STRING,
+    );
+
+    // Extract container and blob name from URL
+    const url = new URL(blobUrl);
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    const containerName = pathParts[0];
+    const blobName = pathParts.slice(1).join("/");
+
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+    const deleteResponse = await blockBlobClient.deleteIfExists();
+    return deleteResponse.succeeded;
+  } catch (error) {
+    console.error("Error deleting blob:", error);
+    throw new Error("Failed to delete file from Azure Blob Storage");
+  }
+}
+
+/**
+ * Copies a blob within Azure Storage
+ * @param sourceBlobUrl - The source blob URL
+ * @param destinationPath - The destination path within the same container
+ * @returns Promise containing the new blob URL
+ */
+export async function copyBlobInAzureStorage(
+  sourceBlobUrl: string,
+  destinationPath: string,
+): Promise<string> {
+  if (!AZURE_STORAGE_CONNECTION_STRING) {
+    throw new Error(
+      "AZURE_STORAGE_CONNECTION_STRING environment variable is not configured",
+    );
+  }
+
+  try {
+    const blobServiceClient = BlobServiceClient.fromConnectionString(
+      AZURE_STORAGE_CONNECTION_STRING,
+    );
+
+    // Extract container and blob name from source URL
+    const url = new URL(sourceBlobUrl);
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    const containerName = pathParts[0];
+
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const destinationBlobClient =
+      containerClient.getBlockBlobClient(destinationPath);
+
+    // Create an AbortController with a timeout
+    const abortController = new AbortController();
+    const timeoutMs = 5 * 60 * 1000; // 5 minutes timeout
+    const timeout = setTimeout(() => abortController.abort(), timeoutMs);
+
+    try {
+      // Start the copy operation with abort signal
+      const copyPoller = await destinationBlobClient.beginCopyFromURL(
+        sourceBlobUrl,
+        {
+          abortSignal: abortController.signal,
+        },
+      );
+
+      // Poll with a maximum duration
+      const maxPollDuration = 5 * 60 * 1000; // 5 minutes max polling
+      const startTime = Date.now();
+
+      while (!copyPoller.isDone()) {
+        // Check if we've exceeded max polling duration
+        if (Date.now() - startTime > maxPollDuration) {
+          abortController.abort();
+          throw new Error("Copy operation timed out after 5 minutes");
+        }
+
+        // Poll with a reasonable interval
+        await copyPoller.poll();
+
+        // Wait a bit before next poll to avoid overwhelming the API
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      // Get the final result
+      const result = copyPoller.getResult();
+      if (!result || result.copyStatus !== "success") {
+        throw new Error(
+          `Copy operation failed with status: ${result?.copyStatus}`,
+        );
+      }
+    } finally {
+      // Clean up the timeout
+      clearTimeout(timeout);
+    }
+
+    return destinationBlobClient.url;
+  } catch (error) {
+    console.error("Error copying blob:", error);
+    throw new Error("Failed to copy file in Azure Blob Storage");
+  }
+}
