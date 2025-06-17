@@ -32,7 +32,7 @@ export function calculateGAD7Score(
   };
 
   let totalScore = 0;
-  // GAD-7 has 7 main questions plus question 8 (difficulty/impairment)
+  // GAD-7 has 7 main questions (Q8 is difficulty/impairment and not included in total score)
   const questions = [
     "gad7_q1",
     "gad7_q2",
@@ -41,7 +41,6 @@ export function calculateGAD7Score(
     "gad7_q5",
     "gad7_q6",
     "gad7_q7",
-    "gad7_q8",
   ];
 
   questions.forEach((question) => {

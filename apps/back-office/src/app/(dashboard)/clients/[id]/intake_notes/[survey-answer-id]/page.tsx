@@ -11,6 +11,7 @@ import {
   mapARM5ContentToQuestions,
   detectSurveyType,
   getSurveyMetadata,
+  safeJSONParse,
 } from "@/utils/survey-utils";
 import { ScoringGuideSheet } from "./components/scoring-guide-sheet";
 import { AssessmentHeader } from "./components/assessment-header";
@@ -136,37 +137,17 @@ export default function AssessmentPage({
     try {
       const pdfUrl = `/api/survey-answers/${surveyAnswerId}/pdf`;
 
-      // Create a hidden iframe
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      document.body.appendChild(iframe);
-
-      // Set the iframe source to the PDF URL
-      iframe.src = pdfUrl;
-
-      // Wait for iframe to load
-      iframe.onload = () => {
-        setTimeout(() => {
-          // Trigger print dialog from iframe
-          iframe.contentWindow?.print();
-
-          // Clean up iframe after a delay
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-          }, 1000);
-        }, 500);
-      };
-
-      // Handle errors
-      iframe.onerror = () => {
-        document.body.removeChild(iframe);
-        throw new Error("Failed to load PDF content");
-      };
+      // Create a temporary anchor element for download
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.download = `${getClientDisplayName()}_${surveyAnswer?.SurveyTemplate?.name || "assessment"}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
       toast({
-        title: "PDF Ready",
-        description:
-          "Your assessment PDF is ready. The save dialog should open shortly.",
+        title: "Download Started",
+        description: "Your assessment PDF download has started.",
       });
     } catch (error) {
       console.error("Failed to download PDF:", error);
@@ -224,22 +205,15 @@ export default function AssessmentPage({
   }
 
   // Parse score and content data consistently with PDF endpoint
-  const scoreData =
-    typeof surveyAnswer.score === "string"
-      ? JSON.parse(surveyAnswer.score)
-      : surveyAnswer.score;
-
-  const contentData =
-    typeof surveyAnswer.content === "string"
-      ? JSON.parse(surveyAnswer.content)
-      : surveyAnswer.content;
+  const scoreData = safeJSONParse(surveyAnswer?.score);
+  const contentData = safeJSONParse(surveyAnswer?.content);
 
   const totalScore = scoreData?.totalScore || 0;
   const severity = scoreData?.severity || "Unknown";
   const interpretation = scoreData?.interpretation || "";
 
   // Detect survey type
-  const surveyType = detectSurveyType(surveyAnswer.SurveyTemplate.name);
+  const surveyType = detectSurveyType(surveyAnswer?.SurveyTemplate?.name || "");
   const surveyMetadata =
     surveyType !== "UNKNOWN" ? getSurveyMetadata(surveyType) : null;
 
@@ -273,10 +247,10 @@ export default function AssessmentPage({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                {surveyAnswer.SurveyTemplate.name}
+                {surveyAnswer?.SurveyTemplate?.name || "Assessment"}
               </h2>
               <p className="text-sm text-gray-600 mt-1">{getFormattedDate()}</p>
-              {surveyAnswer.status && (
+              {surveyAnswer?.status && (
                 <p className="text-sm text-gray-500 mt-1">
                   Status:{" "}
                   <span className="capitalize">
@@ -286,8 +260,8 @@ export default function AssessmentPage({
               )}
             </div>
             <AssessmentHeader
-              isSignable={surveyAnswer.status !== "COMPLETED"}
-              isSigned={surveyAnswer.status === "COMPLETED"}
+              isSignable={surveyAnswer?.status !== "COMPLETED"}
+              isSigned={surveyAnswer?.status === "COMPLETED"}
               isPending={updateMutation.isPending}
               onSignMeasure={handleSignMeasure}
               onPrint={handlePrint}
@@ -313,8 +287,8 @@ export default function AssessmentPage({
         {/* Summary Section */}
         <AssessmentSummary
           surveyType={surveyType}
-          status={surveyAnswer.status}
-          isSignable={surveyAnswer.status !== "COMPLETED"}
+          status={surveyAnswer?.status}
+          isSignable={surveyAnswer?.status !== "COMPLETED"}
           isPending={updateMutation.isPending}
           onSignMeasure={handleSignMeasure}
         />

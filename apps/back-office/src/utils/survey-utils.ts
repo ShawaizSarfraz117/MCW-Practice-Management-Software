@@ -1,5 +1,18 @@
 import { GAD7Content } from "@/types/survey-answer";
 
+// Utility function to safely parse JSON fields from survey answers
+export function safeJSONParse<T>(value: unknown): T | null {
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as T;
+    } catch (error) {
+      console.error("Failed to parse JSON:", error);
+      return null;
+    }
+  }
+  return value as T | null;
+}
+
 // Survey types
 export interface PHQ9Content {
   phq9_q1?: string;

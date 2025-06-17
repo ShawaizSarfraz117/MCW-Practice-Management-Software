@@ -12,6 +12,7 @@ import {
   detectSurveyType,
   getSurveyMetadata,
   getDifficultyLabel,
+  safeJSONParse,
 } from "@/utils/survey-utils";
 import { GAD7Content } from "@/types/survey-answer";
 
@@ -50,21 +51,13 @@ export async function GET(
       );
     }
 
-    // Parse score if it's a string
-    const scoreData =
-      typeof surveyAnswer.score === "string"
-        ? JSON.parse(surveyAnswer.score)
-        : surveyAnswer.score;
+    // Parse score and content using safe parsing utility
+    const scoreData = safeJSONParse(surveyAnswer.score);
+    const contentData = safeJSONParse(surveyAnswer.content);
 
     const totalScore = scoreData?.totalScore || 0;
     const severity = scoreData?.severity || "Unknown";
     const interpretation = scoreData?.interpretation || "";
-
-    // Parse content if it's a string (similar to score parsing)
-    const contentData =
-      typeof surveyAnswer.content === "string"
-        ? JSON.parse(surveyAnswer.content)
-        : surveyAnswer.content;
 
     // Detect survey type and get metadata
     const surveyType = detectSurveyType(surveyAnswer.SurveyTemplate.name);
