@@ -63,3 +63,11 @@ export interface GAD7Content {
   gad7_q7?: string;
   gad7_q8?: string;
 }
+
+export type SurveyType = "GAD7" | "PHQ9" | "ARM5";
+
+export interface SurveyAnswerWithRelations extends SurveyAnswerResponse {
+  SurveyTemplate: SurveyTemplate;
+  Client: Client;
+  Appointment?: Appointment | null;
+}

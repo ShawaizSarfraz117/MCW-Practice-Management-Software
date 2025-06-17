@@ -1,18 +1,5 @@
 "use client";
-
-import { Button } from "@mcw/ui";
-import { Card, CardContent } from "@mcw/ui";
-import { Plus, Printer, Download, Trash2, HelpCircle } from "lucide-react";
-import {
-  useSurveyAnswer,
-  useUpdateSurveyAnswer,
-  useDeleteSurveyAnswer,
-} from "./hooks/useSurveyAnswer";
-import { useRouter } from "next/navigation";
-import { format } from "date-fns";
-import { Skeleton } from "@mcw/ui";
 import { Alert, AlertDescription } from "@mcw/ui";
-import { AlertCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +12,7 @@ import {
 } from "@mcw/ui";
 import { useState } from "react";
 import { useToast } from "@mcw/ui";
-import { GAD7Content } from "@/types/survey-answer";
+import { GAD7Content, SurveyType } from "@/types/survey-answer";
 import {
   PHQ9Content,
   ARM5Content,
@@ -34,8 +21,22 @@ import {
   mapARM5ContentToQuestions,
   detectSurveyType,
   getSurveyMetadata,
-  getDifficultyLabel,
 } from "@/utils/survey-utils";
+import { ScoringGuideSheet } from "./components/scoring-guide-sheet";
+import { AssessmentHeader } from "./components/assessment-header";
+import { AssessmentInfo } from "./components/assessment-info";
+import { AssessmentScore } from "./components/assessment-score";
+import { AssessmentQuestions } from "./components/assessment-questions";
+import { AssessmentSummary } from "./components/assessment-summary";
+import { PrintStyles } from "./components/print-styles";
+import {
+  useSurveyAnswer,
+  useUpdateSurveyAnswer,
+  useDeleteSurveyAnswer,
+} from "./hooks/useSurveyAnswer";
+import { useRouter } from "next/navigation";
+import { format } from "date-fns";
+import { Skeleton } from "@mcw/ui";
 
 export default function AssessmentPage({
   params,
@@ -45,6 +46,7 @@ export default function AssessmentPage({
   const router = useRouter();
   const surveyAnswerId = params["survery-answer-id"];
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showScoringGuide, setShowScoringGuide] = useState(false);
   const { toast } = useToast();
 
   const {
@@ -56,79 +58,68 @@ export default function AssessmentPage({
   const deleteMutation = useDeleteSurveyAnswer();
 
   const handleSignMeasure = async () => {
-    await updateMutation.mutateAsync({ status: "COMPLETED" });
+    try {
+      await updateMutation.mutateAsync({
+        status: "COMPLETED",
+      });
+      toast({
+        title: "Measure signed",
+        description: "The assessment has been marked as completed.",
+      });
+    } catch (_error) {
+      toast({
+        title: "Error signing measure",
+        description: "Failed to sign the measure. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async () => {
     try {
       await deleteMutation.mutateAsync(surveyAnswerId);
+      toast({
+        title: "Assessment deleted",
+        description: "The assessment has been successfully deleted.",
+      });
       router.push(`/clients/${params.id}`);
-    } catch (error) {
-      // Error is handled by the mutation's onError callback
-      console.error("Failed to delete survey answer:", error);
-    } finally {
-      setShowDeleteDialog(false);
+    } catch (_error) {
+      toast({
+        title: "Error deleting assessment",
+        description: "Failed to delete the assessment. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handlePrint = () => {
-    // Log current page data for comparison with download
-    console.log("=== PRINT DEBUG INFO ===");
-    console.log("Current page survey data for print:", {
-      id: surveyAnswer?.id,
-      templateName: surveyAnswer?.SurveyTemplate.name,
-      totalScore: surveyAnswer?.score?.totalScore,
-      severity: surveyAnswer?.score?.severity,
-      interpretation: surveyAnswer?.score?.interpretation,
-      contentKeys: surveyAnswer?.content
-        ? Object.keys(surveyAnswer.content)
-        : [],
-      clientName: getClientDisplayName(),
-      date: getFormattedDate(),
-    });
-
-    // Add a small delay to ensure the DOM is ready
-    setTimeout(() => {
-      window.print();
-    }, 100);
+    window.print();
   };
 
   const handleDownload = async () => {
     try {
-      // Log current page data for comparison
-      console.log("=== DOWNLOAD DEBUG INFO ===");
-      console.log("Current page survey data:", {
-        id: surveyAnswer?.id,
-        templateName: surveyAnswer?.SurveyTemplate.name,
-        totalScore: surveyAnswer?.score?.totalScore,
-        severity: surveyAnswer?.score?.severity,
-        interpretation: surveyAnswer?.score?.interpretation,
-        contentKeys: surveyAnswer?.content
-          ? Object.keys(surveyAnswer.content)
-          : [],
-        clientName: getClientDisplayName(),
-        date: getFormattedDate(),
-      });
-
-      toast({
-        title: "Generating PDF",
-        description: "Please wait while we prepare your assessment PDF...",
-      });
-
       const pdfUrl = `/api/survey-answers/${surveyAnswerId}/pdf`;
-      console.log("=== PDF REQUEST DEBUG ===");
-      console.log("Making request to:", pdfUrl);
+
+      // Log request for debugging
+      console.log("=== PDF DOWNLOAD REQUEST DEBUG ===");
+      console.log("Full URL:", window.location.origin + pdfUrl);
       console.log("Survey Answer ID:", surveyAnswerId);
+      console.log("Survey Answer exists:", !!surveyAnswer);
+      console.log("Survey Answer Data:", {
+        id: surveyAnswer?.id,
+        templateName: surveyAnswer?.SurveyTemplate?.name,
+        score: surveyAnswer?.score,
+        content: surveyAnswer?.content ? "Present" : "Missing",
+        status: surveyAnswer?.status,
+      });
 
       const response = await fetch(pdfUrl, {
         method: "GET",
         headers: {
           Accept: "text/html",
         },
+        credentials: "include", // Include cookies for authentication
       });
-
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -139,13 +130,16 @@ export default function AssessmentPage({
           // If response is not JSON, try to get text
           try {
             const errorText = await response.text();
-            errorMessage = errorText || errorMessage;
+            if (errorText) {
+              errorMessage = errorText;
+            }
           } catch (_textError) {
-            // Use the HTTP status as fallback
+            // Use default error message
           }
         }
 
-        console.error("PDF generation failed:", {
+        // Log error details
+        console.error("=== PDF DOWNLOAD ERROR ===", {
           status: response.status,
           statusText: response.statusText,
           url: response.url,
@@ -251,52 +245,26 @@ export default function AssessmentPage({
 
   const getFormattedDate = () => {
     if (!surveyAnswer?.created_at) return "";
-    try {
-      return format(
-        new Date(surveyAnswer.created_at),
-        "MM/dd/yyyy 'at' h:mm a",
-      );
-    } catch {
-      return "";
-    }
+    return format(new Date(surveyAnswer.created_at), "MM/dd/yyyy");
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-6xl mx-auto space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <Skeleton className="h-8 w-64 mb-4" />
-              <Skeleton className="h-4 w-32" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <Skeleton className="h-64 w-full" />
-            </CardContent>
-          </Card>
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+          <Skeleton className="h-96 w-full" />
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-6xl mx-auto">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Error loading survey answer: {(error as Error).message}
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
-
-  if (!surveyAnswer) {
+  if (error || !surveyAnswer) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-6xl mx-auto">
@@ -353,38 +321,15 @@ export default function AssessmentPage({
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6 print-content">
-        {/* Patient Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                {getClientDisplayName()}
-              </h1>
-              <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                {surveyAnswer.Client.date_of_birth && (
-                  <span>
-                    DOB:{" "}
-                    {format(
-                      new Date(surveyAnswer.Client.date_of_birth),
-                      "MM/dd/yyyy",
-                    )}
-                  </span>
-                )}
-                <span
-                  className="text-blue-600 hover:underline cursor-pointer"
-                  onClick={() => router.push(`/clients/${params.id}`)}
-                >
-                  View Client
-                </span>
-              </div>
-            </div>
-            <Button size="sm" variant="ghost">
-              <HelpCircle className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        {/* Client Info */}
+        <AssessmentInfo
+          surveyAnswer={surveyAnswer}
+          clientId={params.id}
+          getClientDisplayName={getClientDisplayName}
+          getFormattedDate={getFormattedDate}
+        />
 
-        {/* Assessment Header */}
+        {/* Assessment Header with Action Buttons */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -401,272 +346,39 @@ export default function AssessmentPage({
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Note
-              </Button>
-              <Button
-                size="sm"
-                title="Print this assessment"
-                variant="ghost"
-                onClick={handlePrint}
-              >
-                <Printer className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                title="Download as PDF"
-                variant="ghost"
-                onClick={handleDownload}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-              <Button
-                disabled={deleteMutation.isPending}
-                size="sm"
-                title="Delete this assessment"
-                variant="ghost"
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <AssessmentHeader
+              isSignable={surveyAnswer.status !== "COMPLETED"}
+              isSigned={surveyAnswer.status === "COMPLETED"}
+              isPending={updateMutation.isPending}
+              onSignMeasure={handleSignMeasure}
+              onPrint={handlePrint}
+              onDownloadPDF={handleDownload}
+              onDelete={() => setShowDeleteDialog(true)}
+            />
           </div>
         </div>
 
         {/* Score and Interpretation */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Score Visualization */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-6">Score</h3>
-              <div className="flex items-center justify-center">
-                <div className="relative w-48 h-48">
-                  <svg
-                    className="w-full h-full transform -rotate-90"
-                    viewBox="0 0 100 100"
-                  >
-                    <circle
-                      cx="50"
-                      cy="50"
-                      fill="none"
-                      r="40"
-                      stroke="#e5e7eb"
-                      strokeWidth="8"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      fill="none"
-                      r="40"
-                      stroke="#f59e0b"
-                      strokeDasharray={`${(totalScore / (surveyMetadata?.maxScore || 21)) * 251.2} 251.2`}
-                      strokeLinecap="round"
-                      strokeWidth="8"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-4xl font-bold text-gray-900">
-                      {totalScore}
-                    </span>
-                    <span className="text-sm text-gray-600 mt-1">
-                      {severity}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-4">
-                <span>0</span>
-                <span>{surveyMetadata?.maxScore || 21}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Scoring Interpretation */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-lg font-medium">Scoring interpretation</h3>
-                <HelpCircle className="h-4 w-4 text-gray-400" />
-              </div>
-              <div className="space-y-3">
-                <p className="text-sm text-gray-700">{interpretation}</p>
-                {severity === "Moderate" && (
-                  <p className="text-sm text-gray-700">
-                    The client's symptoms make it{" "}
-                    <strong>somewhat difficult</strong> to function.
-                  </p>
-                )}
-                {severity === "Severe" && (
-                  <p className="text-sm text-gray-700">
-                    The client's symptoms make it{" "}
-                    <strong>very difficult</strong> to function.
-                  </p>
-                )}
-                <Button
-                  className="p-0 h-auto text-blue-600 text-sm"
-                  variant="link"
-                >
-                  View scoring guide
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <AssessmentScore
+          totalScore={totalScore}
+          severity={severity}
+          interpretation={interpretation}
+          maxScore={surveyMetadata?.maxScore || 21}
+          surveyType={surveyType}
+          onViewScoringGuide={() => setShowScoringGuide(true)}
+        />
 
         {/* Assessment Questions Table */}
-        <Card>
-          <CardContent className="p-6">
-            {surveyMetadata && (
-              <div className="mb-4">
-                <p className="text-sm text-gray-700">
-                  {surveyMetadata.timeFrame},{" "}
-                  {surveyType === "ARM5"
-                    ? "please indicate how strongly you agree or disagree with each statement."
-                    : "how often have you been bothered by the following problems?"}
-                </p>
-              </div>
-            )}
+        <AssessmentQuestions questions={questions} surveyType={surveyType} />
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">
-                      Question
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">
-                      Response
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">
-                      Score
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">
-                      Since last
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">
-                      Since baseline
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {questions.map((item) => (
-                    <tr key={item.id} className="border-b border-gray-100">
-                      <td className="py-4 px-4">
-                        <div className="flex items-start gap-3">
-                          <span className="text-sm font-medium text-gray-900 min-w-[20px]">
-                            {item.id}.
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            {item.question}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-sm text-gray-700">
-                        {item.response}
-                      </td>
-                      <td className="py-4 px-4 text-sm text-gray-700">
-                        {item.score}
-                      </td>
-                      <td className="py-4 px-4 text-sm">
-                        <span
-                          className={
-                            item.sinceLast.includes("↓")
-                              ? "text-blue-600"
-                              : item.sinceLast.includes("↑")
-                                ? "text-red-600"
-                                : "text-gray-700"
-                          }
-                        >
-                          {item.sinceLast}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-sm">
-                        <span
-                          className={
-                            item.sinceBaseline.includes("↓")
-                              ? "text-blue-600"
-                              : item.sinceBaseline.includes("↑")
-                                ? "text-red-600"
-                                : "text-gray-700"
-                          }
-                        >
-                          {item.sinceBaseline}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Additional Question for GAD7 and PHQ9 */}
-            {surveyMetadata?.difficultyQuestion &&
-              (surveyType === "GAD7" || surveyType === "PHQ9") && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
-                    <div className="lg:col-span-2">
-                      <p className="text-sm text-gray-700">
-                        {surveyMetadata.difficultyQuestion}
-                      </p>
-                    </div>
-                    <div className="text-sm text-gray-700">
-                      {(() => {
-                        let difficultyResponse = "";
-                        if (surveyType === "GAD7" && contentData) {
-                          difficultyResponse =
-                            (contentData as GAD7Content).gad7_q8 || "";
-                        } else if (surveyType === "PHQ9" && contentData) {
-                          difficultyResponse =
-                            (contentData as PHQ9Content).phq9_q10 || "";
-                        }
-                        return difficultyResponse
-                          ? getDifficultyLabel(difficultyResponse)
-                          : "Not answered";
-                      })()}
-                    </div>
-                    <div />
-                    <div />
-                  </div>
-                </div>
-              )}
-          </CardContent>
-        </Card>
-
-        {/* Sources */}
-        {surveyMetadata && (
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-4">Sources</h3>
-              <div className="space-y-4">
-                {surveyMetadata.sources.map((source, index) => (
-                  <div key={index} className="text-sm text-gray-700">
-                    <strong>{index + 1}.</strong> {source.text}
-                  </div>
-                ))}
-                <div className="text-sm text-gray-600 mt-4 p-4 bg-gray-50 rounded-lg">
-                  This measure and its scoring information have been reproduced
-                  from source material and supporting literature. This tool
-                  should not be used as a substitute for clinical judgment.
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Sign Button */}
-        {surveyAnswer.status !== "COMPLETED" && (
-          <div className="flex justify-start">
-            <Button
-              disabled={updateMutation.isPending}
-              variant="outline"
-              onClick={handleSignMeasure}
-            >
-              {updateMutation.isPending ? "Signing..." : "Sign measure"}
-            </Button>
-          </div>
-        )}
+        {/* Summary Section */}
+        <AssessmentSummary
+          surveyType={surveyType}
+          status={surveyAnswer.status}
+          isSignable={surveyAnswer.status !== "COMPLETED"}
+          isPending={updateMutation.isPending}
+          onSignMeasure={handleSignMeasure}
+        />
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -699,127 +411,19 @@ export default function AssessmentPage({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Scoring Guide Sheet */}
+        {surveyType && (
+          <ScoringGuideSheet
+            open={showScoringGuide}
+            onOpenChange={setShowScoringGuide}
+            surveyType={surveyType as SurveyType}
+          />
+        )}
       </div>
 
       {/* Print Styles */}
-      <style global jsx>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 0.75in;
-          }
-
-          body * {
-            visibility: hidden;
-          }
-
-          .print-content,
-          .print-content * {
-            visibility: visible;
-          }
-
-          .print-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            background: white;
-          }
-
-          /* Hide buttons and interactive elements when printing */
-          button,
-          .no-print {
-            display: none !important;
-          }
-
-          /* Fix grid layouts for print */
-          .grid {
-            display: block !important;
-          }
-
-          .lg\\:grid-cols-2 > * {
-            width: 100% !important;
-            margin-bottom: 20px !important;
-            break-inside: avoid;
-          }
-
-          .lg\\:grid-cols-5 > * {
-            width: 100% !important;
-            margin-bottom: 10px !important;
-          }
-
-          /* Ensure good contrast for printing */
-          .bg-gray-50 {
-            background-color: white !important;
-          }
-
-          .bg-gray-100 {
-            background-color: #f8f9fa !important;
-          }
-
-          /* Fix score visualization for print */
-          .relative.w-48.h-48 {
-            width: 120px !important;
-            height: 120px !important;
-            margin: 0 auto !important;
-          }
-
-          /* Improve table printing */
-          table {
-            break-inside: auto;
-          }
-
-          tr {
-            break-inside: avoid;
-            break-after: auto;
-          }
-
-          thead {
-            display: table-header-group;
-          }
-
-          /* Page breaks */
-          .print-page-break {
-            page-break-before: always;
-          }
-
-          /* Remove shadows and borders for cleaner print */
-          .shadow-sm,
-          .shadow {
-            box-shadow: none !important;
-            border: 1px solid #e5e7eb !important;
-          }
-
-          /* Ensure text is readable */
-          .text-gray-600,
-          .text-gray-700 {
-            color: #374151 !important;
-          }
-
-          /* Reduce padding for print */
-          .p-6 {
-            padding: 1rem !important;
-          }
-
-          .py-4 {
-            padding-top: 0.5rem !important;
-            padding-bottom: 0.5rem !important;
-          }
-
-          /* Fix flex layouts */
-          .flex {
-            display: block !important;
-          }
-
-          .justify-between {
-            text-align: left !important;
-          }
-
-          .items-center {
-            align-items: flex-start !important;
-          }
-        }
-      `}</style>
+      <PrintStyles />
     </div>
   );
 }
