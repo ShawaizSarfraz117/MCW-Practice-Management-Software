@@ -58,15 +58,17 @@ export function BillingSection({ appointment }: BillingSectionProps) {
         </div>
       </div>
 
-      <Link
-        href={billingUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-600 hover:underline text-sm mt-3 flex items-center"
-      >
-        <ExternalLink className="h-3 w-3 mr-1" />
-        Open billing
-      </Link>
+      {appointment?.ClientGroup?.id && (
+        <Link
+          href={billingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline text-sm mt-3 flex items-center"
+        >
+          <ExternalLink className="h-3 w-3 mr-1" />
+          Open billing
+        </Link>
+      )}
     </div>
   );
 }
