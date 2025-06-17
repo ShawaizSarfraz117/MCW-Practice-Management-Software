@@ -2230,19 +2230,16 @@ export function CalendarView({
 
       {showIntakeForm && intakeClientData && (
         <IntakeForm
-          clientEmail={intakeClientData.clientEmail}
           clientGroupId={intakeClientData.clientGroupId}
-          clientId={intakeClientData.clientId}
-          clientName={intakeClientData.clientName}
+          onClose={() => {
+            setShowIntakeForm(false);
+            setIntakeClientData(null);
+          }}
           appointmentDate={intakeClientData.appointmentDate}
           appointmentTime={intakeClientData.appointmentTime}
           clinicianName={intakeClientData.clinicianName}
           locationName={intakeClientData.locationName}
           appointmentId={intakeClientData.appointmentId}
-          onClose={() => {
-            setShowIntakeForm(false);
-            setIntakeClientData(null);
-          }}
         />
       )}
     </div>

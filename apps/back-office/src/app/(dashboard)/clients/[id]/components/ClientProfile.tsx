@@ -4,8 +4,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus } from "lucide-react";
 import AdministrativeNoteDrawer from "./AdministrativeNoteDrawer";
+import ShareDocumentsFlow from "./ShareDocumentsFlow";
 import AdministrativeNoteCard from "./AdministrativeNoteCard";
-import ShareModal from "./ShareModal";
 import { StatementModal } from "./StatementModal";
 
 import { Button } from "@mcw/ui";
@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import OverviewTab from "./tabs/OverviewTab";
 import BillingTab from "./tabs/BillingTab";
 import MeasuresTab from "./tabs/MeasuresTab";
-import FilesTab, { FilesTabRef } from "./tabs/FilesTab";
+import FilesTabGroup, { FilesTabRef } from "./tabs/FilesTabGroup";
 import { AddPaymentModal } from "./AddPaymentModal";
 import {
   fetchInvoices,
@@ -257,11 +257,7 @@ export default function ClientProfile({
     });
   };
 
-  const handleShare = (
-    selectedUsers: { id: string; name: string; initials: string }[],
-  ) => {
-    console.log("Sharing with users:", selectedUsers);
-  };
+  // handleShare removed - not currently used
 
   const handleUpload = () => {
     setActiveTab("files");
@@ -350,10 +346,19 @@ export default function ClientProfile({
           onOpenChange={setAddPaymentModalOpen}
         />
       )}
-      <ShareModal
+      <ShareDocumentsFlow
+        clientGroupId={id as string}
+        clients={
+          clientGroup?.ClientGroupMembership?.map((m) => ({
+            id: m.Client?.id || "",
+            name: `${m.Client?.legal_first_name || ""} ${m.Client?.legal_last_name || ""}`.trim(),
+            email: m.Client?.ClientContact?.find(
+              (c) => c.contact_type === "EMAIL" && c.is_primary,
+            )?.value,
+          })) || []
+        }
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
-        onShare={handleShare}
       />
       <StatementModal clientName={clientName} />
       {/* Client Header */}
@@ -488,11 +493,18 @@ export default function ClientProfile({
             </TabsContent>
 
             <TabsContent value="files">
-              <FilesTab
+              <FilesTabGroup
                 ref={filesTabRef}
-                clientName={clientName}
-                clientEmail={clientEmail || ""}
+                clientGroupId={id as string}
+                clients={
+                  clientGroup?.ClientGroupMembership?.map((m) => ({
+                    id: m.Client?.id || "",
+                    name: `${m.Client?.legal_first_name || ""} ${m.Client?.legal_last_name || ""}`.trim(),
+                  })) || []
+                }
                 practiceName={practiceInfo?.practice_name || ""}
+                clientEmail={clientEmail || ""}
+                onShareFile={() => setShareModalOpen(true)}
               />
             </TabsContent>
           </Tabs>
