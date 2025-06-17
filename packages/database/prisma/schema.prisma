@@ -139,12 +139,6 @@ model Client {
   is_active                Boolean                    @default(true, map: "DF_Client_IsActive")
   preferred_name           String?                    @db.VarChar(100)
   date_of_birth            DateTime?                  @db.Date
-  /// Portal permission: Client can request appointments online.
-  allow_online_appointment Boolean                    @default(false, map: "DF_Client_allow_online_appointment")
-  /// Portal permission: Client can view their invoices, statements, and superbills.
-  access_billing_documents Boolean                    @default(false, map: "DF_Client_access_billing_documents")
-  /// Portal permission: Client can send and receive secure messages with their clinician.
-  use_secure_messaging     Boolean                    @default(false, map: "DF_Client_use_secure_messaging")
   /// Free text field for initial referral source.
   referred_by              String?                    @db.VarChar(200)
   Audit                    Audit[]
@@ -161,6 +155,7 @@ model Client {
   DiagnosisTreatmentPlan   DiagnosisTreatmentPlan[]
   SurveyAnswers            SurveyAnswers[]
   GoodFaithClients         GoodFaithClients[]
+  ClientPortalPermission   ClientPortalPermission?
 }
 
 /// Extended demographic and personal information for a client.
@@ -824,6 +819,7 @@ model ClientFiles {
   next_due_date        DateTime?       @db.DateTime
   shared_at            DateTime?       @db.DateTime
   completed_at         DateTime?       @db.DateTime
+  blob_url             String?         @db.VarChar(500)
   Client               Client          @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientFiles_Client")
   ClientGroupFile      ClientGroupFile @relation(fields: [client_group_file_id], references: [id], onUpdate: NoAction, map: "FK_ClientFiles_ClientGroupFile")
   SurveyAnswers        SurveyAnswers?  @relation(fields: [survey_answers_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientFiles_SurveyAnswers")
@@ -1004,6 +1000,22 @@ model ClientPortalSettings {
   card_for_appointment_request    Boolean  @default(false, map: "DF_ClientPortalSettings_card_for_appointment_request")
   is_upload_documents_allowed     Boolean  @default(false, map: "DF_ClientPortalSettings_is_upload_documents_allowed")
   welcome_message                 String?  @db.NVarChar(Max)
+}
+
+/// Client portal permissions configuration for managing client access to features.
+model ClientPortalPermission {
+  id                          String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  client_id                   String   @unique @db.UniqueIdentifier
+  email                       String   @unique @db.VarChar(255)
+  allow_appointment_requests  Boolean  @default(true)
+  use_secure_messaging        Boolean  @default(true)
+  access_billing_documents    Boolean  @default(true)
+  receive_announcements       Boolean  @default(true)
+  is_active                   Boolean  @default(true)
+  created_at                  DateTime @default(now())
+  updated_at                  DateTime @default(now()) @updatedAt
+  
+  Client                      Client   @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientPortalPermission_Client")
 }
 
 /// Key-value store for practice-wide configuration.
