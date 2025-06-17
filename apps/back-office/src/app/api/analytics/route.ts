@@ -227,10 +227,10 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 
   const totalNotes = notesData.reduce((sum, item) => sum + item.value, 0);
 
-  // Outstanding balances calculation (unchanged)
+  // Outstanding balances calculation
   const outstandingResult = await prisma.invoice.aggregate({
     where: {
-      status: { in: ["UNPAID", "PARTIALLY_PAID"] },
+      status: { in: ["SENT", "OVERDUE"] },
     },
     _sum: {
       amount: true,
@@ -240,7 +240,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   const totalPaidResult = await prisma.payment.aggregate({
     where: {
       Invoice: {
-        status: { in: ["UNPAID", "PARTIALLY_PAID"] },
+        status: { in: ["SENT", "OVERDUE"] },
       },
     },
     _sum: {
@@ -250,7 +250,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 
   const uninvoicedResult = await prisma.invoice.aggregate({
     where: {
-      status: { in: ["UNPAID", "PARTIALLY_PAID"] },
+      status: { in: ["SENT", "OVERDUE"] },
       Payment: {
         none: {},
       },

@@ -57,20 +57,20 @@ describe("Analytics API Integration", () => {
       await prisma.invoice.create({
         data: {
           amount: 1000,
-          status: "UNPAID",
+          status: "OVERDUE",
           invoice_number: "INV-001",
           due_date: new Date(),
-          type: "STANDARD",
+          type: "SERVICE",
         },
       });
 
       const invoice2 = await prisma.invoice.create({
         data: {
           amount: 2000,
-          status: "PARTIALLY_PAID",
+          status: "SENT",
           invoice_number: "INV-002",
           due_date: new Date(),
-          type: "STANDARD",
+          type: "SERVICE",
         },
       });
 
@@ -89,7 +89,7 @@ describe("Analytics API Integration", () => {
         data: {
           start_date: now,
           end_date: new Date(now.getTime() + 3600000),
-          type: "CONSULTATION",
+          type: "APPOINTMENT",
           status: "SHOW",
           created_by: user.id,
         },
@@ -99,7 +99,7 @@ describe("Analytics API Integration", () => {
         data: {
           start_date: now,
           end_date: new Date(now.getTime() + 3600000),
-          type: "CONSULTATION",
+          type: "APPOINTMENT",
           status: "NO_SHOW",
           created_by: user.id,
         },
@@ -122,7 +122,7 @@ describe("Analytics API Integration", () => {
           name: "Test Template",
           description: "Test Description",
           content: '{"questions": []}',
-          type: "STANDARD",
+          type: "CUSTOM",
           updated_at: new Date(),
           created_at: new Date(),
           is_active: true,
@@ -161,8 +161,8 @@ describe("Analytics API Integration", () => {
       expect(data.incomeChart).toBeDefined();
       expect(Array.isArray(data.incomeChart)).toBe(true);
       expect(data.incomeChart.length).toBeGreaterThan(0);
-      expect(data.outstanding).toBe(2500); // 3000 (total unpaid/partially paid) - 500 (partial payment)
-      expect(data.uninvoiced).toBe(1000); // Amount of completely unpaid invoice
+      expect(data.outstanding).toBe(2500); // 3000 (total sent/overdue) - 500 (partial payment)
+      expect(data.uninvoiced).toBe(1000); // Amount of overdue invoice with no payment
       expect(data.appointments).toBe(2);
       expect(data.appointmentsChart).toEqual([
         { name: "Show", value: 1 },
@@ -191,7 +191,7 @@ describe("Analytics API Integration", () => {
           status: "PAID",
           invoice_number: "INV-003",
           due_date: startDate,
-          type: "STANDARD",
+          type: "SERVICE",
         },
       });
 
@@ -224,7 +224,7 @@ describe("Analytics API Integration", () => {
           status: "PAID",
           invoice_number: "INV-004",
           due_date: thirtyDaysAgo,
-          type: "STANDARD",
+          type: "SERVICE",
         },
       });
 
@@ -251,7 +251,7 @@ describe("Analytics API Integration", () => {
         data: {
           start_date: thirtyDaysAgo,
           end_date: new Date(thirtyDaysAgo.getTime() + 3600000),
-          type: "CONSULTATION",
+          type: "APPOINTMENT",
           status: "SHOW",
           created_by: user.id,
         },
@@ -279,7 +279,7 @@ describe("Analytics API Integration", () => {
           status: "PAID",
           invoice_number: "INV-005",
           due_date: yearStart,
-          type: "STANDARD",
+          type: "SERVICE",
         },
       });
 
@@ -317,7 +317,7 @@ describe("Analytics API Integration", () => {
           status: "PAID",
           invoice_number: "INV-006",
           due_date: startDate,
-          type: "STANDARD",
+          type: "SERVICE",
         },
       });
 
@@ -352,7 +352,7 @@ describe("Analytics API Integration", () => {
           status: "PAID",
           invoice_number: "INV-007",
           due_date: startDate,
-          type: "STANDARD",
+          type: "SERVICE",
         },
       });
 
@@ -408,7 +408,9 @@ describe("Analytics API Integration", () => {
 
       expect(response.status).toBe(500);
       const data = await response.json();
-      expect(data.error).toBe("Internal Server Error");
+      expect(data.error).toBeDefined();
+      expect(data.error.message).toBe("DB Error");
+      expect(data.error.issueId).toBeDefined();
     });
   });
 });
