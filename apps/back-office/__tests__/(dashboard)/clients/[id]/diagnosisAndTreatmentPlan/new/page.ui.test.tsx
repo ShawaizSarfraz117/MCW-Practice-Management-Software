@@ -3,6 +3,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "@mcw/ui";
 import NewDiagnosisAndTreatmentPlan from "@/(dashboard)/clients/[id]/diagnosisAndTreatmentPlan/new/page";

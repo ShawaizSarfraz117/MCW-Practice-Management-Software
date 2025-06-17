@@ -31,14 +31,8 @@ describe("Survey Templates API Routes - Integration", () => {
     // Create test data
     testClient = await prisma.client.create({
       data: {
-        first_name: "John",
-        last_name: "Doe",
         legal_first_name: "John",
         legal_last_name: "Doe",
-        email: "john.doe@test.com",
-        date_of_birth: new Date("1990-01-01"),
-        gender: "Male",
-        phone: "1234567890",
       },
     });
 
@@ -46,19 +40,20 @@ describe("Survey Templates API Routes - Integration", () => {
       data: {
         first_name: "Dr.",
         last_name: "Smith",
-        email: "dr.smith@test.com",
-        phone: "9876543210",
+        address: "123 Main St",
+        percentage_split: 100,
+        user_id: "test-user-id",
       },
     });
 
     testAppointment = await prisma.appointment.create({
       data: {
-        client_id: testClient.id,
         clinician_id: testClinician.id,
         start_date: new Date("2025-01-20T10:00:00"),
         end_date: new Date("2025-01-20T11:00:00"),
-        type: "individual",
-        status: "scheduled",
+        type: "APPOINTMENT",
+        status: "SHOW",
+        created_by: "test-user",
       },
     });
   });
@@ -91,6 +86,7 @@ describe("Survey Templates API Routes - Integration", () => {
               ],
             }),
             is_active: true,
+            updated_at: new Date(),
           },
           {
             name: "Assessment Template",
@@ -106,12 +102,14 @@ describe("Survey Templates API Routes - Integration", () => {
               ],
             }),
             is_active: true,
+            updated_at: new Date(),
           },
           {
             name: "Inactive Template",
             type: "ASSESSMENT",
             content: JSON.stringify({ sections: [] }),
             is_active: false,
+            updated_at: new Date(),
           },
         ],
       });
@@ -135,18 +133,21 @@ describe("Survey Templates API Routes - Integration", () => {
             type: "DIAGNOSIS_AND_TREATMENT_PLANS",
             content: JSON.stringify({ sections: [] }),
             is_active: true,
+            updated_at: new Date(),
           },
           {
             name: "Assessment Template 1",
             type: "ASSESSMENT",
             content: JSON.stringify({ sections: [] }),
             is_active: true,
+            updated_at: new Date(),
           },
           {
             name: "Assessment Template 2",
             type: "ASSESSMENT",
             content: JSON.stringify({ sections: [] }),
             is_active: true,
+            updated_at: new Date(),
           },
         ],
       });
@@ -169,18 +170,21 @@ describe("Survey Templates API Routes - Integration", () => {
             type: "ASSESSMENT",
             content: JSON.stringify({ sections: [] }),
             is_active: true,
+            updated_at: new Date(),
           },
           {
             name: "Inactive Template 1",
             type: "ASSESSMENT",
             content: JSON.stringify({ sections: [] }),
             is_active: false,
+            updated_at: new Date(),
           },
           {
             name: "Inactive Template 2",
             type: "DIAGNOSIS_AND_TREATMENT_PLANS",
             content: JSON.stringify({ sections: [] }),
             is_active: false,
+            updated_at: new Date(),
           },
         ],
       });
@@ -217,6 +221,7 @@ describe("Survey Templates API Routes - Integration", () => {
             ],
           }),
           is_active: true,
+          updated_at: new Date(),
         },
       });
 
@@ -274,18 +279,15 @@ describe("Survey Templates API Routes - Integration", () => {
           type: "ASSESSMENT",
           content: JSON.stringify({ sections: [] }),
           is_active: true,
+          updated_at: new Date(),
         },
       });
 
       // Create another client
       const otherClient = await prisma.client.create({
         data: {
-          first_name: "Jane",
-          last_name: "Smith",
-          email: "jane.smith@test.com",
-          date_of_birth: new Date("1985-01-01"),
-          gender: "Female",
-          phone: "5555555555",
+          legal_first_name: "Jane",
+          legal_last_name: "Smith",
         },
       });
 
@@ -333,6 +335,7 @@ describe("Survey Templates API Routes - Integration", () => {
           type: "ASSESSMENT",
           content: JSON.stringify({ sections: [] }),
           is_active: true,
+          updated_at: new Date(),
         });
       }
       await prisma.surveyTemplate.createMany({ data: templates });
@@ -360,6 +363,7 @@ describe("Survey Templates API Routes - Integration", () => {
           type: "ASSESSMENT",
           content: JSON.stringify({ sections: [] }),
           is_active: true,
+          updated_at: new Date(),
         },
       });
 
@@ -428,6 +432,7 @@ describe("Survey Templates API Routes - Integration", () => {
           type: "ASSESSMENT",
           content: JSON.stringify(complexContent),
           is_active: true,
+          updated_at: new Date(),
         },
       });
 
@@ -460,6 +465,7 @@ describe("Survey Templates API Routes - Integration", () => {
           content: JSON.stringify({ sections: [] }),
           is_active: true,
           created_at: new Date("2025-01-01"),
+          updated_at: new Date("2025-01-01"),
         },
       });
 
@@ -470,6 +476,7 @@ describe("Survey Templates API Routes - Integration", () => {
           content: JSON.stringify({ sections: [] }),
           is_active: true,
           created_at: new Date("2025-01-15"),
+          updated_at: new Date("2025-01-15"),
         },
       });
 
@@ -480,6 +487,7 @@ describe("Survey Templates API Routes - Integration", () => {
           content: JSON.stringify({ sections: [] }),
           is_active: true,
           created_at: new Date("2025-01-10"),
+          updated_at: new Date("2025-01-10"),
         },
       });
 

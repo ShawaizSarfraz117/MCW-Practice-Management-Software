@@ -26,18 +26,16 @@ describe("Diagnosis Treatment Plan API Routes - Integration", () => {
     // Create test data
     testClient = await prisma.client.create({
       data: {
-        first_name: "John",
-        last_name: "Doe",
-        email: "john.doe@test.com",
-        date_of_birth: new Date("1990-01-01"),
-        gender: "Male",
-        phone: "1234567890",
+        legal_first_name: "John",
+        legal_last_name: "Doe",
       },
     });
 
     testClientGroup = await prisma.clientGroup.create({
       data: {
+        id: "test-client-group-id",
         name: "Test Group",
+        type: "individual",
       },
     });
 
@@ -68,6 +66,7 @@ describe("Diagnosis Treatment Plan API Routes - Integration", () => {
           ],
         }),
         is_active: true,
+        updated_at: new Date(),
       },
     });
   });
