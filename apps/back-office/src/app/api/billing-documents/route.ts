@@ -1,8 +1,9 @@
+/* eslint-disable max-lines-per-function */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { getClinicianInfo } from "@/utils/helpers";
 import { logger } from "@mcw/logger";
-
+import { ClientGroup } from "@/types/entities/client";
 // Document response type
 interface BillingDocument {
   id: string;
@@ -14,6 +15,7 @@ interface BillingDocument {
   total: number;
   clientGroupName: string;
   clientGroupId: string;
+  ClientGroup?: ClientGroup; // Optional field when includeClientGroup=true
 }
 
 // Valid document types
@@ -32,9 +34,12 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const clientGroupId = searchParams.get("clientGroupId");
+    const clientGroupName = searchParams.get("clientGroupName");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const typeParam = searchParams.get("type"); // Can be a single type or a JSON array
+    const includeClientGroup =
+      searchParams.get("includeClientGroup") === "true";
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
     const skip = (page - 1) * limit;
@@ -102,6 +107,20 @@ export async function GET(request: NextRequest) {
       clientGroupCondition = `clientGroupId = '${clientGroupId}'`;
     }
 
+    // Build client group name filter condition
+    let clientGroupNameCondition = "";
+    if (clientGroupName) {
+      // For SQL Server, we need to escape single quotes in the search term
+      const escapedName = clientGroupName.replace(/'/g, "''");
+      clientGroupNameCondition = `(clientGroupName LIKE '%${escapedName}%' OR EXISTS (
+        SELECT 1 FROM "ClientGroupMembership" cgm 
+        INNER JOIN "Client" c ON c.id = cgm.client_id 
+        WHERE cgm.client_group_id = documents.clientGroupId 
+        AND cgm.is_contact_only = 0
+        AND (c.legal_first_name LIKE '%${escapedName}%' OR c.legal_last_name LIKE '%${escapedName}%')
+      ))`;
+    }
+
     // Build clinician filter condition
     let clinicianCondition = "";
     if (clinicianId) {
@@ -113,6 +132,7 @@ export async function GET(request: NextRequest) {
       dateCondition,
       typeCondition,
       clientGroupCondition,
+      clientGroupNameCondition,
       clinicianCondition,
     ]
       .filter(Boolean)
@@ -123,44 +143,179 @@ export async function GET(request: NextRequest) {
     }
 
     // Build the union query
-    const unionQuery = `
-      SELECT 
-        id,
-        'invoice' as documentType,
-        CAST(invoice_number as VARCHAR) as number,
-        issued_date as date,
-        is_exported,
-        client_group_id as clientGroupId,
-        (SELECT name FROM "ClientGroup" WHERE id = client_group_id) as clientGroupName,
-        clinician_id as clinicianId
-      FROM "Invoice"
-      
-      UNION ALL
-      
-      SELECT 
-        id,
-        'superbill' as documentType,
-        CAST(superbill_number as VARCHAR) as number,
-        issued_date as date,
-        is_exported,
-        client_group_id as clientGroupId,
-        (SELECT name FROM "ClientGroup" WHERE id = client_group_id) as clientGroupName,
-        created_by as clinicianId
-      FROM "Superbill"
-      
-      UNION ALL
-      
-      SELECT 
-        id,
-        'statement' as documentType,
-        CAST(statement_number as VARCHAR) as number,
-        created_at as date,
-        is_exported,
-        client_group_id as clientGroupId,
-        client_group_name as clientGroupName,
-        created_by as clinicianId
-      FROM "Statement"
-    `;
+    const unionQuery = includeClientGroup
+      ? `
+        SELECT 
+          i.id,
+          'invoice' as documentType,
+          CAST(i.invoice_number as VARCHAR) as number,
+          i.issued_date as date,
+          i.is_exported,
+          i.client_group_id as clientGroupId,
+          (SELECT name FROM "ClientGroup" WHERE id = i.client_group_id) as clientGroupName,
+          i.clinician_id as clinicianId,
+          i.amount as total,
+          i.status,
+          (
+            SELECT 
+              cg.id AS 'id',
+              cg.name AS 'name',
+              cg.type AS 'type',
+              (
+                SELECT 
+                  cgm.client_group_id AS 'client_group_id',
+                  cgm.client_id AS 'client_id',
+                  cgm.role AS 'role',
+                  cgm.is_responsible_for_billing AS 'is_responsible_for_billing',
+                  c.id AS 'Client.id',
+                  c.legal_first_name AS 'Client.first_name',
+                  c.legal_last_name AS 'Client.last_name',
+                  c.preferred_name AS 'Client.preferred_name',
+                  (SELECT TOP 1 value FROM "ClientContact" WHERE client_id = c.id AND type = 'EMAIL' AND is_primary = 1) AS 'Client.email'
+                FROM "ClientGroupMembership" cgm
+                INNER JOIN "Client" c ON c.id = cgm.client_id
+                WHERE cgm.client_group_id = cg.id 
+                  AND cgm.is_contact_only = 0
+                ORDER BY cgm.created_at ASC
+                OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY
+                FOR JSON PATH
+              ) AS 'ClientGroupMembership'
+            FROM "ClientGroup" cg
+            WHERE cg.id = i.client_group_id
+            FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+          ) as ClientGroup
+        FROM "Invoice" i
+        
+        UNION ALL
+        
+        SELECT 
+          s.id,
+          'superbill' as documentType,
+          CAST(s.superbill_number as VARCHAR) as number,
+          s.issued_date as date,
+          s.is_exported,
+          s.client_group_id as clientGroupId,
+          (SELECT name FROM "ClientGroup" WHERE id = s.client_group_id) as clientGroupName,
+          s.created_by as clinicianId,
+          0 as total,
+          CASE WHEN s.is_exported = 1 THEN 'EXPORTED' ELSE 'NOT_EXPORTED' END as status,
+          (
+            SELECT 
+              cg.id AS 'id',
+              cg.name AS 'name',
+              cg.type AS 'type',
+              (
+                SELECT 
+                  cgm.client_group_id AS 'client_group_id',
+                  cgm.client_id AS 'client_id',
+                  cgm.role AS 'role',
+                  cgm.is_responsible_for_billing AS 'is_responsible_for_billing',
+                  c.id AS 'Client.id',
+                  c.legal_first_name AS 'Client.first_name',
+                  c.legal_last_name AS 'Client.last_name',
+                  c.preferred_name AS 'Client.preferred_name',
+                  (SELECT TOP 1 value FROM "ClientContact" WHERE client_id = c.id AND type = 'EMAIL' AND is_primary = 1) AS 'Client.email'
+                FROM "ClientGroupMembership" cgm
+                INNER JOIN "Client" c ON c.id = cgm.client_id
+                WHERE cgm.client_group_id = cg.id 
+                  AND cgm.is_contact_only = 0
+                ORDER BY cgm.created_at ASC
+                OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY
+                FOR JSON PATH
+              ) AS 'ClientGroupMembership'
+            FROM "ClientGroup" cg
+            WHERE cg.id = s.client_group_id
+            FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+          ) as ClientGroup
+        FROM "Superbill" s
+        
+        UNION ALL
+        
+        SELECT 
+          st.id,
+          'statement' as documentType,
+          CAST(st.statement_number as VARCHAR) as number,
+          st.created_at as date,
+          st.is_exported,
+          st.client_group_id as clientGroupId,
+          st.client_group_name as clientGroupName,
+          st.created_by as clinicianId,
+          0 as total,
+          CASE WHEN st.is_exported = 1 THEN 'EXPORTED' ELSE 'NOT_EXPORTED' END as status,
+          (
+            SELECT 
+              cg.id AS 'id',
+              cg.name AS 'name',
+              cg.type AS 'type',
+              (
+                SELECT 
+                  cgm.client_group_id AS 'client_group_id',
+                  cgm.client_id AS 'client_id',
+                  cgm.role AS 'role',
+                  cgm.is_responsible_for_billing AS 'is_responsible_for_billing',
+                  c.id AS 'Client.id',
+                  c.legal_first_name AS 'Client.first_name',
+                  c.legal_last_name AS 'Client.last_name',
+                  c.preferred_name AS 'Client.preferred_name',
+                  (SELECT TOP 1 value FROM "ClientContact" WHERE client_id = c.id AND type = 'EMAIL' AND is_primary = 1) AS 'Client.email'
+                FROM "ClientGroupMembership" cgm
+                INNER JOIN "Client" c ON c.id = cgm.client_id
+                WHERE cgm.client_group_id = cg.id 
+                  AND cgm.is_contact_only = 0
+                ORDER BY cgm.created_at ASC
+                OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY
+                FOR JSON PATH
+              ) AS 'ClientGroupMembership'
+            FROM "ClientGroup" cg
+            WHERE cg.id = st.client_group_id
+            FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+          ) as ClientGroup
+        FROM "Statement" st
+      `
+      : `
+        SELECT 
+          id,
+          'invoice' as documentType,
+          CAST(invoice_number as VARCHAR) as number,
+          issued_date as date,
+          is_exported,
+          client_group_id as clientGroupId,
+          (SELECT name FROM "ClientGroup" WHERE id = client_group_id) as clientGroupName,
+          clinician_id as clinicianId,
+          amount as total,
+          status
+        FROM "Invoice"
+        
+        UNION ALL
+        
+        SELECT 
+          id,
+          'superbill' as documentType,
+          CAST(superbill_number as VARCHAR) as number,
+          issued_date as date,
+          is_exported,
+          client_group_id as clientGroupId,
+          (SELECT name FROM "ClientGroup" WHERE id = client_group_id) as clientGroupName,
+          created_by as clinicianId,
+          0 as total,
+          CASE WHEN is_exported = 1 THEN 'EXPORTED' ELSE 'NOT_EXPORTED' END as status
+        FROM "Superbill"
+        
+        UNION ALL
+        
+        SELECT 
+          id,
+          'statement' as documentType,
+          CAST(statement_number as VARCHAR) as number,
+          created_at as date,
+          is_exported,
+          client_group_id as clientGroupId,
+          client_group_name as clientGroupName,
+          created_by as clinicianId,
+          0 as total,
+          CASE WHEN is_exported = 1 THEN 'EXPORTED' ELSE 'NOT_EXPORTED' END as status
+        FROM "Statement"
+      `;
 
     // Count query to get total results without pagination
     const countQuery = `
@@ -190,8 +345,18 @@ export async function GET(request: NextRequest) {
     const documents =
       await prisma.$queryRawUnsafe<BillingDocument[]>(mainQuery);
 
+    // Parse ClientGroup JSON if includeClientGroup is true
+    const processedDocuments = includeClientGroup
+      ? documents.map((doc) => ({
+          ...doc,
+          ClientGroup: doc.ClientGroup
+            ? JSON.parse(doc.ClientGroup as unknown as string)
+            : null,
+        }))
+      : documents;
+
     return NextResponse.json({
-      data: documents,
+      data: processedDocuments,
       pagination: {
         page,
         limit,
