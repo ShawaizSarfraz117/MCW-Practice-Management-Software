@@ -57,6 +57,7 @@ const mockSurveyAnswer = {
   client_id: "456e7890-e89b-12d3-a456-426614174000",
   content: '{"question1": "answer1"}',
   status: "COMPLETED",
+  score: null, // Add the score field
   appointment_id: "abc12345-e89b-12d3-a456-426614174000",
   is_signed: false,
   is_locked: false,
@@ -106,6 +107,7 @@ describe("appointmentNote API - PUT Unit Tests", () => {
       content: '{"question1": "updated answer"}',
       status: "UPDATED",
       client_group_id: mockSurveyAnswer.client_group_id,
+      score: null,
     } as SurveyAnswers);
 
     const request = createRequestWithBody(

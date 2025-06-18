@@ -1,145 +1,94 @@
 "use client";
 
+import { Download, ChevronDown } from "lucide-react";
 import {
   Button,
-  Card,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   DropdownMenu,
+  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
 } from "@mcw/ui";
-import {
-  Calendar,
-  ChevronRight,
-  Download,
-  ChevronFirst,
-  ChevronLast,
-  ChevronLeft,
-  ChevronDown,
-} from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
-import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
-
-type ClientBalance = {
-  id: string;
-  clientName: string;
-  servicesProvided: number;
-  uninvoiced: string;
-  invoiced: number;
-  clientPaid: string | number;
-  clientBalance: number;
-};
-
-const mockData: ClientBalance[] = [
-  {
-    id: "1",
-    clientName: "Jamie D. Appleseed",
-    servicesProvided: 200,
-    uninvoiced: "--",
-    invoiced: 350,
-    clientPaid: "--",
-    clientBalance: 650,
-  },
-  {
-    id: "2",
-    clientName: "Shawaiz Sarfraz",
-    servicesProvided: 200,
-    uninvoiced: "--",
-    invoiced: 190,
-    clientPaid: 40,
-    clientBalance: 350,
-  },
-  {
-    id: "3",
-    clientName: "Shawaiz Sarfraz & Mrs Shawaiz",
-    servicesProvided: 100,
-    uninvoiced: "--",
-    invoiced: 100,
-    clientPaid: "--",
-    clientBalance: 100,
-  },
-];
+import {
+  useOutstandingBalances,
+  exportOutstandingBalances,
+} from "@/(dashboard)/analytics/services/outstanding-balances.service";
+import OutstandingBalancesTable from "./components/OutstandingBalancesTable";
+import OutstandingBalancesFilters from "./components/OutstandingBalancesFilters";
+import OutstandingBalancesPagination from "./components/OutstandingBalancesPagination";
 
 export default function OutstandingBalancesPage() {
   const today = new Date();
+  const startOfYear = new Date(today.getFullYear(), 0, 1); // January 1st of current year
+
   const formatDate = (date: Date) => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const year = date.getFullYear();
     return `${month}/${day}/${year}`;
   };
+
   const todayStr = formatDate(today);
+  const startOfYearStr = formatDate(startOfYear);
 
   const [filters, setFilters] = useState({
     showDatePicker: false,
-    fromDate: todayStr,
-    toDate: todayStr,
-    selectedTimeRange: todayStr,
-    rowsPerPage: "10",
-    currentPage: 1,
+    startDate: startOfYearStr,
+    endDate: todayStr,
+    selectedTimeRange: `${startOfYearStr} - ${todayStr}`,
+    page: 1,
+    limit: 10,
   });
-  const totalPages = 3;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const { data: balanceData, isLoading } = useOutstandingBalances({
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    page: filters.page,
+    limit: filters.limit,
+  });
+
+  const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
   };
 
-  const handleDatePickerApply = (
-    startDate: string,
-    endDate: string,
-    displayOption: string,
-  ) => {
-    setFilters((prev) => ({
-      ...prev,
-      fromDate: startDate,
-      toDate: endDate,
-      selectedTimeRange:
-        displayOption === "Custom Range"
-          ? `${startDate} - ${endDate}`
-          : displayOption,
-      showDatePicker: false,
-    }));
+  const handlePageChange = (page: number) => {
+    setFilters((prev) => ({ ...prev, page }));
   };
 
-  const handleDatePickerCancel = () => {
-    setFilters((prev) => ({
-      ...prev,
-      showDatePicker: false,
-    }));
+  const handleItemsPerPageChange = (limit: number) => {
+    setFilters((prev) => ({ ...prev, limit, page: 1 }));
+  };
+
+  const handleExport = async (format: "csv" | "excel") => {
+    try {
+      const blob = await exportOutstandingBalances(format, {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const extension = format === "excel" ? "xlsx" : format;
+      a.download = `outstanding-balances-${filters.startDate}-to-${filters.endDate}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error(`Failed to export ${format.toUpperCase()}:`, error);
+      // You might want to show a toast notification here
+    }
   };
 
   return (
-    <div className="h-full">
-      <div className="p-6 bg-gray-50 min-h-screen space-y-6">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Link className="hover:text-primary" href="/analytics">
-            Analytics
-          </Link>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-gray-900">Outstanding Balances</span>
-        </div>
-
-        {/* Title and Actions */}
+    <div className="min-h-full bg-gray-50/50">
+      <div className="p-6 space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Outstanding Balances</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Outstanding Balances
+          </h1>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="gap-2" variant="outline">
@@ -148,165 +97,52 @@ export default function OutstandingBalancesPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("csv")}>
                 <Download className="w-4 h-4 mr-2" />
                 Export as CSV
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("excel")}>
                 <Download className="w-4 h-4 mr-2" />
-                Export as PDF
+                Export as Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        {/* Date Filter */}
-        <div className="flex items-center gap-2">
-          <div className="relative inline-block">
-            <Button
-              className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-              variant="outline"
-              onClick={() =>
-                setFilters((prev) => ({ ...prev, showDatePicker: true }))
-              }
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              {filters.selectedTimeRange}
-            </Button>
-            {filters.showDatePicker && (
-              <div className="absolute z-50">
-                <DateRangePicker
-                  initialEndDate={filters.toDate}
-                  initialStartDate={filters.fromDate}
-                  isOpen={true}
-                  onApply={handleDatePickerApply}
-                  onClose={handleDatePickerCancel}
-                />
-              </div>
-            )}
-          </div>
-          <Button
-            className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-            variant="outline"
-          >
-            More: 1
-          </Button>
-        </div>
+        {/* Filters */}
+        <OutstandingBalancesFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+        />
 
         {/* Table */}
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Client</TableHead>
-                <TableHead>Services provided</TableHead>
-                <TableHead>
-                  Uninvoiced
-                  <span className="inline-block ml-1 text-gray-400">ⓘ</span>
-                </TableHead>
-                <TableHead>Invoiced</TableHead>
-                <TableHead>Client paid</TableHead>
-                <TableHead>
-                  Client balance
-                  <span className="inline-block ml-1 text-gray-400">ⓘ</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockData.map((client) => (
-                <TableRow key={client.id} className="hover:bg-gray-50">
-                  <TableCell className="text-primary hover:underline cursor-pointer">
-                    {client.clientName}
-                  </TableCell>
-                  <TableCell>
-                    {formatCurrency(client.servicesProvided)}
-                  </TableCell>
-                  <TableCell>{client.uninvoiced}</TableCell>
-                  <TableCell>{formatCurrency(client.invoiced)}</TableCell>
-                  <TableCell>
-                    {typeof client.clientPaid === "number"
-                      ? formatCurrency(client.clientPaid)
-                      : client.clientPaid}
-                  </TableCell>
-                  <TableCell className="text-primary">
-                    {formatCurrency(client.clientBalance)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div>
+          <OutstandingBalancesTable
+            data={balanceData?.data || []}
+            isLoading={isLoading}
+            totals={
+              balanceData?.totals || {
+                servicesProvided: 0,
+                uninvoiced: 0,
+                invoiced: 0,
+                clientPaid: 0,
+                clientBalance: 0,
+              }
+            }
+          />
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-3 border-t">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">Rows per page</span>
-              <Select
-                value={filters.rowsPerPage}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, rowsPerPage: value }))
-                }
-              >
-                <SelectTrigger className="w-[70px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-gray-700">1-3 of 3</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                disabled={filters.currentPage === 1}
-                size="icon"
-                variant="ghost"
-                onClick={() =>
-                  setFilters((prev) => ({ ...prev, currentPage: 1 }))
-                }
-              >
-                <ChevronFirst className="w-4 h-4" />
-              </Button>
-              <Button
-                disabled={filters.currentPage === 1}
-                size="icon"
-                variant="ghost"
-                onClick={() =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    currentPage: Math.max(1, prev.currentPage - 1),
-                  }))
-                }
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                disabled={filters.currentPage === totalPages}
-                size="icon"
-                variant="ghost"
-                onClick={() =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    currentPage: Math.min(totalPages, prev.currentPage + 1),
-                  }))
-                }
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              <Button
-                disabled={filters.currentPage === totalPages}
-                size="icon"
-                variant="ghost"
-                onClick={() =>
-                  setFilters((prev) => ({ ...prev, currentPage: totalPages }))
-                }
-              >
-                <ChevronLast className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </Card>
+          {balanceData && balanceData.pagination.totalPages > 1 && (
+            <OutstandingBalancesPagination
+              currentPage={balanceData.pagination.page}
+              itemsPerPage={balanceData.pagination.limit}
+              totalItems={balanceData.pagination.total}
+              totalPages={balanceData.pagination.totalPages}
+              onItemsPerPageChange={handleItemsPerPageChange}
+              onPageChange={handlePageChange}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
