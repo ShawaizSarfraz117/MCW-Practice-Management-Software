@@ -153,9 +153,10 @@ export function OutstandingBalancesChart({
   analyticsData,
   isLoading,
 }: OutstandingBalancesChartProps) {
-  const outstanding = analyticsData?.outstanding || 0;
-  const uninvoiced = analyticsData?.uninvoiced || 0;
+  const outstanding = Number(analyticsData?.outstanding) || 0;
+  const uninvoiced = Number(analyticsData?.uninvoiced) || 0;
   const total = outstanding + uninvoiced;
+
   const outstandingPercent = total > 0 ? (outstanding / total) * 100 : 0;
   const uninvoicedPercent = total > 0 ? (uninvoiced / total) * 100 : 0;
 
@@ -168,7 +169,7 @@ export function OutstandingBalancesChart({
             {isLoading ? (
               <span className="inline-block h-6 w-24 bg-gray-200 rounded animate-pulse" />
             ) : (
-              `$${outstanding.toLocaleString()}`
+              `$${total}`
             )}
           </p>
         </div>

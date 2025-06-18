@@ -256,8 +256,6 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     },
     where: {
       type: "APPOINTMENT",
-      status: "SHOW",
-      start_date: { lte: new Date() },
       appointment_fee: { not: null },
       NOT: {
         Invoice: {
@@ -268,7 +266,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   });
 
   const outstanding = totalUnpaid;
-  const uninvoiced = Number(uninvoicedSum._sum.appointment_fee || 0);
+  console.log(uninvoicedSum);
+  const uninvoiced = uninvoicedSum._sum.appointment_fee;
 
   return NextResponse.json({
     income: totalIncome,

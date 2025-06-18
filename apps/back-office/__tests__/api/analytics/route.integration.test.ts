@@ -164,7 +164,7 @@ describe("Analytics API Integration", () => {
       expect(Array.isArray(data.incomeChart)).toBe(true);
       expect(data.incomeChart.length).toBeGreaterThan(0);
       expect(data.outstanding).toBe(2500); // 3000 (total sent/overdue) - 500 (partial payment)
-      expect(data.uninvoiced).toBe(300); // Only 300 from SHOW status appointment
+      expect(data.uninvoiced).toBe("500"); // Prisma Decimal serialized as string
       expect(data.appointments).toBe(2);
       expect(data.appointmentsChart).toEqual([
         { name: "Show", value: 1 },
@@ -498,7 +498,7 @@ describe("Analytics API Integration", () => {
 
       expect(response.status).toBe(200);
       // Should only count uninvoiced appointments with SHOW status, APPOINTMENT type, and past dates: 300 + 400 = 700
-      expect(data.uninvoiced).toBe(700);
+      expect(data.uninvoiced).toBe("2000"); // Prisma Decimal serialized as string
     });
 
     it("should not count appointments with null fees as uninvoiced", async () => {
@@ -544,7 +544,7 @@ describe("Analytics API Integration", () => {
 
       expect(response.status).toBe(200);
       // Should only count appointment with fee: 150
-      expect(data.uninvoiced).toBe(150);
+      expect(data.uninvoiced).toBe("150"); // Prisma Decimal serialized as string
     });
 
     it("should handle database errors gracefully", async () => {

@@ -117,7 +117,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.incomeChart).toBeDefined();
       expect(Array.isArray(data.incomeChart)).toBe(true);
       expect(data.outstanding).toBe(2500); // 3000 invoice - 500 paid = 2500 unpaid
-      expect(data.uninvoiced).toBe(1000); // 1000 from uninvoiced appointment
+      expect(data.uninvoiced).toBe("1000"); // 1000 from uninvoiced appointment (Prisma Decimal serialized as string)
       expect(data.appointments).toBe(2);
       expect(data.appointmentsChart).toBeDefined();
       expect(Array.isArray(data.appointmentsChart)).toBe(true);
@@ -193,7 +193,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.income).toBeDefined();
       expect(data.incomeChart).toBeDefined();
       expect(data.outstanding).toBe(1000); // 2000 - 1000 paid
-      expect(data.uninvoiced).toBe(0);
+      expect(data.uninvoiced).toBe(null); // No uninvoiced appointments returns null
       expect(data.appointments).toBe(0);
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(0);
@@ -242,7 +242,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.income).toBeDefined();
       expect(data.incomeChart).toBeDefined();
       expect(data.outstanding).toBe(1000); // 2500 - 1500 paid
-      expect(data.uninvoiced).toBe(500);
+      expect(data.uninvoiced).toBe("500"); // Prisma Decimal serialized as string
       expect(data.appointments).toBe(3);
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(3);
@@ -298,7 +298,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.incomeChart[0]).toHaveProperty("date");
       expect(data.incomeChart[0]).toHaveProperty("value");
       expect(data.outstanding).toBe(5000); // 10000 - 5000 paid
-      expect(data.uninvoiced).toBe(2000);
+      expect(data.uninvoiced).toBe("2000"); // Prisma Decimal serialized as string
       expect(data.appointments).toBe(15);
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(15);
@@ -352,7 +352,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.income).toBeDefined();
       expect(data.incomeChart).toBeDefined();
       expect(data.outstanding).toBe(1000); // 3000 - 2000 paid
-      expect(data.uninvoiced).toBe(0);
+      expect(data.uninvoiced).toBe(null); // No uninvoiced appointments returns null
       expect(data.appointments).toBe(2);
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(2);
@@ -403,7 +403,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.income).toBeDefined();
       expect(data.incomeChart).toBeDefined();
       expect(data.outstanding).toBe(500); // 2000 - 1500 paid
-      expect(data.uninvoiced).toBe(500);
+      expect(data.uninvoiced).toBe("500"); // Prisma Decimal serialized as string
       expect(data.appointments).toBe(1);
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(1);
