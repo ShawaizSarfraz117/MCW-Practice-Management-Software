@@ -6,6 +6,7 @@ import { GET } from "@/api/survey-templates/route";
 import { prisma } from "@mcw/database";
 import { createRequest } from "@mcw/utils";
 import { Client, Appointment, Clinician } from "@mcw/database";
+import { randomUUID } from "crypto";
 
 // Mock authentication helper
 vi.mock("@/utils/helpers", () => ({
@@ -42,7 +43,7 @@ describe("Survey Templates API Routes - Integration", () => {
         last_name: "Smith",
         address: "123 Main St",
         percentage_split: 100,
-        user_id: "test-user-id",
+        user_id: randomUUID(),
       },
     });
 
@@ -53,7 +54,7 @@ describe("Survey Templates API Routes - Integration", () => {
         end_date: new Date("2025-01-20T11:00:00"),
         type: "APPOINTMENT",
         status: "SHOW",
-        created_by: "test-user",
+        created_by: randomUUID(),
       },
     });
   });
