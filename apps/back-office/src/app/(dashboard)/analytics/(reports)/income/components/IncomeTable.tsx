@@ -65,19 +65,19 @@ export default function IncomeTable({
             {[...Array(5)].map((_, index) => (
               <TableRow key={index} className="border-gray-200">
                 <TableCell className="text-gray-500">
-                  <div className="animate-pulse bg-gray-200 h-4 w-20 rounded"></div>
+                  <div className="animate-pulse bg-gray-200 h-4 w-20 rounded" />
                 </TableCell>
                 <TableCell className="text-left text-gray-500">
-                  <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
+                  <div className="animate-pulse bg-gray-200 h-4 w-16 rounded" />
                 </TableCell>
                 <TableCell className="text-left text-gray-500">
-                  <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
+                  <div className="animate-pulse bg-gray-200 h-4 w-16 rounded" />
                 </TableCell>
                 <TableCell className="text-left text-gray-500">
-                  <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
+                  <div className="animate-pulse bg-gray-200 h-4 w-16 rounded" />
                 </TableCell>
                 <TableCell className="text-left text-gray-500">
-                  <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
+                  <div className="animate-pulse bg-gray-200 h-4 w-16 rounded" />
                 </TableCell>
               </TableRow>
             ))}
