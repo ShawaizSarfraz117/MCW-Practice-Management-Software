@@ -274,13 +274,24 @@ describe("Survey Templates API Routes - Integration", () => {
       expect(response.status).toBe(200);
       expect(data.data).toHaveLength(1);
       expect(data.data[0].SurveyAnswers).toHaveLength(2);
-      expect(data.data[0].SurveyAnswers[0].content.q1).toBe(
-        "Answer to question 1",
+
+      // Find the completed survey answer (order is not guaranteed)
+      const completedAnswer = data.data[0].SurveyAnswers.find(
+        (answer: any) => answer.status === "COMPLETED",
       );
-      expect(data.data[0].SurveyAnswers[0].Client.legal_first_name).toBe(
-        "John",
+      const inProgressAnswer = data.data[0].SurveyAnswers.find(
+        (answer: any) => answer.status === "IN_PROGRESS",
       );
-      expect(data.data[0].SurveyAnswers[0].Appointment).toBeTruthy();
+
+      expect(completedAnswer).toBeTruthy();
+      expect(completedAnswer.content.q1).toBe("Answer to question 1");
+      expect(completedAnswer.content.q2).toBe("Yes");
+      expect(completedAnswer.Client.legal_first_name).toBe("John");
+      expect(completedAnswer.Appointment).toBeTruthy();
+
+      expect(inProgressAnswer).toBeTruthy();
+      expect(inProgressAnswer.content.q1).toBe("Another answer");
+      expect(inProgressAnswer.content.q2).toBe("No");
     });
 
     it("should filter survey answers by client ID", async () => {
