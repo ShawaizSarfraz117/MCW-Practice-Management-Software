@@ -120,7 +120,6 @@ export default function AppointmentStatusFilters({
           value={filters.selectedClient}
           onSearch={setClientSearchTerm}
           onValueChange={(value) => onFiltersChange({ selectedClient: value })}
-          disabled={isLoadingClients}
         />
       </div>
     </div>
