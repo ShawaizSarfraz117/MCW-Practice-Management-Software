@@ -5,8 +5,7 @@ import { beforeEach, describe, expect, it, afterEach, vi } from "vitest";
 import { GET } from "@/api/survey-templates/route";
 import { prisma } from "@mcw/database";
 import { createRequest } from "@mcw/utils";
-import { Client, Appointment, Clinician } from "@mcw/database";
-import { randomUUID } from "crypto";
+import { Client, Appointment, Clinician, User } from "@mcw/database";
 
 // Mock authentication helper
 vi.mock("@/utils/helpers", () => ({
@@ -20,6 +19,7 @@ describe("Survey Templates API Routes - Integration", () => {
   let testClient: Client;
   let testClinician: Clinician;
   let testAppointment: Appointment;
+  let testUser: User;
 
   beforeEach(async () => {
     // Clean up before each test
@@ -27,6 +27,7 @@ describe("Survey Templates API Routes - Integration", () => {
     await prisma.appointment.deleteMany({});
     await prisma.surveyTemplate.deleteMany({});
     await prisma.clinician.deleteMany({});
+    await prisma.user.deleteMany({});
     await prisma.client.deleteMany({});
 
     // Create test data
@@ -37,13 +38,21 @@ describe("Survey Templates API Routes - Integration", () => {
       },
     });
 
+    // Create test user first
+    testUser = await prisma.user.create({
+      data: {
+        email: "test@example.com",
+        password_hash: "hashed_password",
+      },
+    });
+
     testClinician = await prisma.clinician.create({
       data: {
         first_name: "Dr.",
         last_name: "Smith",
         address: "123 Main St",
         percentage_split: 100,
-        user_id: randomUUID(),
+        user_id: testUser.id,
       },
     });
 
@@ -54,7 +63,7 @@ describe("Survey Templates API Routes - Integration", () => {
         end_date: new Date("2025-01-20T11:00:00"),
         type: "APPOINTMENT",
         status: "SHOW",
-        created_by: randomUUID(),
+        created_by: testUser.id,
       },
     });
   });
@@ -65,6 +74,7 @@ describe("Survey Templates API Routes - Integration", () => {
     await prisma.appointment.deleteMany({});
     await prisma.surveyTemplate.deleteMany({});
     await prisma.clinician.deleteMany({});
+    await prisma.user.deleteMany({});
     await prisma.client.deleteMany({});
   });
 

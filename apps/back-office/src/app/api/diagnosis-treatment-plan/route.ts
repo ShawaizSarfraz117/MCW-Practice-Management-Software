@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 
+// UUID validation helper function
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
 interface DiagnosisItem {
   id?: string;
   code: string;
@@ -29,6 +36,14 @@ export async function GET(request: NextRequest) {
     const planId = searchParams.get("planId");
 
     if (planId) {
+      // Validate UUID format
+      if (!isValidUUID(planId)) {
+        return NextResponse.json(
+          { error: "Treatment plan not found" },
+          { status: 404 },
+        );
+      }
+
       const plan = await prisma.diagnosisTreatmentPlan.findUnique({
         where: { id: planId },
         include: {
@@ -53,6 +68,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (!clientId) {
+      return NextResponse.json(
+        { error: "Client ID is required" },
+        { status: 400 },
+      );
+    }
+
+    // Validate UUID format for clientId
+    if (!isValidUUID(clientId)) {
       return NextResponse.json(
         { error: "Client ID is required" },
         { status: 400 },
@@ -89,7 +112,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data: DiagnosisTreatmentPlanRequest = await request.json();
-    const { clientId, title, diagnoses, dateTime, surveyAnswersId } = data;
+    const {
+      clientId,
+      title,
+      diagnoses,
+      dateTime,
+      surveyAnswersId,
+      clientGroupId,
+    } = data;
 
     logger.info({
       message: "Creating diagnosis treatment plan",
@@ -103,6 +133,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Client ID and title are required" },
         { status: 400 },
+      );
+    }
+
+    // Validate UUID format for clientId
+    if (!isValidUUID(clientId)) {
+      return NextResponse.json(
+        { error: `Client not found with ID: ${clientId}` },
+        { status: 404 },
       );
     }
 
@@ -124,6 +162,7 @@ export async function POST(request: NextRequest) {
       const treatmentPlan = await tx.diagnosisTreatmentPlan.create({
         data: {
           client_id: clientId,
+          client_group_id: clientGroupId || null,
           title,
           survey_answers_id: surveyAnswersId || null,
           created_at: dateTime ? new Date(dateTime) : new Date(),
@@ -213,6 +252,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { error: "Treatment plan ID is required" },
         { status: 400 },
+      );
+    }
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return NextResponse.json(
+        { error: "Treatment plan not found" },
+        { status: 404 },
       );
     }
 
@@ -362,6 +409,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: "Treatment plan ID is required" },
         { status: 400 },
+      );
+    }
+
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return NextResponse.json(
+        { error: "Treatment plan not found" },
+        { status: 404 },
       );
     }
 

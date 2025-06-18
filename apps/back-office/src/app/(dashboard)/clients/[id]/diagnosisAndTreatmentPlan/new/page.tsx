@@ -89,16 +89,6 @@ export default function NewDiagnosisAndTreatmentPlan() {
       // Only include diagnoses that have both code and ID
       const validDiagnoses = diagnoses.filter((d) => d.code && d.id);
 
-      if (validDiagnoses.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please select at least one diagnosis from the dropdown",
-          variant: "destructive",
-        });
-        setIsSaving(false);
-        return;
-      }
-
       const [response, error] = await createDiagnosisTreatmentPlan({
         body: {
           clientId,
