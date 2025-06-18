@@ -1,76 +1,86 @@
 "use client";
 
-import { Calendar, ChevronRight, Download, ChevronDown } from "lucide-react";
+import { Download, ChevronDown } from "lucide-react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Button,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@mcw/ui";
-import Link from "next/link";
-import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
 import { useState } from "react";
+import {
+  useIncomeData,
+  useClinicians,
+  exportIncomeData,
+} from "@/(dashboard)/analytics/services/income.service";
+import IncomeTable from "./components/IncomeTable";
+import IncomeFilters from "./components/IncomeFilters";
 
 export default function IncomePage() {
   const today = new Date();
+  const startOfYear = new Date(today.getFullYear(), 0, 1); // January 1st of current year
+
   const formatDate = (date: Date) => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const year = date.getFullYear();
     return `${month}/${day}/${year}`;
   };
+
   const todayStr = formatDate(today);
+  const startOfYearStr = formatDate(startOfYear);
 
   const [filters, setFilters] = useState({
     showDatePicker: false,
-    fromDate: todayStr,
-    toDate: todayStr,
-    selectedTimeRange: todayStr,
+    startDate: startOfYearStr,
+    endDate: todayStr,
+    selectedTimeRange: `${startOfYearStr} - ${todayStr}`,
+    clinicianId: undefined as string | undefined,
+    page: 1,
+    limit: 20,
   });
 
-  const handleDatePickerApply = (
-    startDate: string,
-    endDate: string,
-    displayOption: string,
-  ) => {
-    setFilters((prev) => ({
-      ...prev,
-      fromDate: startDate,
-      toDate: endDate,
-      selectedTimeRange:
-        displayOption === "Custom Range"
-          ? `${startDate} - ${endDate}`
-          : displayOption,
-      showDatePicker: false,
-    }));
+  const { data: incomeData, isLoading } = useIncomeData({
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    clinicianId: filters.clinicianId,
+    page: filters.page,
+    limit: filters.limit,
+  });
+
+  const { data: cliniciansData } = useClinicians();
+
+  const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters }));
   };
 
-  const handleDatePickerCancel = () => {
-    setFilters((prev) => ({
-      ...prev,
-      showDatePicker: false,
-    }));
+  const handleExport = async (format: "csv" | "excel") => {
+    try {
+      const blob = await exportIncomeData(format, {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        clinicianId: filters.clinicianId,
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const extension = format === "excel" ? "xlsx" : format;
+      a.download = `income-report-${filters.startDate}-to-${filters.endDate}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error(`Failed to export ${format.toUpperCase()}:`, error);
+      // You might want to show a toast notification here
+    }
   };
 
   return (
     <div className="min-h-full bg-gray-50/50">
       <div className="p-6 space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-sm">
-          <Link className="text-gray-500 hover:text-primary" href="/analytics">
-            Analytics
-          </Link>
-          <ChevronRight className="w-4 h-4 text-gray-500" />
-          <span className="text-gray-900">Income</span>
-        </div>
-
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Income</h1>
@@ -82,91 +92,38 @@ export default function IncomePage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("csv")}>
                 <Download className="w-4 h-4 mr-2" />
                 Export as CSV
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("excel")}>
                 <Download className="w-4 h-4 mr-2" />
-                Export as PDF
+                Export as Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        {/* Date Range */}
-        <div className="relative inline-block">
-          <button
-            className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-md"
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, showDatePicker: true }))
-            }
-          >
-            <Calendar className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm font-medium">
-              {filters.selectedTimeRange}
-            </span>
-          </button>
-          {filters.showDatePicker && (
-            <div className="absolute z-50">
-              <DateRangePicker
-                initialEndDate={filters.toDate}
-                initialStartDate={filters.fromDate}
-                isOpen={filters.showDatePicker}
-                onApply={handleDatePickerApply}
-                onClose={handleDatePickerCancel}
-              />
-            </div>
-          )}
-        </div>
+        {/* Filters */}
+        <IncomeFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          clinicians={cliniciansData || []}
+        />
 
         {/* Table */}
-        <div className="rounded-lg border border-gray-200 bg-white">
-          <Table>
-            <TableHeader className="bg-gray-50/50">
-              <TableRow className="border-gray-200 hover:bg-transparent">
-                <TableHead className="text-gray-500">Date</TableHead>
-                <TableHead className="text-left text-gray-500">
-                  Client payments
-                </TableHead>
-                <TableHead className="text-left text-gray-500">
-                  Gross income
-                </TableHead>
-                <TableHead className="text-left text-gray-500">
-                  Net income
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow className="bg-gray-50 hover:bg-gray-50 border-gray-200">
-                <TableCell className="font-medium text-gray-900">
-                  Totals
-                </TableCell>
-                <TableCell className="text-left font-medium text-gray-900">
-                  $40
-                </TableCell>
-                <TableCell className="text-left font-medium text-gray-900">
-                  $40
-                </TableCell>
-                <TableCell className="text-left font-medium text-gray-900">
-                  $40
-                </TableCell>
-              </TableRow>
-              <TableRow className="border-gray-200">
-                <TableCell className="text-gray-500">04/21/2025</TableCell>
-                <TableCell className="text-left text-gray-500">--</TableCell>
-                <TableCell className="text-left text-gray-500">--</TableCell>
-                <TableCell className="text-left text-gray-500">--</TableCell>
-              </TableRow>
-              <TableRow className="border-gray-200">
-                <TableCell className="text-gray-500">04/16/2025</TableCell>
-                <TableCell className="text-left text-gray-500">$20</TableCell>
-                <TableCell className="text-left text-gray-500">$20</TableCell>
-                <TableCell className="text-left text-gray-500">$20</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
+        <IncomeTable
+          data={incomeData?.data || []}
+          totals={
+            incomeData?.totals || {
+              clientPayments: 0,
+              grossIncome: 0,
+              netIncome: 0,
+              clinicianCut: 0,
+            }
+          }
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );
