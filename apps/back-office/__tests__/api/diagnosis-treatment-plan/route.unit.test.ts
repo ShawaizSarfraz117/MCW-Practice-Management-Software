@@ -314,7 +314,6 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       expect(createMock).toHaveBeenCalledWith({
         data: {
           client_id: "client-123",
-          client_group_id: null,
           title: "New Treatment Plan",
           survey_answers_id: null,
           created_at: new Date("2025-01-15T10:00:00Z"),
