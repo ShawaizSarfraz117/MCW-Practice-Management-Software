@@ -79,8 +79,7 @@ export default function AppointmentStatusPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error(`Failed to export ${format.toUpperCase()}:`, error);
-      // You might want to show a toast notification here
+      console.log("🚀 ~ handleExport ~ error:", error);
     }
   };
 

@@ -198,7 +198,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       });
     } else if (format === "excel") {
       // Generate Excel
-      const worksheetData = [
+      const worksheetData: (string | number)[][] = [
         ["Appointment Status Report", "", "", "", "", "", "", "", "", "", ""],
         [
           `Period: ${startDate} to ${endDate}`,
