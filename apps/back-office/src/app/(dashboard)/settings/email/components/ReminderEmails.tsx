@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Tabs,
   TabsList,
@@ -13,7 +12,6 @@ import {
   Button,
 } from "@mcw/ui";
 import { ChevronDown, Pencil } from "lucide-react";
-import { useForm } from "@tanstack/react-form";
 import { EmailTemplate, ClientGroupData, ClinicianData } from "../types";
 import { renderTemplateWithButton } from "../utils/templateRenderer";
 
@@ -22,6 +20,16 @@ interface ReminderEmailsProps {
   clientData: ClientGroupData | null;
   clinicianData: ClinicianData | null;
   onEdit: (template: EmailTemplate) => void;
+  isReminderSectionOpen: boolean;
+  setIsReminderSectionOpen: (open: boolean) => void;
+  openReminderIndexes: Set<string>;
+  setOpenReminderIndexes: (fn: (prev: Set<string>) => Set<string>) => void;
+  reminderTab: string;
+  setReminderTab: (tab: string) => void;
+  remindersOn: boolean;
+  setRemindersOn: (on: boolean) => void;
+  reminderTime: string;
+  setReminderTime: (time: string) => void;
 }
 
 export function ReminderEmails({
@@ -29,23 +37,17 @@ export function ReminderEmails({
   clientData,
   clinicianData,
   onEdit,
+  isReminderSectionOpen,
+  setIsReminderSectionOpen,
+  openReminderIndexes,
+  setOpenReminderIndexes,
+  reminderTab,
+  setReminderTab,
+  remindersOn,
+  setRemindersOn,
+  reminderTime,
+  setReminderTime,
 }: ReminderEmailsProps) {
-  const [isReminderSectionOpen, setIsReminderSectionOpen] = useState(true);
-  const [openReminderIndexes, setOpenReminderIndexes] = useState<Set<string>>(
-    new Set(),
-  );
-
-  const form = useForm({
-    defaultValues: {
-      reminderTab: "client",
-      remindersOn: true,
-      reminderTime: "48",
-    },
-    onSubmit: async ({ value }) => {
-      console.log(value);
-    },
-  });
-
   const reminderTemplates = templates.filter(
     (template) => template.type === "reminder",
   );
@@ -87,10 +89,8 @@ export function ReminderEmails({
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-700">Reminders are on</span>
           <Switch
-            checked={form.getFieldValue("remindersOn")}
-            onCheckedChange={(checked) =>
-              form.setFieldValue("remindersOn", checked)
-            }
+            checked={remindersOn}
+            onCheckedChange={(checked) => setRemindersOn(checked)}
           />
         </div>
       </div>
@@ -108,10 +108,8 @@ export function ReminderEmails({
               Send email reminder
             </span>
             <Select
-              value={form.getFieldValue("reminderTime")}
-              onValueChange={(value) =>
-                form.setFieldValue("reminderTime", value)
-              }
+              value={reminderTime}
+              onValueChange={(value) => setReminderTime(value)}
             >
               <SelectTrigger className="w-28 h-8 text-sm font-400 text-[#374151]">
                 <SelectValue />
@@ -135,8 +133,8 @@ export function ReminderEmails({
           </div>
           <Tabs
             className="mt-4"
-            value={form.getFieldValue("reminderTab")}
-            onValueChange={(value) => form.setFieldValue("reminderTab", value)}
+            value={reminderTab}
+            onValueChange={(value) => setReminderTab(value)}
           >
             <TabsList className="border-b bg-white justify-start gap-8">
               {reminderEmailTabs.map((tab) => (
@@ -202,7 +200,7 @@ export function ReminderEmails({
                             <span className="text-gray-500 w-16">From</span>{" "}
                             <span>yourprovider@mcw.com</span>
                           </div>
-                          <div className="flex gap-2 text-sm">
+                          <div className="flex gap-2 text-sm mt-3">
                             <span className="text-gray-500 w-16">Subject</span>{" "}
                             <span className="whitespace-pre-line flex items-center flex-wrap">
                               {renderTemplateWithButton(
@@ -212,7 +210,7 @@ export function ReminderEmails({
                               )}
                             </span>
                           </div>
-                          <div className="flex gap-2 text-sm items-start">
+                          <div className="flex gap-2 text-sm items-start mt-3">
                             <span className="text-gray-500 w-16">Message</span>
                             <span className="whitespace-pre-line flex items-center flex-wrap">
                               {renderTemplateWithButton(
