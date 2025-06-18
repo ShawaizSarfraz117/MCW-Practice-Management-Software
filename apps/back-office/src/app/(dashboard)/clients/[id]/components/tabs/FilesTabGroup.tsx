@@ -41,6 +41,8 @@ import {
   useRef,
   forwardRef,
   useImperativeHandle,
+  useEffect,
+  useCallback,
 } from "react";
 import {
   useClientGroupFiles,
@@ -48,10 +50,14 @@ import {
   useDownloadFile,
 } from "@/(dashboard)/clients/hooks/useClientFiles";
 import { ClientFile } from "@mcw/types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@mcw/ui";
 import { showErrorToast } from "@mcw/utils";
 import SendRemindersSidebar from "./SendRemindersSidebar";
+import {
+  fetchSingleClientGroup,
+  ClientGroupWithMembership,
+} from "@/(dashboard)/clients/services/client.service";
 
 type SortColumn = "name" | "type" | "status" | "updated";
 type SortDirection = "asc" | "desc";
@@ -64,8 +70,6 @@ interface FilesTabGroupProps {
   clientGroupId: string;
   clients: Array<{ id: string; name: string }>;
   onShareFile?: (file: ClientFile) => void;
-  practiceName?: string;
-  clientEmail?: string;
 }
 
 function useFileSorting(filesData: ClientFile[]) {
@@ -233,12 +237,68 @@ function useFileActions(
 }
 
 const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
-  ({ clientGroupId, clients, onShareFile, practiceName, clientEmail }, ref) => {
+  ({ clientGroupId, clients, onShareFile }, ref) => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [showReminderSidebar, setShowReminderSidebar] = useState(false);
+    const [practiceInfo, setPracticeInfo] = useState<{
+      practice_name: string;
+      practice_email: string;
+    } | null>(null);
+    const [clientEmail, setClientEmail] = useState<string>("");
+
+    // Fetch practice information
+    const fetchPracticeInfo = useCallback(async () => {
+      try {
+        const response = await fetch("/api/practiceInformation");
+        if (response.ok) {
+          const data = await response.json();
+          setPracticeInfo(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch practice information:", error);
+      }
+    }, []);
+
+    // Fetch client group to get email
+    useQuery({
+      queryKey: ["clientGroup", clientGroupId],
+      queryFn: async () => {
+        const response = (await fetchSingleClientGroup({
+          id: clientGroupId,
+          searchParams: {},
+        })) as { data: ClientGroupWithMembership } | null;
+
+        if (response?.data) {
+          const clientGroupData = response.data;
+
+          // Get the primary email for the first client in the group
+          if (clientGroupData.ClientGroupMembership?.length) {
+            const firstClient =
+              clientGroupData.ClientGroupMembership[0]?.Client;
+            if (firstClient?.ClientContact) {
+              const primaryEmail = firstClient.ClientContact.find(
+                (contact) =>
+                  contact.contact_type === "EMAIL" && contact.is_primary,
+              );
+              if (primaryEmail) {
+                setClientEmail(primaryEmail.value);
+              }
+            }
+          }
+
+          return clientGroupData;
+        }
+        return null;
+      },
+      enabled: !!clientGroupId,
+    });
+
+    useEffect(() => {
+      fetchPracticeInfo();
+    }, [fetchPracticeInfo]);
 
     // Fetch client files from database
     const {
@@ -577,7 +637,7 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
           }))}
           clientName={clients[0]?.name || ""}
           clientEmail={clientEmail || ""}
-          practiceName={practiceName || "Practice"}
+          practiceName={practiceInfo?.practice_name || "Practice"}
         />
       </div>
     );
