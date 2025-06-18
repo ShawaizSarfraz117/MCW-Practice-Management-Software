@@ -1,6 +1,5 @@
 import React from "react";
 import { Button } from "@mcw/ui";
-import { ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface ClientAppointmentsData {
@@ -89,9 +88,7 @@ function AppointmentItem({ appointment }: AppointmentItemProps) {
 export function AppointmentsSection({
   clientAppointments,
   isLoadingClientAppointments,
-  clientId,
 }: AppointmentsSectionProps) {
-  const router = useRouter();
   const hasPreviousAppointments =
     clientAppointments?.previous && clientAppointments.previous.length > 0;
   const hasNextAppointments =
@@ -137,16 +134,6 @@ export function AppointmentsSection({
           </div>
         )}
       </div>
-      {clientId && (
-        <Button
-          className="text-blue-600 p-0 h-auto text-sm mt-3 flex items-center"
-          variant="link"
-          onClick={() => router.push(`/clients/${clientId}`)}
-        >
-          <ExternalLink className="h-3 w-3 mr-1" />
-          View all appointments
-        </Button>
-      )}
     </div>
   );
 }

@@ -26,7 +26,6 @@ interface BillingSettingsRequest {
 
 async function getClinicianId(session: Session | null) {
   if (!session?.user) return null;
-  console.log("session.user", session.user);
   const clinician = await prisma.clinician.findUnique({
     where: { user_id: session.user.id },
     select: { id: true },
@@ -86,7 +85,6 @@ function validateBillingSettings(body: BillingSettingsRequest): string[] {
 export async function GET() {
   try {
     const session = await getServerSession(backofficeAuthOptions);
-    console.log("session", session);
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -174,7 +172,6 @@ export async function PUT(request: Request) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.log("session", session);
     const clinicianId = await getClinicianId(session);
     if (!clinicianId) {
       return NextResponse.json(
