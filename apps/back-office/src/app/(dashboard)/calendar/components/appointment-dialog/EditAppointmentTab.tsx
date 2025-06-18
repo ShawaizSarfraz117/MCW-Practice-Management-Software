@@ -7,9 +7,10 @@ import { Video, Check, X } from "lucide-react";
 import { SearchSelect, Button, toast } from "@mcw/ui";
 import { cn } from "@mcw/utils";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { createInvoice } from "@/(dashboard)/clients/services/client.service";
 
-import { AppointmentTabProps, AppointmentData } from "./types";
+import { AppointmentTabProps, AppointmentData, Clinician } from "./types";
 import { ValidationError } from "./components/ValidationError";
 import { useFormContext } from "./context/FormContext";
 import { DateTimeControls } from "./components/FormControls";
@@ -65,11 +66,85 @@ export function EditAppointmentTab({
   const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
   const router = useRouter();
 
+  const [clinicianPage, setClinicianPage] = useState(1);
+  const [clinicianSearchTerm, setClinicianSearchTerm] = useState("");
+  const itemsPerPage = 10;
+
+  const { data: cliniciansData = [], isLoading: isLoadingClinicians } =
+    useQuery<Clinician[]>({
+      queryKey: ["clinicians", effectiveClinicianId, isAdmin, isClinician],
+      queryFn: async () => {
+        let url = "/api/clinician";
+
+        if (isClinician && !isAdmin && effectiveClinicianId) {
+          url += `?userId=${effectiveClinicianId}`;
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error("Failed to fetch clinicians");
+        }
+        const data = await response.json();
+        // Ensure we always return an array
+        return Array.isArray(data) ? data : [data];
+      },
+      enabled: !!shouldFetchData && isAdmin, // Only fetch if admin and should fetch data
+    });
+
+  // Filter and paginate clinician options (only if admin)
+  const filteredClinicianOptions = isAdmin
+    ? Array.isArray(cliniciansData)
+      ? cliniciansData
+          .map((clinician) => ({
+            label: `${clinician.first_name} ${clinician.last_name}`,
+            value: clinician.id,
+          }))
+          .filter((option) =>
+            option.label
+              .toLowerCase()
+              .includes(clinicianSearchTerm.toLowerCase()),
+          )
+      : []
+    : [];
+
+  const clinicianTotalPages = Math.ceil(
+    filteredClinicianOptions.length / itemsPerPage,
+  );
+
+  const paginatedClinicianOptions = filteredClinicianOptions.slice(
+    (clinicianPage - 1) * itemsPerPage,
+    clinicianPage * itemsPerPage,
+  );
+
+  // Helper for validation error clearing
+  const clearValidationError = (field: string) => {
+    if (validationErrors[field]) {
+      setValidationErrors({
+        ...validationErrors,
+        [field]: false,
+      });
+
+      // If all errors are cleared, also clear general error
+      if (
+        Object.values({ ...validationErrors, [field]: false }).every((v) => !v)
+      ) {
+        setGeneralError(null);
+      }
+    }
+  };
+
   useEffect(() => {
     if (appointmentData?.status) {
       form.setFieldValue("status", appointmentData.status);
     }
   }, [appointmentData]);
+
+  // Initialize clinician field
+  useEffect(() => {
+    if (appointmentData?.clinician_id) {
+      form.setFieldValue("clinician", appointmentData.clinician_id);
+    }
+  }, [appointmentData, form]);
 
   // Fetch client balance
   useEffect(() => {
@@ -359,17 +434,52 @@ export function EditAppointmentTab({
 
           <div>
             <span className="text-[#717171] text-[14px] pb-2">Clinician</span>
-            <div className="bg-gray-200 flex gap-2 items-center py-2 px-2 rounded-[5px] text-[12px]">
-              <div className="h-[20px] w-[20px] rounded-full bg-gray-500 text-white text-[11px] flex justify-center items-center">
-                {appointmentData?.Clinician?.first_name?.[0]?.toUpperCase() ||
-                  "" +
-                    appointmentData?.Clinician?.last_name?.[0]?.toUpperCase() ||
-                  ""}
+            {isAdmin ? (
+              // Editable clinician field for admin users
+              <>
+                <SearchSelect
+                  searchable
+                  showPagination
+                  className={cn(
+                    "border-gray-200",
+                    validationErrors.clinician && "border-red-500",
+                  )}
+                  currentPage={clinicianPage}
+                  options={paginatedClinicianOptions}
+                  placeholder={
+                    isLoadingClinicians
+                      ? "Loading clinicians..."
+                      : "Search Team Members *"
+                  }
+                  totalPages={clinicianTotalPages}
+                  value={form.getFieldValue("clinician")}
+                  onPageChange={setClinicianPage}
+                  onSearch={setClinicianSearchTerm}
+                  onValueChange={(value) => {
+                    form.setFieldValue("clinician", value);
+                    clearValidationError("clinician");
+                    forceUpdate();
+                  }}
+                />
+                <ValidationError
+                  message="Clinician is required"
+                  show={!!validationErrors.clinician}
+                />
+              </>
+            ) : (
+              // Read-only clinician field for non-admin users
+              <div className="bg-gray-200 flex gap-2 items-center py-2 px-2 rounded-[5px] text-[12px]">
+                <div className="h-[20px] w-[20px] rounded-full bg-gray-500 text-white text-[11px] flex justify-center items-center">
+                  {appointmentData?.Clinician?.first_name?.[0]?.toUpperCase() ||
+                    "" +
+                      appointmentData?.Clinician?.last_name?.[0]?.toUpperCase() ||
+                    ""}
+                </div>
+                {appointmentData?.Clinician?.first_name +
+                  " " +
+                  appointmentData?.Clinician?.last_name}
               </div>
-              {appointmentData?.Clinician?.first_name +
-                " " +
-                appointmentData?.Clinician?.last_name}
-            </div>
+            )}
           </div>
 
           <div>
