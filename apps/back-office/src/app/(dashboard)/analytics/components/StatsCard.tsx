@@ -235,6 +235,24 @@ export function AppointmentsChart({
   const totalAppointments = analyticsData?.appointments || 0;
   const appointmentData = analyticsData?.appointmentsChart || [];
 
+  // Calculate the largest segment for center display
+  const largestSegment = appointmentData.reduce(
+    (max, item) => (item.value > max.value ? item : max),
+    { name: "Show", value: 0 },
+  );
+  const largestPercent =
+    totalAppointments > 0
+      ? Math.round((largestSegment.value / totalAppointments) * 100)
+      : 0;
+
+  // Map appointment status names to colors
+  const getColorForStatus = (name: string) => {
+    const legend = appointmentLegend.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase(),
+    );
+    return legend?.color || "#D1D5DB";
+  };
+
   return (
     <div className="bg-white border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
@@ -269,23 +287,32 @@ export function AppointmentsChart({
                 outerRadius={45}
                 startAngle={90}
               >
-                <Cell fill="#4F46E5" />
+                {appointmentData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${entry.name}-${index}`}
+                    fill={getColorForStatus(entry.name)}
+                  />
+                ))}
               </Pie>
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-sm">
-            <p className="font-medium">100%</p>
-            <p className="text-gray-500">{totalAppointments} Show</p>
+            <p className="font-medium">{largestPercent}%</p>
+            <p className="text-gray-500">
+              {largestSegment.value} {largestSegment.name}
+            </p>
           </div>
         </div>
         <div className="space-y-1.5 text-sm">
-          {appointmentLegend.map((item) => (
+          {appointmentData.map((item) => (
             <div key={item.name} className="flex items-center gap-2">
               <span
                 className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: item.color }}
+                style={{ backgroundColor: getColorForStatus(item.name) }}
               />
-              <span>{item.name}</span>
+              <span>
+                {item.name} ({item.value})
+              </span>
             </div>
           ))}
         </div>

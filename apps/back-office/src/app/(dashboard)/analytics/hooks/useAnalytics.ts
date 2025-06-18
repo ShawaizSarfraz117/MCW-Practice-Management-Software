@@ -57,6 +57,7 @@ interface AppointmentStatusData {
     totalFee: string;
     progressNoteStatus: string;
     status: string;
+    invoiceStatus: string;
     charge: string;
     uninvoiced: string;
     paid: string;
