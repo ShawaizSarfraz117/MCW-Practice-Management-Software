@@ -33,6 +33,10 @@ interface IncomeChartProps {
   analyticsData?: {
     income: number;
     incomeChart: Array<{ date: string; value: number }>;
+    outstanding?: number;
+    uninvoiced?: number;
+    appointments?: number;
+    clients?: number;
   };
   isLoading?: boolean;
   onTimeRangeChange?: (timeRange: {
@@ -80,6 +84,7 @@ export function IncomeChart({
         <TimeRangeFilter
           customRange={customRange}
           selectedRange={selectedRange}
+          analyticsData={analyticsData}
           onChange={(range) => {
             setSelectedRange(range);
             if (onTimeRangeChange) {

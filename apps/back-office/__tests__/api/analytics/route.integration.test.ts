@@ -84,6 +84,23 @@ describe("Analytics API Integration", () => {
         },
       });
 
+      // Create client groups for appointments
+      const clientGroup1 = await prisma.clientGroup.create({
+        data: {
+          id: uuidv4(),
+          name: "Group 1",
+          type: "individual",
+        },
+      });
+
+      const clientGroup2 = await prisma.clientGroup.create({
+        data: {
+          id: uuidv4(),
+          name: "Group 2",
+          type: "individual",
+        },
+      });
+
       // Create appointments - only SHOW status with fees will be counted as uninvoiced
       await prisma.appointment.create({
         data: {
@@ -93,6 +110,7 @@ describe("Analytics API Integration", () => {
           status: "SHOW",
           created_by: user.id,
           appointment_fee: 300, // Uninvoiced appointment with fee
+          client_group_id: clientGroup1.id,
         },
       });
 
@@ -104,6 +122,7 @@ describe("Analytics API Integration", () => {
           status: "NO_SHOW", // This won't be counted due to status
           created_by: user.id,
           appointment_fee: 200, // Won't be included in uninvoiced sum
+          client_group_id: clientGroup2.id,
         },
       });
 
@@ -180,6 +199,7 @@ describe("Analytics API Integration", () => {
         { name: "Completed", value: 1 },
         { name: "Submitted", value: 0 },
       ]);
+      expect(data.clients).toBe(2); // 2 unique client groups (one with SHOW, one with NO_SHOW)
     });
 
     it("should handle last month range correctly", async () => {
@@ -214,6 +234,7 @@ describe("Analytics API Integration", () => {
       expect(data.income).toBeDefined();
       expect(data.incomeChart).toBeDefined();
       expect(Array.isArray(data.incomeChart)).toBe(true);
+      expect(data.clients).toBe(0); // No appointments in last month
     });
 
     it("should handle last 30 days range correctly", async () => {
@@ -249,6 +270,15 @@ describe("Analytics API Integration", () => {
         },
       });
 
+      // Create client group for appointment
+      const clientGroup = await prisma.clientGroup.create({
+        data: {
+          id: uuidv4(),
+          name: "30 Days Group",
+          type: "individual",
+        },
+      });
+
       await prisma.appointment.create({
         data: {
           start_date: thirtyDaysAgo,
@@ -256,6 +286,7 @@ describe("Analytics API Integration", () => {
           type: "APPOINTMENT",
           status: "SHOW",
           created_by: user.id,
+          client_group_id: clientGroup.id,
         },
       });
 
@@ -269,6 +300,7 @@ describe("Analytics API Integration", () => {
       expect(Array.isArray(data.incomeChart)).toBe(true);
       expect(data.incomeChart.length).toBe(31); // 30 days + today
       expect(data.appointments).toBe(1);
+      expect(data.clients).toBe(1); // 1 unique client group
     });
 
     it("should handle this year range correctly", async () => {
@@ -306,6 +338,7 @@ describe("Analytics API Integration", () => {
       expect(data.incomeChart[0]).toHaveProperty("date");
       expect(data.incomeChart[0]).toHaveProperty("value");
       expect(data.incomeChart[0].date).toMatch(/^[A-Za-z]{3}$/); // Should be month abbreviation
+      expect(data.clients).toBe(0); // No appointments created
     });
 
     it("should handle custom date range correctly", async () => {
@@ -342,6 +375,7 @@ describe("Analytics API Integration", () => {
       expect(data.income).toBeDefined();
       expect(data.incomeChart).toBeDefined();
       expect(Array.isArray(data.incomeChart)).toBe(true);
+      expect(data.clients).toBe(0); // No appointments created
     });
 
     it("should handle custom date range with MM/DD/YYYY format", async () => {
@@ -377,6 +411,7 @@ describe("Analytics API Integration", () => {
       expect(data.income).toBeDefined();
       expect(data.incomeChart).toBeDefined();
       expect(Array.isArray(data.incomeChart)).toBe(true);
+      expect(data.clients).toBe(0); // No appointments created
     });
 
     it("should return 400 for invalid custom date range", async () => {
@@ -499,6 +534,7 @@ describe("Analytics API Integration", () => {
       expect(response.status).toBe(200);
       // Should only count uninvoiced appointments with SHOW status, APPOINTMENT type, and past dates: 300 + 400 = 700
       expect(data.uninvoiced).toBe("2000"); // Prisma Decimal serialized as string
+      expect(data.clients).toBe(0); // No client_group_id set on appointments
     });
 
     it("should not count appointments with null fees as uninvoiced", async () => {
@@ -545,6 +581,7 @@ describe("Analytics API Integration", () => {
       expect(response.status).toBe(200);
       // Should only count appointment with fee: 150
       expect(data.uninvoiced).toBe("150"); // Prisma Decimal serialized as string
+      expect(data.clients).toBe(0); // No client_group_id set on appointments
     });
 
     it("should handle database errors gracefully", async () => {

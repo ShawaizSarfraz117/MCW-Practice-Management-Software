@@ -17,11 +17,19 @@ export function TimeRangeFilter({
   onChange,
   customRange,
   onCustomRangeChange,
+  analyticsData,
 }: {
   selectedRange: string;
   onChange: (range: string) => void;
   customRange?: { startDate: string; endDate: string };
   onCustomRangeChange?: (range: { startDate: string; endDate: string }) => void;
+  analyticsData?: {
+    income?: number;
+    outstanding?: number;
+    uninvoiced?: number;
+    appointments?: number;
+    clients?: number;
+  };
 }) {
   const [showPicker, setShowPicker] = useState(false);
 
@@ -71,7 +79,21 @@ export function TimeRangeFilter({
         )}
       </div>
       <div className="bg-emerald-100/50 text-emerald-700 px-4 py-2 rounded-lg text-sm whitespace-nowrap">
-        Projected: $100 • 4 appointments • 1 client
+        {analyticsData ? (
+          <>
+            Projected: $
+            {(
+              Number(analyticsData.income || 0) +
+              Number(analyticsData.outstanding || 0) +
+              Number(analyticsData.uninvoiced || 0)
+            ).toLocaleString()}{" "}
+            • {analyticsData.appointments || 0} appointments •{" "}
+            {analyticsData.clients || 0} client
+            {analyticsData.clients !== 1 ? "s" : ""}
+          </>
+        ) : (
+          "Loading..."
+        )}
       </div>
     </div>
   );

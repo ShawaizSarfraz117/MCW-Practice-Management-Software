@@ -269,6 +269,20 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   console.log(uninvoicedSum);
   const uninvoiced = uninvoicedSum._sum.appointment_fee;
 
+  // Count unique clients with appointments in the date range
+  const uniqueClientsResult = await prisma.appointment.findMany({
+    where: {
+      start_date: { gte: startDate, lte: endDate },
+      client_group_id: { not: null },
+    },
+    select: {
+      client_group_id: true,
+    },
+    distinct: ["client_group_id"],
+  });
+
+  const uniqueClients = uniqueClientsResult.length;
+
   return NextResponse.json({
     income: totalIncome,
     incomeChart: incomeData,
@@ -278,5 +292,6 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     appointmentsChart: appointmentData,
     notes: totalNotes,
     notesChart: notesData,
+    clients: uniqueClients,
   });
 });

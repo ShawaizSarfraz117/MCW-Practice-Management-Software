@@ -41,6 +41,9 @@ const mockAppointmentGroupBy = prisma.appointment.groupBy as ReturnType<
 const mockAppointmentAggregate = prisma.appointment.aggregate as ReturnType<
   typeof vi.fn
 >;
+const mockAppointmentFindMany = prisma.appointment.findMany as ReturnType<
+  typeof vi.fn
+>;
 const mockSurveyAnswersGroupBy = prisma.surveyAnswers.groupBy as ReturnType<
   typeof vi.fn
 >;
@@ -66,6 +69,13 @@ describe("Analytics API Unit Tests", () => {
           ]
         : [],
   });
+
+  // Helper function to create mock unique clients
+  const createMockUniqueClients = (count: number) => {
+    return Array.from({ length: count }, (_, i) => ({
+      client_group_id: `group-${i + 1}`,
+    }));
+  };
 
   describe("GET /api/analytics", () => {
     it("should handle this month range correctly", async () => {
@@ -108,6 +118,9 @@ describe("Analytics API Unit Tests", () => {
         _max: { appointment_fee: new Prisma.Decimal(1000) },
       });
 
+      // Mock unique clients count
+      mockAppointmentFindMany.mockResolvedValueOnce(createMockUniqueClients(3));
+
       const request = createRequest("/api/analytics");
       const response = await GET(request);
       const data = await response.json();
@@ -137,6 +150,7 @@ describe("Analytics API Unit Tests", () => {
         { name: "Completed", value: 1 },
         { name: "Submitted", value: 0 },
       ]);
+      expect(data.clients).toBe(3); // 3 unique client groups
 
       // Verify appointment groupBy was called
       expect(mockAppointmentGroupBy).toHaveBeenCalledWith({
@@ -185,6 +199,9 @@ describe("Analytics API Unit Tests", () => {
         _max: { appointment_fee: null },
       });
 
+      // Mock unique clients count
+      mockAppointmentFindMany.mockResolvedValueOnce(createMockUniqueClients(0));
+
       const request = createRequest("/api/analytics?range=lastMonth");
       const response = await GET(request);
       const data = await response.json();
@@ -198,6 +215,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(0);
       expect(data.notesChart).toBeDefined();
+      expect(data.clients).toBe(0); // No clients in last month
     });
 
     it("should handle last 30 days range correctly", async () => {
@@ -234,6 +252,9 @@ describe("Analytics API Unit Tests", () => {
         _max: { appointment_fee: new Prisma.Decimal(500) },
       });
 
+      // Mock unique clients count
+      mockAppointmentFindMany.mockResolvedValueOnce(createMockUniqueClients(2));
+
       const request = createRequest("/api/analytics?range=last30days");
       const response = await GET(request);
       const data = await response.json();
@@ -247,6 +268,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(3);
       expect(data.notesChart).toBeDefined();
+      expect(data.clients).toBe(2); // 2 unique clients
     });
 
     it("should handle this year range correctly", async () => {
@@ -286,6 +308,11 @@ describe("Analytics API Unit Tests", () => {
         _max: { appointment_fee: new Prisma.Decimal(2000) },
       });
 
+      // Mock unique clients count
+      mockAppointmentFindMany.mockResolvedValueOnce(
+        createMockUniqueClients(10),
+      );
+
       const request = createRequest("/api/analytics?range=thisYear");
       const response = await GET(request);
       const data = await response.json();
@@ -303,6 +330,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(15);
       expect(data.notesChart).toBeDefined();
+      expect(data.clients).toBe(10); // 10 unique clients
     });
 
     it("should handle custom date range correctly", async () => {
@@ -342,6 +370,9 @@ describe("Analytics API Unit Tests", () => {
         _max: { appointment_fee: null },
       });
 
+      // Mock unique clients count
+      mockAppointmentFindMany.mockResolvedValueOnce(createMockUniqueClients(1));
+
       const request = createRequest(
         `/api/analytics?range=custom&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
       );
@@ -357,6 +388,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(2);
       expect(data.notesChart).toBeDefined();
+      expect(data.clients).toBe(1); // 1 unique client
     });
 
     it("should handle custom date range with MM/DD/YYYY format", async () => {
@@ -393,6 +425,9 @@ describe("Analytics API Unit Tests", () => {
         _max: { appointment_fee: new Prisma.Decimal(500) },
       });
 
+      // Mock unique clients count
+      mockAppointmentFindMany.mockResolvedValueOnce(createMockUniqueClients(1));
+
       const request = createRequest(
         `/api/analytics?range=custom&startDate=01/15/2024&endDate=01/31/2024`,
       );
@@ -408,6 +443,7 @@ describe("Analytics API Unit Tests", () => {
       expect(data.appointmentsChart).toBeDefined();
       expect(data.notes).toBe(1);
       expect(data.notesChart).toBeDefined();
+      expect(data.clients).toBe(1); // 1 unique client
     });
 
     it("should return 400 for invalid custom date range", async () => {
