@@ -85,7 +85,10 @@ const fetchAppointmentStatus = async (
 ): Promise<AppointmentStatusData> => {
   const response = await FETCH.get({
     url: "/analytics/appointmentStatus",
-    searchParams: params,
+    searchParams: params as unknown as Record<
+      string,
+      string | number | boolean
+    >,
   });
 
   return response as AppointmentStatusData;
