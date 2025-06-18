@@ -227,42 +227,48 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   const totalNotes = notesData.reduce((sum, item) => sum + item.value, 0);
 
   // Outstanding balances calculation
-  const outstandingResult = await prisma.invoice.aggregate({
+  // Calculate unpaid invoices (invoiced but not fully paid)
+  const unpaidInvoices = await prisma.invoice.findMany({
     where: {
-      status: { in: ["SENT", "OVERDUE"] },
+      status: { in: ["SENT", "OVERDUE", "UNPAID", "PARTIAL"] },
     },
-    _sum: {
-      amount: true,
+    include: {
+      Payment: true,
     },
   });
 
-  const totalPaidResult = await prisma.payment.aggregate({
+  let totalUnpaid = 0;
+  for (const invoice of unpaidInvoices) {
+    const invoiceAmount = Number(invoice.amount);
+    const totalPaid = invoice.Payment.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0,
+    );
+    const unpaidAmount = invoiceAmount - totalPaid;
+    if (unpaidAmount > 0) {
+      totalUnpaid += unpaidAmount;
+    }
+  }
+
+  const uninvoicedSum = await prisma.appointment.aggregate({
+    _sum: {
+      appointment_fee: true,
+    },
     where: {
-      Invoice: {
-        status: { in: ["SENT", "OVERDUE"] },
+      type: "APPOINTMENT",
+      status: "SHOW",
+      start_date: { lte: new Date() },
+      appointment_fee: { not: null },
+      NOT: {
+        Invoice: {
+          some: {},
+        },
       },
     },
-    _sum: {
-      amount: true,
-    },
   });
 
-  const uninvoicedResult = await prisma.invoice.aggregate({
-    where: {
-      status: { in: ["SENT", "OVERDUE"] },
-      Payment: {
-        none: {},
-      },
-    },
-    _sum: {
-      amount: true,
-    },
-  });
-
-  const outstanding =
-    Number(outstandingResult._sum?.amount || 0) -
-    Number(totalPaidResult._sum?.amount || 0);
-  const uninvoiced = Number(uninvoicedResult._sum?.amount || 0);
+  const outstanding = totalUnpaid;
+  const uninvoiced = Number(uninvoicedSum._sum.appointment_fee || 0);
 
   return NextResponse.json({
     income: totalIncome,

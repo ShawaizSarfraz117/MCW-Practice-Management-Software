@@ -6,15 +6,21 @@ import { createRequest } from "@mcw/utils";
 // Mock the database module first before any imports that use it
 vi.mock("@mcw/database", () => {
   const mockPaymentAggregate = vi.fn();
-  const mockInvoiceAggregate = vi.fn();
+  const mockInvoiceFindMany = vi.fn();
   const mockAppointmentGroupBy = vi.fn();
+  const mockAppointmentFindMany = vi.fn();
+  const mockAppointmentAggregate = vi.fn();
   const mockSurveyAnswersGroupBy = vi.fn();
 
   return {
     prisma: {
       payment: { aggregate: mockPaymentAggregate },
-      invoice: { aggregate: mockInvoiceAggregate },
-      appointment: { groupBy: mockAppointmentGroupBy },
+      invoice: { findMany: mockInvoiceFindMany },
+      appointment: {
+        groupBy: mockAppointmentGroupBy,
+        findMany: mockAppointmentFindMany,
+        aggregate: mockAppointmentAggregate,
+      },
       surveyAnswers: { groupBy: mockSurveyAnswersGroupBy },
     },
   };
@@ -28,10 +34,11 @@ const { prisma } = await import("@mcw/database");
 const mockPaymentAggregate = prisma.payment.aggregate as ReturnType<
   typeof vi.fn
 >;
-const mockInvoiceAggregate = prisma.invoice.aggregate as ReturnType<
+const mockInvoiceFindMany = prisma.invoice.findMany as ReturnType<typeof vi.fn>;
+const mockAppointmentGroupBy = prisma.appointment.groupBy as ReturnType<
   typeof vi.fn
 >;
-const mockAppointmentGroupBy = prisma.appointment.groupBy as ReturnType<
+const mockAppointmentAggregate = prisma.appointment.aggregate as ReturnType<
   typeof vi.fn
 >;
 const mockSurveyAnswersGroupBy = prisma.surveyAnswers.groupBy as ReturnType<
@@ -42,6 +49,22 @@ describe("Analytics API Unit Tests", () => {
   beforeEach(() => {
     // Reset mocks before each test
     vi.clearAllMocks();
+  });
+
+  // Helper function to create mock invoice with payments
+  const createMockInvoice = (amount: number, paidAmount: number) => ({
+    id: `inv-${Math.random()}`,
+    amount: new Prisma.Decimal(amount),
+    status: "SENT",
+    Payment:
+      paidAmount > 0
+        ? [
+            {
+              id: `pay-${Math.random()}`,
+              amount: new Prisma.Decimal(paidAmount),
+            },
+          ]
+        : [],
   });
 
   describe("GET /api/analytics", () => {
@@ -71,31 +94,18 @@ describe("Analytics API Unit Tests", () => {
         { status: "ASSIGNED", _count: { status: 1 } },
       ]);
 
-      // Mock outstanding invoices aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(3000) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(3000) },
-        _min: { amount: new Prisma.Decimal(3000) },
-        _max: { amount: new Prisma.Decimal(3000) },
-      });
+      // Mock unpaid invoices
+      mockInvoiceFindMany.mockResolvedValueOnce([
+        createMockInvoice(3000, 500), // 3000 invoice with 500 paid
+      ]);
 
-      // Mock total paid amount aggregate
-      mockPaymentAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(1000) },
+      // Mock uninvoiced appointments aggregate
+      mockAppointmentAggregate.mockResolvedValueOnce({
+        _sum: { appointment_fee: new Prisma.Decimal(1000) },
         _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(1000) },
-        _min: { amount: new Prisma.Decimal(1000) },
-        _max: { amount: new Prisma.Decimal(1000) },
-      });
-
-      // Mock uninvoiced amount aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(1000) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(1000) },
-        _min: { amount: new Prisma.Decimal(1000) },
-        _max: { amount: new Prisma.Decimal(1000) },
+        _avg: { appointment_fee: new Prisma.Decimal(1000) },
+        _min: { appointment_fee: new Prisma.Decimal(1000) },
+        _max: { appointment_fee: new Prisma.Decimal(1000) },
       });
 
       const request = createRequest("/api/analytics");
@@ -106,8 +116,8 @@ describe("Analytics API Unit Tests", () => {
       expect(data.income).toBeDefined();
       expect(data.incomeChart).toBeDefined();
       expect(Array.isArray(data.incomeChart)).toBe(true);
-      expect(data.outstanding).toBe(2500); // 3000 (total unpaid/partial) - 500 (paid on partial)
-      expect(data.uninvoiced).toBe(1000);
+      expect(data.outstanding).toBe(2500); // 3000 invoice - 500 paid = 2500 unpaid
+      expect(data.uninvoiced).toBe(1000); // 1000 from uninvoiced appointment
       expect(data.appointments).toBe(2);
       expect(data.appointmentsChart).toBeDefined();
       expect(Array.isArray(data.appointmentsChart)).toBe(true);
@@ -156,31 +166,23 @@ describe("Analytics API Unit Tests", () => {
       // Mock surveyAnswers groupBy with empty results
       mockSurveyAnswersGroupBy.mockResolvedValueOnce([]);
 
-      // Mock outstanding invoices aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(2000) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(2000) },
-        _min: { amount: new Prisma.Decimal(2000) },
-        _max: { amount: new Prisma.Decimal(2000) },
-      });
+      // Mock unpaid invoices
+      mockInvoiceFindMany.mockResolvedValueOnce([
+        {
+          id: "2",
+          amount: new Prisma.Decimal(2000),
+          status: "SENT",
+          Payment: [{ id: "p2", amount: new Prisma.Decimal(1000) }],
+        },
+      ]);
 
-      // Mock total paid amount aggregate
-      mockPaymentAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(500) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(500) },
-        _min: { amount: new Prisma.Decimal(500) },
-        _max: { amount: new Prisma.Decimal(500) },
-      });
-
-      // Mock uninvoiced amount aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(0) },
+      // Mock uninvoiced appointments aggregate (no uninvoiced)
+      mockAppointmentAggregate.mockResolvedValueOnce({
+        _sum: { appointment_fee: null },
         _count: { _all: 0 },
-        _avg: { amount: null },
-        _min: { amount: null },
-        _max: { amount: null },
+        _avg: { appointment_fee: null },
+        _min: { appointment_fee: null },
+        _max: { appointment_fee: null },
       });
 
       const request = createRequest("/api/analytics?range=lastMonth");
@@ -218,31 +220,18 @@ describe("Analytics API Unit Tests", () => {
         { status: "COMPLETED", _count: { status: 3 } },
       ]);
 
-      // Mock outstanding invoices aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(2500) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(2500) },
-        _min: { amount: new Prisma.Decimal(2500) },
-        _max: { amount: new Prisma.Decimal(2500) },
-      });
+      // Mock unpaid invoices
+      mockInvoiceFindMany.mockResolvedValueOnce([
+        createMockInvoice(2500, 1500), // 2500 invoice with 1500 paid
+      ]);
 
-      // Mock total paid amount aggregate
-      mockPaymentAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(500) },
+      // Mock uninvoiced appointments aggregate
+      mockAppointmentAggregate.mockResolvedValueOnce({
+        _sum: { appointment_fee: new Prisma.Decimal(500) },
         _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(500) },
-        _min: { amount: new Prisma.Decimal(500) },
-        _max: { amount: new Prisma.Decimal(500) },
-      });
-
-      // Mock uninvoiced amount aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(500) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(500) },
-        _min: { amount: new Prisma.Decimal(500) },
-        _max: { amount: new Prisma.Decimal(500) },
+        _avg: { appointment_fee: new Prisma.Decimal(500) },
+        _min: { appointment_fee: new Prisma.Decimal(500) },
+        _max: { appointment_fee: new Prisma.Decimal(500) },
       });
 
       const request = createRequest("/api/analytics?range=last30days");
@@ -283,31 +272,18 @@ describe("Analytics API Unit Tests", () => {
         { status: "ASSIGNED", _count: { status: 5 } },
       ]);
 
-      // Mock outstanding invoices aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(10000) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(10000) },
-        _min: { amount: new Prisma.Decimal(10000) },
-        _max: { amount: new Prisma.Decimal(10000) },
-      });
+      // Mock unpaid invoices
+      mockInvoiceFindMany.mockResolvedValueOnce([
+        createMockInvoice(10000, 5000), // 10000 invoice with 5000 paid
+      ]);
 
-      // Mock total paid amount aggregate
-      mockPaymentAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(3000) },
+      // Mock uninvoiced appointments aggregate
+      mockAppointmentAggregate.mockResolvedValueOnce({
+        _sum: { appointment_fee: new Prisma.Decimal(2000) },
         _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(3000) },
-        _min: { amount: new Prisma.Decimal(3000) },
-        _max: { amount: new Prisma.Decimal(3000) },
-      });
-
-      // Mock uninvoiced amount aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(2000) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(2000) },
-        _min: { amount: new Prisma.Decimal(2000) },
-        _max: { amount: new Prisma.Decimal(2000) },
+        _avg: { appointment_fee: new Prisma.Decimal(2000) },
+        _min: { appointment_fee: new Prisma.Decimal(2000) },
+        _max: { appointment_fee: new Prisma.Decimal(2000) },
       });
 
       const request = createRequest("/api/analytics?range=thisYear");
@@ -352,31 +328,18 @@ describe("Analytics API Unit Tests", () => {
         { status: "COMPLETED", _count: { status: 2 } },
       ]);
 
-      // Mock outstanding invoices aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(3000) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(3000) },
-        _min: { amount: new Prisma.Decimal(3000) },
-        _max: { amount: new Prisma.Decimal(3000) },
-      });
+      // Mock unpaid invoices
+      mockInvoiceFindMany.mockResolvedValueOnce([
+        createMockInvoice(3000, 2000), // 3000 invoice with 2000 paid
+      ]);
 
-      // Mock total paid amount aggregate
-      mockPaymentAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(1000) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(1000) },
-        _min: { amount: new Prisma.Decimal(1000) },
-        _max: { amount: new Prisma.Decimal(1000) },
-      });
-
-      // Mock uninvoiced amount aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(0) },
+      // Mock uninvoiced appointments aggregate
+      mockAppointmentAggregate.mockResolvedValueOnce({
+        _sum: { appointment_fee: null },
         _count: { _all: 0 },
-        _avg: { amount: null },
-        _min: { amount: null },
-        _max: { amount: null },
+        _avg: { appointment_fee: null },
+        _min: { appointment_fee: null },
+        _max: { appointment_fee: null },
       });
 
       const request = createRequest(
@@ -416,31 +379,18 @@ describe("Analytics API Unit Tests", () => {
         { status: "COMPLETED", _count: { status: 1 } },
       ]);
 
-      // Mock outstanding invoices aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(2000) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(2000) },
-        _min: { amount: new Prisma.Decimal(2000) },
-        _max: { amount: new Prisma.Decimal(2000) },
-      });
+      // Mock unpaid invoices
+      mockInvoiceFindMany.mockResolvedValueOnce([
+        createMockInvoice(2000, 1500), // 2000 invoice with 1500 paid
+      ]);
 
-      // Mock total paid amount aggregate
-      mockPaymentAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(500) },
+      // Mock uninvoiced appointments aggregate
+      mockAppointmentAggregate.mockResolvedValueOnce({
+        _sum: { appointment_fee: new Prisma.Decimal(500) },
         _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(500) },
-        _min: { amount: new Prisma.Decimal(500) },
-        _max: { amount: new Prisma.Decimal(500) },
-      });
-
-      // Mock uninvoiced amount aggregate
-      mockInvoiceAggregate.mockResolvedValueOnce({
-        _sum: { amount: new Prisma.Decimal(500) },
-        _count: { _all: 1 },
-        _avg: { amount: new Prisma.Decimal(500) },
-        _min: { amount: new Prisma.Decimal(500) },
-        _max: { amount: new Prisma.Decimal(500) },
+        _avg: { appointment_fee: new Prisma.Decimal(500) },
+        _min: { appointment_fee: new Prisma.Decimal(500) },
+        _max: { appointment_fee: new Prisma.Decimal(500) },
       });
 
       const request = createRequest(

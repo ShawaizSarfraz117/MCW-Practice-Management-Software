@@ -84,24 +84,26 @@ describe("Analytics API Integration", () => {
         },
       });
 
-      // Create appointments
+      // Create appointments - only SHOW status with fees will be counted as uninvoiced
       await prisma.appointment.create({
         data: {
-          start_date: now,
-          end_date: new Date(now.getTime() + 3600000),
+          start_date: new Date(now.getTime() - 3600000), // Past date to ensure it's counted
+          end_date: now,
           type: "APPOINTMENT",
           status: "SHOW",
           created_by: user.id,
+          appointment_fee: 300, // Uninvoiced appointment with fee
         },
       });
 
       await prisma.appointment.create({
         data: {
-          start_date: now,
-          end_date: new Date(now.getTime() + 3600000),
+          start_date: new Date(now.getTime() - 7200000), // Past date
+          end_date: new Date(now.getTime() - 3600000),
           type: "APPOINTMENT",
-          status: "NO_SHOW",
+          status: "NO_SHOW", // This won't be counted due to status
           created_by: user.id,
+          appointment_fee: 200, // Won't be included in uninvoiced sum
         },
       });
 
@@ -162,7 +164,7 @@ describe("Analytics API Integration", () => {
       expect(Array.isArray(data.incomeChart)).toBe(true);
       expect(data.incomeChart.length).toBeGreaterThan(0);
       expect(data.outstanding).toBe(2500); // 3000 (total sent/overdue) - 500 (partial payment)
-      expect(data.uninvoiced).toBe(1000); // Amount of overdue invoice with no payment
+      expect(data.uninvoiced).toBe(300); // Only 300 from SHOW status appointment
       expect(data.appointments).toBe(2);
       expect(data.appointmentsChart).toEqual([
         { name: "Show", value: 1 },
@@ -395,6 +397,154 @@ describe("Analytics API Integration", () => {
       expect(response.status).toBe(400);
       const data = await response.json();
       expect(data.error).toBe("Invalid custom date(s)");
+    });
+
+    it("should correctly calculate uninvoiced appointments", async () => {
+      // Create a user first
+      const user = await prisma.user.create({
+        data: {
+          id: uuidv4(),
+          email: "testinvoiced@example.com",
+          password_hash: "hashed_password",
+          last_login: new Date(),
+        },
+      });
+
+      // Create appointments with fees - all in the past to be counted
+      const now = new Date();
+      const invoicedAppointment = await prisma.appointment.create({
+        data: {
+          start_date: new Date(now.getTime() - 7200000), // 2 hours ago
+          end_date: new Date(now.getTime() - 3600000), // 1 hour ago
+          type: "APPOINTMENT",
+          status: "SHOW",
+          created_by: user.id,
+          appointment_fee: 500, // This will be invoiced
+        },
+      });
+
+      // Create uninvoiced appointments
+      await prisma.appointment.create({
+        data: {
+          start_date: new Date(now.getTime() - 10800000), // 3 hours ago
+          end_date: new Date(now.getTime() - 7200000), // 2 hours ago
+          type: "APPOINTMENT",
+          status: "SHOW",
+          created_by: user.id,
+          appointment_fee: 300, // This will NOT be invoiced
+        },
+      });
+
+      await prisma.appointment.create({
+        data: {
+          start_date: new Date(now.getTime() - 14400000), // 4 hours ago
+          end_date: new Date(now.getTime() - 10800000), // 3 hours ago
+          type: "APPOINTMENT",
+          status: "SHOW",
+          created_by: user.id,
+          appointment_fee: 400, // This will NOT be invoiced
+        },
+      });
+
+      // Create appointments that won't be counted
+      await prisma.appointment.create({
+        data: {
+          start_date: new Date(now.getTime() + 3600000), // Future
+          end_date: new Date(now.getTime() + 7200000),
+          type: "APPOINTMENT",
+          status: "SHOW",
+          created_by: user.id,
+          appointment_fee: 600, // Won't count - future
+        },
+      });
+
+      await prisma.appointment.create({
+        data: {
+          start_date: new Date(now.getTime() - 18000000), // Past
+          end_date: new Date(now.getTime() - 14400000),
+          type: "APPOINTMENT",
+          status: "NO_SHOW", // Wrong status
+          created_by: user.id,
+          appointment_fee: 700, // Won't count - NO_SHOW
+        },
+      });
+
+      await prisma.appointment.create({
+        data: {
+          start_date: new Date(now.getTime() - 21600000), // Past
+          end_date: new Date(now.getTime() - 18000000),
+          type: "EVENT", // Wrong type
+          status: "SHOW",
+          created_by: user.id,
+          appointment_fee: 800, // Won't count - EVENT type
+        },
+      });
+
+      // Create an invoice for the first appointment
+      await prisma.invoice.create({
+        data: {
+          amount: 500,
+          status: "SENT",
+          invoice_number: "INV-TEST-001",
+          due_date: new Date(),
+          type: "SERVICE",
+          appointment_id: invoicedAppointment.id, // Link to the appointment
+        },
+      });
+
+      const request = createRequest("/api/analytics");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // Should only count uninvoiced appointments with SHOW status, APPOINTMENT type, and past dates: 300 + 400 = 700
+      expect(data.uninvoiced).toBe(700);
+    });
+
+    it("should not count appointments with null fees as uninvoiced", async () => {
+      // Create a user first
+      const user = await prisma.user.create({
+        data: {
+          id: uuidv4(),
+          email: "testnullfees@example.com",
+          password_hash: "hashed_password",
+          last_login: new Date(),
+        },
+      });
+
+      const now = new Date();
+
+      // Create appointments with null fees
+      await prisma.appointment.create({
+        data: {
+          start_date: new Date(now.getTime() - 7200000), // Past
+          end_date: new Date(now.getTime() - 3600000),
+          type: "APPOINTMENT",
+          status: "SHOW",
+          created_by: user.id,
+          appointment_fee: null, // Null fee - should not be counted
+        },
+      });
+
+      // Create appointment with fee
+      await prisma.appointment.create({
+        data: {
+          start_date: new Date(now.getTime() - 10800000), // Past
+          end_date: new Date(now.getTime() - 7200000),
+          type: "APPOINTMENT",
+          status: "SHOW",
+          created_by: user.id,
+          appointment_fee: 150, // This should be counted
+        },
+      });
+
+      const request = createRequest("/api/analytics");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // Should only count appointment with fee: 150
+      expect(data.uninvoiced).toBe(150);
     });
 
     it("should handle database errors gracefully", async () => {

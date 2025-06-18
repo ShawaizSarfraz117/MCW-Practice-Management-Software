@@ -183,7 +183,7 @@ export function OutstandingBalancesChart({
       <div className="space-y-3 mt-3">
         <div>
           <div className="flex justify-between text-sm mb-1">
-            <span>Clients</span>
+            <span>Unpaid Invoices</span>
             <span>${outstanding.toLocaleString()}</span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -209,11 +209,11 @@ export function OutstandingBalancesChart({
       <div className="flex gap-4 mt-3 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-orange-500" />
-          <span>Unpaid</span>
+          <span>Unpaid Invoices</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-gray-400" />
-          <span>Uninvoiced</span>
+          <span>Uninvoiced Appointments</span>
         </div>
       </div>
     </div>
