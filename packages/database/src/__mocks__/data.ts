@@ -29,6 +29,8 @@ import {
   defineAppointmentRequestsFactory,
   defineRequestContactItemsFactory,
   defineClientGroupChartNoteFactory,
+  defineClientGroupFileFactory,
+  defineClientFilesFactory,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcryptjs";
@@ -43,6 +45,7 @@ import {
   Audit,
   ClientContact,
   ClientGroup,
+  ClientGroupMembership,
   ClientReminderPreference,
   ClinicianClient,
   PracticeService,
@@ -58,15 +61,15 @@ import {
   AppointmentRequests,
   RequestContactItems,
   ClientGroupChartNote,
+  ClientGroupFile,
+  ClientFiles,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { BillingSettings } from "../types/billing.js";
-
 registerScalarFieldValueGenerator({
   Decimal: () =>
     new Decimal(faker.number.float({ min: 0, max: 10, fractionDigits: 2 })),
 });
-
 // User factory for generating mock data without Prisma
 export const UserFactory = {
   build: <T extends Partial<User>>(overrides: T = {} as T) => ({
@@ -80,12 +83,10 @@ export const UserFactory = {
     ...overrides,
   }),
 };
-
 // User factory for Prisma operations
 export const UserPrismaFactory = defineUserFactory({
   defaultData: () => UserFactory.build(),
 });
-
 // Clinician factory for generating mock data
 export const ClinicianFactory = {
   build: <T extends Partial<Clinician>>(overrides: T = {} as T) => ({
@@ -98,7 +99,6 @@ export const ClinicianFactory = {
     ...overrides,
   }),
 };
-
 // Clinician factory for Prisma operations
 export const ClinicianPrismaFactory = defineClinicianFactory({
   defaultData: () => {
@@ -115,7 +115,6 @@ export const ClinicianPrismaFactory = defineClinicianFactory({
     },
   },
 });
-
 // Client factory for generating mock data
 export const ClientFactory = {
   build: <T extends Partial<Client>>(overrides: T = {} as T) => ({
@@ -130,12 +129,10 @@ export const ClientFactory = {
     ...overrides,
   }),
 };
-
 // Client factory for Prisma operations
 export const ClientPrismaFactory = defineClientFactory({
   defaultData: () => ClientFactory.build(),
 });
-
 export const LocationFactory = {
   build: <T extends Partial<Location>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -149,7 +146,6 @@ export const LocationFactory = {
     ...overrides,
   }),
 };
-
 export const ClinicianLocationFactory = {
   build: <T extends Partial<ClinicianLocation>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -157,7 +153,6 @@ export const ClinicianLocationFactory = {
     ...overrides,
   }),
 };
-
 export const TagFactory = {
   build: <T extends Partial<Tag>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -166,20 +161,27 @@ export const TagFactory = {
     ...overrides,
   }),
 };
-
 export const AppointmentFactory = {
   build: <T extends Partial<Appointment>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    User: UserPrismaFactory,
+    created_by: faker.string.uuid(),
     start_date: faker.date.future(),
     end_date: faker.date.future(),
-    type: faker.helpers.arrayElement(["consultation", "therapy", "followup"]),
-    status: faker.helpers.arrayElement(["scheduled", "completed", "cancelled"]),
-    notes: faker.lorem.paragraph(),
+    type: faker.helpers.arrayElement(["APPOINTMENT", "EVENT"]),
+    status: faker.helpers.arrayElement([
+      "SHOW",
+      "NO_SHOW",
+      "CANCELLED",
+      "LATE_CANCELLED",
+      "CLINICIAN_CANCELLED",
+    ]),
+    title: faker.lorem.words(3),
+    is_all_day: false,
+    is_recurring: false,
+    appointment_fee: faker.number.int({ min: 50, max: 300 }),
     ...overrides,
   }),
 };
-
 export const AuditFactory = {
   build: <T extends Partial<Audit>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -195,7 +197,6 @@ export const AuditFactory = {
     ...overrides,
   }),
 };
-
 export const ClientContactFactory = {
   build: <T extends Partial<ClientContact>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -206,16 +207,15 @@ export const ClientContactFactory = {
     ...overrides,
   }),
 };
-
 export const ClientGroupFactory = {
   build: <T extends Partial<ClientGroup>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
     type: faker.helpers.arrayElement(["FAMILY", "INDIVIDUAL", "ORGANIZATION"]),
     name: faker.company.name(),
+    administrative_notes: null,
     ...overrides,
   }),
 };
-
 export const ClientReminderPreferenceFactory = {
   build: <T extends Partial<ClientReminderPreference>>(
     overrides: T = {} as T,
@@ -227,7 +227,6 @@ export const ClientReminderPreferenceFactory = {
     ...overrides,
   }),
 };
-
 export const ClinicianClientFactory = {
   build: <T extends Partial<ClinicianClient>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -236,7 +235,6 @@ export const ClinicianClientFactory = {
     ...overrides,
   }),
 };
-
 export const PracticeServiceFactory = {
   build: <T extends Partial<PracticeService>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -258,7 +256,6 @@ export const PracticeServiceFactory = {
     ...overrides,
   }),
 };
-
 export const ProductFactory = {
   build: <T extends Partial<Product>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -269,16 +266,13 @@ export const ProductFactory = {
     ...overrides,
   }),
 };
-
 export const ProductPrismaFactory = defineProductFactory({
   defaultData: () => ProductFactory.build(),
 });
-
 // PracticeService Prisma factory
 export const PracticeServicePrismaFactory = definePracticeServiceFactory({
   defaultData: () => PracticeServiceFactory.build(),
 });
-
 export const CreditCardFactory = {
   build: <T extends Partial<CreditCard>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -291,7 +285,6 @@ export const CreditCardFactory = {
     ...overrides,
   }),
 };
-
 export const InvoiceFactory = {
   build: <T extends Partial<Invoice>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -301,11 +294,9 @@ export const InvoiceFactory = {
     issued_date: faker.date.recent(),
     ...overrides,
   }),
-
   buildComplete: (overrides = {}) => {
     const issuedDate = new Date();
     const dueDate = new Date(issuedDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
-
     return {
       id: generateUUID(),
       invoice_number: "INV-1234",
@@ -324,7 +315,6 @@ export const InvoiceFactory = {
     };
   },
 };
-
 export const PaymentFactory = {
   build: <T extends Partial<Payment>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -342,7 +332,6 @@ export const PaymentFactory = {
     ...overrides,
   }),
 };
-
 export const RoleFactory = {
   build: <T extends Partial<Role>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -350,30 +339,46 @@ export const RoleFactory = {
     ...overrides,
   }),
 };
-
 export const SurveyTemplateFactory = {
   build: <T extends Partial<SurveyTemplate>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    title: faker.lorem.words(3),
-    description: faker.lorem.sentence(),
-    questions: JSON.stringify([
-      {
-        question: faker.lorem.sentence(),
-        type: faker.helpers.arrayElement(["text", "multiple_choice", "rating"]),
-        options: faker.helpers.arrayElements(
-          ["option1", "option2", "option3"],
-          3,
-        ),
-      },
+    name: faker.lorem.words(3),
+    content: JSON.stringify({
+      pages: [
+        {
+          elements: [
+            {
+              type: "text",
+              name: "question1",
+              title: faker.lorem.sentence(),
+            },
+          ],
+        },
+      ],
+    }),
+    type: faker.helpers.arrayElement([
+      "INTAKE",
+      "CONSENT",
+      "ASSESSMENT",
+      "CUSTOM",
+      "PROGRESS_NOTES",
     ]),
+    is_active: true,
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
+    description: faker.lorem.sentence(),
+    is_default: false,
+    requires_signature: false,
+    is_shareable: false,
     ...overrides,
   }),
 };
-
 export const SurveyAnswersFactory = {
   build: <T extends Partial<SurveyAnswers>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
-    answers: JSON.stringify({
+    template_id: faker.string.uuid(),
+    client_id: faker.string.uuid(),
+    content: JSON.stringify({
       answers: [
         {
           question_id: faker.string.uuid(),
@@ -381,32 +386,37 @@ export const SurveyAnswersFactory = {
         },
       ],
     }),
-    submitted_at: faker.date.recent(),
+    status: faker.helpers.arrayElement([
+      "ASSIGNED",
+      "IN_PROGRESS",
+      "COMPLETED",
+      "EXPIRED",
+      "SUBMITTED",
+    ]),
+    assigned_at: faker.date.recent(),
+    completed_at: faker.date.recent(),
+    is_intake: false,
     ...overrides,
   }),
 };
-
 // Location Prisma factory
 export const LocationPrismaFactory = defineLocationFactory({
   defaultData: () => LocationFactory.build(),
 });
-
 // Tag Prisma factory
 export const TagPrismaFactory = defineTagFactory({
   defaultData: () => TagFactory.build(),
 });
-
 // Appointment Prisma factory
 export const AppointmentPrismaFactory = defineAppointmentFactory({
-  defaultData: () => ({
-    ...AppointmentFactory.build(),
-    Client: ClientPrismaFactory,
-    Clinician: ClinicianPrismaFactory,
-    User: UserPrismaFactory,
-    Location: LocationPrismaFactory,
-  }),
+  defaultData: () => {
+    const { created_by, ...appointmentData } = AppointmentFactory.build();
+    return {
+      ...appointmentData,
+      User: UserPrismaFactory,
+    };
+  },
 });
-
 // AppointmentTag Prisma factory
 export const AppointmentTagPrismaFactory = defineAppointmentTagFactory({
   defaultData: () => ({
@@ -414,7 +424,6 @@ export const AppointmentTagPrismaFactory = defineAppointmentTagFactory({
     Tag: TagPrismaFactory,
   }),
 });
-
 // Audit Prisma factory
 export const AuditPrismaFactory = defineAuditFactory({
   defaultData: () => ({
@@ -423,7 +432,6 @@ export const AuditPrismaFactory = defineAuditFactory({
     User: UserPrismaFactory,
   }),
 });
-
 // ClientContact Prisma factory
 export const ClientContactPrismaFactory = defineClientContactFactory({
   defaultData: () => ({
@@ -431,12 +439,10 @@ export const ClientContactPrismaFactory = defineClientContactFactory({
     Client: ClientPrismaFactory,
   }),
 });
-
 // ClientGroup Prisma factory
 export const ClientGroupPrismaFactory = defineClientGroupFactory({
   defaultData: () => ClientGroupFactory.build(),
 });
-
 // ClientGroupMembership Prisma factory
 export const ClientGroupMembershipPrismaFactory =
   defineClientGroupMembershipFactory({
@@ -445,7 +451,6 @@ export const ClientGroupMembershipPrismaFactory =
       ClientGroup: ClientGroupPrismaFactory,
     }),
   });
-
 // ClientGroupChartNote factory for generating mock data
 export const ClientGroupChartNoteFactory = {
   build: <T extends Partial<ClientGroupChartNote>>(overrides: T = {} as T) => ({
@@ -456,11 +461,11 @@ export const ClientGroupChartNoteFactory = {
     ...overrides,
   }),
 };
-
 // ClientGroupChartNote Prisma factory
 export const ClientGroupChartNotePrismaFactory =
   defineClientGroupChartNoteFactory({
-    defaultData: async (options) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    defaultData: async (options: any) => {
       const { client_group_id, ...baseData } =
         ClientGroupChartNoteFactory.build(
           options.overrides as Partial<ClientGroupChartNote>,
@@ -471,7 +476,6 @@ export const ClientGroupChartNotePrismaFactory =
       };
     },
   });
-
 // ClientReminderPreference Prisma factory
 export const ClientReminderPreferencePrismaFactory =
   defineClientReminderPreferenceFactory({
@@ -481,7 +485,6 @@ export const ClientReminderPreferencePrismaFactory =
       ClientContact: ClientContactPrismaFactory,
     }),
   });
-
 // ClinicianClient Prisma factory
 export const ClinicianClientPrismaFactory = defineClinicianClientFactory({
   defaultData: () => ({
@@ -490,7 +493,6 @@ export const ClinicianClientPrismaFactory = defineClinicianClientFactory({
     Clinician: ClinicianPrismaFactory,
   }),
 });
-
 // ClinicianLocation Prisma factory
 export const ClinicianLocationPrismaFactory = defineClinicianLocationFactory({
   defaultData: () => ({
@@ -499,7 +501,6 @@ export const ClinicianLocationPrismaFactory = defineClinicianLocationFactory({
     Location: LocationPrismaFactory,
   }),
 });
-
 // CreditCard Prisma factory
 export const CreditCardPrismaFactory = defineCreditCardFactory({
   defaultData: () => ({
@@ -507,7 +508,6 @@ export const CreditCardPrismaFactory = defineCreditCardFactory({
     Client: ClientPrismaFactory,
   }),
 });
-
 // Invoice Prisma factory
 export const InvoicePrismaFactory = defineInvoiceFactory({
   defaultData: () => ({
@@ -520,7 +520,6 @@ export const InvoicePrismaFactory = defineInvoiceFactory({
       .toString(),
   }),
 });
-
 // Payment Prisma factory
 export const PaymentPrismaFactory = definePaymentFactory({
   defaultData: () => ({
@@ -531,12 +530,10 @@ export const PaymentPrismaFactory = definePaymentFactory({
       .toString(),
   }),
 });
-
 // Role Prisma factory
 export const RolePrismaFactory = defineRoleFactory({
   defaultData: () => RoleFactory.build(),
 });
-
 // UserRole Prisma factory
 export const UserRolePrismaFactory = defineUserRoleFactory({
   defaultData: () => ({
@@ -544,31 +541,33 @@ export const UserRolePrismaFactory = defineUserRoleFactory({
     Role: RolePrismaFactory,
   }),
 });
-
 // SurveyTemplate Prisma factory
 export const SurveyTemplatePrismaFactory = defineSurveyTemplateFactory({
   defaultData: () => SurveyTemplateFactory.build(),
 });
-
 // SurveyAnswers Prisma factory
 export const SurveyAnswersPrismaFactory = defineSurveyAnswersFactory({
-  defaultData: () => ({
-    ...SurveyAnswersFactory.build(),
-    Appointment: AppointmentPrismaFactory,
-    Client: ClientPrismaFactory,
-    SurveyTemplate: SurveyTemplatePrismaFactory,
-  }),
+  defaultData: () => {
+    const { template_id, client_id, appointment_id, ...surveyData } =
+      SurveyAnswersFactory.build();
+    return {
+      ...surveyData,
+      SurveyTemplate: {
+        connect: { id: template_id },
+      },
+      Client: {
+        connect: { id: client_id },
+      },
+    };
+  },
 });
-
 // Helper to create a valid invoice object with proper UUID formats
 export const mockInvoice = (overrides = {}) => {
   return InvoiceFactory.buildComplete(overrides);
 };
-
 // Helper to create a valid superbill object with proper format
 export const mockSuperbill = (overrides = {}) => {
   const issuedDate = new Date();
-
   return {
     id: generateUUID(),
     superbill_number: 5001,
@@ -596,13 +595,11 @@ export const mockSuperbill = (overrides = {}) => {
     ...overrides,
   };
 };
-
 // Helper to create a valid statement object with proper format
 export const mockStatement = (overrides = {}) => {
   const createdDate = new Date();
   const startDate = new Date(createdDate);
   startDate.setMonth(startDate.getMonth() - 1);
-
   return {
     id: generateUUID(),
     statement_number: 2001,
@@ -628,7 +625,6 @@ export const mockStatement = (overrides = {}) => {
     ...overrides,
   };
 };
-
 export const EmailTemplateFactory = {
   build: <T extends Partial<EmailTemplate>>(overrides: T = {} as T) => ({
     id: faker.string.uuid(),
@@ -643,11 +639,9 @@ export const EmailTemplateFactory = {
     ...overrides,
   }),
 };
-
 export const EmailTemplatePrismaFactory = defineEmailTemplateFactory({
   defaultData: () => EmailTemplateFactory.build(),
 });
-
 // BillingSettings factory for generating mock data
 export const BillingSettingsFactory = {
   build: <T extends Partial<BillingSettings>>(overrides: T = {} as T) => ({
@@ -680,7 +674,6 @@ export const BillingSettingsFactory = {
     ...overrides,
   }),
 };
-
 export const BillingSettingsPrismaFactory = defineBillingSettingsFactory({
   defaultData: () => {
     const { clinician_id, ...rest } = BillingSettingsFactory.build();
@@ -690,6 +683,116 @@ export const BillingSettingsPrismaFactory = defineBillingSettingsFactory({
     };
   },
 });
+
+/**
+ * Factory helper for creating appointments with all relations
+ * This creates the exact shape returned by prisma.appointment.findUnique with includes
+ * Used in unit tests to mock the response from re-querying after creation
+ */
+type AppointmentWithRelations = Appointment & {
+  AppointmentTag?: Array<{
+    id: string;
+    appointment_id: string;
+    tag_id: string;
+    Tag: { id: string; name: string; color: string | null };
+  }>;
+  ClientGroup?:
+    | (ClientGroup & {
+        ClientGroupMembership: Array<
+          ClientGroupMembership & { Client?: Client }
+        >;
+      })
+    | null;
+  Clinician?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+  Location?: {
+    id: string;
+    name: string;
+    address: string;
+  } | null;
+};
+
+export function createAppointmentWithRelations(
+  appointment: Partial<Appointment>,
+  relations: {
+    clientGroup?: Partial<ClientGroup>;
+    clinician?: Partial<Clinician>;
+    location?: Partial<Location>;
+    tags?: Array<{ id: string; name: string; color: string | null }>;
+  } = {},
+): AppointmentWithRelations {
+  const { clientGroup, clinician, location, tags = [] } = relations;
+
+  return {
+    ...appointment,
+    AppointmentTag: tags.map((tag, index) => ({
+      id: `appt-tag-${index}`,
+      appointment_id: appointment.id as string,
+      tag_id: tag.id,
+      Tag: tag,
+    })),
+    ClientGroup: clientGroup
+      ? {
+          ...clientGroup,
+          // Ensure all required fields
+          id: clientGroup.id as string,
+          type: clientGroup.type as string,
+          name: clientGroup.name as string,
+          is_active: clientGroup.is_active ?? true,
+          available_credit: clientGroup.available_credit ?? new Decimal(0),
+          created_at: clientGroup.created_at ?? new Date(),
+          auto_monthly_statement_enabled:
+            clientGroup.auto_monthly_statement_enabled ?? false,
+          auto_monthly_superbill_enabled:
+            clientGroup.auto_monthly_superbill_enabled ?? false,
+          first_seen_at: clientGroup.first_seen_at ?? null,
+          notes: clientGroup.notes ?? null,
+          clinician_id: clientGroup.clinician_id ?? null,
+          ClientGroupMembership: [],
+        }
+      : null,
+    Clinician: clinician
+      ? {
+          id: clinician.id as string,
+          first_name: clinician.first_name as string,
+          last_name: clinician.last_name as string,
+        }
+      : null,
+    Location: location
+      ? {
+          id: location.id as string,
+          name: location.name as string,
+          address: location.address as string,
+        }
+      : null,
+  } as AppointmentWithRelations;
+}
+
+/**
+ * Factory helper for creating events (type='EVENT') with all relations
+ */
+export function createEventWithRelations(
+  event: Partial<Appointment>,
+  relations: {
+    clinician?: Partial<Clinician>;
+    location?: Partial<Location>;
+  } = {},
+) {
+  return createAppointmentWithRelations(
+    {
+      ...event,
+      type: "EVENT",
+      client_group_id: null,
+    },
+    {
+      ...relations,
+      clientGroup: undefined,
+    },
+  );
+}
 
 // AppointmentRequests factory for generating mock data
 export const AppointmentRequestsFactory = {
@@ -774,3 +877,80 @@ export const PracticeSettingsFactory = {
     ...overrides,
   }),
 };
+
+// ClientGroupFile factory for generating mock data
+export const ClientGroupFileFactory = {
+  build: <T extends Partial<ClientGroupFile>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    survey_template_id: faker.helpers.maybe(() => faker.string.uuid()),
+    title: faker.lorem.words(3),
+    type: faker.helpers.arrayElement([
+      "PRACTICE_UPLOAD",
+      "CLIENT_UPLOAD",
+      "SURVEY",
+      "INTAKE_FORM",
+    ]),
+    url: faker.helpers.maybe(() => faker.internet.url()),
+    client_group_id: faker.string.uuid(),
+    uploaded_by_id: faker.helpers.maybe(() => faker.string.uuid()),
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
+    is_template: faker.datatype.boolean(),
+    original_template_id: faker.helpers.maybe(() => faker.string.uuid()),
+    sharing_enabled: faker.datatype.boolean(),
+    expiry_date: faker.helpers.maybe(() => faker.date.future()),
+    ...overrides,
+  }),
+};
+
+// ClientGroupFile Prisma factory
+export const ClientGroupFilePrismaFactory = defineClientGroupFileFactory({
+  defaultData: () => {
+    const { client_group_id, uploaded_by_id, ...rest } =
+      ClientGroupFileFactory.build();
+    return {
+      ...rest,
+      ClientGroup: ClientGroupPrismaFactory,
+      User: UserPrismaFactory,
+    };
+  },
+});
+
+// ClientFiles factory for generating mock data
+export const ClientFilesFactory = {
+  build: <T extends Partial<ClientFiles>>(
+    overrides: T = {} as T,
+  ): ClientFiles & T =>
+    ({
+      id: faker.string.uuid(),
+      client_group_file_id: faker.string.uuid(),
+      client_id: faker.string.uuid(),
+      status: faker.helpers.arrayElement([
+        "pending",
+        "shared",
+        "completed",
+        "expired",
+      ]),
+      survey_answers_id: faker.helpers.maybe(() => faker.string.uuid()),
+      frequency: faker.helpers.maybe(() =>
+        faker.helpers.arrayElement(["once", "weekly", "monthly", "yearly"]),
+      ),
+      next_due_date: faker.helpers.maybe(() => faker.date.future()),
+      shared_at: faker.helpers.maybe(() => faker.date.recent()),
+      completed_at: faker.helpers.maybe(() => faker.date.recent()),
+      ...overrides,
+    }) as ClientFiles & T,
+};
+
+// ClientFiles Prisma factory
+export const ClientFilesPrismaFactory = defineClientFilesFactory({
+  defaultData: () => {
+    const { client_id, client_group_file_id, survey_answers_id, ...rest } =
+      ClientFilesFactory.build();
+    return {
+      ...rest,
+      Client: ClientPrismaFactory,
+      ClientGroupFile: ClientGroupFilePrismaFactory,
+    };
+  },
+});

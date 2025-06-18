@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@mcw/ui";
 import { ChevronDown, Pencil } from "lucide-react";
 import { EmailTemplate, ClientGroupData, ClinicianData } from "../types";
@@ -9,6 +8,10 @@ interface BillingEmailsProps {
   clientData: ClientGroupData | null;
   clinicianData: ClinicianData | null;
   onEdit: (template: EmailTemplate) => void;
+  isBillingSectionOpen: boolean;
+  setIsBillingSectionOpen: (open: boolean) => void;
+  openBillingIndexes: Set<string>;
+  setOpenBillingIndexes: (fn: (prev: Set<string>) => Set<string>) => void;
 }
 
 export function BillingEmails({
@@ -16,12 +19,11 @@ export function BillingEmails({
   clientData,
   clinicianData,
   onEdit,
+  isBillingSectionOpen,
+  setIsBillingSectionOpen,
+  openBillingIndexes,
+  setOpenBillingIndexes,
 }: BillingEmailsProps) {
-  const [isBillingSectionOpen, setIsBillingSectionOpen] = useState(true);
-  const [openBillingIndexes, setOpenBillingIndexes] = useState<Set<string>>(
-    new Set(),
-  );
-
   const billingTemplates = templates.filter(
     (template) => template.type === "billing",
   );

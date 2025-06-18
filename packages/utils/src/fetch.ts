@@ -57,7 +57,18 @@ const get = async ({
     }
 
     if (!promise.ok) {
-      const errorData = await promise.json();
+      let errorData;
+      try {
+        errorData = await promise.json();
+      } catch {
+        // If response is not JSON (like 404 from Next.js), create error object
+        errorData = {
+          error: {
+            message: `Request failed: ${promise.status} ${promise.statusText} - GET ${url}`,
+            status: promise.status,
+          },
+        };
+      }
       return Promise.reject(errorData);
     }
 
@@ -90,7 +101,18 @@ const post = async ({
     });
 
     if (!promise.ok) {
-      const errorData = await promise.json();
+      let errorData;
+      try {
+        errorData = await promise.json();
+      } catch {
+        // If response is not JSON (like 404 from Next.js), create error object
+        errorData = {
+          error: {
+            message: `Request failed: ${promise.status} ${promise.statusText} - POST ${url}`,
+            status: promise.status,
+          },
+        };
+      }
       return Promise.reject(errorData);
     }
 
@@ -123,17 +145,36 @@ const update = async ({
 
     if (!isFormData) headers["Content-Type"] = "application/json";
 
-    const promise = await fetch(
-      id ? `${ROUTES.BASE_URL}/${url}/${id}` : `${ROUTES.BASE_URL}/${url}`,
-      {
-        method: method,
-        headers,
-        body: isFormData ? (body as FormData) : JSON.stringify(body),
-      },
-    );
+    const fullUrl = id
+      ? `${ROUTES.BASE_URL}/${url}/${id}`
+      : `${ROUTES.BASE_URL}/${url}`;
+    console.log(`Making ${method} request to: ${fullUrl}`);
+
+    const promise = await fetch(fullUrl, {
+      method: method,
+      headers,
+      body: isFormData ? (body as FormData) : JSON.stringify(body),
+    });
 
     if (!promise.ok) {
-      const errorData = await promise.json();
+      let errorData;
+      try {
+        errorData = await promise.json();
+      } catch {
+        // If response is not JSON (like 404 from Next.js), create error object
+        errorData = {
+          error: {
+            message: `Request failed: ${promise.status} ${promise.statusText} - ${method} ${fullUrl}`,
+            status: promise.status,
+          },
+        };
+      }
+      console.error(`API Request Failed:`, {
+        url: fullUrl,
+        status: promise.status,
+        statusText: promise.statusText,
+        errorData,
+      });
       return Promise.reject(errorData);
     }
 

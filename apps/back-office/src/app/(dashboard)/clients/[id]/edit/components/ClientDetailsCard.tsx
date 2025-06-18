@@ -232,7 +232,9 @@ function ManageButton({
   onRefresh?: () => void;
 }) {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [drawerType, setDrawerType] = useState<"edit" | "reminders">("edit");
+  const [drawerType, setDrawerType] = useState<
+    "edit" | "reminders" | "clientPortal"
+  >("edit");
 
   const updateClientMutation = useUpdateClient();
   const { toast } = useToast();
@@ -254,7 +256,7 @@ function ManageButton({
     }
   };
 
-  const toggleDrawer = (type: "edit" | "reminders") => {
+  const toggleDrawer = (type: "edit" | "reminders" | "clientPortal") => {
     setIsEditDrawerOpen(!isEditDrawerOpen);
     setDrawerType(type);
   };
@@ -292,6 +294,9 @@ function ManageButton({
           <DropdownMenuItem onSelect={() => toggleDrawer("reminders")}>
             Edit Appointment Reminders
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => toggleDrawer("clientPortal")}>
+            Manage Client Portal & Billing
+          </DropdownMenuItem>
           {type === "contact" && (
             <DropdownMenuItem onSelect={() => removeContact(clientData)}>
               <span className="text-red-500">Delete Contact</span>
@@ -304,10 +309,18 @@ function ManageButton({
         clientData={clientData}
         drawerType={drawerType}
         isOpen={isEditDrawerOpen}
-        title={`Edit ${clientData.Client.legal_first_name} ${clientData.Client.legal_last_name}`}
+        title={
+          drawerType === "clientPortal"
+            ? "Manage Client Portal & Billing"
+            : `Edit ${clientData.Client.legal_first_name} ${clientData.Client.legal_last_name}`
+        }
         type={type}
         onClose={() => setIsEditDrawerOpen(false)}
         onSave={handleSaveClient}
+        onSwitchToEdit={() => {
+          setDrawerType("edit");
+          // The drawer will remain open but switch to edit mode
+        }}
       />
     </>
   );

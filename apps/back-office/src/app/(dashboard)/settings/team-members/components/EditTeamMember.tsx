@@ -33,7 +33,21 @@ export function EditTeamMember({ member }: EditTeamMemberProps) {
             {`${member.firstName} ${member.lastName}`}
           </h1>
           <p className="text-base text-[#4B5563]">
-            {member.roles?.join(", ") || ""}
+            {member.roles
+              ?.map((role) => {
+                const roleDisplayMap: Record<string, string> = {
+                  ADMIN: "Admin",
+                  "ADMIN.PRACTICE-MANAGER": "Admin - Practice Manager",
+                  "ADMIN.PRACTICE-BILLER": "Admin - Practice Biller",
+                  "CLINICIAN.BASIC": "Clinician - Basic Access",
+                  "CLINICIAN.BILLING": "Clinician - Billing Access",
+                  "CLINICIAN.FULL-CLIENT-LIST": "Clinician - Full Client List",
+                  "CLINICIAN.ENTIRE-PRACTICE": "Clinician - Entire Practice",
+                  "CLINICIAN.SUPERVISOR": "Clinician - Supervisor",
+                };
+                return roleDisplayMap[role] || role;
+              })
+              .join(", ") || ""}
           </p>
           <button className="text-[#2D8467] text-sm mt-2">
             Watch a quick video about Team members

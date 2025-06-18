@@ -64,6 +64,7 @@ export const fetchAppointments = async ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useFetchAppointments = (queryKey: any, searchParams: any) => {
+  console.log("🚀 ~ useFetchAppointments ~ searchParams:", searchParams);
   return useQuery({
     queryKey: queryKey,
     queryFn: () => fetchAppointments(searchParams),
@@ -100,6 +101,19 @@ export const fetchInvoices = async ({ searchParams = {} }) => {
     return [response, null];
   } catch (error) {
     return [null, error instanceof Error ? error : new Error("Unknown error")];
+  }
+};
+
+export const fetchBillingDocument = async ({ searchParams = {} }) => {
+  try {
+    const response = await FETCH.get({
+      url: "/billing-documents",
+      searchParams,
+    });
+
+    return response;
+  } catch (_error) {
+    return null;
   }
 };
 
@@ -205,10 +219,10 @@ export const useUpdateClientGroup = () => {
 
 export const fetchSingleClientGroup = async ({
   id,
-  searchParams,
+  searchParams = {},
 }: {
   id: string;
-  searchParams: Record<string, string | number | boolean>;
+  searchParams?: Record<string, string | number | boolean>;
 }) => {
   try {
     const response = await FETCH.get({
@@ -217,8 +231,9 @@ export const fetchSingleClientGroup = async ({
     });
 
     return response;
-  } catch (_error) {
-    return null;
+  } catch (error) {
+    console.error("Error fetching client group:", error);
+    throw new Error("Failed to fetch client information");
   }
 };
 
@@ -349,7 +364,7 @@ export const fetchGoodFaithEstimate = async (id: string) => {
 
 export const createGoodFaithEstimate = async ({ body = {} }) => {
   try {
-    const response: unknown = await FETCH.post({
+    const response = await FETCH.post({
       url: "/good-faith-estimates",
       body,
       isFormData: false,
@@ -361,10 +376,86 @@ export const createGoodFaithEstimate = async ({ body = {} }) => {
   }
 };
 
-export const fetchDiagnosis = async () => {
+export const updateGoodFaithEstimate = async ({
+  body = {},
+  id,
+}: {
+  body: object;
+  id: string;
+}) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: `/good-faith-estimates/${id}`,
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const fetchDiagnosis = async (search?: string) => {
   try {
     const response: unknown = await FETCH.get({
       url: "/diagnosis",
+      searchParams: search ? { search } : {},
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const createDiagnosisTreatmentPlan = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/diagnosis-treatment-plan",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const fetchDiagnosisTreatmentPlans = async ({ searchParams = {} }) => {
+  try {
+    const response: unknown = await FETCH.get({
+      url: "/diagnosis-treatment-plan",
+      searchParams,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const updateDiagnosisTreatmentPlan = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.update({
+      url: "/diagnosis-treatment-plan",
+      body,
+      isFormData: false,
+    });
+
+    return [response, null];
+  } catch (error) {
+    return [null, error];
+  }
+};
+
+export const createBillingPreference = async ({ body = {} }) => {
+  try {
+    const response: unknown = await FETCH.post({
+      url: "/client/group/billing-preference",
+      body,
+      isFormData: false,
     });
 
     return [response, null];

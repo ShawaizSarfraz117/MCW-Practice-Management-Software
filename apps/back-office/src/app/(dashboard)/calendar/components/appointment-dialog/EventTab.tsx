@@ -171,13 +171,19 @@ export function EventTab(): React.ReactNode {
                   <TimePicker
                     className="border-gray-200"
                     value={startTime}
-                    onChange={(time) => form.setFieldValue("startTime", time)}
+                    onChange={(time) => {
+                      form.setFieldValue("startTime", time);
+                      forceUpdate();
+                    }}
                   />
                   <span className="text-sm text-gray-500">to</span>
                   <TimePicker
                     className="border-gray-200"
                     value={endTime}
-                    onChange={(time) => form.setFieldValue("endTime", time)}
+                    onChange={(time) => {
+                      form.setFieldValue("endTime", time);
+                      forceUpdate();
+                    }}
                   />
                 </div>
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -195,6 +201,7 @@ export function EventTab(): React.ReactNode {
             onValueChange={(value) => {
               form.setFieldValue("clinician", value);
               clearValidationError("clinician");
+              forceUpdate();
             }}
           />
 

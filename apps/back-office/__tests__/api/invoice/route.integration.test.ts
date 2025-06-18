@@ -21,10 +21,12 @@ async function cleanupInvoiceTestData({
   invoiceId,
   clientGroupId,
   clinicianId,
+  appointmentIds,
 }: {
   invoiceId?: string;
   clientGroupId?: string;
   clinicianId?: string;
+  appointmentIds?: string[];
 }) {
   // Delete the invoice created during tests
   if (invoiceId) {
@@ -34,6 +36,17 @@ async function cleanupInvoiceTestData({
       await prisma.invoice.delete({ where: { id: invoiceId } });
     } catch (error) {
       console.log("Error deleting invoice:", error);
+    }
+  }
+
+  // Delete appointments
+  if (appointmentIds && appointmentIds.length > 0) {
+    try {
+      await prisma.appointment.deleteMany({
+        where: { id: { in: appointmentIds } },
+      });
+    } catch (error) {
+      console.log("Error deleting appointments:", error);
     }
   }
 
@@ -94,6 +107,9 @@ describe("Invoice API - Integration Tests", () => {
   // Test data
   let clientGroupId: string;
   let clinicianId: string;
+  let userId: string;
+  let appointmentId: string;
+  let adjustmentAppointmentId: string;
   let createdInvoiceId: string;
 
   // Setup test data
@@ -116,6 +132,7 @@ describe("Invoice API - Integration Tests", () => {
         password_hash: "hashed_password",
       },
     });
+    userId = user.id;
 
     // Create a clinician for the test
     const clinician = await prisma.clinician.create({
@@ -130,6 +147,39 @@ describe("Invoice API - Integration Tests", () => {
       },
     });
     clinicianId = clinician.id;
+
+    // Create appointments for invoice tests
+    const appointment = await prisma.appointment.create({
+      data: {
+        id: generateUUID(),
+        type: "APPOINTMENT",
+        start_date: new Date(),
+        end_date: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour later
+        created_by: userId,
+        status: "COMPLETED",
+        clinician_id: clinicianId,
+        client_group_id: clientGroupId,
+        appointment_fee: 150,
+      },
+    });
+    appointmentId = appointment.id;
+
+    // Create appointment with adjustable amount for adjustment invoice test
+    const adjustmentAppointment = await prisma.appointment.create({
+      data: {
+        id: generateUUID(),
+        type: "APPOINTMENT",
+        start_date: new Date(),
+        end_date: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour later
+        created_by: userId,
+        status: "COMPLETED",
+        clinician_id: clinicianId,
+        client_group_id: clientGroupId,
+        appointment_fee: 200,
+        adjustable_amount: -50, // Credit adjustment
+      },
+    });
+    adjustmentAppointmentId = adjustmentAppointment.id;
   });
 
   // Clean up test data
@@ -138,20 +188,18 @@ describe("Invoice API - Integration Tests", () => {
       invoiceId: createdInvoiceId,
       clientGroupId,
       clinicianId,
+      appointmentIds: [appointmentId, adjustmentAppointmentId],
     });
   });
 
   it("POST /api/invoice should create a new invoice", async () => {
     // Arrange
-    const dueDate = new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000);
-
     const newInvoiceData = {
-      clinician_id: clinicianId,
       client_group_id: clientGroupId,
-      appointment_id: null,
+      appointment_id: appointmentId,
       amount: 150,
-      due_date: dueDate.toISOString(),
       status: "PENDING",
+      type: "INVOICE",
     };
 
     // Act
@@ -166,8 +214,9 @@ describe("Invoice API - Integration Tests", () => {
     expect(invoice).toHaveProperty("invoice_number");
     expect(invoice.amount.toString()).toBe(newInvoiceData.amount.toString());
     expect(invoice.status).toBe(newInvoiceData.status);
-    expect(invoice.clinician_id).toBe(newInvoiceData.clinician_id);
+    expect(invoice.clinician_id).toBe(clinicianId); // clinician_id comes from appointment
     expect(invoice.client_group_id).toBe(newInvoiceData.client_group_id);
+    expect(invoice.appointment_id).toBe(appointmentId);
 
     // Store the created invoice ID for cleanup
     createdInvoiceId = invoice.id;
@@ -255,11 +304,14 @@ describe("Invoice API - Integration Tests", () => {
     expect(errorResponse).toHaveProperty("error", "Invoice not found");
   });
 
-  it("POST /api/invoice should return 400 if required fields are missing", async () => {
+  it("POST /api/invoice should return 404 if appointment not found", async () => {
     // Arrange
+    const nonExistentAppointmentId = generateUUID();
     const invalidInvoiceData = {
-      // Missing required fields: clinician_id, amount, due_date
       client_group_id: clientGroupId,
+      appointment_id: nonExistentAppointmentId,
+      amount: 150,
+      status: "PENDING",
     };
 
     // Act
@@ -267,9 +319,48 @@ describe("Invoice API - Integration Tests", () => {
     const response = await POST(req);
 
     // Assert
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
     const errorResponse = await response.json();
-    expect(errorResponse).toHaveProperty("error");
-    expect(errorResponse.error).toContain("Failed to create invoice");
+    expect(errorResponse).toHaveProperty("error", "Appointment not found");
+  });
+
+  it("POST /api/invoice should create an adjustment invoice", async () => {
+    // Arrange
+    const adjustmentInvoiceData = {
+      appointment_id: adjustmentAppointmentId,
+      invoice_type: "adjustment",
+    };
+
+    // Act
+    const req = createRequestWithBody("/api/invoice", adjustmentInvoiceData);
+    const response = await POST(req);
+
+    // Assert
+    expect(response.status).toBe(201);
+    const invoice = await response.json();
+
+    expect(invoice).toHaveProperty("id");
+    expect(invoice).toHaveProperty("invoice_number");
+    expect(invoice.type).toBe("ADJUSTMENT");
+    expect(invoice.status).toBe("CREDIT"); // Because adjustable_amount is negative
+    expect(invoice.amount.toString()).toBe("-50"); // The adjustable_amount from appointment
+    expect(invoice.clinician_id).toBe(clinicianId);
+    expect(invoice.client_group_id).toBe(clientGroupId);
+    expect(invoice.appointment_id).toBe(adjustmentAppointmentId);
+
+    // Clean up this invoice
+    await prisma.invoice.delete({ where: { id: invoice.id } });
+
+    // Check that appointment adjustable_amount was reset
+    const updatedAppointment = await prisma.appointment.findUnique({
+      where: { id: adjustmentAppointmentId },
+    });
+    expect(updatedAppointment?.adjustable_amount?.toString()).toBe("0");
+
+    // Check that client group credit was updated
+    const updatedClientGroup = await prisma.clientGroup.findUnique({
+      where: { id: clientGroupId },
+    });
+    expect(Number(updatedClientGroup?.available_credit)).toBeGreaterThan(0);
   });
 });

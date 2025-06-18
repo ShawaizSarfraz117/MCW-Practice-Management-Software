@@ -29,4 +29,34 @@ export default [
       ],
     },
   },
+  {
+    // Type migration warnings
+    files: ["apps/*/src/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          paths: [
+            {
+              name: "@/types/entities",
+              message:
+                "[TYPE-MIGRATION] Use @mcw/types for shared types - see TYPE_SYSTEM_ARCHITECTURE.md",
+            },
+            {
+              name: "@mcw/database",
+              message:
+                "[TYPE-MIGRATION] Don't import Prisma types directly in components - use @mcw/types instead",
+            },
+          ],
+          patterns: [
+            {
+              group: ["*/types/entities/*"],
+              message:
+                "[TYPE-MIGRATION] Use @mcw/types for shared entity types",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

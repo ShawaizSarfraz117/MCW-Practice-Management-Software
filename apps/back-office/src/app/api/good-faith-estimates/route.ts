@@ -167,18 +167,22 @@ export async function POST(request: NextRequest) {
 
       // Create services
       const services = await Promise.all(
-        requestData.services.map((service: ServiceData) =>
-          tx.goodFaithServices.create({
-            data: {
-              good_faith_id: estimate.id,
-              service_id: service.service_id,
-              diagnosis_id: service.diagnosis_id,
-              location_id: service.location_id,
-              quantity: service.quantity,
-              fee: service.fee,
-            },
-          }),
-        ),
+        requestData.services.map((service: ServiceData) => {
+          const baseData = {
+            good_faith_id: estimate.id,
+            service_id: service.service_id,
+            location_id: service.location_id,
+            quantity: service.quantity,
+            fee: service.fee,
+          };
+
+          const data = {
+            ...baseData,
+            diagnosis_id: service.diagnosis_id || "",
+          };
+
+          return tx.goodFaithServices.create({ data });
+        }),
       );
 
       return { estimate, clients, services };

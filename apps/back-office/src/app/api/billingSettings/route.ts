@@ -85,6 +85,7 @@ function validateBillingSettings(body: BillingSettingsRequest): string[] {
 export async function GET() {
   try {
     const session = await getServerSession(backofficeAuthOptions);
+
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -190,9 +191,29 @@ export async function PUT(request: Request) {
       );
     }
 
-    const billingSettings = await prisma.billingSettings.update({
+    const billingSettings = await prisma.billingSettings.upsert({
       where: { clinician_id: clinicianId },
-      data: {
+      update: {
+        autoInvoiceCreation: body.autoInvoiceCreation,
+        pastDueDays: body.pastDueDays,
+        emailClientPastDue: body.emailClientPastDue,
+        invoiceIncludePracticeLogo: body.invoiceIncludePracticeLogo,
+        invoiceFooterInfo: body.invoiceFooterInfo,
+        superbillDayOfMonth: body.superbillDayOfMonth,
+        superbillIncludePracticeLogo: body.superbillIncludePracticeLogo,
+        superbillIncludeSignatureLine: body.superbillIncludeSignatureLine,
+        superbillIncludeDiagnosisDescription:
+          body.superbillIncludeDiagnosisDescription,
+        superbillFooterInfo: body.superbillFooterInfo,
+        billingDocEmailDelayMinutes: body.billingDocEmailDelayMinutes,
+        createMonthlyStatementsForNewClients:
+          body.createMonthlyStatementsForNewClients,
+        createMonthlySuperbillsForNewClients:
+          body.createMonthlySuperbillsForNewClients,
+        defaultNotificationMethod: body.defaultNotificationMethod,
+      },
+      create: {
+        clinician_id: clinicianId,
         autoInvoiceCreation: body.autoInvoiceCreation,
         pastDueDays: body.pastDueDays,
         emailClientPastDue: body.emailClientPastDue,

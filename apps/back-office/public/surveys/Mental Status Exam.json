@@ -1,0 +1,262 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "dropdown",
+          "name": "appearance",
+          "title": "Appearance",
+          "choices": [
+            {
+              "value": "Normal",
+              "text": "Normal"
+            },
+            {
+              "value": "Disheveled",
+              "text": "Disheveled"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "Dress",
+          "title": "Dress",
+          "choices": [
+            {
+              "value": "Appropriate",
+              "text": "Appropriate"
+            },
+            {
+              "value": "Eccentric",
+              "text": "Eccentric"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "motor_activity",
+          "title": "Motor Activity",
+          "choices": [
+            {
+              "value": "Normal",
+              "text": "Normal"
+            },
+            {
+              "value": "Agitation",
+              "text": "Agitation"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "insight",
+          "title": "Insight",
+          "choices": [
+            {
+              "value": "Good",
+              "text": "Good"
+            },
+            {
+              "value": "Fair",
+              "text": "Fair"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "judgement",
+          "title": "Judgement",
+          "choices": [
+            {
+              "value": "Good",
+              "text": "Good"
+            },
+            {
+              "value": "Fair",
+              "text": "Fair"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "affect",
+          "title": "Affect",
+          "choices": [
+            {
+              "value": "Appropriate",
+              "text": "Appropriate"
+            },
+            {
+              "value": "Inappropriate",
+              "text": "Inappropriate"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "mood",
+          "title": "Mood",
+          "choices": [
+            {
+              "value": "Euthymic",
+              "text": "Euthymic"
+            },
+            {
+              "value": "Depressed",
+              "text": "Depressed"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "orientation",
+          "title": "Orientation",
+          "choices": [
+            {
+              "value": "X3: Oriented to person, place and time",
+              "text": "X3: Oriented to person, place and time"
+            },
+            {
+              "value": "X2: Oriented to person, place; Impaired to time",
+              "text": "X2: Oriented to person, place; Impaired to time"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "memory",
+          "title": "Memory",
+          "choices": [
+            {
+              "value": "Intact",
+              "text": "Intact"
+            },
+            {
+              "value": "Poor remote",
+              "text": "Poor remote"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "attention",
+          "title": "Attention",
+          "choices": [
+            {
+              "value": "Good",
+              "text": "Good"
+            },
+            {
+              "value": "Variable",
+              "text": "Variable"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "thought_content",
+          "title": "Thought Content",
+          "choices": [
+            {
+              "value": "Normal",
+              "text": "Normal"
+            },
+            {
+              "value": "Abnormal",
+              "text": "Abnormal"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "question3",
+          "title": "Thought Process",
+          "choices": [
+            {
+              "value": "Normal",
+              "text": "Normal"
+            },
+            {
+              "value": "Blocking",
+              "text": "Blocking"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "perception",
+          "title": "Perception",
+          "choices": [
+            {
+              "value": "Normal",
+              "text": "Normal"
+            },
+            {
+              "value": "Abnormal",
+              "text": "Abnormal"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "interview_behavior",
+          "title": "Interview Behavior",
+          "choices": [
+            {
+              "value": "Appropriate",
+              "text": "Appropriate"
+            },
+            {
+              "value": "Aggressive",
+              "text": "Aggressive"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "dropdown",
+          "name": "speech",
+          "title": "Speech",
+          "choices": [
+            {
+              "value": "Normal",
+              "text": "Normal"
+            },
+            {
+              "value": "Hesitant",
+              "text": "Hesitant"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "reactquill",
+          "name": "recommendations",
+          "title": "Recommendations",
+          "placeholder": "Begin typing..."
+        },
+        {
+          "type": "text",
+          "name": "date",
+          "title": "Date and time",
+          "inputType": "datetime-local"
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}

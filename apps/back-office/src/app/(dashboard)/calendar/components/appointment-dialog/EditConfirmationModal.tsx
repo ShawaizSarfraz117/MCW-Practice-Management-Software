@@ -12,7 +12,7 @@ import { useState } from "react";
 interface EditConfirmationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (updateOption?: string) => void;
   appointmentData?: AppointmentData;
   status?: string;
 }
@@ -144,7 +144,9 @@ export function EditConfirmationModal({
           <Button
             className="bg-[#0a96d4] w-[70px] hover:bg-[#0a96d4]/90"
             onClick={() => {
-              onConfirm();
+              onConfirm(
+                appointmentData?.is_recurring ? selectedOption : undefined,
+              );
               onOpenChange(false);
             }}
           >

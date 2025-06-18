@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@mcw/database";
-import { logger } from "@mcw/logger";
+
+import { prisma, Prisma } from "@mcw/database";
+import { withErrorHandling } from "@mcw/utils";
 
 // PUT - Update an existing appointment
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  try {
+export const PUT = withErrorHandling(
+  async (request: NextRequest, { params }: { params: { id: string } }) => {
     const data = await request.json();
     const id = params.id;
     const appointment = await prisma.appointment.findUnique({
@@ -21,46 +19,58 @@ export async function PUT(
         { status: 404 },
       );
     }
-    const { fee, writeOff, serviceId } = data;
+    const { fee, writeOff, serviceId, start_date, end_date } = data;
 
-    if (
-      parseFloat(appointment.appointment_fee?.toString() || "0") ===
-        parseFloat(fee) &&
-      parseFloat(appointment.write_off?.toString() || "0") ===
-        parseFloat(writeOff)
-    ) {
-      const updatedAppointment = await prisma.appointment.update({
-        where: { id: id as string },
-        data: {
-          service_id: serviceId,
-        },
-      });
-      return NextResponse.json(updatedAppointment);
+    // Build update data object
+    const updateData: Prisma.AppointmentUpdateInput = {};
+
+    // Handle date/time updates
+    if (start_date) {
+      updateData.start_date = new Date(start_date);
     }
-    // Calculate differences
-    const feeDiff = Number(fee) - Number(appointment.appointment_fee);
-    const writeOffDiff = Number(writeOff) - Number(appointment.write_off);
+    if (end_date) {
+      updateData.end_date = new Date(end_date);
+    }
 
-    // const adjustmentAmount = feeDiff - writeOffDiff //prev formula
-    const adjustmentAmount = appointment.adjustable_amount
-      ? Number(appointment.adjustable_amount) + (feeDiff - writeOffDiff)
-      : feeDiff - writeOffDiff;
+    // Handle fee and service updates
+    if (serviceId !== undefined) {
+      updateData.PracticeService = {
+        connect: { id: serviceId },
+      };
+    }
+
+    // Handle financial updates only if fee or writeOff are provided
+    if (fee !== undefined || writeOff !== undefined) {
+      const currentFee = parseFloat(
+        appointment.appointment_fee?.toString() || "0",
+      );
+      const currentWriteOff = parseFloat(
+        appointment.write_off?.toString() || "0",
+      );
+      const newFee = fee !== undefined ? parseFloat(fee) : currentFee;
+      const newWriteOff =
+        writeOff !== undefined ? parseFloat(writeOff) : currentWriteOff;
+
+      if (currentFee !== newFee || currentWriteOff !== newWriteOff) {
+        // Calculate differences
+        const feeDiff = newFee - currentFee;
+        const writeOffDiff = newWriteOff - currentWriteOff;
+
+        const adjustmentAmount = appointment.adjustable_amount
+          ? Number(appointment.adjustable_amount) + (feeDiff - writeOffDiff)
+          : feeDiff - writeOffDiff;
+
+        updateData.appointment_fee = newFee;
+        updateData.write_off = newWriteOff;
+        updateData.adjustable_amount = adjustmentAmount;
+      }
+    }
 
     const updatedAppointment = await prisma.appointment.update({
       where: { id: id as string },
-      data: {
-        appointment_fee: fee,
-        write_off: writeOff,
-        adjustable_amount: adjustmentAmount,
-      },
+      data: updateData,
     });
 
     return NextResponse.json(updatedAppointment);
-  } catch (error) {
-    logger.error(error as Error, "Failed to update appointment");
-    return NextResponse.json(
-      { error: "Failed to update appointment" },
-      { status: 500 },
-    );
-  }
-}
+  },
+);

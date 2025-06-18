@@ -1,195 +1,217 @@
 "use client";
 
-import React, { useState } from "react";
-import { Button, Input } from "@mcw/ui";
-import Link from "next/link";
-import { MessageCircle } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import "react-quill/dist/quill.snow.css";
-import dynamic from "next/dynamic";
+import React, { useState, useEffect } from "react";
+import { Button, toast, SurveyPreview } from "@mcw/ui";
+import { useParams, useRouter } from "next/navigation";
+import { createMentalStatusExamAnswer } from "./services/surveyAnswer.service";
+import { fetchSingleClientGroup } from "@/(dashboard)/clients/services/client.service";
+import { fetchSurveyTemplateByType } from "@/(dashboard)/clients/services/surveyTemplate.service";
+import { ClientGroupFromAPI } from "../edit/components/ClientEdit";
+import { ClientInfoHeader } from "../components/ClientInfoHeader";
 
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+// Type for Mental Status Exam content
+type MentalStatusExamContent = {
+  appearance: string;
+  dress: string;
+  motor_activity: string;
+  insight: string;
+  judgement: string;
+  affect: string;
+  mood: string;
+  orientation: string;
+  memory: string;
+  attention: string;
+  thought_content: string;
+  thought_process: string;
+  perception: string;
+  interview_behavior: string;
+  speech: string;
+  recommendations: string;
+};
 
 const normalValues = {
   appearance: "Normal",
-  dress: "Appropriate",
-  motorActivity: "Normal",
+  Dress: "Appropriate",
+  motor_activity: "Normal",
   insight: "Good",
   judgement: "Good",
   affect: "Appropriate",
   mood: "Euthymic",
   orientation: "X3: Oriented to person, place and time",
   memory: "Intact",
-  attention: "Attentive",
-  thoughtContent: "Normal",
-  thoughtProcess: "Linear",
+  attention: "Good",
+  thought_content: "Normal",
+  question3: "Normal", // Thought Process
   perception: "Normal",
-  interviewBehavior: "Cooperative",
+  interview_behavior: "Appropriate",
   speech: "Normal",
   recommendations: "",
-  date: "",
-  time: "",
+  date: new Date().toISOString().slice(0, 16), // Default to current datetime
 };
 
 export default function MentalStatusExam() {
-  // Example state for all fields
-  const [fields, setFields] = useState({
-    appearance: "",
-    dress: "",
-    motorActivity: "",
-    insight: "",
-    judgement: "",
-    affect: "",
-    mood: "",
-    orientation: "",
-    memory: "",
-    attention: "",
-    thoughtContent: "",
-    thoughtProcess: "",
-    perception: "",
-    interviewBehavior: "",
-    speech: "",
-    recommendations: "",
-    date: "",
-    time: "",
-  });
+  const params = useParams();
+  const router = useRouter();
+  const clientGroupId = params.id as string;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clientInfo, setClientInfo] = useState<ClientGroupFromAPI | null>(null);
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [templateContent, setTemplateContent] = useState<string | null>(null);
+  const [defaultAnswers, setDefaultAnswers] = useState<Record<string, unknown>>(
+    {},
+  );
 
-  function handleChange(field: string, value: string) {
-    setFields((f) => ({ ...f, [field]: value }));
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch client info
+        const data = (await fetchSingleClientGroup({
+          id: clientGroupId,
+          searchParams: {
+            includeProfile: "true",
+            includeAdress: "true",
+          },
+        })) as { data: ClientGroupFromAPI } | null;
+        if (data?.data) {
+          setClientInfo(data?.data);
+        }
+        // Fetch survey template for mental status exam
+        const [surveyTemplate, error] =
+          await fetchSurveyTemplateByType("mental_status_exam");
+
+        if (surveyTemplate && !error) {
+          setTemplateId(surveyTemplate.id);
+          // Store the content from the API response
+          setTemplateContent(
+            typeof surveyTemplate.content === "string"
+              ? surveyTemplate.content
+              : JSON.stringify(surveyTemplate.content),
+          );
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      }
+    };
+
+    fetchData();
+  }, [clientGroupId]);
+
+  const handleSaveMentalStatusExam = async (
+    result: Record<string, unknown>,
+  ) => {
+    setIsSubmitting(true);
+
+    try {
+      // Check if we have the template ID from the initial load
+      if (!templateId) {
+        throw new Error("Mental Status Exam template not found");
+      }
+      if (!clientInfo?.ClientGroupMembership[0]?.Client?.id) {
+        toast({
+          title: "Client not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const [response, error] = await createMentalStatusExamAnswer({
+        client_id: clientInfo?.ClientGroupMembership[0]?.Client?.id || "",
+        template_id: templateId,
+        content: result as MentalStatusExamContent,
+        status: "COMPLETED",
+        client_group_id: clientGroupId,
+      });
+
+      if (error || !response) {
+        throw new Error(error?.message || "Failed to save mental status exam");
+      }
+
+      toast({
+        title: "Mental Status Exam saved successfully",
+        variant: "success",
+      });
+
+      router.push(`/clients/${clientGroupId}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to save mental status exam";
+      toast({
+        title: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    router.push(`/clients/${clientGroupId}`);
+  };
+
+  const handleAllNormal = () => {
+    setDefaultAnswers(normalValues);
+  };
+
+  // Show loading state while fetching template
+  if (!templateContent) {
+    return (
+      <div className="px-4 w-full max-w-6xl mx-auto mt-4">
+        <ClientInfoHeader
+          clientInfo={clientInfo}
+          clientGroupId={clientGroupId}
+        />
+        <div className="flex items-center justify-center p-8">
+          <p className="text-gray-500">Loading mental status exam form...</p>
+        </div>
+      </div>
+    );
   }
-  const searchParams = useSearchParams();
-  const clientName = searchParams.get("clientName");
 
   return (
-    <div className="px-4 py-8 w-full max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-        <div className="px-4 sm:px-6 py-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
-          <Link className="hover:text-gray-700" href="/clients">
-            Clients and contacts
-          </Link>
-          <span className="mx-1">/</span>
-          <span>{clientName}&apos;s profile</span>
-          <span className="mx-1">/</span>
-          <span>Mental Status Exam</span>
-        </div>
-        <Button
-          className="mt-2 sm:mt-0 flex items-center gap-2"
-          variant="outline"
-        >
-          <MessageCircle className="h-4 w-4" />
-          Message
-        </Button>
-      </div>
-
-      {/* Client Info */}
-      <h1 className="text-2xl font-semibold mt-4 mb-1">Jamie D. Appleseed</h1>
-      <div className="text-sm text-gray-500 mb-4 flex flex-wrap gap-2 items-center">
-        Adult
-        <span className="text-gray-300">|</span>
-        07/12/2024 (0)
-        <span className="text-gray-300">|</span>
-        <Link className="text-[#2d8467] hover:underline" href="#">
-          Schedule appointment
-        </Link>
-        <span className="text-gray-300">|</span>
-        <Link className="text-[#2d8467] hover:underline" href="#">
-          Edit
-        </Link>
-      </div>
+    <div className="px-4 w-full max-w-6xl mx-auto mt-4">
+      <ClientInfoHeader clientGroupId={clientGroupId} clientInfo={clientInfo} />
 
       {/* Section Title and All Normal */}
-      <div className="flex items-center justify-between mt-8 mb-2 max-w-2xl">
+      <div className="flex items-center justify-between mt-8 mb-2">
         <h2 className="text-xl font-semibold">Current Mental Status</h2>
         <button
           className="text-green-700 font-medium hover:underline text-sm"
           type="button"
-          onClick={() => setFields((f) => ({ ...f, ...normalValues }))}
+          onClick={handleAllNormal}
         >
           All Normal
         </button>
       </div>
 
-      {/* Form */}
-      <form className="flex flex-col justify-center gap-4">
-        {[
-          { label: "Appearance", key: "appearance" },
-          { label: "Dress", key: "dress" },
-          { label: "Motor Activity", key: "motorActivity" },
-          { label: "Insight", key: "insight" },
-          { label: "Judgement", key: "judgement" },
-          { label: "Affect", key: "affect" },
-          { label: "Mood", key: "mood" },
-          { label: "Orientation", key: "orientation" },
-          { label: "Memory", key: "memory" },
-          { label: "Attention", key: "attention" },
-          { label: "Thought Content", key: "thoughtContent" },
-          { label: "Thought Process", key: "thoughtProcess" },
-          { label: "Perception", key: "perception" },
-          { label: "Interview Behavior", key: "interviewBehavior" },
-          { label: "Speech", key: "speech" },
-        ].map(({ label, key }) => (
-          <div key={key} className="w-[40%]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {label}
-            </label>
-            <Input
-              className="w-full h-10"
-              value={fields[key as keyof typeof fields]}
-              onChange={(e) => handleChange(key, e.target.value)}
-            />
-          </div>
-        ))}
+      {/* Survey Form */}
+      <div className="border rounded-lg bg-white p-6">
+        <SurveyPreview
+          content={templateContent}
+          mode="edit"
+          showInstructions={false}
+          title="Mental Status Exam"
+          type="mental_status_exam"
+          onComplete={handleSaveMentalStatusExam}
+          defaultAnswers={defaultAnswers}
+        />
+      </div>
 
-        <div className="h-40">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Recommendations
-          </label>
-          <ReactQuill
-            className="bg-white w-[40%] h-28"
-            placeholder="Begin typing here..."
-            theme="snow"
-            value={fields.recommendations}
-            onChange={(val) => handleChange("recommendations", val)}
-          />
-        </div>
-
-        {/* Date and Time */}
-        <div className="flex flex-col sm:flex-row gap-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date
-            </label>
-            <Input
-              type="date"
-              value={fields.date}
-              onChange={(e) => handleChange("date", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Time
-            </label>
-            <Input
-              type="time"
-              value={fields.time}
-              onChange={(e) => handleChange("time", e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-2 my-6">
-          <Button type="button" variant="outline">
-            Cancel
-          </Button>
-          <Button
-            className="bg-[#2d8467] hover:bg-[#236c53] text-white"
-            type="submit"
-          >
-            Save Mental Status Exam
-          </Button>
-        </div>
-      </form>
+      {/* Buttons */}
+      <div className="flex gap-2 my-6">
+        <Button type="button" variant="outline" onClick={handleCancel}>
+          Cancel
+        </Button>
+        <Button
+          className="bg-[#2d8467] hover:bg-[#236c53] text-white"
+          disabled={isSubmitting}
+          type="submit"
+          form="sq-root-form"
+        >
+          {isSubmitting ? "Saving..." : "Save Mental Status Exam"}
+        </Button>
+      </div>
     </div>
   );
 }

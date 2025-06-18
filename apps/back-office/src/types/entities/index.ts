@@ -1,6 +1,10 @@
 export * from "./appointment";
 export * from "./team-member";
 
+/**
+ * @deprecated Use PaginatedResponse from @mcw/types instead
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Remove this type and import from @mcw/types
+ */
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: {
@@ -11,6 +15,10 @@ export interface PaginatedResponse<T> {
   };
 }
 
+/**
+ * @deprecated Use ApiResponse from @mcw/types instead
+ * TODO: [TYPE-MIGRATION-DUPLICATE] Remove this type and import from @mcw/types
+ */
 export interface ApiResponse<T> {
   data?: T;
   error?: string;

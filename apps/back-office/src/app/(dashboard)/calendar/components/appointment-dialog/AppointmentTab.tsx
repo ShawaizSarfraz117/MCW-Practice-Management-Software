@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AppointmentTabProps,
   Client,
+  ClientGroup,
   Clinician,
   Location,
   Service,
@@ -47,6 +48,7 @@ export function AppointmentTab({
   } = useFormContext();
 
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
+  const [isRecurringState, setIsRecurringState] = useState(false);
 
   const [selectedServices, setSelectedServices] = useState<
     Array<{ serviceId: string; fee: number }>
@@ -96,8 +98,21 @@ export function AppointmentTab({
   }, []);
 
   // Form values
-  const selectedClient = form.getFieldValue<string>("clientGroup");
+  const selectedClientRaw = form.getFieldValue<ClientGroup | string | null>(
+    "clientGroup",
+  );
+  const selectedClient =
+    typeof selectedClientRaw === "object" &&
+    selectedClientRaw !== null &&
+    "id" in selectedClientRaw
+      ? selectedClientRaw.id
+      : selectedClientRaw;
   const isRecurring = form.getFieldValue<boolean>("recurring");
+
+  // Sync React state with form value to ensure re-rendering
+  useEffect(() => {
+    setIsRecurringState(!!isRecurring);
+  }, [isRecurring]);
 
   // API data fetching
   const { data: servicesData = [], isLoading: isLoadingServices } = useQuery<
@@ -221,31 +236,30 @@ export function AppointmentTab({
   const filteredClients = Array.isArray(clientsData)
     ? clientsData
         .map((clientGroup: ClientGroupWithMembers) => {
-          if (Array.isArray(clientGroup?.ClientGroupMembership)) {
-            return clientGroup.ClientGroupMembership.map(
-              (membership: ClientMembership) => {
-                const client = membership.Client;
-                return {
-                  label:
-                    `${client?.legal_first_name || ""} ${client?.legal_last_name || ""}`.trim() ||
-                    `Group ${clientGroup.id}`,
-                  value: membership?.client_group_id || "",
-                };
-              },
-            );
-          }
-          return [];
+          // Return the client group directly with its name
+          return {
+            label: clientGroup.name || `Group ${clientGroup.id}`,
+            value: clientGroup.id,
+            clientGroup: clientGroup, // Pass the full object
+          };
         })
-        .flat()
-        .filter((option): option is { label: string; value: string } => {
-          if (!option || !option.value) {
-            return false;
-          }
-          const matches = option.label
-            .toLowerCase()
-            .includes(clientSearchTerm.toLowerCase());
-          return matches;
-        })
+        .filter(
+          (
+            option,
+          ): option is {
+            label: string;
+            value: string;
+            clientGroup: ClientGroupWithMembers;
+          } => {
+            if (!option || !option.value) {
+              return false;
+            }
+            const matches = option.label
+              .toLowerCase()
+              .includes(clientSearchTerm.toLowerCase());
+            return matches;
+          },
+        )
     : [];
 
   const filteredClinicianOptions = Array.isArray(cliniciansData)
@@ -316,7 +330,13 @@ export function AppointmentTab({
 
   // Helper for client selection
   const handleClientSelect = (value: string) => {
-    form.setFieldValue("clientGroup", value);
+    // Find the selected client group object
+    const selectedClientGroup = filteredClients.find(
+      (client) => client.value === value,
+    )?.clientGroup;
+
+    // Set the full client group object
+    form.setFieldValue("clientGroup", selectedClientGroup || value);
     clearValidationError("clientGroup");
     forceUpdate(); // Force re-render to ensure UI updates
   };
@@ -361,7 +381,11 @@ export function AppointmentTab({
       await queryClient.invalidateQueries({ queryKey });
       await queryClient.fetchQuery({ queryKey });
 
-      form.setFieldValue("clientGroup", newClient.id);
+      // Set the full client group object with name
+      form.setFieldValue("clientGroup", {
+        id: newClient.id,
+        name: newClient.name,
+      });
       clearValidationError("clientGroup");
     } catch (error) {
       console.error(
@@ -423,7 +447,7 @@ export function AppointmentTab({
                     : "Search Clients *"
               }
               totalPages={clientTotalPages}
-              value={selectedClient}
+              value={selectedClient ?? undefined}
               onPageChange={setClientPage}
               onSearch={setClientSearchTerm}
               onValueChange={handleClientSelect}
@@ -461,7 +485,7 @@ export function AppointmentTab({
             label="Recurring"
           />
 
-          {isRecurring && (
+          {isRecurringState && (
             <RecurringControl
               open={true}
               startDate={form.getFieldValue<Date>("startDate") || new Date()}

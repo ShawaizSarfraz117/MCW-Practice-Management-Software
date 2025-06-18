@@ -31,6 +31,8 @@ vi.mock("@/utils/helpers", () => ({
 
 vi.mock("@mcw/utils", () => ({
   generateUUID: vi.fn().mockReturnValue("mock-uuid"),
+  createRequest: vi.fn(),
+  createRequestWithBody: vi.fn(),
   __esModule: true,
 }));
 
@@ -80,53 +82,18 @@ vi.mock("@mcw/database", () => {
   };
 });
 
-// Mock NextResponse.json
-vi.mock("next/server", async () => {
-  const actual = await vi.importActual("next/server");
-  return {
-    ...actual,
-    NextResponse: {
-      json: vi.fn((data, options = {}) => {
-        // For POST request to create statement, mock a successful response
-        if (
-          data &&
-          data.id &&
-          data.id === "statement-1" &&
-          options.status === 201
-        ) {
-          return {
-            status: 201,
-            json: async () => ({
-              id: data.id,
-              details: [
-                {
-                  date: new Date("2023-01-15"),
-                  description: "INV #54",
-                  serviceDescription: "01/15/2023 Therapy Session",
-                  charges: "150.00",
-                  payments: "--",
-                  balance: "150.00",
-                },
-                {
-                  date: new Date("2023-01-20"),
-                  description: "Credit Card",
-                  serviceDescription: "",
-                  charges: "--",
-                  payments: "50.00",
-                  balance: "100.00",
-                },
-              ],
-            }),
-          };
-        }
-        return {
-          status: options.status || 200,
-          json: async () => data,
-        };
-      }),
-    },
-  };
-});
+// Mock NextResponse
+vi.mock("next/server", () => ({
+  NextResponse: {
+    json: vi.fn((data, options = {}) => {
+      return {
+        status: options.status || 200,
+        json: async () => data,
+      };
+    }),
+  },
+  NextRequest: vi.fn(),
+}));
 
 // Import after mocks are defined
 import { GET, POST } from "@/api/statement/route";
@@ -201,6 +168,8 @@ const mockClientGroup = (overrides = {}) => {
   return {
     id: "group-1",
     name: "Test Group",
+    administrative_notes: null,
+    created_at: new Date("2023-01-01"),
     ClientGroupMembership: [
       {
         Client: {
@@ -474,28 +443,6 @@ describe("Statement API", () => {
       const mockClientGroupData = mockClientGroup();
       const createdStatement = mockStatement();
 
-      // Mock statement items that will be created
-      const mockStatementItems = [
-        {
-          id: "mock-uuid",
-          statement_id: createdStatement.id,
-          date: new Date("2023-01-15"),
-          description: "INV #54\n01/15/2023 Therapy Session",
-          charges: 150,
-          payments: 0,
-          balance: 150,
-        },
-        {
-          id: "mock-uuid",
-          statement_id: createdStatement.id,
-          date: new Date("2023-01-20"),
-          description: "Credit Card",
-          charges: 0,
-          payments: 50,
-          balance: 100,
-        },
-      ];
-
       (prisma.appointment.findFirst as Mock).mockResolvedValue(mockAppointment);
       (prisma.clientGroup.findUnique as Mock).mockResolvedValue(
         mockClientGroupData,
@@ -506,89 +453,48 @@ describe("Statement API", () => {
         statement_number: 1000,
       });
 
-      // Mock invoice and payment findMany for calculation functions
-      (prisma.invoice.findMany as Mock)
-        .mockResolvedValueOnce([]) // previous invoices
-        .mockResolvedValueOnce([
-          {
-            id: "invoice-1",
-            amount: new Decimal(150),
-            issued_date: new Date("2023-01-15"),
-            invoice_number: "54",
-            service_description: "Therapy Session",
-            Appointment: {
-              start_date: new Date("2023-01-15"),
-              PracticeService: {
-                description: "Therapy Session",
-              },
-            },
-          },
-        ]) // current invoices
-        .mockResolvedValueOnce([
-          {
-            id: "invoice-1",
-            amount: new Decimal(150),
-            issued_date: new Date("2023-01-15"),
-            invoice_number: "54",
-            service_description: "Therapy Session",
-            Appointment: {
-              start_date: new Date("2023-01-15"),
-              PracticeService: {
-                description: "Therapy Session",
-              },
-            },
-          },
-        ]); // For getStatementDetails
+      // Mock all invoice.findMany calls
+      (prisma.invoice.findMany as Mock).mockResolvedValue([]);
 
-      (prisma.payment.findMany as Mock)
-        .mockResolvedValueOnce([]) // previous payments
-        .mockResolvedValueOnce([
-          {
-            id: "payment-1",
-            amount: new Decimal(50),
-            payment_date: new Date("2023-01-20"),
-            CreditCard: { id: "card-1" },
-          },
-        ]) // current payments
-        .mockResolvedValueOnce([
-          {
-            id: "payment-1",
-            amount: new Decimal(50),
-            payment_date: new Date("2023-01-20"),
-            CreditCard: { id: "card-1" },
-          },
-        ]); // For getStatementDetails
+      // Mock all payment.findMany calls
+      (prisma.payment.findMany as Mock).mockResolvedValue([]);
 
       // Mock statement create
       (prisma.statement.create as Mock).mockResolvedValue(createdStatement);
 
       // Mock statementItem create
-      (prisma.statementItem.create as Mock)
-        .mockResolvedValueOnce(mockStatementItems[0])
-        .mockResolvedValueOnce(mockStatementItems[1]);
+      (prisma.statementItem.create as Mock).mockResolvedValue({});
 
       // Act
       const req = createRequestWithBody(`/api/statement`, requestData);
       const response = await POST(req);
 
       // Assert
-      // In the test environment, this actually returns a 500 status code
-      // because of how the NextResponse mock is set up
-      expect(response.status).toBe(500);
+      if (response.status !== 201) {
+        const errorJson = await response.json();
+        console.error("Create statement error response:", errorJson);
+      }
+      expect(response.status).toBe(201);
       const json = await response.json();
 
-      // Only check for error property since this test seems to be consistently failing
-      // with an internal error in the test environment
-      expect(json).toHaveProperty("error");
+      // Check basic properties of the created statement
+      expect(json).toHaveProperty("id");
+      expect(json).toHaveProperty("statement_number");
+      expect(json).toHaveProperty(
+        "client_group_id",
+        requestData.client_group_id,
+      );
+
+      // Verify that key functions were called
+      expect(prisma.appointment.findFirst).toHaveBeenCalled();
+      expect(prisma.clientGroup.findUnique).toHaveBeenCalled();
+      expect(prisma.statement.create).toHaveBeenCalled();
     });
 
     it("should return 400 when required parameters are missing", async () => {
       // Arrange
       const incompleteData = {
-        // Missing client_group_id, start_date, or end_date
-        client_group_id: "group-1",
-        // Missing start_date
-        end_date: "2023-01-31",
+        // Missing client_group_id
       };
 
       // Act
@@ -600,7 +506,73 @@ describe("Statement API", () => {
       const json = await response.json();
       expect(json).toHaveProperty(
         "error",
-        "Missing required parameters: client_group_id, start_date, end_date",
+        "Missing required parameters: client_group_id",
+      );
+    });
+
+    it("should use default dates when start_date and end_date are not provided", async () => {
+      // Arrange
+      const requestData = {
+        client_group_id: "group-1",
+        // No start_date or end_date provided
+      };
+
+      const mockAppointment = {
+        id: "appointment-1",
+        client_group_id: "group-1",
+        Invoice: [{ id: "invoice-1" }],
+        PracticeService: {
+          id: "service-1",
+          description: "Therapy Session",
+        },
+      };
+
+      const mockClientGroupData = mockClientGroup({
+        created_at: new Date("2023-01-01"),
+      });
+      const createdStatement = mockStatement();
+
+      (prisma.appointment.findFirst as Mock).mockResolvedValue(mockAppointment);
+      (prisma.clientGroup.findUnique as Mock).mockResolvedValue(
+        mockClientGroupData,
+      );
+
+      // Mock statement findFirst for getting max statement number
+      (prisma.statement.findFirst as Mock).mockResolvedValue({
+        statement_number: 1000,
+      });
+
+      // Mock all invoice.findMany calls
+      (prisma.invoice.findMany as Mock).mockResolvedValue([]);
+
+      // Mock all payment.findMany calls
+      (prisma.payment.findMany as Mock).mockResolvedValue([]);
+
+      // Mock statement create
+      (prisma.statement.create as Mock).mockResolvedValue(createdStatement);
+
+      // Mock statementItem create
+      (prisma.statementItem.create as Mock).mockResolvedValue({});
+
+      // Act
+      const req = createRequestWithBody(`/api/statement`, requestData);
+      const response = await POST(req);
+
+      // Assert
+      if (response.status !== 201) {
+        const errorJson = await response.json();
+        console.error("Default dates error response:", errorJson);
+      }
+      expect(response.status).toBe(201);
+
+      // Verify that statement.create was called with dates from clientGroup.created_at and current date
+      expect(prisma.statement.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            start_date: mockClientGroupData.created_at,
+            end_date: expect.any(Date),
+          }),
+        }),
       );
     });
 
@@ -642,7 +614,12 @@ describe("Statement API", () => {
         Invoice: [{ id: "invoice-1" }],
       };
 
+      const mockClientGroupData = mockClientGroup();
+
       (prisma.appointment.findFirst as Mock).mockResolvedValue(mockAppointment);
+      (prisma.clientGroup.findUnique as Mock).mockResolvedValue(
+        mockClientGroupData,
+      );
 
       // Act
       const req = createRequestWithBody(`/api/statement`, requestData);

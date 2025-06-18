@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 "use client";
 
@@ -33,6 +34,7 @@ import ProviderCard from "./components/ProviderCard";
 import { toast } from "@mcw/ui";
 import { Loading } from "@/components";
 import { ClientGroupFromAPI } from "@/(dashboard)/clients/types";
+
 interface Client {
   id: string;
   legal_first_name: string;
@@ -54,6 +56,9 @@ interface Clinician {
   last_name: string;
   NPI_number: string | null;
   address: string;
+  ClinicianLocation: Array<{
+    location_id: string;
+  }>;
 }
 
 interface ClientGroupData {
@@ -84,6 +89,8 @@ interface ClientData {
   city: string;
   state: string;
   zipCode: string;
+  phone: string;
+  email: string;
   voicePermission: boolean;
   textPermission: boolean;
   emailPermission: boolean;
@@ -107,6 +114,10 @@ interface Diagnosis {
   id: string;
   code: string;
   description?: string;
+}
+
+interface GoodFaithEstimateData {
+  id: string;
 }
 
 const GoodFaithEstimatePage = () => {
@@ -185,10 +196,8 @@ const GoodFaithEstimatePage = () => {
       if (error) {
         throw error;
       }
-      // Extract the data array from the response
-      const diagnosisArray = (data as { data: Diagnosis[] })
-        ?.data as Diagnosis[];
-      return diagnosisArray;
+      // The API returns a direct array, not wrapped in a data property
+      return data as Diagnosis[];
     },
   });
 
@@ -282,7 +291,11 @@ const GoodFaithEstimatePage = () => {
 
   const handleSave = async () => {
     if (!clientGroupData || !clinician || !providerData) {
-      alert("Missing client group, clinician, or provider data");
+      toast({
+        title: "Missing data",
+        description: "Missing client group, clinician, or provider data",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -325,11 +338,15 @@ const GoodFaithEstimatePage = () => {
           state: clientFormData?.state || "",
           zip_code: clientFormData?.zipCode || "",
           phone:
+            clientFormData?.phone ||
             client.ClientContact?.find((c) => c.contact_type === "PHONE")
-              ?.value || "",
+              ?.value ||
+            "",
           email:
+            clientFormData?.email ||
             client.ClientContact?.find((c) => c.contact_type === "EMAIL")
-              ?.value || "",
+              ?.value ||
+            "",
           should_voice: clientFormData?.voicePermission || false,
           should_text: clientFormData?.textPermission || false,
           should_email: clientFormData?.emailPermission || false,
@@ -345,11 +362,12 @@ const GoodFaithEstimatePage = () => {
       }));
 
       const body = {
+        client_group_id: clientGroupId,
         clinician_id: clinician.id,
         clinician_npi: providerData.npi.replace(/\s/g, ""), // Remove spaces for API
         clinician_tin: providerData.tin.replace(/-/g, ""), // Remove hyphens for API
         clinician_location_id: providerData.location,
-        contact_person_id: providerData.contactPerson || null,
+        contact_person_id: providerData.contactPerson,
         clinician_phone: providerData.phone,
         clinician_email: providerData.email,
         provided_date: formData.providedDate || null,
@@ -366,8 +384,7 @@ const GoodFaithEstimatePage = () => {
         services: servicesApiData,
       };
 
-      const [_, error] = await createGoodFaithEstimate({ body });
-
+      const [response, error] = await createGoodFaithEstimate({ body });
       if (error) {
         toast({
           title: "Error saving estimate",
@@ -375,6 +392,9 @@ const GoodFaithEstimatePage = () => {
           variant: "destructive",
         });
       } else {
+        router.push(
+          `/clients/${clientGroupId}/goodFaithEstimate/${(response as GoodFaithEstimateData).id}`,
+        );
         toast({
           title: "Good Faith Estimate saved successfully!",
           description: "Good Faith Estimate saved successfully!",
@@ -452,6 +472,16 @@ const GoodFaithEstimatePage = () => {
         {clinician && locationsData && (
           <ProviderCard
             clinician={clinician}
+            initialData={{
+              name: `${clinician.first_name} ${clinician.last_name}`,
+              npi: clinician.NPI_number || "",
+              tin: "",
+              location: clinician?.ClinicianLocation[0]?.location_id || "",
+              address: clinician.address || "",
+              contactPerson: clinician.id,
+              phone: "",
+              email: "",
+            }}
             locations={locationsData}
             onDataChange={handleProviderDataChange}
           />
@@ -547,7 +577,7 @@ const GoodFaithEstimatePage = () => {
               <div>Quantity</div>
               <div>Rate</div>
               <div>Total</div>
-              <div></div>
+              <div />
             </div>
 
             {serviceRows.map((row, index) => (
@@ -618,6 +648,7 @@ const GoodFaithEstimatePage = () => {
                 </div>
                 <div>
                   <Input
+                    min="1"
                     type="number"
                     value={row.quantity}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -627,11 +658,12 @@ const GoodFaithEstimatePage = () => {
                         parseInt(e.target.value) || 1,
                       )
                     }
-                    min="1"
                   />
                 </div>
                 <div>
                   <Input
+                    placeholder="$0.00"
+                    step="0.01"
                     type="number"
                     value={row.rate}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -641,8 +673,6 @@ const GoodFaithEstimatePage = () => {
                         parseFloat(e.target.value) || 0,
                       )
                     }
-                    placeholder="$0.00"
-                    step="0.01"
                   />
                 </div>
                 <div className="flex items-center">
@@ -651,10 +681,10 @@ const GoodFaithEstimatePage = () => {
                 <div className="flex justify-center">
                   {serviceRows.length > 1 && (
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeServiceRow(index)}
                       className="p-1 h-8 w-8 text-gray-400 hover:text-red-600"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeServiceRow(index)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -664,7 +694,7 @@ const GoodFaithEstimatePage = () => {
             ))}
           </div>
 
-          <Button onClick={addServiceRow} variant="outline" className="mt-2">
+          <Button className="mt-2" variant="outline" onClick={addServiceRow}>
             + Add service
           </Button>
 
@@ -686,10 +716,10 @@ const GoodFaithEstimatePage = () => {
         </CardHeader>
         <CardContent>
           <Textarea
+            className="min-h-32"
+            placeholder="Enter any additional notes..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Enter any additional notes..."
-            className="min-h-32"
           />
         </CardContent>
       </Card>
@@ -700,9 +730,9 @@ const GoodFaithEstimatePage = () => {
           Cancel
         </Button>
         <Button
-          onClick={handleSave}
-          disabled={isSaving || hasValidationErrors}
           className={hasValidationErrors ? "opacity-50 cursor-not-allowed" : ""}
+          disabled={isSaving || hasValidationErrors}
+          onClick={handleSave}
         >
           {isSaving ? "Saving..." : "Save"}
         </Button>

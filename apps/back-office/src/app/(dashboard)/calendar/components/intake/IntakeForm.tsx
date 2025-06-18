@@ -1,170 +1,139 @@
 import type React from "react";
-import { useState } from "react";
-import { Button } from "@mcw/ui";
-import { ProgressSteps } from "./ProgressSteps";
-import { DocumentSection } from "./DocumentSection";
-import { RemindersDialog } from "./RemindersDialog";
-import { ComposeEmail } from "./ComposeEmail";
-import { AlertCircle } from "lucide-react";
-import { ReviewAndSend } from "./ReviewAndSend";
+import { useEffect, useState } from "react";
+import {
+  ShareDocuments,
+  ShareClient,
+} from "@/(dashboard)/share-documents/ShareDocuments";
+import {
+  fetchSingleClientGroup,
+  ClientGroupWithMembership,
+} from "@/(dashboard)/clients/services/client.service";
+import { useMultipleClientEmails } from "@/(dashboard)/calendar/hooks/useClientContact";
 
 interface IntakeFormProps {
-  clientName: string;
-  clientEmail: string;
+  clientGroupId: string;
   onClose: () => void;
+  appointmentDate?: Date | string;
+  appointmentTime?: string;
+  clinicianName?: string;
+  locationName?: string;
+  appointmentId?: string;
 }
 
 export const IntakeForm: React.FC<IntakeFormProps> = ({
-  clientName,
-  clientEmail,
+  clientGroupId,
   onClose,
+  appointmentDate,
+  appointmentTime,
+  clinicianName,
+  locationName,
+  appointmentId,
 }) => {
-  const [showReminders, setShowReminders] = useState(true);
-  const [currentStep, setCurrentStep] = useState<
-    "documents" | "email" | "review"
-  >("documents");
+  const [clients, setClients] = useState<ShareClient[]>([]);
+  const [clientIds, setClientIds] = useState<string[]>([]);
+  const [isLoadingGroup, setIsLoadingGroup] = useState(true);
 
-  const steps = [
-    { number: 1, label: "Almir K.", isActive: currentStep === "documents" },
-    { number: 2, label: "Compose Email", isActive: currentStep === "email" },
-    { number: 3, label: "Review & Send", isActive: currentStep === "review" },
-  ];
+  // Use the hook to fetch emails for all clients
+  const { data: emailMap, isLoading: isLoadingEmails } =
+    useMultipleClientEmails(clientIds);
 
-  if (currentStep === "review") {
+  useEffect(() => {
+    let mounted = true;
+
+    // Fetch all clients in the group
+    const fetchClients = async () => {
+      try {
+        const response = await fetchSingleClientGroup({
+          id: clientGroupId,
+          searchParams: {},
+        });
+
+        // Check if component is still mounted before updating state
+        if (!mounted) return;
+
+        if (response && typeof response === "object" && "data" in response) {
+          const clientGroupData = response.data as ClientGroupWithMembership;
+
+          if (clientGroupData.ClientGroupMembership?.length) {
+            // Extract client IDs for email fetching
+            const ids = clientGroupData.ClientGroupMembership.map(
+              (membership) => membership.Client.id,
+            );
+
+            // Check again before state updates
+            if (!mounted) return;
+
+            setClientIds(ids);
+
+            // Set basic client data immediately
+            const clientsData = clientGroupData.ClientGroupMembership.map(
+              (membership) => {
+                const client = membership.Client;
+                return {
+                  id: client.id,
+                  name: `${client.legal_first_name || ""} ${client.legal_last_name || ""}`.trim(),
+                  email: undefined,
+                };
+              },
+            );
+
+            if (!mounted) return;
+            setClients(clientsData);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch clients:", error);
+      } finally {
+        if (mounted) {
+          setIsLoadingGroup(false);
+        }
+      }
+    };
+
+    if (clientGroupId) {
+      fetchClients();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [clientGroupId]);
+
+  useEffect(() => {
+    if (emailMap && clients.length > 0) {
+      const updatedClients = clients.map((client) => ({
+        ...client,
+        email: emailMap.get(client.id) || undefined,
+      }));
+      setClients(updatedClients);
+    }
+  }, [emailMap, clients.length]);
+
+  const isLoading = isLoadingGroup || isLoadingEmails;
+
+  if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-white z-50 overflow-auto">
-        <ReviewAndSend
-          clientName={clientName}
-          onBack={() => setCurrentStep("email")}
-          onComplete={onClose}
-        />
+      <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900 mx-auto" />
+          <p className="mt-4 text-gray-600">Loading clients...</p>
+        </div>
       </div>
     );
   }
-
-  if (currentStep === "email") {
-    return (
-      <div className="fixed inset-0 bg-white z-50 overflow-auto">
-        <ComposeEmail
-          clientName={clientName}
-          onBack={() => setCurrentStep("documents")}
-          onContinue={() => setCurrentStep("review")}
-        />
-      </div>
-    );
-  }
-
-  const consentDocuments = [
-    { id: "auth", label: "(NICOLE) AUTHORIZATION FOR USE OR DISCLOSURE" },
-    {
-      id: "adult-consent",
-      label: "Adult Informed Consent for Psychiatric Services",
-    },
-    { id: "telehealth", label: "Consent for Telehealth Consultation" },
-    { id: "credit-card", label: "Credit Card Authorization", checked: true },
-    { id: "group-therapy", label: "Group Therapy Consent" },
-    { id: "life-coaching", label: "Informed Consent for Life Coaching" },
-    {
-      id: "psychotherapy",
-      label: "Informed Consent for Psychotherapy",
-      checked: true,
-    },
-    {
-      id: "minor-consent",
-      label: "Minor Informed Consent for Psychiatric Services",
-    },
-    { id: "privacy", label: "Notice of Privacy Practices", checked: true },
-    { id: "policies", label: "Practice Policies", checked: true },
-    { id: "termination", label: "Termination of Treatment" },
-  ];
-
-  const scoredMeasures = [
-    { id: "gad-7", label: "GAD-7", checked: true, frequency: true },
-    { id: "phq-9", label: "PHQ-9", checked: true },
-  ];
-
-  const questionnaires = [
-    {
-      id: "adult-eval",
-      label: "Adult Psychiatric Evaluation Intake Form (18+)",
-    },
-    { id: "couples", label: "Couples Counseling Initial Intake Form" },
-    { id: "dissociative", label: "Dissociative Experiences Scale (DES-II)" },
-    {
-      id: "adult-intake",
-      label: "MCW Adult Intake Questionnaire (18+)",
-      checked: true,
-    },
-    { id: "minor-intake", label: "MCW Minor Intake Questionnaire (0 - 17)" },
-    { id: "release", label: "Release of Information - Short" },
-    { id: "standard-es", label: "Standard Intake Questionnaire - En Español" },
-  ];
-
-  const demographicsForms = [
-    { id: "credit-info", label: "Credit card information", checked: true },
-    { id: "demographics", label: "Demographics form", checked: true },
-  ];
-
-  const uploadedFiles = [
-    { id: "release-auth", label: "Authorization for Release of Information" },
-    { id: "bai", label: "BAI" },
-    { id: "bdi", label: "BDI" },
-  ];
 
   return (
-    <div className="fixed inset-0 bg-white z-50 overflow-auto">
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <h2 className="text-2xl font-semibold mb-6">
-          Send intakes for {clientName}
-        </h2>
-
-        <ProgressSteps steps={steps} />
-
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-amber-500" />
-          <span>{clientName} will receive Client Portal access.</span>
-        </div>
-
-        <div className="mb-6">
-          <div className="text-sm mb-2">
-            {clientName} • {clientEmail}
-          </div>
-          <h3 className="text-lg font-medium mb-4">{clientName}'s items</h3>
-
-          <div className="space-y-8">
-            <DocumentSection
-              items={consentDocuments}
-              title="Consent Documents"
-            />
-            <DocumentSection items={scoredMeasures} title="Scored measures" />
-            <DocumentSection items={questionnaires} title="Questionnaires" />
-            <DocumentSection
-              items={demographicsForms}
-              title="Demographics and Credit Card Forms"
-            />
-            <DocumentSection items={uploadedFiles} title="Uploaded Files" />
-          </div>
-        </div>
-
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            className="bg-emerald-600 hover:bg-emerald-700"
-            onClick={() => setCurrentStep("email")}
-          >
-            Continue to Email
-          </Button>
-        </div>
-
-        <RemindersDialog
-          clientEmail={clientEmail}
-          clientName={clientName}
-          isOpen={showReminders}
-          onClose={() => setShowReminders(false)}
-        />
-      </div>
-    </div>
+    <ShareDocuments
+      clients={clients}
+      clientGroupId={clientGroupId}
+      context="appointment"
+      showReminders={true}
+      onClose={onClose}
+      appointmentDate={appointmentDate}
+      appointmentTime={appointmentTime}
+      clinicianName={clinicianName}
+      locationName={locationName}
+      appointmentId={appointmentId}
+    />
   );
 };

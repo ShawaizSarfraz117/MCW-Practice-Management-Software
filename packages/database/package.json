@@ -8,6 +8,7 @@
     "./mock": "./src/__mocks__/mockPrisma.ts",
     "./fabbrica": "./src/generated/fabbrica/index.ts",
     "./mock-data": "./src/__mocks__/data.ts",
+    "./mocks": "./src/__mocks__/index.ts",
     "./test-utils": "./__tests__/utils/index.ts"
   },
   "prisma": {

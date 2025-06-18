@@ -85,21 +85,18 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
 
-    if (data.invoice_type === "adjustment") {
-      const appointment = await prisma.appointment.findUnique({
-        where: { id: data.appointment_id as string },
-      });
-      if (!appointment) {
-        return NextResponse.json(
-          { error: "Appointment not found" },
-          { status: 404 },
-        );
-      }
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: data.appointment_id as string },
+    });
+    if (!appointment) {
+      return NextResponse.json(
+        { error: "Appointment not found" },
+        { status: 404 },
+      );
+    }
 
-      const maxInvoice = await prisma.invoice.findFirst({
-        orderBy: { invoice_number: "desc" },
-      });
-      const nextInvoiceNumber = maxInvoice ? maxInvoice.invoice_number + 1 : 1;
+    if (data.invoice_type === "adjustment") {
+      const nextInvoiceNumber = await getNextInvoiceNumber();
 
       const invoice = await prisma.invoice.create({
         data: {
@@ -110,7 +107,7 @@ export async function POST(request: NextRequest) {
           type: "ADJUSTMENT",
           status:
             Number(appointment.adjustable_amount) < 0 ? "CREDIT" : "UNPAID",
-          invoice_number: `INV #${nextInvoiceNumber}`,
+          invoice_number: String(nextInvoiceNumber),
           issued_date: new Date(),
           due_date: new Date(),
         },
@@ -134,18 +131,14 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json(invoice, { status: 201 });
     } else {
-      const maxInvoice = await prisma.invoice.findFirst({
-        orderBy: { invoice_number: "desc" },
-      });
-      const nextInvoiceNumber = maxInvoice ? maxInvoice.invoice_number + 1 : 1;
-      const invoiceNumber = `INV #${nextInvoiceNumber}`;
+      const nextInvoiceNumber = await getNextInvoiceNumber();
       // Create new invoice
       const newInvoice = await prisma.invoice.create({
         data: {
-          invoice_number: invoiceNumber,
+          invoice_number: String(nextInvoiceNumber),
           client_group_id: data.client_group_id,
           appointment_id: data.appointment_id,
-          clinician_id: data.clinician_id || null,
+          clinician_id: appointment.clinician_id || null,
           issued_date: new Date(),
           due_date: new Date(),
           amount: Number(data.amount),
@@ -194,4 +187,15 @@ export async function PATCH(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+async function getNextInvoiceNumber(): Promise<number> {
+  const maxInvoice = await prisma.invoice.findFirst({
+    orderBy: { invoice_number: "desc" },
+  });
+  const maxInvoiceNumber = maxInvoice?.invoice_number;
+  if (maxInvoiceNumber && isNaN(Number(maxInvoiceNumber))) {
+    throw new Error(`Invalid invoice number format: ${maxInvoiceNumber}`);
+  }
+  return maxInvoiceNumber ? Number(maxInvoiceNumber) + 1 : 1;
 }

@@ -1,6 +1,8 @@
+/* eslint-disable max-lines */
 import { useState } from "react";
 import {
   createInvoice,
+  fetchAppointments,
   updateAppointment,
 } from "@/(dashboard)/clients/services/client.service";
 import { Button } from "@mcw/ui";
@@ -17,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@mcw/ui";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Loading from "@/components/Loading";
 import { format } from "date-fns";
 import { InvoiceDialog } from "../InvoiceDialogue";
@@ -30,10 +32,17 @@ import {
 } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { toast } from "@mcw/ui";
-import { useFetchAppointments } from "@/(dashboard)/clients/services/client.service";
 import { SuperbillModal } from "../SuperbillModal";
 import { SuperbillDialog } from "../SuperbillDialog";
+import { StatementModal } from "../StatementModal";
 import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
+import { createStatement } from "@/(dashboard)/clients/services/documents.service";
+
+interface StatementResponse {
+  id: string;
+  statement_number: number;
+  [key: string]: unknown;
+}
 
 // Type definitions
 type Invoice = {
@@ -58,6 +67,10 @@ type Appointment = {
   clinician_id?: string;
   Invoice: Invoice[];
   adjustable_amount?: number | string;
+  Superbill?: {
+    id: string;
+    superbill_number: string;
+  };
 };
 
 // eslint-disable-next-line max-lines-per-function
@@ -66,74 +79,75 @@ export default function BillingTab({
   invoiceDialogOpen,
   setInvoiceDialogOpen,
   fetchInvoicesData,
+  superbillDialogOpen,
+  setSuperbillDialogOpen,
 }: {
   addPaymentModalOpen: boolean;
   invoiceDialogOpen: boolean;
   setInvoiceDialogOpen: (invoiceDialogOpen: boolean) => void;
   fetchInvoicesData: () => Promise<void>;
+  superbillDialogOpen: boolean;
+  setSuperbillDialogOpen: (superbillDialogOpen: boolean) => void;
 }) {
   const [dateRangePickerOpen, setDateRangePickerOpen] = useState(false);
   const [selectedDateRangeDisplay, setSelectedDateRangeDisplay] =
     useState<string>("All time");
   const [customDateRange, setCustomDateRange] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("billable");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [editingAppointment, setEditingAppointment] =
     useState<Appointment | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [superbillModalOpen, setSuperbillModalOpen] = useState(false);
-  const [superbillDialogOpen, setSuperbillDialogOpen] = useState(false);
+  // const [statementModalOpen, setStatementModalOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const params = useParams();
   const searchParams = useSearchParams();
 
-  const { data, isLoading } = useFetchAppointments(
-    [
+  const { data, isLoading } = useQuery({
+    queryKey: [
       "appointments",
       selectedDateRangeDisplay,
       statusFilter,
+      startDate,
+      endDate,
       addPaymentModalOpen,
       invoiceDialogOpen,
     ],
-    {
-      clientGroupId: params.id,
-      status: statusFilter !== "billable" ? statusFilter : undefined,
+    queryFn: () => {
+      const searchParams: Record<string, string> = {
+        clientGroupId: params.id as string,
+        include: "Superbill",
+      };
+
+      if (startDate && endDate) {
+        searchParams.startDate = startDate;
+        searchParams.endDate = endDate;
+      }
+
+      if (statusFilter && statusFilter !== "billable") {
+        searchParams.status = statusFilter;
+      }
+
+      return fetchAppointments({ searchParams });
     },
-  );
+  });
+
   const queryClient = useQueryClient();
 
   // Type assertion
   const appointments = data as Appointment[] | undefined;
 
-  const handleInvoiceClick = (invoiceId: string) => {
-    // Find the invoice to check if it's a superbill
-    const invoiceApp = appointments?.find((app) =>
-      app.Invoice.some((inv) => inv.id === invoiceId),
-    );
-    const invoice = invoiceApp?.Invoice.find((inv) => inv.id === invoiceId);
-
-    if (invoice?.type === "SUPERBILL") {
-      // For superbills, update URL and open superbill dialog
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("type", "superbill");
-      params.set("invoiceId", invoiceId);
-
-      router.push(`${window.location.pathname}?${params.toString()}`, {
-        scroll: false,
-      });
-      setSuperbillDialogOpen(true);
-      return;
-    }
-
-    // Handle regular invoices as before
+  const handleInvoiceClick = (type: string, invoiceId: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("type", "invoice");
-    params.set("invoiceId", invoiceId);
+    params.set("type", type);
+    params.set(type === "invoice" ? "invoiceId" : "superbillId", invoiceId);
 
     router.push(`${window.location.pathname}?${params.toString()}`, {
       scroll: false,
     });
-    setInvoiceDialogOpen(true);
   };
 
   const onOpenChange = (invoiceDialogOpen: boolean) => {
@@ -208,7 +222,7 @@ export default function BillingTab({
         variant: "success",
       });
 
-      handleInvoiceClick(invoice?.id || "");
+      handleInvoiceClick("invoice", invoice?.id || "");
       queryClient.invalidateQueries({
         queryKey: ["appointments"],
       });
@@ -226,6 +240,47 @@ export default function BillingTab({
     });
   };
 
+  const handleCreateStatement = async () => {
+    try {
+      const [response, error] = await createStatement({
+        body: {
+          client_group_id: params.id,
+          start_date: new Date(
+            new Date().setMonth(new Date().getMonth() - 1),
+          ).toISOString(),
+          end_date: new Date().toISOString(),
+        },
+      });
+
+      if (!error && response) {
+        const statementResponse = response as StatementResponse;
+        if (statementResponse.id) {
+          toast({
+            description: "Statement created",
+            variant: "success",
+          });
+
+          // Open the statement modal with the created statement ID
+          const urlParams = new URLSearchParams(searchParams.toString());
+          urlParams.set("statementId", statementResponse.id);
+          router.push(`${pathname}?${urlParams.toString()}`, {
+            scroll: false,
+          });
+        }
+      } else {
+        toast({
+          description: "Failed to create statement",
+          variant: "destructive",
+        });
+      }
+    } catch (_error) {
+      toast({
+        description: "Failed to create statement",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
       {invoiceDialogOpen && (
@@ -236,6 +291,15 @@ export default function BillingTab({
           clientId={params.id as string}
           open={superbillModalOpen}
           onOpenChange={setSuperbillModalOpen}
+          onSave={(superbillId) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("type", "superbill");
+            params.set("superbillId", superbillId);
+            router.push(`${window.location.pathname}?${params.toString()}`, {
+              scroll: false,
+            });
+            setSuperbillDialogOpen(true);
+          }}
         />
       )}
       {superbillDialogOpen && (
@@ -244,6 +308,7 @@ export default function BillingTab({
           onOpenChange={onSuperbillOpenChange}
         />
       )}
+      <StatementModal />
       {/* Date Range and Filter */}
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-2 relative">
@@ -259,6 +324,8 @@ export default function BillingTab({
             isOpen={dateRangePickerOpen}
             onApply={(_startDate, _endDate, displayOption) => {
               setSelectedDateRangeDisplay(displayOption);
+              setStartDate(_startDate);
+              setEndDate(_endDate);
               if (displayOption === "Custom Range") {
                 setCustomDateRange(`${_startDate} - ${_endDate}`);
               }
@@ -275,6 +342,7 @@ export default function BillingTab({
               <SelectItem value="billable">All Items</SelectItem>
               <SelectItem value="PAID">Paid</SelectItem>
               <SelectItem value="UNPAID">Unpaid</SelectItem>
+              <SelectItem value="UNINVOICED">Uninvoiced</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -286,7 +354,10 @@ export default function BillingTab({
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => setSuperbillModalOpen(true)}>
-              Create Superbill
+              Superbill
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleCreateStatement()}>
+              Statement
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -412,7 +483,6 @@ export default function BillingTab({
                                 Create Invoice
                               </DropdownMenuItem>
                             ) : null}
-                            <DropdownMenuItem>View Invoice</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
@@ -431,11 +501,24 @@ export default function BillingTab({
                     <div
                       key={inv.id}
                       className="p-4 m-1 inline-block bg-gray-100 text-blue-500 py-1 text-xs rounded mt-1 cursor-pointer hover:bg-gray-200"
-                      onClick={() => handleInvoiceClick(inv.id)}
+                      onClick={() => handleInvoiceClick("invoice", inv.id)}
                     >
-                      {inv.invoice_number}
+                      {`INV #${inv.invoice_number}`}
                     </div>
                   ))}
+                  {appointment.Superbill && (
+                    <div
+                      className="p-4 m-1 inline-block bg-gray-100 text-blue-500 py-1 text-xs rounded mt-1 cursor-pointer hover:bg-gray-200"
+                      onClick={() =>
+                        handleInvoiceClick(
+                          "superbill",
+                          appointment.Superbill?.id || "",
+                        )
+                      }
+                    >
+                      {`SB #${appointment.Superbill.superbill_number}`}
+                    </div>
+                  )}
                 </div>
               );
             })

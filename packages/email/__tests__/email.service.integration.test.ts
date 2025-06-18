@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { EmailService } from "@/email.service";
-import type { EmailServiceConfig } from "@/types";
+import { EmailService } from "../src/email.service";
+import type { EmailServiceConfig } from "../src/types";
 import dotenv from "dotenv";
 import path from "path";
 

@@ -45,6 +45,7 @@ model Appointment {
   superbill_id             String?            @db.UniqueIdentifier
   /// Amount written off (not expected to be collected) in dollars.
   write_off                Decimal?
+  created_at               DateTime           @default(now()) @db.DateTime
   ClientGroup              ClientGroup?       @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_ClientGroup")
   Clinician                Clinician?         @relation(fields: [clinician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Appointment_Clinician")
   Location                 Location?          @relation(fields: [location_id], references: [id], map: "FK_Appointment_Location")
@@ -111,8 +112,12 @@ model Availability {
   /// Whether clients can request appointments during this time via portal.
   allow_online_requests Boolean                @default(false, map: "DF_Availability_AllowOnlineRequests")
   location_id           String                 @db.UniqueIdentifier
+  /// For recurring availabilities: NULL if this is the parent/template, or parent's ID if this is a child instance.
+  recurring_availability_id String?            @db.UniqueIdentifier
   Clinician             Clinician              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Clinician")
   Location              Location               @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Location")
+  Availability          Availability?         @relation("AvailabilityToAvailability", fields: [recurring_availability_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Availability_RecurringAvailability")
+  other_Availability    Availability[]        @relation("AvailabilityToAvailability")
   AvailabilityServices  AvailabilityServices[]
 
   @@index([clinician_id], map: "IX_Availability_clinician_id")
@@ -134,12 +139,6 @@ model Client {
   is_active                Boolean                    @default(true, map: "DF_Client_IsActive")
   preferred_name           String?                    @db.VarChar(100)
   date_of_birth            DateTime?                  @db.Date
-  /// Portal permission: Client can request appointments online.
-  allow_online_appointment Boolean                    @default(false, map: "DF_Client_allow_online_appointment")
-  /// Portal permission: Client can view their invoices, statements, and superbills.
-  access_billing_documents Boolean                    @default(false, map: "DF_Client_access_billing_documents")
-  /// Portal permission: Client can send and receive secure messages with their clinician.
-  use_secure_messaging     Boolean                    @default(false, map: "DF_Client_use_secure_messaging")
   /// Free text field for initial referral source.
   referred_by              String?                    @db.VarChar(200)
   Audit                    Audit[]
@@ -156,6 +155,7 @@ model Client {
   DiagnosisTreatmentPlan   DiagnosisTreatmentPlan[]
   SurveyAnswers            SurveyAnswers[]
   GoodFaithClients         GoodFaithClients[]
+  ClientPortalPermission   ClientPortalPermission?
 }
 
 /// Extended demographic and personal information for a client.
@@ -224,15 +224,19 @@ model ClientGroup {
   auto_monthly_superbill_enabled Boolean?                   @default(false, map: "DF_ClientGroup_auto_monthly_superbill_enabled")
   first_seen_at                  DateTime?                  @default(now(), map: "ClientGroup_first_seen_at")
   notes                          String?                    @db.Text
+  administrative_notes           String?                    @db.Text
   Appointment                    Appointment[]
   ClientBillingPreferences       ClientBillingPreferences[]
   Clinician                      Clinician?                 @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClientGroup_Clinician")
   ClientGroupFile                ClientGroupFile[]
   ClientGroupMembership          ClientGroupMembership[]
   ClientGroupServices            ClientGroupServices[]
+  DiagnosisTreatmentPlan         DiagnosisTreatmentPlan[]
+  GoodFaithEstimate              GoodFaithEstimate[]
   Invoice                        Invoice[]
   Statement                      Statement[]
   Superbill                      Superbill[]
+  SurveyAnswers                  SurveyAnswers[]
   ClientGroupChartNote           ClientGroupChartNote[]
 }
 
@@ -258,6 +262,7 @@ model ClientGroupChartNote {
   text               String        @db.Text
   client_group_id    String        @db.UniqueIdentifier
   note_date          DateTime      @default(now())
+  created_at         DateTime      @default(now()) @db.DateTime
   ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupChartNote_ClientGroup")
 
   @@index([client_group_id], map: "IX_ClientGroupChartNote_client_group_id")
@@ -332,7 +337,7 @@ model ClinicianClient {
   is_primary    Boolean   @default(false, map: "DF_ClinicianClient_IsPrimary")
   assigned_date DateTime  @default(now(), map: "DF__Clinician__assig__430CD787")
   Client        Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Client")
-  Clinician     Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Clinician")
+  Clinician     Clinician  @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Clinician")
 
   @@id([client_id, clinician_id], map: "PK_ClinicianClient_ID")
 }
@@ -461,11 +466,12 @@ model PracticeService {
   block_before        Int                   @default(0)
   is_default          Boolean               @default(false)
   require_call        Boolean               @default(false)
-  Appointment         Appointment[]
-  AppointmentRequests AppointmentRequests[]
-  ClientGroupServices ClientGroupServices[]
-  ClinicianServices   ClinicianServices[]
-  GoodFaithServices   GoodFaithServices[]
+  Appointment          Appointment[]
+  AppointmentRequests  AppointmentRequests[]
+  AvailabilityServices AvailabilityServices[]
+  ClientGroupServices  ClientGroupServices[]
+  ClinicianServices    ClinicianServices[]
+  GoodFaithServices    GoodFaithServices[]
 }
 
 /// User roles for role-based access control (RBAC).
@@ -484,6 +490,7 @@ model SurveyAnswers {
   id                     String                   @id(map: "PK_SurveyAnswers_ID") @default(dbgenerated("newid()"), map: "DF_SurveyAnswers_ID") @db.UniqueIdentifier
   template_id            String                   @db.UniqueIdentifier
   client_id              String                   @db.UniqueIdentifier
+  client_group_id        String?                  @db.UniqueIdentifier
   /// JSON content of the completed survey, storing answers to the questions from the template.
   content                String?                  @db.Text
   frequency              String?                  @db.NChar(10)
@@ -499,11 +506,15 @@ model SurveyAnswers {
   is_signed              Boolean?
   /// Whether this document is locked from further edits (e.g., after signing).
   is_locked              Boolean?
+  created_at             DateTime                 @default(now()) @db.DateTime
+  /// JSON content of the survey score (e.g., totalScore, severity, interpretation).
+  score                  String?                  @db.Text
   AppointmentNotes       AppointmentNotes[]
   ClientFiles            ClientFiles[]
   DiagnosisTreatmentPlan DiagnosisTreatmentPlan[]
   Appointment            Appointment?             @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_SurveyAnswers_Appointment")
   Client                 Client                   @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_SurveyAnswers_Client")
+  ClientGroup            ClientGroup?             @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_SurveyAnswers_ClientGroup")
   SurveyTemplate         SurveyTemplate           @relation(fields: [template_id], references: [id], onUpdate: NoAction, map: "FK_SurveyAnswers_SurveyTemplate")
 }
 
@@ -680,6 +691,10 @@ model ClientGroupFile {
   uploaded_by_id     String?       @db.UniqueIdentifier
   created_at         DateTime      @default(now())
   updated_at         DateTime      @updatedAt
+  is_template        Boolean       @default(false)
+  original_template_id String?     @db.UniqueIdentifier
+  sharing_enabled    Boolean       @default(true)
+  expiry_date        DateTime?     @db.DateTime
   ClientFiles        ClientFiles[]
   ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupFile_ClientGroup")
   User               User?         @relation(fields: [uploaded_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientGroupFile_User")
@@ -802,6 +817,11 @@ model ClientFiles {
   client_id            String          @db.UniqueIdentifier
   status               String          @db.VarChar(50)
   survey_answers_id    String?         @db.UniqueIdentifier
+  frequency            String?         @db.VarChar(50)
+  next_due_date        DateTime?       @db.DateTime
+  shared_at            DateTime?       @db.DateTime
+  completed_at         DateTime?       @db.DateTime
+  blob_url             String?         @db.VarChar(500)
   Client               Client          @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClientFiles_Client")
   ClientGroupFile      ClientGroupFile @relation(fields: [client_group_file_id], references: [id], onUpdate: NoAction, map: "FK_ClientFiles_ClientGroupFile")
   SurveyAnswers        SurveyAnswers?  @relation(fields: [survey_answers_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientFiles_SurveyAnswers")
@@ -832,16 +852,19 @@ model Diagnosis {
 model DiagnosisTreatmentPlan {
   id                         String                       @id(map: "PK__Diagnosi__3213E83FDFE52E56") @default(dbgenerated("newid()"), map: "DF__DiagnosisTre__id__5244F976") @db.UniqueIdentifier
   client_id                  String                       @db.UniqueIdentifier
+  client_group_id            String?                      @db.UniqueIdentifier
   created_at                 DateTime                     @default(now(), map: "DF__Diagnosis__creat__53391DAF") @db.DateTime
   updated_at                 DateTime?                    @db.DateTime
   is_signed                  String?                      @default("0", map: "DF_DiagnosisTreatmentPlan_is_signed") @db.NChar(10)
   title                      String                       @db.VarChar(255)
   survey_answers_id          String?                      @db.UniqueIdentifier
   Client                     Client                       @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlan_Client")
+  ClientGroup                ClientGroup?                 @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlan_ClientGroup")
   SurveyAnswers              SurveyAnswers?               @relation(fields: [survey_answers_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlan_SurveyAnswers")
   DiagnosisTreatmentPlanItem DiagnosisTreatmentPlanItem[]
 
   @@index([client_id], map: "IX_DiagnosisTreatmentPlan_ClientId")
+  @@index([client_group_id], map: "IX_DiagnosisTreatmentPlan_ClientGroupId")
   @@index([survey_answers_id], map: "IX_DiagnosisTreatmentPlan_SurveyAnswersId")
 }
 
@@ -851,7 +874,7 @@ model DiagnosisTreatmentPlanItem {
   treatment_plan_id      String                 @db.UniqueIdentifier
   diagnosis_id           String                 @db.UniqueIdentifier
   custom_description     String?                @db.VarChar(255)
-  Diagnosis              Diagnosis              @relation(fields: [diagnosis_id], references: [id], onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlanItem_Diagnosis")
+  Diagnosis              Diagnosis?             @relation(fields: [diagnosis_id], references: [id], onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlanItem_Diagnosis")
   DiagnosisTreatmentPlan DiagnosisTreatmentPlan @relation(fields: [treatment_plan_id], references: [id], onUpdate: NoAction, map: "FK_DiagnosisTreatmentPlanItem_DiagnosisTreatmentPlan")
 
   @@index([diagnosis_id], map: "IX_DiagnosisTreatmentPlanItem_DiagnosisId")
@@ -862,6 +885,7 @@ model DiagnosisTreatmentPlanItem {
 model GoodFaithEstimate {
   id                    String              @id(map: "PK_GoodFaithEstimate") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   clinician_id          String              @db.UniqueIdentifier
+  client_group_id       String?             @db.UniqueIdentifier
   clinician_npi         String?             @db.VarChar(100)
   clinician_tin         String?             @db.VarChar(100)
   clinician_location_id String              @db.UniqueIdentifier
@@ -874,8 +898,10 @@ model GoodFaithEstimate {
   service_end_date      DateTime?           @db.Date
   /// Total estimated cost in dollars.
   total_cost            Int
+  created_at            DateTime            @default(now()) @db.DateTime
   notes                 String?             @db.Text
   Clinician             Clinician           @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Clinician")
+  ClientGroup           ClientGroup?        @relation(fields: [client_group_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_ClientGroup")
   Location              Location            @relation(fields: [clinician_location_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithEstimate_Location")
   GoodFaithServices     GoodFaithServices[]
   GoodFaithClients      GoodFaithClients[]
@@ -906,11 +932,11 @@ model GoodFaithServices {
   id                String            @id(map: "PK_GoodFaithServices") @default(dbgenerated("newid()")) @db.UniqueIdentifier
   good_faith_id     String            @db.UniqueIdentifier
   service_id        String            @db.UniqueIdentifier
-  diagnosis_id      String            @db.UniqueIdentifier
+  diagnosis_id      String?           @db.UniqueIdentifier
   location_id       String            @db.UniqueIdentifier
   quantity          Int
   fee               Int
-  Diagnosis         Diagnosis         @relation(fields: [diagnosis_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_Diagnosis")
+  Diagnosis         Diagnosis?        @relation(fields: [diagnosis_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_Diagnosis")
   GoodFaithEstimate GoodFaithEstimate @relation(fields: [good_faith_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_GoodFaithEstimate")
   Location          Location          @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_Location")
   PracticeService   PracticeService   @relation(fields: [service_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithServices_PracticeService")
@@ -950,9 +976,10 @@ model AppointmentRequests {
 
 /// Services that can be booked during specific availability windows.
 model AvailabilityServices {
-  availability_id String       @db.UniqueIdentifier
-  service_id      String       @db.UniqueIdentifier
-  Availability    Availability @relation(fields: [availability_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_Availability")
+  availability_id String          @db.UniqueIdentifier
+  service_id      String          @db.UniqueIdentifier
+  Availability    Availability    @relation(fields: [availability_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_Availability")
+  PracticeService PracticeService @relation(fields: [service_id], references: [id], onUpdate: NoAction, map: "FK_AvailabilityServices_PracticeService")
 
   @@id([availability_id, service_id], map: "PK_AvailabilityServices")
 }
@@ -975,6 +1002,22 @@ model ClientPortalSettings {
   card_for_appointment_request    Boolean  @default(false, map: "DF_ClientPortalSettings_card_for_appointment_request")
   is_upload_documents_allowed     Boolean  @default(false, map: "DF_ClientPortalSettings_is_upload_documents_allowed")
   welcome_message                 String?  @db.NVarChar(Max)
+}
+
+/// Client portal permissions configuration for managing client access to features.
+model ClientPortalPermission {
+  id                          String   @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  client_id                   String   @unique @db.UniqueIdentifier
+  email                       String   @unique @db.VarChar(255)
+  allow_appointment_requests  Boolean  @default(true)
+  use_secure_messaging        Boolean  @default(true)
+  access_billing_documents    Boolean  @default(true)
+  receive_announcements       Boolean  @default(true)
+  is_active                   Boolean  @default(true)
+  created_at                  DateTime @default(now())
+  updated_at                  DateTime @default(now()) @updatedAt
+  
+  Client                      Client   @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientPortalPermission_Client")
 }
 
 /// Key-value store for practice-wide configuration.

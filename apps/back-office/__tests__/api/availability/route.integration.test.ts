@@ -1,5 +1,14 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  afterAll,
+  vi,
+} from "vitest";
 import { prisma } from "@mcw/database";
+import { cleanupDatabase } from "@mcw/database/test-utils";
 import {
   ClinicianPrismaFactory,
   LocationPrismaFactory,
@@ -26,92 +35,25 @@ function addAuthToRequest(req: ReturnType<typeof createRequest>) {
   });
 }
 
-// Helper function to clean up test data
-async function cleanupAvailabilityTestData(
-  availabilityIds: string[],
-  clinicianIds: string[],
-  locationIds: string[],
-) {
-  try {
-    // Delete availabilities
-    if (availabilityIds.length > 0) {
-      await prisma.availability.deleteMany({
-        where: { id: { in: availabilityIds } },
-      });
-    }
-    // Delete clinicians and related users
-    if (clinicianIds.length > 0) {
-      const clinicians = await prisma.clinician.findMany({
-        where: { id: { in: clinicianIds } },
-        select: { id: true, user_id: true },
-      });
-      const userIds = clinicians
-        .map((c) => c.user_id)
-        .filter((id): id is string => id !== null);
-
-      // Delete related clinician data first
-      await prisma.clinicianClient.deleteMany({
-        where: { clinician_id: { in: clinicianIds } },
-      });
-      await prisma.clinicianLocation.deleteMany({
-        where: { clinician_id: { in: clinicianIds } },
-      });
-      await prisma.clinicianServices.deleteMany({
-        where: { clinician_id: { in: clinicianIds } },
-      });
-      await prisma.clientGroup.deleteMany({
-        where: { clinician_id: { in: clinicianIds } },
-      });
-      await prisma.invoice.deleteMany({
-        where: { clinician_id: { in: clinicianIds } },
-      });
-      await prisma.availability.deleteMany({
-        where: { clinician_id: { in: clinicianIds } },
-      }); // Catch any stragglers
-
-      await prisma.clinician.deleteMany({
-        where: { id: { in: clinicianIds } },
-      });
-
-      if (userIds.length > 0) {
-        await prisma.userRole.deleteMany({
-          where: { user_id: { in: userIds } },
-        });
-        await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-      }
-    }
-
-    // Delete locations
-    if (locationIds.length > 0) {
-      await prisma.location.deleteMany({
-        where: { id: { in: locationIds } },
-      });
-    }
-  } catch (error) {
-    console.error("Error cleaning up availability test data:", error);
-  }
-}
-
 describe("Availability API Integration Tests", () => {
-  let createdAvailabilityIds: string[] = [];
-  let createdClinicianIds: string[] = [];
-  let createdLocationIds: string[] = [];
+  beforeEach(async () => {
+    // Clean up the database before each test to ensure clean state
+    await cleanupDatabase(prisma, { verbose: false });
+  });
 
   afterEach(async () => {
-    await cleanupAvailabilityTestData(
-      createdAvailabilityIds,
-      createdClinicianIds,
-      createdLocationIds,
-    );
-    createdAvailabilityIds = [];
-    createdClinicianIds = [];
-    createdLocationIds = [];
+    // Clean up after each test
+    await cleanupDatabase(prisma, { verbose: false });
     vi.restoreAllMocks();
+  });
+
+  afterAll(async () => {
+    // Final cleanup
+    await cleanupDatabase(prisma, { verbose: false });
   });
 
   it("GET /api/availability should return all availabilities", async () => {
     const clinician = await ClinicianPrismaFactory.create();
-    createdClinicianIds.push(clinician.id);
     const location = await LocationPrismaFactory.create();
 
     const avail1 = await prisma.availability.create({
@@ -138,7 +80,6 @@ describe("Availability API Integration Tests", () => {
         recurring_rule: null,
       },
     });
-    createdAvailabilityIds.push(avail1.id, avail2.id);
 
     const req = addAuthToRequest(createRequest("/api/availability"));
     const response = await GET(req);
@@ -153,7 +94,6 @@ describe("Availability API Integration Tests", () => {
   it("GET /api/availability/?id=<id> should return a specific availability", async () => {
     const clinician = await ClinicianPrismaFactory.create();
     const location = await LocationPrismaFactory.create();
-    createdClinicianIds.push(clinician.id);
 
     const avail = await prisma.availability.create({
       data: {
@@ -167,7 +107,6 @@ describe("Availability API Integration Tests", () => {
         recurring_rule: null,
       },
     });
-    createdAvailabilityIds.push(avail.id);
 
     const req = addAuthToRequest(
       createRequest(`/api/availability/?id=${avail.id}`),
@@ -182,10 +121,8 @@ describe("Availability API Integration Tests", () => {
 
   it("POST /api/availability should create a new availability", async () => {
     const clinician = await ClinicianPrismaFactory.create();
-    createdClinicianIds.push(clinician.id);
 
     const location = await LocationPrismaFactory.create();
-    createdLocationIds.push(location.id);
 
     const availData = {
       clinician_id: clinician.id,
@@ -204,7 +141,6 @@ describe("Availability API Integration Tests", () => {
     const response = await POST(req);
     expect(response.status).toBe(200);
     const json = await response.json();
-    createdAvailabilityIds.push(json.id);
 
     expect(json).toHaveProperty("id");
     expect(json).toHaveProperty("title", availData.title);
@@ -221,10 +157,8 @@ describe("Availability API Integration Tests", () => {
 
   it("PUT /api/availability should update an existing availability", async () => {
     const clinician = await ClinicianPrismaFactory.create();
-    createdClinicianIds.push(clinician.id);
 
     const location = await LocationPrismaFactory.create();
-    createdLocationIds.push(location.id);
 
     // Create the availability with proper location_id
     const avail = await prisma.availability.create({
@@ -239,7 +173,6 @@ describe("Availability API Integration Tests", () => {
         recurring_rule: null,
       },
     });
-    createdAvailabilityIds.push(avail.id);
 
     const updateData = { title: "Updated Slot" };
     const req = addAuthToRequest(
@@ -255,7 +188,6 @@ describe("Availability API Integration Tests", () => {
 
   it("DELETE /api/availability/?id=<id> should delete an availability", async () => {
     const clinician = await ClinicianPrismaFactory.create();
-    createdClinicianIds.push(clinician.id);
     const location = await LocationPrismaFactory.create();
 
     const avail = await prisma.availability.create({
@@ -270,7 +202,6 @@ describe("Availability API Integration Tests", () => {
         recurring_rule: null,
       },
     });
-    // Don't store avail.id in createdAvailabilityIds, as the test verifies deletion
 
     const req = addAuthToRequest(
       createRequest(`/api/availability/?id=${avail.id}`, {

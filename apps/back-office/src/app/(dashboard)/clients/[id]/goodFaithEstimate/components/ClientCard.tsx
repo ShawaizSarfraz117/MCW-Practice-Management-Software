@@ -39,6 +39,8 @@ interface ClientData {
   city: string;
   state: string;
   zipCode: string;
+  phone: string;
+  email: string;
   voicePermission: boolean;
   textPermission: boolean;
   emailPermission: boolean;
@@ -51,6 +53,7 @@ interface ClientCardProps {
   index: number;
   isFirstClient?: boolean;
   onDataChange?: (data: ClientData) => void;
+  initialData?: Omit<ClientData, "clientId" | "hasErrors">;
 }
 
 const ClientCard = ({
@@ -58,17 +61,23 @@ const ClientCard = ({
   index,
   isFirstClient = false,
   onDataChange,
+  initialData,
 }: ClientCardProps) => {
+  console.log("🚀 ~ initialData:", initialData);
   const [clientData, setClientData] = useState({
-    name: `${client.legal_first_name} ${client.legal_last_name}`,
-    dateOfBirth: client.date_of_birth.split("T")[0], // Format to YYYY-MM-DD
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    voicePermission: false,
-    textPermission: false,
-    emailPermission: false,
+    name:
+      initialData?.name ||
+      `${client.legal_first_name} ${client.legal_last_name}`,
+    dateOfBirth: initialData?.dateOfBirth || client.date_of_birth.split("T")[0], // Format to YYYY-MM-DD
+    address: initialData?.address || "",
+    city: initialData?.city || "",
+    state: initialData?.state || "",
+    zipCode: initialData?.zipCode || "",
+    phone: initialData?.phone || getPhoneContact(client.ClientContact),
+    email: initialData?.email || getEmailContact(client.ClientContact),
+    voicePermission: initialData?.voicePermission || false,
+    textPermission: initialData?.textPermission || false,
+    emailPermission: initialData?.emailPermission || false,
   });
 
   const [errors, setErrors] = useState({
@@ -134,17 +143,17 @@ const ClientCard = ({
     setErrors((prev) => ({ ...prev, dateOfBirth: dobError }));
   };
 
-  const getPhoneContact = (contacts: Client["ClientContact"]) => {
+  function getPhoneContact(contacts: Client["ClientContact"]) {
     return (
       contacts?.find((contact) => contact.contact_type === "PHONE")?.value || ""
     );
-  };
+  }
 
-  const getEmailContact = (contacts: Client["ClientContact"]) => {
+  function getEmailContact(contacts: Client["ClientContact"]) {
     return (
       contacts?.find((contact) => contact.contact_type === "EMAIL")?.value || ""
     );
-  };
+  }
 
   const cardClassName = isFirstClient ? "w-full" : "w-full";
   const contentClassName = isFirstClient ? "space-y-4" : "space-y-4";
@@ -164,9 +173,9 @@ const ClientCard = ({
           <div>
             <label className="block text-sm font-medium mb-1">Name *</label>
             <Input
+              className={errors.name ? "border-red-500" : ""}
               value={clientData.name}
               onChange={(e) => handleNameChange(e.target.value)}
-              className={errors.name ? "border-red-500" : ""}
             />
             {errors.name && (
               <p className="text-red-500 text-xs mt-1">{errors.name}</p>
@@ -178,10 +187,10 @@ const ClientCard = ({
               Date of birth *
             </label>
             <Input
+              className={errors.dateOfBirth ? "border-red-500" : ""}
               type="date"
               value={clientData.dateOfBirth}
               onChange={(e) => handleDateChange(e.target.value)}
-              className={errors.dateOfBirth ? "border-red-500" : ""}
             />
             {errors.dateOfBirth && (
               <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>
@@ -293,8 +302,8 @@ const ClientCard = ({
             <div>
               <label className="block text-sm font-medium mb-1">ZIP code</label>
               <Input
-                placeholder="Enter ZIP"
                 className="w-32"
+                placeholder="Enter ZIP"
                 value={clientData.zipCode}
                 onChange={(e) =>
                   setClientData((prev) => ({
@@ -319,8 +328,8 @@ const ClientCard = ({
             <div className="flex gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`voice-${client.id}`}
                   checked={clientData.voicePermission}
+                  id={`voice-${client.id}`}
                   onCheckedChange={(checked) =>
                     setClientData((prev) => ({
                       ...prev,
@@ -328,14 +337,14 @@ const ClientCard = ({
                     }))
                   }
                 />
-                <label htmlFor={`voice-${client.id}`} className="text-sm">
+                <label className="text-sm" htmlFor={`voice-${client.id}`}>
                   Voice message
                 </label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`text-${client.id}`}
                   checked={clientData.textPermission}
+                  id={`text-${client.id}`}
                   onCheckedChange={(checked) =>
                     setClientData((prev) => ({
                       ...prev,
@@ -343,14 +352,14 @@ const ClientCard = ({
                     }))
                   }
                 />
-                <label htmlFor={`text-${client.id}`} className="text-sm">
+                <label className="text-sm" htmlFor={`text-${client.id}`}>
                   Text message
                 </label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`email-${client.id}`}
                   checked={clientData.emailPermission}
+                  id={`email-${client.id}`}
                   onCheckedChange={(checked) =>
                     setClientData((prev) => ({
                       ...prev,
@@ -358,7 +367,7 @@ const ClientCard = ({
                     }))
                   }
                 />
-                <label htmlFor={`email-${client.id}`} className="text-sm">
+                <label className="text-sm" htmlFor={`email-${client.id}`}>
                   Email
                 </label>
               </div>
@@ -375,11 +384,21 @@ const ClientCard = ({
         >
           <div>
             <label className="block text-sm font-medium mb-1">Phone</label>
-            <Input value={getPhoneContact(client.ClientContact)} readOnly />
+            <Input
+              value={clientData.phone}
+              onChange={(e) =>
+                setClientData((prev) => ({ ...prev, phone: e.target.value }))
+              }
+            />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
-            <Input value={getEmailContact(client.ClientContact)} readOnly />
+            <Input
+              value={clientData.email}
+              onChange={(e) =>
+                setClientData((prev) => ({ ...prev, email: e.target.value }))
+              }
+            />
           </div>
         </div>
       </CardContent>

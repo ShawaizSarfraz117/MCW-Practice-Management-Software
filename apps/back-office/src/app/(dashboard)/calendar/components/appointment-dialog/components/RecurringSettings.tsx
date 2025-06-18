@@ -106,7 +106,21 @@ export function RecurringSettings({
                       const days = localData.selectedDays.includes(code)
                         ? localData.selectedDays.filter((d) => d !== code)
                         : [...localData.selectedDays, code];
-                      handleChange({ selectedDays: days });
+
+                      const dayOrder = [
+                        "SU",
+                        "MO",
+                        "TU",
+                        "WE",
+                        "TH",
+                        "FR",
+                        "SA",
+                      ];
+                      const sortedDays = days.sort(
+                        (a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b),
+                      );
+
+                      handleChange({ selectedDays: sortedDays });
                     }}
                   >
                     {label}

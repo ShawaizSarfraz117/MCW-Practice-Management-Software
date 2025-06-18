@@ -6,63 +6,19 @@ import type React from "react";
 import { CalendarView } from "./components/calendar/calendar";
 
 import { useState, useEffect, useCallback } from "react";
-import { IntakeForm } from "./components/intake/IntakeForm";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { CreateClientDrawer } from "../clients/components/CreateClientDrawer";
 import {
   fetchClientGroups,
   ClientGroupWithMembership,
 } from "../clients/services/client.service";
-
-// Types for API responses
-type Clinician = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  is_active: boolean;
-  User: {
-    email: string;
-  };
-};
-
-type Location = {
-  id: string;
-  name: string;
-  address: string;
-  is_active: boolean;
-};
-
-// New type for appointments
-type Appointment = {
-  id: string;
-  type: string;
-  title: string;
-  is_all_day: boolean;
-  start_date: string;
-  end_date: string;
-  location_id: string;
-  client_id?: string;
-  clinician_id?: string;
-  status: string;
-  is_recurring: boolean;
-  Client?: {
-    id: string;
-    legal_first_name: string;
-    legal_last_name: string;
-    preferred_name?: string;
-  };
-  Clinician?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
-  Location?: {
-    id: string;
-    name: string;
-    address: string;
-  };
-};
+import type {
+  CalendarClinician,
+  CalendarLocation,
+  CalendarAppointment,
+  CalendarAvailability,
+} from "@mcw/types";
 
 // Custom hook to get clinician data for the current user
 function useClinicianData() {
@@ -90,7 +46,7 @@ function useClinicianData() {
         const response = await fetch(`/api/clinician?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
-          if (data && data.id) {
+          if (data?.id) {
             setUserClinicianId(data.id);
           } else {
             setError("Clinician record found but missing ID");
@@ -140,9 +96,9 @@ function determineLocationType(
 }
 
 const CalendarPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [_appointmentDate, setAppointmentDate] = useState("");
-  const [showIntakeForm, setShowIntakeForm] = useState(false);
 
   // Use the custom hook to get clinician data
   const {
@@ -165,7 +121,7 @@ const CalendarPage: React.FC = () => {
 
   // Fetch clinicians with role-based permissions
   const { data: cliniciansData = [], isLoading: isLoadingClinicians } =
-    useQuery<Clinician[]>({
+    useQuery<CalendarClinician[]>({
       queryKey: ["clinicians", effectiveClinicianId, isAdmin, isClinician],
       queryFn: async () => {
         let url = "/api/clinician";
@@ -188,7 +144,7 @@ const CalendarPage: React.FC = () => {
 
   // Fetch locations with role-based permissions
   const { data: locationsData = [], isLoading: isLoadingLocations } = useQuery<
-    Location[]
+    CalendarLocation[]
   >({
     queryKey: ["locations", effectiveClinicianId, isAdmin, isClinician],
     queryFn: async () => {
@@ -210,7 +166,7 @@ const CalendarPage: React.FC = () => {
 
   // Fetch appointments with role-based permissions
   const { data: appointmentsData = [], isLoading: isLoadingAppointments } =
-    useQuery<Appointment[]>({
+    useQuery<CalendarAppointment[]>({
       queryKey: [
         "appointments",
         effectiveClinicianId,
@@ -239,6 +195,87 @@ const CalendarPage: React.FC = () => {
       },
       enabled: shouldFetchData, // Only run query when session is loaded
     });
+
+  // Fetch availabilities with role-based permissions
+  const { data: availabilitiesData = [], isLoading: isLoadingAvailabilities } =
+    useQuery<CalendarAvailability[]>({
+      queryKey: [
+        "availabilities",
+        effectiveClinicianId,
+        isAdmin,
+        isClinician,
+        apiStartDate,
+        apiEndDate,
+      ],
+      queryFn: async () => {
+        let url =
+          "/api/availability?startDate=" +
+          apiStartDate +
+          "&endDate=" +
+          apiEndDate;
+
+        // If user is a clinician and not an admin, fetch only their availabilities
+        if (isClinician && !isAdmin && effectiveClinicianId) {
+          url += `&clinicianId=${effectiveClinicianId}`;
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error("Failed to fetch availabilities");
+        }
+        return response.json();
+      },
+      enabled: shouldFetchData, // Only run query when session is loaded
+    });
+
+  // Add event listener to refresh availabilities when AppointmentSidebar saves
+  useEffect(() => {
+    const handleRefreshAvailabilities = () => {
+      // Invalidate and refetch the availabilities query
+      queryClient.invalidateQueries({
+        queryKey: [
+          "availabilities",
+          effectiveClinicianId,
+          isAdmin,
+          isClinician,
+          apiStartDate,
+          apiEndDate,
+        ],
+      });
+      // Also invalidate appointments in case they were affected
+      queryClient.invalidateQueries({
+        queryKey: [
+          "appointments",
+          effectiveClinicianId,
+          isAdmin,
+          isClinician,
+          apiStartDate,
+          apiEndDate,
+        ],
+      });
+    };
+
+    // Listen for the refresh event
+    window.addEventListener(
+      "refreshAvailabilities",
+      handleRefreshAvailabilities,
+    );
+
+    // Cleanup
+    return () => {
+      window.removeEventListener(
+        "refreshAvailabilities",
+        handleRefreshAvailabilities,
+      );
+    };
+  }, [
+    queryClient,
+    effectiveClinicianId,
+    isAdmin,
+    isClinician,
+    apiStartDate,
+    apiEndDate,
+  ]);
 
   // Transform API data to match the format expected by CalendarView
   const formattedClinicians = Array.isArray(cliniciansData)
@@ -296,8 +333,7 @@ const CalendarPage: React.FC = () => {
         let title = appointment.title;
 
         // If the title contains "Appointment with Client" but we have client data
-        if (title.includes("Appointment with") && appointment.Client) {
-          console.log("appointment.Client", appointment.Client);
+        if (title?.includes("Appointment with") && appointment.Client) {
           const clientName =
             appointment.Client.legal_first_name &&
             appointment.Client.legal_last_name
@@ -307,18 +343,50 @@ const CalendarPage: React.FC = () => {
           title = `Appointment with ${clientName}`;
         }
 
+        // Map 'event' type to 'appointment' for calendar compatibility
+        const eventType =
+          appointment.type === "event" ? "appointment" : "appointment";
+
         return {
           id: appointment.id,
           resourceId: appointment.clinician_id || "",
-          title: title,
+          title: title || "Appointment",
           start: appointment.start_date,
           end: appointment.end_date,
           location: appointment.location_id,
           allDay: appointment.is_all_day,
           status: appointment.status,
+          extendedProps: {
+            type: eventType as "appointment" | "availability",
+            isFirstAppointmentForGroup: appointment.isFirstAppointmentForGroup,
+            appointmentTags: appointment.AppointmentTag || [],
+          },
         };
       })
     : [];
+
+  // Format availabilities for the calendar
+  const formattedAvailabilities = Array.isArray(availabilitiesData)
+    ? availabilitiesData.map((availability) => ({
+        id: availability.id,
+        resourceId: availability.clinician_id,
+        title: availability.title || "Available",
+        start: availability.start_date,
+        end: availability.end_date,
+        location: availability.location_id,
+        extendedProps: {
+          type: "availability" as const,
+          clinician_id: availability.clinician_id,
+          allow_online_requests: availability.allow_online_requests,
+          is_recurring: availability.is_recurring,
+          recurring_rule: availability.recurring_rule,
+          clinician: availability.Clinician,
+        },
+      }))
+    : [];
+
+  // Combine appointments and availabilities
+  const allEvents = [...formattedAppointments, ...formattedAvailabilities];
 
   const handleCreateClient = (date: string, time: string) => {
     setAppointmentDate(`${date} at ${time}`);
@@ -327,7 +395,6 @@ const CalendarPage: React.FC = () => {
 
   const handleAppointmentDone = () => {
     setShowCreateClient(false);
-    // setShowIntakeForm(true);
   };
 
   // Show loading state if waiting for clinician data or API data
@@ -337,7 +404,10 @@ const CalendarPage: React.FC = () => {
       !effectiveClinicianId &&
       sessionStatus === "authenticated") ||
     (shouldFetchData &&
-      (isLoadingClinicians || isLoadingLocations || isLoadingAppointments))
+      (isLoadingClinicians ||
+        isLoadingLocations ||
+        isLoadingAppointments ||
+        isLoadingAvailabilities))
   ) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -355,7 +425,7 @@ const CalendarPage: React.FC = () => {
       <div className="flex-1">
         <CalendarView
           initialClinicians={formattedClinicians}
-          initialEvents={formattedAppointments}
+          initialEvents={allEvents}
           initialLocations={formattedLocations}
           isScheduledPage={false}
           onAppointmentDone={handleAppointmentDone}
@@ -367,14 +437,6 @@ const CalendarPage: React.FC = () => {
           open={showCreateClient}
           onOpenChange={setShowCreateClient}
         />
-
-        {showIntakeForm && (
-          <IntakeForm
-            clientEmail="almir@example.com"
-            clientName="Almir Kazacic"
-            onClose={() => setShowIntakeForm(false)}
-          />
-        )}
       </div>
     </div>
   );

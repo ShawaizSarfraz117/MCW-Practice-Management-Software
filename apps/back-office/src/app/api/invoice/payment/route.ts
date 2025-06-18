@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
 import { z } from "zod";
 import { getClinicianInfo } from "@/utils/helpers";
+import { updatePaymentStatusTag } from "@/api/appointment-tags/route";
 
 // Schema for invoice with payment
 const invoiceWithPaymentSchema = z.object({
@@ -361,6 +362,11 @@ export async function POST(req: NextRequest) {
             where: { id: invoiceData.id },
             data: { status: "PAID" },
           });
+
+          // Update appointment tag to "Paid" if invoice has an appointment
+          if (invoice.appointment_id) {
+            await updatePaymentStatusTag(invoice.appointment_id, true);
+          }
         }
       }
 

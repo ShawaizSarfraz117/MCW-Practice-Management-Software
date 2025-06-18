@@ -131,7 +131,8 @@ export async function PUT(
         data: {
           clinician_npi: requestData.clinician_npi,
           clinician_tin: requestData.clinician_tin,
-          contact_person_id: requestData.contact_person_id,
+          contact_person_id: requestData.contact_person_id || null,
+          clinician_location_id: requestData.clinician_location_id,
           clinician_phone: requestData.clinician_phone,
           clinician_email: requestData.clinician_email,
           provided_date: requestData.provided_date
@@ -153,45 +154,17 @@ export async function PUT(
 
       // Handle clients updates if provided
       if (requestData.clients && Array.isArray(requestData.clients)) {
-        // Delete existing clients not in the new list
-        const newClientIds = requestData.clients
-          .filter((c: ClientData) => c.id)
-          .map((c: ClientData) => c.id);
-
-        await tx.goodFaithClients.deleteMany({
-          where: {
-            good_faith_id: estimateId,
-            id: { notIn: newClientIds },
-          },
-        });
-
-        // Update or create clients
+        // Update existing clients using compound where clause
         await Promise.all(
           requestData.clients.map((client: ClientData) => {
-            if (client.id) {
-              // Update existing client
-              return tx.goodFaithClients.update({
-                where: { id: client.id },
-                data: {
-                  name: client.name,
-                  dob: new Date(client.dob),
-                  address: client.address,
-                  city: client.city,
-                  state: client.state,
-                  zip_code: client.zip_code,
-                  phone: client.phone,
-                  email: client.email,
-                  should_voice: client.should_voice || false,
-                  should_text: client.should_text || false,
-                  should_email: client.should_email || false,
-                },
-              });
-            } else {
-              // Create new client
-              return tx.goodFaithClients.create({
-                data: {
+            if (client.client_id) {
+              // Update existing client using compound where clause
+              return tx.goodFaithClients.updateMany({
+                where: {
                   good_faith_id: estimateId,
                   client_id: client.client_id,
+                },
+                data: {
                   name: client.name,
                   dob: new Date(client.dob),
                   address: client.address,
@@ -212,43 +185,30 @@ export async function PUT(
 
       // Handle services updates if provided
       if (requestData.services && Array.isArray(requestData.services)) {
-        // Delete existing services not in the new list
-        const newServiceIds = requestData.services
-          .filter((s: ServiceData) => s.id)
-          .map((s: ServiceData) => s.id);
-
+        // Delete all existing services for this estimate
         await tx.goodFaithServices.deleteMany({
           where: {
             good_faith_id: estimateId,
-            id: { notIn: newServiceIds },
           },
         });
 
-        // Update or create services
+        // Create new services
         await Promise.all(
           requestData.services.map((service: ServiceData) => {
-            if (service.id) {
-              // Update existing service
-              return tx.goodFaithServices.update({
-                where: { id: service.id },
-                data: {
-                  quantity: service.quantity,
-                  fee: service.fee,
-                },
-              });
-            } else {
-              // Create new service
-              return tx.goodFaithServices.create({
-                data: {
-                  good_faith_id: estimateId,
-                  service_id: service.service_id,
-                  diagnosis_id: service.diagnosis_id,
-                  location_id: service.location_id,
-                  quantity: service.quantity,
-                  fee: service.fee,
-                },
-              });
-            }
+            const baseData = {
+              good_faith_id: estimateId,
+              service_id: service.service_id,
+              location_id: service.location_id,
+              quantity: service.quantity,
+              fee: service.fee,
+            };
+
+            const data = {
+              ...baseData,
+              diagnosis_id: service.diagnosis_id || "",
+            };
+
+            return tx.goodFaithServices.create({ data });
           }),
         );
       }
