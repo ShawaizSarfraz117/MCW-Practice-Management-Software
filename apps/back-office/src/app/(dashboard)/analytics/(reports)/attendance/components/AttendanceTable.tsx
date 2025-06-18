@@ -35,19 +35,13 @@ export default function AttendanceTable({
 
     if (memberships.length === 1) {
       const client = memberships[0].Client;
-      return (
-        client.preferred_name ||
-        `${client.legal_first_name} ${client.legal_last_name}`
-      );
+      return `${client.legal_first_name} ${client.legal_last_name}`;
     }
 
     // For multiple members (couples, families), show group name or combine names
     const names = memberships.map((membership) => {
       const client = membership.Client;
-      return (
-        client.preferred_name ||
-        `${client.legal_first_name} ${client.legal_last_name}`
-      );
+      return `${client.legal_first_name} ${client.legal_last_name}`;
     });
 
     return names.join(" & ");

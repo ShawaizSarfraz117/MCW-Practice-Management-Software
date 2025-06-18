@@ -59,15 +59,19 @@ export default function AttendancePage() {
 
   if (clientGroupsData?.data) {
     clientGroupsData.data.forEach((group) => {
-      // Get the primary client's name from the group
-      const primaryMember =
-        group.ClientGroupMembership.find((m) => !m.is_contact_only) ||
-        group.ClientGroupMembership[0];
-      if (primaryMember?.Client) {
-        const client = primaryMember.Client;
-        const name = `${client.legal_first_name} ${client.legal_last_name}`;
-        clientNameToGroupId.set(name, group.id);
-        clientOptionsData.push(name);
+      // Get all non-contact members and join their names with &
+      const nonContactMembers = group.ClientGroupMembership.filter(
+        (m) => !m.is_contact_only,
+      );
+      if (nonContactMembers.length > 0) {
+        const clientNames = nonContactMembers
+          .map((member) => {
+            const client = member.Client;
+            return `${client.legal_first_name} ${client.legal_last_name}`;
+          })
+          .join(" & ");
+        clientNameToGroupId.set(clientNames, group.id);
+        clientOptionsData.push(clientNames);
       }
     });
 
