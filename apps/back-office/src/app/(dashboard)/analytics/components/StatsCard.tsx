@@ -14,30 +14,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { TimeRangeFilter } from "./TimeRangeFilter";
-import {
-  addDays,
-  format,
-  isAfter,
-  isBefore,
-  isSameMonth,
-  isSameYear,
-  parseISO,
-  subDays,
-  startOfMonth,
-  endOfWeek,
-  eachWeekOfInterval,
-  eachMonthOfInterval,
-  getMonth,
-  getYear,
-} from "date-fns";
-
-const appointmentData = [
-  { name: "Show", value: 18 },
-  { name: "No Show", value: 2 },
-  { name: "Canceled", value: 1 },
-  { name: "Late Canceled", value: 1 },
-  { name: "Clinician Canceled", value: 0 },
-];
+// Chart colors
 const appointmentLegend = [
   { name: "Show", color: "#4F46E5" },
   { name: "No Show", color: "#F59E0B" },
@@ -46,132 +23,50 @@ const appointmentLegend = [
   { name: "Clinician Canceled", color: "#3B82F6" },
 ];
 
-const notesData = [
-  { name: "No Note", value: 2 },
-  { name: "Unlocked", value: 8 },
-  { name: "Supervision", value: 3 },
-  { name: "Locked", value: 7 },
-];
 const NOTES_COLORS = ["#22C55E", "#3B82F6", "#F59E0B", "#D1D5DB"];
 
-// Generate 90 days of mock income data
-const today = new Date();
-const allIncomeData = Array.from({ length: 90 }).map((_, i) => {
-  const date = addDays(today, -89 + i);
-  return {
-    date: format(date, "MMM d"),
-    iso: format(date, "yyyy-MM-dd"),
-    value: Math.floor(700 + Math.random() * 1000),
+// TODO: Remove mock data once API returns time-series data
+// Mock data generation and helper functions are commented out
+// as we're now using real API data
+
+interface IncomeChartProps {
+  analyticsData?: {
+    income: number;
+    incomeChart: Array<{ date: string; value: number }>;
   };
-});
-
-type IncomeDatum = { date: string; iso: string; value: number };
-
-function filterIncomeData(range: string) {
-  const now = new Date();
-  if (range === "This month") {
-    return allIncomeData.filter(
-      (d) =>
-        isSameMonth(parseISO(d.iso), now) && isSameYear(parseISO(d.iso), now),
-    );
-  }
-  if (range === "Last 30 days") {
-    const start = subDays(now, 29);
-    return allIncomeData.filter(
-      (d) =>
-        isAfter(parseISO(d.iso), subDays(start, 1)) &&
-        isBefore(parseISO(d.iso), addDays(now, 1)),
-    );
-  }
-  if (range === "Last month") {
-    const lastMonth = subDays(startOfMonth(now), 1);
-    return allIncomeData.filter(
-      (d) =>
-        isSameMonth(parseISO(d.iso), lastMonth) &&
-        isSameYear(parseISO(d.iso), lastMonth),
-    );
-  }
-  if (range === "This year") {
-    return allIncomeData.filter((d) => isSameYear(parseISO(d.iso), now));
-  }
-  // Custom or fallback: show all
-  return allIncomeData;
+  isLoading?: boolean;
+  onTimeRangeChange?: (timeRange: {
+    range: "thisMonth" | "lastMonth" | "last30days" | "thisYear" | "custom";
+    startDate?: string;
+    endDate?: string;
+  }) => void;
 }
 
-function getWeeklyData(data: IncomeDatum[]): { date: string; value: number }[] {
-  // Group by week
-  if (!data.length) return [];
-  const first = parseISO(data[0].iso);
-  const last = parseISO(data[data.length - 1].iso);
-  const weeks = eachWeekOfInterval({ start: first, end: last });
-  return weeks.map((weekStart) => {
-    const weekEnd = endOfWeek(weekStart);
-    const weekLabel = `${format(weekStart, "MMM d")}-${format(weekEnd, "MMM d")}`;
-    const value = data
-      .filter((d) => {
-        const date = parseISO(d.iso);
-        return date >= weekStart && date <= weekEnd;
-      })
-      .reduce((sum, d) => sum + d.value, 0);
-    return { date: weekLabel, value };
-  });
-}
-
-function getMonthlyData(
-  data: IncomeDatum[],
-): { date: string; value: number }[] {
-  // Group by month
-  if (!data.length) return [];
-  const first = parseISO(data[0].iso);
-  const last = parseISO(data[data.length - 1].iso);
-  const months = eachMonthOfInterval({ start: first, end: last });
-  return months.map((monthStart) => {
-    const monthLabel = format(monthStart, "MMM yyyy");
-    const value = data
-      .filter((d) => {
-        const date = parseISO(d.iso);
-        return (
-          getMonth(date) === getMonth(monthStart) &&
-          getYear(date) === getYear(monthStart)
-        );
-      })
-      .reduce((sum, d) => sum + d.value, 0);
-    return { date: monthLabel, value };
-  });
-}
-
-export function IncomeChart() {
+export function IncomeChart({
+  analyticsData,
+  isLoading,
+  onTimeRangeChange,
+}: IncomeChartProps) {
   const [selectedRange, setSelectedRange] = useState("This month");
   const [customRange, setCustomRange] = useState<
     { startDate: string; endDate: string } | undefined
   >(undefined);
 
-  let filteredData: IncomeDatum[] = [];
-  if (selectedRange === "Custom" && customRange) {
-    const start = parseISO(
-      customRange.startDate.split("/").reverse().join("-"),
-    );
-    const end = parseISO(customRange.endDate.split("/").reverse().join("-"));
-    filteredData = allIncomeData.filter((d) => {
-      const date = parseISO(d.iso);
-      return date >= start && date <= end;
-    });
-  } else {
-    filteredData = filterIncomeData(selectedRange);
-  }
-  const total = filteredData.reduce((sum, d) => sum + d.value, 0);
-  let chartData = [];
-  if (["This month", "Last 30 days", "Last month"].includes(selectedRange)) {
-    chartData = getWeeklyData(filteredData);
-  } else {
-    chartData = getMonthlyData(filteredData);
-  }
+  // Use API data
+  const total = analyticsData?.income || 0;
+  const chartData = analyticsData?.incomeChart || [];
   return (
     <div className="bg-white border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Income</h3>
-          <p className="text-2xl font-semibold">${total.toLocaleString()}</p>
+          <p className="text-2xl font-semibold">
+            {isLoading ? (
+              <span className="inline-block h-6 w-24 bg-gray-200 rounded animate-pulse" />
+            ) : (
+              `$${total.toLocaleString()}`
+            )}
+          </p>
         </div>
         <Link
           aria-label="View income report"
@@ -185,8 +80,36 @@ export function IncomeChart() {
         <TimeRangeFilter
           customRange={customRange}
           selectedRange={selectedRange}
-          onChange={setSelectedRange}
-          onCustomRangeChange={setCustomRange}
+          onChange={(range) => {
+            setSelectedRange(range);
+            if (onTimeRangeChange) {
+              const rangeMap: Record<
+                string,
+                "thisMonth" | "lastMonth" | "last30days" | "thisYear" | "custom"
+              > = {
+                "This month": "thisMonth",
+                "Last month": "lastMonth",
+                "Last 30 days": "last30days",
+                "This year": "thisYear",
+                Custom: "custom",
+              };
+              onTimeRangeChange({
+                range: rangeMap[range] || "thisMonth",
+                startDate: customRange?.startDate,
+                endDate: customRange?.endDate,
+              });
+            }
+          }}
+          onCustomRangeChange={(range) => {
+            setCustomRange(range);
+            if (range && onTimeRangeChange) {
+              onTimeRangeChange({
+                range: "custom",
+                startDate: range.startDate,
+                endDate: range.endDate,
+              });
+            }
+          }}
         />
       </div>
       <div className="h-64">
@@ -221,13 +144,33 @@ export function IncomeChart() {
   );
 }
 
-export function OutstandingBalancesChart() {
+interface OutstandingBalancesChartProps {
+  analyticsData?: { outstanding: number; uninvoiced: number };
+  isLoading?: boolean;
+}
+
+export function OutstandingBalancesChart({
+  analyticsData,
+  isLoading,
+}: OutstandingBalancesChartProps) {
+  const outstanding = analyticsData?.outstanding || 0;
+  const uninvoiced = analyticsData?.uninvoiced || 0;
+  const total = outstanding + uninvoiced;
+  const outstandingPercent = total > 0 ? (outstanding / total) * 100 : 0;
+  const uninvoicedPercent = total > 0 ? (uninvoiced / total) * 100 : 0;
+
   return (
     <div className="bg-white  border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Outstanding balances</h3>
-          <p className="text-2xl font-semibold">$300</p>
+          <p className="text-2xl font-semibold">
+            {isLoading ? (
+              <span className="inline-block h-6 w-24 bg-gray-200 rounded animate-pulse" />
+            ) : (
+              `$${outstanding.toLocaleString()}`
+            )}
+          </p>
         </div>
         <Link
           aria-label="View outstanding balances report"
@@ -241,19 +184,25 @@ export function OutstandingBalancesChart() {
         <div>
           <div className="flex justify-between text-sm mb-1">
             <span>Clients</span>
-            <span>$300</span>
+            <span>${outstanding.toLocaleString()}</span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-orange-500 w-2/3" />
+            <div
+              className="h-full bg-orange-500"
+              style={{ width: `${outstandingPercent}%` }}
+            />
           </div>
         </div>
         <div>
           <div className="flex justify-between text-sm mb-1">
             <span>Uninvoiced</span>
-            <span>$150</span>
+            <span>${uninvoiced.toLocaleString()}</span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-gray-400 w-1/3" />
+            <div
+              className="h-full bg-gray-400"
+              style={{ width: `${uninvoicedPercent}%` }}
+            />
           </div>
         </div>
       </div>
@@ -271,13 +220,33 @@ export function OutstandingBalancesChart() {
   );
 }
 
-export function AppointmentsChart() {
+interface AppointmentsChartProps {
+  analyticsData?: {
+    appointments: number;
+    appointmentsChart: Array<{ name: string; value: number }>;
+  };
+  isLoading?: boolean;
+}
+
+export function AppointmentsChart({
+  analyticsData,
+  isLoading,
+}: AppointmentsChartProps) {
+  const totalAppointments = analyticsData?.appointments || 0;
+  const appointmentData = analyticsData?.appointmentsChart || [];
+
   return (
     <div className="bg-white border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Appointments</h3>
-          <p className="text-2xl font-semibold">4</p>
+          <p className="text-2xl font-semibold">
+            {isLoading ? (
+              <span className="inline-block h-6 w-16 bg-gray-200 rounded animate-pulse" />
+            ) : (
+              totalAppointments
+            )}
+          </p>
         </div>
         <Link
           aria-label="View attendance report"
@@ -306,7 +275,7 @@ export function AppointmentsChart() {
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-sm">
             <p className="font-medium">100%</p>
-            <p className="text-gray-500">4 Show</p>
+            <p className="text-gray-500">{totalAppointments} Show</p>
           </div>
         </div>
         <div className="space-y-1.5 text-sm">
@@ -325,13 +294,30 @@ export function AppointmentsChart() {
   );
 }
 
-export function NotesChart() {
+interface NotesChartProps {
+  analyticsData?: {
+    notes: number;
+    notesChart: Array<{ name: string; value: number }>;
+  };
+  isLoading?: boolean;
+}
+
+export function NotesChart({ analyticsData, isLoading }: NotesChartProps) {
+  const totalNotes = analyticsData?.notes || 0;
+  const notesData = analyticsData?.notesChart || [];
+
   return (
     <div className="bg-white border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-gray-500">Notes</h3>
-          <p className="text-2xl font-semibold">12</p>
+          <p className="text-2xl font-semibold">
+            {isLoading ? (
+              <span className="inline-block h-6 w-16 bg-gray-200 rounded animate-pulse" />
+            ) : (
+              totalNotes
+            )}
+          </p>
         </div>
         <Link
           aria-label="View notes report"
@@ -364,26 +350,21 @@ export function NotesChart() {
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-sm">
             <p className="font-medium">100%</p>
-            <p className="text-gray-500">2 Notes</p>
+            <p className="text-gray-500">{totalNotes} Notes</p>
           </div>
         </div>
         <div className="space-y-1.5 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
-            <span>No Note</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#3B82F6]" />
-            <span>Unlocked</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
-            <span>Supervision</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#D1D5DB]" />
-            <span>Locked</span>
-          </div>
+          {notesData.map((entry, index) => (
+            <div key={entry.name} className="flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor: NOTES_COLORS[index % NOTES_COLORS.length],
+                }}
+              />
+              <span>{entry.name}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

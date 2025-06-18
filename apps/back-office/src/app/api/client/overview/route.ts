@@ -231,7 +231,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         cg.name as clientGroupName,
         NULL as clinicianId,
         CAST(sa.content AS NVARCHAR(MAX)) as content,
-        sa.score as score
+        NULL as score
       FROM "SurveyAnswers" sa
       INNER JOIN "SurveyTemplate" st ON sa.template_id = st.id
       INNER JOIN "ClientGroup" cg ON sa.client_group_id = cg.id

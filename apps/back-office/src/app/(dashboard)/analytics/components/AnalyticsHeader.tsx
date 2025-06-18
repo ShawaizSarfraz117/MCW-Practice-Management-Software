@@ -1,41 +1,37 @@
 "use client";
 
-import { Dispatch, SetStateAction } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-interface AnalyticsHeaderProps {
-  activeTab: string;
-  setActiveTab: Dispatch<SetStateAction<string>>;
-}
+export function AnalyticsHeader() {
+  const pathname = usePathname();
+  const isActiveTab = (tab: string) => pathname.includes(`/analytics/${tab}`);
 
-export function AnalyticsHeader({
-  activeTab,
-  setActiveTab,
-}: AnalyticsHeaderProps) {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
       <div>
         <div className="flex">
-          <button
+          <Link
+            href="/analytics/dashboard"
             className={`px-4 py-2 font-medium text-sm ${
-              activeTab === "dashboard"
+              isActiveTab("dashboard")
                 ? "text-primary border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-800"
             }`}
-            onClick={() => setActiveTab("dashboard")}
           >
             Dashboard
-          </button>
-          <button
+          </Link>
+          <Link
+            href="/analytics/reports"
             className={`px-4 py-2 font-medium text-sm ${
-              activeTab === "reports"
+              isActiveTab("reports")
                 ? "text-primary border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-800"
             }`}
-            onClick={() => setActiveTab("reports")}
           >
             Reports
-          </button>
+          </Link>
         </div>
       </div>
     </div>

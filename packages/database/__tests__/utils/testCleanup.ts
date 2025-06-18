@@ -93,6 +93,7 @@ export async function cleanupDatabase(
           tx.practiceService.deleteMany(),
           tx.tag.deleteMany(),
           tx.emailTemplate.deleteMany(),
+          tx.surveyTemplate.deleteMany(),
         ]);
 
         // Level 5: Core entity tables (includes entities with user dependencies)
@@ -106,7 +107,10 @@ export async function cleanupDatabase(
 
         // Level 6: User-dependent entities (must be deleted before user)
         log("Level 6: Cleaning user-dependent entities...");
-        await tx.clinician.deleteMany();
+        await Promise.all([
+          tx.clinician.deleteMany(),
+          tx.clinicalInfo.deleteMany(),
+        ]);
 
         // Level 7: Foundation tables (least dependent)
         log("Level 7: Cleaning foundation tables...");
