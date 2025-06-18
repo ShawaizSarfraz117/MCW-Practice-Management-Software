@@ -90,7 +90,6 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       endDate = endOfDay(parsedEnd);
       break;
     }
-    case "thisMonth":
     default: {
       const now = new Date();
       startDate = startOfMonth(now);

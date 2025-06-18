@@ -8,9 +8,17 @@ export default function Reports() {
     <>
       <p className="text-sm text-gray-500 mb-4">
         View detailed client and billing data.{" "}
-        <span className="text-primary hover:underline cursor-pointer">
+        <button
+          type="button"
+          className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+          onClick={() => {
+            // TODO: Implement learn more functionality
+            console.log("Learn more clicked");
+          }}
+          aria-label="Learn more about analytics reports"
+        >
           Learn more
-        </span>
+        </button>
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white p-6 border rounded-lg shadow-sm space-y-4">
