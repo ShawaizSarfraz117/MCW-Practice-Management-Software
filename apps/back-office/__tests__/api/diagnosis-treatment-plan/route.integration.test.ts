@@ -5,6 +5,7 @@ import { GET, POST, PUT, DELETE } from "@/api/diagnosis-treatment-plan/route";
 import { prisma } from "@mcw/database";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 import { Client, Diagnosis, ClientGroup, SurveyTemplate } from "@mcw/database";
+import { randomUUID } from "crypto";
 
 describe("Diagnosis Treatment Plan API Routes - Integration", () => {
   let testClient: Client;
@@ -33,7 +34,7 @@ describe("Diagnosis Treatment Plan API Routes - Integration", () => {
 
     testClientGroup = await prisma.clientGroup.create({
       data: {
-        id: "test-client-group-id",
+        id: randomUUID(),
         name: "Test Group",
         type: "individual",
       },

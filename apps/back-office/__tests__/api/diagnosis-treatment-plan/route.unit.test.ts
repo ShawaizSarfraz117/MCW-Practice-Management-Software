@@ -107,8 +107,8 @@ describe("Diagnosis Treatment Plan API Routes", () => {
   describe("GET", () => {
     it("should fetch a specific treatment plan by planId", async () => {
       const mockPlan = {
-        id: "plan-123",
-        client_id: "client-123",
+        id: "123e4567-e89b-12d3-a456-426614174000",
+        client_id: "123e4567-e89b-12d3-a456-426614174001",
         title: "Test Plan",
         DiagnosisTreatmentPlanItem: [
           {
@@ -119,7 +119,11 @@ describe("Diagnosis Treatment Plan API Routes", () => {
             },
           },
         ],
-        Client: { id: "client-123", first_name: "John", last_name: "Doe" },
+        Client: {
+          id: "123e4567-e89b-12d3-a456-426614174001",
+          first_name: "John",
+          last_name: "Doe",
+        },
         SurveyAnswers: null,
       };
 
@@ -128,14 +132,14 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       );
 
       const request = createRequest(
-        "/api/diagnosis-treatment-plan?planId=plan-123",
+        "/api/diagnosis-treatment-plan?planId=123e4567-e89b-12d3-a456-426614174000",
       );
 
       const response = await GET(request);
       const data = await response.json();
 
       expect(prisma.diagnosisTreatmentPlan.findUnique).toHaveBeenCalledWith({
-        where: { id: "plan-123" },
+        where: { id: "123e4567-e89b-12d3-a456-426614174000" },
         include: {
           DiagnosisTreatmentPlanItem: {
             include: {
@@ -257,7 +261,7 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       };
 
       (prisma.client.findUnique as any).mockResolvedValue({
-        id: "client-123",
+        id: "123e4567-e89b-12d3-a456-426614174001",
         first_name: "John",
         last_name: "Doe",
       });
@@ -288,7 +292,7 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       });
 
       const requestBody = {
-        clientId: "client-123",
+        clientId: "123e4567-e89b-12d3-a456-426614174001",
         title: "New Treatment Plan",
         diagnoses: [
           {
@@ -308,16 +312,16 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       const data = await response.json();
 
       expect(prisma.client.findUnique).toHaveBeenCalledWith({
-        where: { id: "client-123" },
+        where: { id: "123e4567-e89b-12d3-a456-426614174001" },
       });
 
       expect(createMock).toHaveBeenCalledWith({
-        data: {
-          client_id: "client-123",
+        data: expect.objectContaining({
+          client_id: "123e4567-e89b-12d3-a456-426614174001",
           title: "New Treatment Plan",
           survey_answers_id: null,
           created_at: new Date("2025-01-15T10:00:00Z"),
-        },
+        }),
       });
 
       expect(data).toEqual(mockCreatedPlan);
@@ -525,9 +529,9 @@ describe("Diagnosis Treatment Plan API Routes", () => {
   describe("DELETE", () => {
     it("should delete a treatment plan and its items", async () => {
       const mockPlan = {
-        id: "plan-123",
+        id: "623e4567-e89b-12d3-a456-426614174000",
         survey_answers_id: null,
-        client_id: "client-123",
+        client_id: "123e4567-e89b-12d3-a456-426614174001",
         title: "Plan to delete",
       };
 
@@ -565,18 +569,18 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       });
 
       const request = createRequest(
-        "/api/diagnosis-treatment-plan?id=plan-123",
+        "/api/diagnosis-treatment-plan?id=623e4567-e89b-12d3-a456-426614174000",
       );
 
       const response = await DELETE(request);
       const data = await response.json();
 
       expect(deleteItemsMock).toHaveBeenCalledWith({
-        where: { treatment_plan_id: "plan-123" },
+        where: { treatment_plan_id: "623e4567-e89b-12d3-a456-426614174000" },
       });
 
       expect(deletePlanMock).toHaveBeenCalledWith({
-        where: { id: "plan-123" },
+        where: { id: "623e4567-e89b-12d3-a456-426614174000" },
       });
 
       expect(data.message).toBe("Treatment plan deleted successfully");
@@ -609,9 +613,9 @@ describe("Diagnosis Treatment Plan API Routes", () => {
 
     it("should preserve survey answers when referenced elsewhere", async () => {
       const mockPlan = {
-        id: "plan-123",
-        survey_answers_id: "survey-123",
-        client_id: "client-123",
+        id: "723e4567-e89b-12d3-a456-426614174000",
+        survey_answers_id: "823e4567-e89b-12d3-a456-426614174000",
+        client_id: "123e4567-e89b-12d3-a456-426614174001",
         title: "Plan with shared survey",
       };
 
@@ -644,7 +648,7 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       });
 
       const request = createRequest(
-        "/api/diagnosis-treatment-plan?id=plan-123",
+        "/api/diagnosis-treatment-plan?id=723e4567-e89b-12d3-a456-426614174000",
       );
 
       const response = await DELETE(request);
