@@ -23,6 +23,9 @@ vi.mock("@mcw/database", () => ({
 
 vi.mock("@/utils/helpers", () => ({
   getClinicianInfo: vi.fn(),
+  getBackOfficeSession: vi.fn().mockResolvedValue({
+    user: { id: "user-123", email: "test@example.com" },
+  }),
 }));
 
 describe("GET /api/analytics/attendees", () => {
@@ -326,7 +329,10 @@ describe("GET /api/analytics/attendees", () => {
   });
 
   it("should handle errors gracefully", async () => {
-    vi.mocked(getClinicianInfo).mockRejectedValue(new Error("Database error"));
+    // Mock Prisma to throw an error
+    vi.mocked(prisma.appointment.findMany).mockRejectedValue(
+      new Error("Database error"),
+    );
 
     const url = new URL("http://localhost/api/analytics/attendees");
     url.searchParams.set("startDate", "2025-05-01");
