@@ -256,10 +256,22 @@ export function useAppointmentUpdate({
         const recurringInfo =
           form.getFieldValue<RecurringInfo>("recurringInfo");
 
+        // Get clinician value from form if available (admin users), otherwise use existing
+        const clinician =
+          form.getFieldValue<string>("clinician") ||
+          appointmentData?.clinician_id ||
+          "";
+
         // Validate required fields
         if (!location) {
           setValidationErrors({ ...validationErrors, location: true });
           setGeneralError("Location is required");
+          return;
+        }
+
+        if (!clinician) {
+          setValidationErrors({ ...validationErrors, clinician: true });
+          setGeneralError("Clinician is required");
           return;
         }
 
@@ -315,7 +327,7 @@ export function useAppointmentUpdate({
           end_date: endDateUTC,
           location_id: location,
           client_id: client || appointmentData?.client_id || null,
-          clinician_id: appointmentData?.clinician_id || "",
+          clinician_id: clinician,
           service_id:
             selectedServices?.[0]?.serviceId ||
             appointmentData?.PracticeService?.id ||
