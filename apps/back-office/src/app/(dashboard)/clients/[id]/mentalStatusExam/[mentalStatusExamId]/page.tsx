@@ -221,12 +221,12 @@ export default function EditMentalStatusExam() {
       <div className="border rounded-lg bg-white p-6">
         <SurveyPreview
           content={templateContent}
+          defaultAnswers={defaultAnswers}
           mode="edit"
           showInstructions={false}
           title="Mental Status Exam"
           type="mental_status_exam"
           onComplete={handleUpdateMentalStatusExam}
-          defaultAnswers={defaultAnswers}
         />
       </div>
 
@@ -238,8 +238,8 @@ export default function EditMentalStatusExam() {
         <Button
           className="bg-[#2d8467] hover:bg-[#236c53] text-white"
           disabled={isSubmitting}
-          type="submit"
           form="sq-root-form"
+          type="submit"
         >
           {isSubmitting ? "Updating..." : "Update Mental Status Exam"}
         </Button>

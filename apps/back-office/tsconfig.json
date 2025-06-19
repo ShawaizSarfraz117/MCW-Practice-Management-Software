@@ -5,7 +5,8 @@
       "@/*": ["./src/app/*"],
       "@/utils/*": ["./src/utils/*"],
       "@/types/*": ["./src/types/*"]
-    }
+    },
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
   "include": [
     "next-env.d.ts",
@@ -14,7 +15,8 @@
     ".next/types/**/*.ts",
     "__tests__/**/*.ts",
     "__tests__/**/*.tsx",
-    "../../packages/types/src/auditTypes.ts"
+    "../../packages/types/src/auditTypes.ts",
+    "vitest.setup.ui.ts"
   ],
   "exclude": ["node_modules", ".next"]
 }
