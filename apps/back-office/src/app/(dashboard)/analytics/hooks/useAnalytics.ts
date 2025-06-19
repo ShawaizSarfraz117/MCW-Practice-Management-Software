@@ -44,7 +44,9 @@ export const useAnalytics = (timeRange: TimeRange) => {
   return useQuery({
     queryKey: ["analytics", timeRange],
     queryFn: () => fetchAnalyticsData(timeRange),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 };
 
