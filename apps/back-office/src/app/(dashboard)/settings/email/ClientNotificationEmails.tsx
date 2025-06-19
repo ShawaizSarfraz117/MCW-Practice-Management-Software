@@ -5,7 +5,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent, Button } from "@mcw/ui";
 import { ChevronDown, Pencil } from "lucide-react";
 import EmailTemplateEditSidebar from "./EmailTemplateEditSidebar";
 import { useEmailTemplates, useEmailTemplate } from "./hooks/useEmailTemplate";
-import { useForm } from "@tanstack/react-form";
 import {
   UpdateTemplateData,
   EmailTemplate,
@@ -37,7 +36,23 @@ export default function ClientNotificationEmails() {
     setOpenIndexes,
     isAutoSectionOpen,
     setIsAutoSectionOpen,
+    openReminderIndexes,
+    setOpenReminderIndexes,
+    isReminderSectionOpen,
+    setIsReminderSectionOpen,
+    openBillingIndexes,
+    setOpenBillingIndexes,
+    isBillingSectionOpen,
+    setIsBillingSectionOpen,
   } = useEmailTemplates();
+
+  // Add state for tab management
+  const [autoTab, setAutoTab] = useState("client");
+  const [reminderTab, setReminderTab] = useState("client");
+
+  // Add state for reminder settings
+  const [remindersOn, setRemindersOn] = useState(true);
+  const [reminderTime, setReminderTime] = useState("48");
 
   useEffect(() => {
     const fetchClientGroupData = async () => {
@@ -63,15 +78,6 @@ export default function ClientNotificationEmails() {
     fetchClientGroupData();
     fetchClinicianData();
   }, []);
-
-  const form = useForm({
-    defaultValues: {
-      autoTab: "client",
-    },
-    onSubmit: async ({ value }) => {
-      console.log(value);
-    },
-  });
 
   const { updateTemplate, isUpdating } = useEmailTemplate(selectedTemplate?.id);
 
@@ -160,8 +166,8 @@ export default function ClientNotificationEmails() {
             </p>
             <Tabs
               className="mb-4"
-              value={form.getFieldValue("autoTab")}
-              onValueChange={(value) => form.setFieldValue("autoTab", value)}
+              value={autoTab}
+              onValueChange={(value) => setAutoTab(value)}
             >
               <TabsList className="border-b bg-white justify-start gap-8">
                 {automatedEmailTabs.map((tab) => (
@@ -274,6 +280,16 @@ export default function ClientNotificationEmails() {
         clinicianData={clinicianData}
         templates={templates}
         onEdit={handleEdit}
+        isReminderSectionOpen={isReminderSectionOpen}
+        setIsReminderSectionOpen={setIsReminderSectionOpen}
+        openReminderIndexes={openReminderIndexes}
+        setOpenReminderIndexes={setOpenReminderIndexes}
+        reminderTab={reminderTab}
+        setReminderTab={setReminderTab}
+        remindersOn={remindersOn}
+        setRemindersOn={setRemindersOn}
+        reminderTime={reminderTime}
+        setReminderTime={setReminderTime}
       />
 
       {/* Billing document emails */}
@@ -282,6 +298,10 @@ export default function ClientNotificationEmails() {
         clinicianData={clinicianData}
         templates={templates}
         onEdit={handleEdit}
+        isBillingSectionOpen={isBillingSectionOpen}
+        setIsBillingSectionOpen={setIsBillingSectionOpen}
+        openBillingIndexes={openBillingIndexes}
+        setOpenBillingIndexes={setOpenBillingIndexes}
       />
 
       <EmailTemplateEditSidebar

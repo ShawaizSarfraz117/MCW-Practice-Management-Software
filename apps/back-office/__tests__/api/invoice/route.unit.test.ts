@@ -26,6 +26,9 @@ vi.mock("@mcw/database", () => {
   const findManyMock = vi.fn();
   const createMock = vi.fn();
   const findFirstMock = vi.fn();
+  const appointmentFindUniqueMock = vi.fn();
+  const appointmentUpdateMock = vi.fn();
+  const clientGroupUpdateMock = vi.fn();
 
   return {
     prisma: {
@@ -34,6 +37,13 @@ vi.mock("@mcw/database", () => {
         findMany: findManyMock,
         create: createMock,
         findFirst: findFirstMock,
+      },
+      appointment: {
+        findUnique: appointmentFindUniqueMock,
+        update: appointmentUpdateMock,
+      },
+      clientGroup: {
+        update: clientGroupUpdateMock,
       },
     },
     __esModule: true,
@@ -222,16 +232,29 @@ describe("Invoice API", () => {
     // Arrange
     const clinicianId = MOCK_UUID;
     const membershipId = MOCK_UUID;
+    const appointmentId = MOCK_UUID;
     const issuedDate = new Date();
+
+    // Mock the appointment lookup
+    const mockAppointment = {
+      id: appointmentId,
+      client_group_id: membershipId,
+      clinician_id: clinicianId,
+      appointment_fee: new Decimal(150),
+      adjustable_amount: new Decimal(0),
+      write_off: new Decimal(0),
+    };
+    (prisma.appointment.findUnique as unknown as Mock).mockResolvedValue(
+      mockAppointment,
+    );
 
     // Mock the findFirst to return the max invoice with numeric invoice number
     const maxInvoice = mockInvoice({ invoice_number: "999" });
     (prisma.invoice.findFirst as unknown as Mock).mockResolvedValue(maxInvoice);
 
     const newInvoiceData = {
-      clinician_id: clinicianId,
       client_group_id: membershipId,
-      appointment_id: null,
+      appointment_id: appointmentId,
       amount: 150,
       status: "UNPAID",
       type: "INVOICE",
@@ -241,8 +264,8 @@ describe("Invoice API", () => {
       id: MOCK_UUID,
       invoice_number: "1000",
       client_group_id: membershipId,
-      appointment_id: null,
-      clinician_id: clinicianId,
+      appointment_id: appointmentId,
+      clinician_id: clinicianId, // Now comes from appointment
       issued_date: issuedDate,
       due_date: issuedDate, // In the implementation, issued_date and due_date are set to new Date()
       amount: new Decimal(newInvoiceData.amount),
@@ -270,9 +293,14 @@ describe("Invoice API", () => {
     expect(json.invoice_number).toBe(createdInvoice.invoice_number);
     expect(json.amount.toString()).toBe(createdInvoice.amount.toString());
     expect(json.status).toBe(newInvoiceData.status);
-    expect(json.clinician_id).toBe(newInvoiceData.clinician_id);
+    expect(json.clinician_id).toBe(clinicianId); // clinician_id from appointment
     expect(json.issued_date).toBe(createdInvoice.issued_date.toISOString());
     expect(json.due_date).toBe(createdInvoice.due_date.toISOString());
+
+    // Verify that appointment was looked up
+    expect(prisma.appointment.findUnique).toHaveBeenCalledWith({
+      where: { id: appointmentId },
+    });
 
     // Verify that findFirst was called to get the max invoice number
     expect(prisma.invoice.findFirst).toHaveBeenCalledWith({
@@ -286,7 +314,7 @@ describe("Invoice API", () => {
         status: newInvoiceData.status,
         client_group_id: newInvoiceData.client_group_id,
         appointment_id: newInvoiceData.appointment_id,
-        clinician_id: newInvoiceData.clinician_id,
+        clinician_id: clinicianId, // Now from appointment
         type: newInvoiceData.type,
         issued_date: expect.any(Date),
         due_date: expect.any(Date),
@@ -294,21 +322,127 @@ describe("Invoice API", () => {
     });
   });
 
-  it("POST /api/invoice should return 400 if required fields are missing", async () => {
+  it("POST /api/invoice should create an adjustment invoice", async () => {
+    // Arrange
+    const clinicianId = MOCK_UUID;
+    const membershipId = MOCK_UUID;
+    const appointmentId = MOCK_UUID;
+    const adjustableAmount = -50; // Credit adjustment
+
+    // Mock the appointment lookup with adjustable amount
+    const mockAppointment = {
+      id: appointmentId,
+      client_group_id: membershipId,
+      clinician_id: clinicianId,
+      appointment_fee: new Decimal(150),
+      adjustable_amount: new Decimal(adjustableAmount),
+      write_off: new Decimal(0),
+    };
+    (prisma.appointment.findUnique as unknown as Mock).mockResolvedValue(
+      mockAppointment,
+    );
+
+    // Mock the findFirst to return the max invoice with numeric invoice number
+    const maxInvoice = mockInvoice({ invoice_number: "999" });
+    (prisma.invoice.findFirst as unknown as Mock).mockResolvedValue(maxInvoice);
+
+    const adjustmentInvoiceData = {
+      appointment_id: appointmentId,
+      invoice_type: "adjustment",
+    };
+
+    const createdInvoice = {
+      id: MOCK_UUID,
+      invoice_number: "1000",
+      client_group_id: membershipId,
+      appointment_id: appointmentId,
+      clinician_id: clinicianId,
+      issued_date: new Date(),
+      due_date: new Date(),
+      amount: new Decimal(adjustableAmount),
+      status: "CREDIT", // Because adjustableAmount is negative
+      type: "ADJUSTMENT",
+    };
+
+    (prisma.invoice.create as unknown as Mock).mockResolvedValue(
+      createdInvoice,
+    );
+    (prisma.appointment.update as unknown as Mock).mockResolvedValue({});
+    (prisma.clientGroup.update as unknown as Mock).mockResolvedValue({});
+
+    // Act
+    const req = createRequestWithBody("/api/invoice", adjustmentInvoiceData);
+    const response = await POST(req);
+
+    // Assert
+    expect(response.status).toBe(201);
+    const json = await response.json();
+
+    expect(json.id).toBe(createdInvoice.id);
+    expect(json.invoice_number).toBe(createdInvoice.invoice_number);
+    expect(json.type).toBe("ADJUSTMENT");
+    expect(json.status).toBe("CREDIT");
+
+    // Verify appointment update to reset adjustable amount
+    expect(prisma.appointment.update).toHaveBeenCalledWith({
+      where: { id: appointmentId },
+      data: { adjustable_amount: 0 },
+    });
+
+    // Verify client group credit update (since adjustableAmount was negative)
+    expect(prisma.clientGroup.update).toHaveBeenCalledWith({
+      where: { id: membershipId },
+      data: {
+        available_credit: {
+          increment: Math.abs(adjustableAmount),
+        },
+      },
+    });
+  });
+
+  it("POST /api/invoice should return 404 if appointment not found", async () => {
+    // Arrange
+    const appointmentId = MOCK_UUID;
+
+    // Mock appointment not found
+    (prisma.appointment.findUnique as unknown as Mock).mockResolvedValue(null);
+
+    const invoiceData = {
+      client_group_id: MOCK_UUID,
+      appointment_id: appointmentId,
+      amount: 150,
+      status: "UNPAID",
+      type: "INVOICE",
+    };
+
+    // Act
+    const req = createRequestWithBody("/api/invoice", invoiceData);
+    const response = await POST(req);
+
+    // Assert
+    expect(response.status).toBe(404);
+    const json = await response.json();
+    expect(json).toHaveProperty("error", "Appointment not found");
+  });
+
+  it("POST /api/invoice should return 404 if appointment_id is missing", async () => {
     // Arrange
     const invalidInvoiceData = {
-      // Missing required fields: clinician_id, amount, due_date
+      // Missing appointment_id
       client_group_id: MOCK_UUID,
+      amount: 150,
     };
+
+    // Mock appointment lookup with undefined/null appointment_id
+    (prisma.appointment.findUnique as unknown as Mock).mockResolvedValue(null);
 
     // Act
     const req = createRequestWithBody("/api/invoice", invalidInvoiceData);
     const response = await POST(req);
 
     // Assert
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
     const json = await response.json();
-    expect(json).toHaveProperty("error");
-    expect(json.error).toContain("Failed to create invoice");
+    expect(json).toHaveProperty("error", "Appointment not found");
   });
 });

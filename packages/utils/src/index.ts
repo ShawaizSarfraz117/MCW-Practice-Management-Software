@@ -3,6 +3,7 @@ export * from "./styles";
 export * from "./surveyjs";
 export * from "./surveyjs-custom";
 export * from "./errorToast";
+export * from "./survey-scoring";
 
 // Re-export server utilities for backward compatibility
 // These should be imported from @mcw/utils/server in client components

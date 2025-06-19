@@ -13,11 +13,14 @@ import type {
   Appointment,
 } from "@prisma/client";
 
-// Mock the getClinicianInfo function
+// Mock the helper functions
 vi.mock("@/utils/helpers", () => ({
   getClinicianInfo: vi.fn().mockResolvedValue({
     clinicianId: null, // Don't filter by clinician for simplicity
     isClinician: true,
+  }),
+  getBackOfficeSession: vi.fn().mockResolvedValue({
+    user: { id: "test-user-123", email: "test@example.com" },
   }),
 }));
 
@@ -106,7 +109,7 @@ describe("GET /api/analytics/attendees - Integration", () => {
         start_date: new Date("2025-05-01T10:00:00Z"),
         end_date: new Date("2025-05-01T11:00:00Z"),
         status: "SHOW",
-        type: "INDIVIDUAL",
+        type: "APPOINTMENT",
         title: "Test Appointment",
         is_all_day: false,
       },
@@ -178,7 +181,7 @@ describe("GET /api/analytics/attendees - Integration", () => {
     );
     expect(foundAppointment).toBeDefined();
     expect(foundAppointment.status).toBe("SHOW");
-    expect(foundAppointment.type).toBe("INDIVIDUAL");
+    expect(foundAppointment.type).toBe("APPOINTMENT");
   });
 
   it("should filter by status with real database", async () => {
@@ -192,7 +195,7 @@ describe("GET /api/analytics/attendees - Integration", () => {
         start_date: new Date("2025-05-02T14:00:00Z"),
         end_date: new Date("2025-05-02T15:00:00Z"),
         status: "NO_SHOW",
-        type: "INDIVIDUAL",
+        type: "APPOINTMENT",
         title: "Test No Show Appointment",
         is_all_day: false,
       },
@@ -274,7 +277,7 @@ describe("GET /api/analytics/attendees - Integration", () => {
         start_date: new Date("2025-05-03T16:00:00Z"),
         end_date: new Date("2025-05-03T17:00:00Z"),
         status: "SHOW",
-        type: "COUPLE",
+        type: "APPOINTMENT",
         title: "Test Couple Appointment",
         is_all_day: false,
       },

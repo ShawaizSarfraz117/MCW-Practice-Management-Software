@@ -17,6 +17,7 @@ interface ClientDocument {
   clientGroupId: string;
   clientGroupName: string;
   content?: string;
+  score?: string;
 }
 
 // Valid document types matching the dropdown filter
@@ -119,7 +120,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
           FROM "SurveyAnswers" sa
           WHERE sa.appointment_id = a.id
             AND sa.status = 'COMPLETED'
-        ) as content
+        ) as content,
+        NULL as score
       FROM "Appointment" a
       INNER JOIN "ClientGroup" cg ON a.client_group_id = cg.id
       WHERE a.type = 'APPOINTMENT'
@@ -140,7 +142,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         cn.client_group_id as clientGroupId,
         cg.name as clientGroupName,
         NULL as clinicianId,
-        cn.text as content
+        cn.text as content,
+        NULL as score
       FROM "ClientGroupChartNote" cn
       INNER JOIN "ClientGroup" cg ON cn.client_group_id = cg.id
     `);
@@ -160,7 +163,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         dtp.client_group_id as clientGroupId,
         cg.name as clientGroupName,
         NULL as clinicianId,
-        CAST(sa.content AS NVARCHAR(MAX)) as content
+        CAST(sa.content AS NVARCHAR(MAX)) as content,
+        NULL as score
       FROM "DiagnosisTreatmentPlan" dtp
       INNER JOIN "ClientGroup" cg ON dtp.client_group_id = cg.id
       LEFT JOIN "SurveyAnswers" sa ON dtp.survey_answers_id = sa.id
@@ -181,7 +185,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         gfe.client_group_id as clientGroupId,
         cg.name as clientGroupName,
         gfe.clinician_id as clinicianId,
-        CAST(gfe.total_cost AS NVARCHAR(MAX)) as content
+        CAST(gfe.total_cost AS NVARCHAR(MAX)) as content,
+        NULL as score
       FROM "GoodFaithEstimate" gfe
       INNER JOIN "ClientGroup" cg ON gfe.client_group_id = cg.id
     `);
@@ -201,7 +206,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         sa.client_group_id as clientGroupId,
         cg.name as clientGroupName,
         NULL as clinicianId,
-        CAST(sa.content AS NVARCHAR(MAX)) as content
+        CAST(sa.content AS NVARCHAR(MAX)) as content,
+        NULL as score
       FROM "SurveyAnswers" sa
       INNER JOIN "SurveyTemplate" st ON sa.template_id = st.id
       INNER JOIN "ClientGroup" cg ON sa.client_group_id = cg.id
@@ -224,13 +230,12 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         sa.client_group_id as clientGroupId,
         cg.name as clientGroupName,
         NULL as clinicianId,
-        CAST(sa.content AS NVARCHAR(MAX)) as content
+        CAST(sa.content AS NVARCHAR(MAX)) as content,
+        NULL as score
       FROM "SurveyAnswers" sa
       INNER JOIN "SurveyTemplate" st ON sa.template_id = st.id
       INNER JOIN "ClientGroup" cg ON sa.client_group_id = cg.id
-      WHERE st.type = 'ASSESSMENT' 
-        AND (st.name LIKE '%PHQ%' OR st.name LIKE '%GAD%' OR st.name LIKE '%ARM%' 
-             OR st.name LIKE '%Score%' OR st.name LIKE '%Scale%')
+      WHERE st.type = 'scored_measures'
     `);
   }
 
@@ -248,7 +253,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         sa.client_group_id as clientGroupId,
         cg.name as clientGroupName,
         NULL as clinicianId,
-        CAST(sa.content AS NVARCHAR(MAX)) as content
+        CAST(sa.content AS NVARCHAR(MAX)) as content,
+        NULL as score
       FROM "SurveyAnswers" sa
       INNER JOIN "SurveyTemplate" st ON sa.template_id = st.id
       INNER JOIN "ClientGroup" cg ON sa.client_group_id = cg.id
@@ -270,7 +276,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
         sa.client_group_id as clientGroupId,
         cg.name as clientGroupName,
         NULL as clinicianId,
-        CAST(sa.content AS NVARCHAR(MAX)) as content
+        CAST(sa.content AS NVARCHAR(MAX)) as content,
+        NULL as score
       FROM "SurveyAnswers" sa
       INNER JOIN "SurveyTemplate" st ON sa.template_id = st.id
       INNER JOIN "ClientGroup" cg ON sa.client_group_id = cg.id

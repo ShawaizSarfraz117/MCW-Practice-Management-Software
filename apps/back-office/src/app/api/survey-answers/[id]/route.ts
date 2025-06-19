@@ -3,6 +3,7 @@ import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { getClinicianInfo } from "@/utils/helpers";
 import { Prisma } from "@prisma/client";
+import { calculateSurveyScore, getSurveyType } from "@mcw/utils";
 
 const VALID_STATUSES = ["PENDING", "IN_PROGRESS", "COMPLETED"];
 
@@ -74,19 +75,58 @@ export async function GET(
 
     logger.info("Survey answer retrieved successfully");
 
-    // Parse content if it's a string
+    // Parse content and score if they're strings with error handling
+    let parsedContent = surveyAnswer.content;
+    let parsedScore = surveyAnswer.score;
+    let parsedTemplateContent: string | Record<string, unknown> | null =
+      surveyAnswer.SurveyTemplate.content;
+
+    // Safely parse content
+    if (typeof surveyAnswer.content === "string") {
+      try {
+        parsedContent = JSON.parse(surveyAnswer.content);
+      } catch (error) {
+        logger.error(
+          { error, answerId: surveyAnswerId, content: surveyAnswer.content },
+          "Failed to parse survey answer content",
+        );
+        parsedContent = null;
+      }
+    }
+
+    // Safely parse score
+    if (typeof surveyAnswer.score === "string") {
+      try {
+        parsedScore = JSON.parse(surveyAnswer.score);
+      } catch (error) {
+        logger.error(
+          { error, answerId: surveyAnswerId, score: surveyAnswer.score },
+          "Failed to parse survey answer score",
+        );
+        parsedScore = null;
+      }
+    }
+
+    // Safely parse template content
+    if (typeof surveyAnswer.SurveyTemplate.content === "string") {
+      try {
+        parsedTemplateContent = JSON.parse(surveyAnswer.SurveyTemplate.content);
+      } catch (error) {
+        logger.error(
+          { error, templateId: surveyAnswer.SurveyTemplate.id },
+          "Failed to parse survey template content",
+        );
+        parsedTemplateContent = null;
+      }
+    }
+
     const parsedSurveyAnswer = {
       ...surveyAnswer,
-      content:
-        typeof surveyAnswer.content === "string"
-          ? JSON.parse(surveyAnswer.content)
-          : surveyAnswer.content,
+      content: parsedContent,
+      score: parsedScore,
       SurveyTemplate: {
         ...surveyAnswer.SurveyTemplate,
-        content:
-          typeof surveyAnswer.SurveyTemplate.content === "string"
-            ? JSON.parse(surveyAnswer.SurveyTemplate.content)
-            : surveyAnswer.SurveyTemplate.content,
+        content: parsedTemplateContent,
       },
     };
 
@@ -132,10 +172,13 @@ export async function PUT(
     const requestData = await request.json();
     const { content, status, appointment_id } = requestData;
 
-    // Check if survey answer exists
+    // Check if survey answer exists and get template for scoring
     const existingSurveyAnswer = await prisma.surveyAnswers.findUnique({
       where: {
         id: surveyAnswerId,
+      },
+      include: {
+        SurveyTemplate: true,
       },
     });
 
@@ -179,6 +222,7 @@ export async function PUT(
       status: string;
       appointment_id: string | null;
       completed_at: Date | null;
+      score: string | null;
     }> = {};
 
     if (content !== undefined) {
@@ -188,6 +232,36 @@ export async function PUT(
     if (status !== undefined) {
       updateData.status = status;
       updateData.completed_at = status === "COMPLETED" ? new Date() : null;
+
+      // Calculate score if status is changing to completed and content is provided
+      if (status === "COMPLETED" && (content || existingSurveyAnswer.content)) {
+        const surveyType = getSurveyType(
+          existingSurveyAnswer.SurveyTemplate.name,
+        );
+        if (surveyType) {
+          let surveyContent = content;
+
+          // Safely parse existing content if new content not provided
+          if (!content && existingSurveyAnswer.content) {
+            try {
+              surveyContent =
+                typeof existingSurveyAnswer.content === "string"
+                  ? JSON.parse(existingSurveyAnswer.content)
+                  : existingSurveyAnswer.content;
+            } catch (error) {
+              logger.error(
+                { error, answerId: surveyAnswerId },
+                "Failed to parse existing survey content",
+              );
+              surveyContent = null;
+            }
+          }
+          if (surveyContent) {
+            const score = calculateSurveyScore(surveyType, surveyContent);
+            updateData.score = JSON.stringify(score);
+          }
+        }
+      }
     }
 
     if (appointment_id !== undefined) {
@@ -230,6 +304,9 @@ export async function PUT(
       ...updatedSurveyAnswer,
       content: updatedSurveyAnswer.content
         ? JSON.parse(updatedSurveyAnswer.content)
+        : null,
+      score: updatedSurveyAnswer.score
+        ? JSON.parse(updatedSurveyAnswer.score)
         : null,
     };
 

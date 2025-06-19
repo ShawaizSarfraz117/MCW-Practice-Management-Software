@@ -85,17 +85,17 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
 
-    if (data.invoice_type === "adjustment") {
-      const appointment = await prisma.appointment.findUnique({
-        where: { id: data.appointment_id as string },
-      });
-      if (!appointment) {
-        return NextResponse.json(
-          { error: "Appointment not found" },
-          { status: 404 },
-        );
-      }
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: data.appointment_id as string },
+    });
+    if (!appointment) {
+      return NextResponse.json(
+        { error: "Appointment not found" },
+        { status: 404 },
+      );
+    }
 
+    if (data.invoice_type === "adjustment") {
       const nextInvoiceNumber = await getNextInvoiceNumber();
 
       const invoice = await prisma.invoice.create({
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
           invoice_number: String(nextInvoiceNumber),
           client_group_id: data.client_group_id,
           appointment_id: data.appointment_id,
-          clinician_id: data.clinician_id || null,
+          clinician_id: appointment.clinician_id || null,
           issued_date: new Date(),
           due_date: new Date(),
           amount: Number(data.amount),

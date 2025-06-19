@@ -29,6 +29,8 @@ import {
   defineAppointmentRequestsFactory,
   defineRequestContactItemsFactory,
   defineClientGroupChartNoteFactory,
+  defineClientGroupFileFactory,
+  defineClientFilesFactory,
 } from "@mcw/database/fabbrica";
 import { generateUUID } from "@mcw/utils";
 import bcrypt from "bcryptjs";
@@ -59,6 +61,8 @@ import {
   AppointmentRequests,
   RequestContactItems,
   ClientGroupChartNote,
+  ClientGroupFile,
+  ClientFiles,
 } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { BillingSettings } from "../types/billing.js";
@@ -873,3 +877,80 @@ export const PracticeSettingsFactory = {
     ...overrides,
   }),
 };
+
+// ClientGroupFile factory for generating mock data
+export const ClientGroupFileFactory = {
+  build: <T extends Partial<ClientGroupFile>>(overrides: T = {} as T) => ({
+    id: faker.string.uuid(),
+    survey_template_id: faker.helpers.maybe(() => faker.string.uuid()),
+    title: faker.lorem.words(3),
+    type: faker.helpers.arrayElement([
+      "PRACTICE_UPLOAD",
+      "CLIENT_UPLOAD",
+      "SURVEY",
+      "INTAKE_FORM",
+    ]),
+    url: faker.helpers.maybe(() => faker.internet.url()),
+    client_group_id: faker.string.uuid(),
+    uploaded_by_id: faker.helpers.maybe(() => faker.string.uuid()),
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
+    is_template: faker.datatype.boolean(),
+    original_template_id: faker.helpers.maybe(() => faker.string.uuid()),
+    sharing_enabled: faker.datatype.boolean(),
+    expiry_date: faker.helpers.maybe(() => faker.date.future()),
+    ...overrides,
+  }),
+};
+
+// ClientGroupFile Prisma factory
+export const ClientGroupFilePrismaFactory = defineClientGroupFileFactory({
+  defaultData: () => {
+    const { client_group_id, uploaded_by_id, ...rest } =
+      ClientGroupFileFactory.build();
+    return {
+      ...rest,
+      ClientGroup: ClientGroupPrismaFactory,
+      User: UserPrismaFactory,
+    };
+  },
+});
+
+// ClientFiles factory for generating mock data
+export const ClientFilesFactory = {
+  build: <T extends Partial<ClientFiles>>(
+    overrides: T = {} as T,
+  ): ClientFiles & T =>
+    ({
+      id: faker.string.uuid(),
+      client_group_file_id: faker.string.uuid(),
+      client_id: faker.string.uuid(),
+      status: faker.helpers.arrayElement([
+        "pending",
+        "shared",
+        "completed",
+        "expired",
+      ]),
+      survey_answers_id: faker.helpers.maybe(() => faker.string.uuid()),
+      frequency: faker.helpers.maybe(() =>
+        faker.helpers.arrayElement(["once", "weekly", "monthly", "yearly"]),
+      ),
+      next_due_date: faker.helpers.maybe(() => faker.date.future()),
+      shared_at: faker.helpers.maybe(() => faker.date.recent()),
+      completed_at: faker.helpers.maybe(() => faker.date.recent()),
+      ...overrides,
+    }) as ClientFiles & T,
+};
+
+// ClientFiles Prisma factory
+export const ClientFilesPrismaFactory = defineClientFilesFactory({
+  defaultData: () => {
+    const { client_id, client_group_file_id, survey_answers_id, ...rest } =
+      ClientFilesFactory.build();
+    return {
+      ...rest,
+      Client: ClientPrismaFactory,
+      ClientGroupFile: ClientGroupFilePrismaFactory,
+    };
+  },
+});

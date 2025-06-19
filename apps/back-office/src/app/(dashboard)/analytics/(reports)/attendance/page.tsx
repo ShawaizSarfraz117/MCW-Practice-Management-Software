@@ -2,130 +2,157 @@
 
 import {
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  SearchSelect,
 } from "@mcw/ui";
-import {
-  Calendar,
-  ChevronRight,
-  ChevronDown,
-  Download,
-  ChevronFirst,
-  ChevronLast,
-  ChevronLeft,
-  AlertCircle,
-  Users,
-  Filter,
-} from "lucide-react";
+import { ChevronDown, Download, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import DateRangePicker from "@/(dashboard)/activity/components/DateRangePicker";
-
-type Appointment = {
-  id: string;
-  clientName: string;
-  dateOfService: string;
-  status: string;
-};
-
-const mockData: Appointment[] = [
-  {
-    id: "1",
-    clientName: "Shawaiz Sarfraz",
-    dateOfService: "04/16/2025",
-    status: "Show",
-  },
-  {
-    id: "2",
-    clientName: "Shawaiz Sarfraz",
-    dateOfService: "04/18/2025",
-    status: "Show",
-  },
-  {
-    id: "3",
-    clientName: "Shawaiz Sarfraz & Mrs Shawaiz",
-    dateOfService: "04/16/2025",
-    status: "Show",
-  },
-];
+import { useState, useEffect } from "react";
+import {
+  useAttendanceData,
+  exportAttendanceData,
+  useClientGroups,
+} from "@/(dashboard)/analytics/services/attendance.service";
+import AttendanceFilters, {
+  AttendanceFilterState,
+} from "./components/AttendanceFilters";
+import AttendanceTable from "./components/AttendanceTable";
+import AttendancePagination from "./components/AttendancePagination";
+import AttendanceSummary from "./components/AttendanceSummary";
 
 export default function AttendancePage() {
   const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+
   const formatDate = (date: Date) => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const year = date.getFullYear();
     return `${month}/${day}/${year}`;
   };
-  const todayStr = formatDate(today);
 
-  const [filters, setFilters] = useState({
+  const todayStr = formatDate(today);
+  const thirtyDaysAgoStr = formatDate(thirtyDaysAgo);
+  const defaultTimeRange = `${thirtyDaysAgoStr} - ${todayStr}`;
+
+  const [filters, setFilters] = useState<AttendanceFilterState>({
     showDatePicker: false,
-    fromDate: todayStr,
+    fromDate: thirtyDaysAgoStr,
     toDate: todayStr,
-    selectedTimeRange: todayStr,
+    selectedTimeRange: defaultTimeRange,
     selectedClient: "All clients",
     selectedStatus: "All statuses",
     rowsPerPage: "10",
   });
-  const clientOptions = [
-    "All clients",
-    "Shawaiz Sarfraz",
-    "Shawaiz Sarfraz & Mrs Shawaiz",
-  ];
-  const statusOptions = ["All statuses", "Show", "No Show", "Cancelled"];
 
-  const handleDatePickerApply = (
-    startDate: string,
-    endDate: string,
-    displayOption: string,
-  ) => {
-    setFilters((prev) => ({
-      ...prev,
-      fromDate: startDate,
-      toDate: endDate,
-      selectedTimeRange:
-        displayOption === "Custom Range"
-          ? `${startDate} - ${endDate}`
-          : displayOption,
-      showDatePicker: false,
-    }));
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageLimit, setPageLimit] = useState(10);
+
+  const { data: clientGroupsData } = useClientGroups();
+
+  // Create a map of client names to group IDs
+  const clientNameToGroupId = new Map<string, string>();
+  const clientOptionsData: string[] = [];
+
+  if (clientGroupsData?.data) {
+    clientGroupsData.data.forEach((group) => {
+      // Get all non-contact members and join their names with &
+      const nonContactMembers = group.ClientGroupMembership.filter(
+        (m) => !m.is_contact_only,
+      );
+      if (nonContactMembers.length > 0) {
+        const clientNames = nonContactMembers
+          .map((member) => {
+            const client = member.Client;
+            return `${client.legal_first_name} ${client.legal_last_name}`;
+          })
+          .join(" & ");
+        clientNameToGroupId.set(clientNames, group.id);
+        clientOptionsData.push(clientNames);
+      }
+    });
+
+    // Sort client names alphabetically
+    clientOptionsData.sort((a, b) => a.localeCompare(b));
+  }
+
+  const clientOptions = ["All clients", ...clientOptionsData];
+
+  // Prepare API filters
+  const apiFilters = {
+    startDate: filters.fromDate,
+    endDate: filters.toDate,
+    clientGroupId:
+      filters.selectedClient === "All clients"
+        ? "all"
+        : clientNameToGroupId.get(filters.selectedClient) || "all",
+    status:
+      filters.selectedStatus === "All statuses"
+        ? "all"
+        : filters.selectedStatus.toLowerCase().replace(" ", "_"),
+    page: currentPage,
+    limit: pageLimit,
   };
 
-  const handleDatePickerCancel = () => {
-    setFilters((prev) => ({
-      ...prev,
-      showDatePicker: false,
-    }));
+  const {
+    data: attendanceData,
+    isLoading,
+    error,
+  } = useAttendanceData(apiFilters);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    filters.fromDate,
+    filters.toDate,
+    filters.selectedClient,
+    filters.selectedStatus,
+  ]);
+
+  const statusOptions = [
+    "All statuses",
+    "Show",
+    "No Show",
+    "Cancelled",
+    "Late Cancelled",
+    "Clinician Cancelled",
+  ];
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleLimitChange = (limit: number) => {
+    setPageLimit(limit);
+    setCurrentPage(1);
+  };
+
+  const handleExport = async (format: "csv" | "excel") => {
+    try {
+      const blob = await exportAttendanceData(format, apiFilters);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      const extension = format === "excel" ? "xlsx" : format;
+      a.download = `attendance-report.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Export failed:", error);
+      // Could add toast notification here
+    }
   };
 
   return (
     <div className="h-full">
       <div className="p-6 bg-gray-50 min-h-screen space-y-6">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Link className="hover:text-primary" href="/analytics">
-            Analytics
-          </Link>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-gray-900">Attendance</span>
-        </div>
-
-        {/* Title and Export */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold">Attendance</h1>
@@ -144,160 +171,63 @@ export default function AttendancePage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("csv")}>
                 <Download className="w-4 h-4 mr-2" />
                 Export as CSV
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("excel")}>
                 <Download className="w-4 h-4 mr-2" />
-                Export as PDF
+                Export as Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        {/* Warning Banner */}
-        <div className="bg-orange-50 border border-orange-100 rounded-lg p-4">
-          <div className="flex gap-3">
-            <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
-            <div className="space-y-1">
-              <h3 className="font-medium text-orange-900">
-                Group appointment data coming soon
-              </h3>
-              <p className="text-orange-700">
-                Currently, this report only includes data from individual
-                appointments and couple appointments.
-              </p>
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <div className="space-y-1">
+                <h3 className="font-medium text-red-900">Error loading data</h3>
+                <p className="text-red-700">
+                  {error instanceof Error
+                    ? error.message
+                    : "Failed to load attendance data"}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <div className="relative inline-block">
-            <Button
-              className="bg-green-50 border-green-100 text-green-700 hover:bg-green-100 hover:text-green-800"
-              variant="outline"
-              onClick={() =>
-                setFilters((prev) => ({ ...prev, showDatePicker: true }))
-              }
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              {filters.selectedTimeRange}
-            </Button>
-            {filters.showDatePicker && (
-              <div className="absolute z-50">
-                <DateRangePicker
-                  initialEndDate={filters.toDate}
-                  initialStartDate={filters.fromDate}
-                  isOpen={filters.showDatePicker}
-                  onApply={handleDatePickerApply}
-                  onClose={handleDatePickerCancel}
-                />
-              </div>
-            )}
-          </div>
-          <div className="w-[200px]">
-            <SearchSelect
-              searchable
-              icon={<Users className="w-4 h-4" />}
-              options={clientOptions.map((client) => ({
-                label: client,
-                value: client,
-              }))}
-              placeholder="Select client"
-              value={filters.selectedClient}
-              onValueChange={(value) =>
-                setFilters((prev) => ({ ...prev, selectedClient: value }))
-              }
+        <AttendanceFilters
+          clientOptions={clientOptions}
+          filters={filters}
+          setFilters={setFilters}
+          statusOptions={statusOptions}
+        />
+
+        {attendanceData && (
+          <AttendanceSummary
+            isLoading={isLoading}
+            summary={attendanceData.summary}
+          />
+        )}
+
+        <AttendanceTable
+          data={attendanceData?.data || []}
+          isLoading={isLoading}
+        />
+
+        {attendanceData && (
+          <div className="bg-white rounded-lg border border-gray-200">
+            <AttendancePagination
+              pagination={attendanceData.pagination}
+              onLimitChange={handleLimitChange}
+              onPageChange={handlePageChange}
             />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="gap-2" variant="outline">
-                <Filter className="w-4 h-4" />
-                {filters.selectedStatus}
-                <ChevronDown className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {statusOptions.map((status) => (
-                <DropdownMenuItem
-                  key={status}
-                  className="cursor-pointer"
-                  onClick={() =>
-                    setFilters((prev) => ({ ...prev, selectedStatus: status }))
-                  }
-                >
-                  {status}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Client</TableHead>
-                <TableHead>Date of service</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockData.map((appointment) => (
-                <TableRow key={appointment.id} className="hover:bg-gray-50">
-                  <TableCell className="text-primary hover:underline cursor-pointer">
-                    {appointment.clientName}
-                  </TableCell>
-                  <TableCell>{appointment.dateOfService}</TableCell>
-                  <TableCell className="text-green-600">
-                    {appointment.status}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {/* Table Footer */}
-          <div className="flex items-center justify-between px-4 py-3 border-t">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">Rows per page</span>
-              <Select
-                value={filters.rowsPerPage}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, rowsPerPage: value }))
-                }
-              >
-                <SelectTrigger className="w-[70px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-gray-700">1-3 of 3</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button disabled size="icon" variant="ghost">
-                <ChevronFirst className="w-4 h-4" />
-              </Button>
-              <Button disabled size="icon" variant="ghost">
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button disabled size="icon" variant="ghost">
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              <Button disabled size="icon" variant="ghost">
-                <ChevronLast className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

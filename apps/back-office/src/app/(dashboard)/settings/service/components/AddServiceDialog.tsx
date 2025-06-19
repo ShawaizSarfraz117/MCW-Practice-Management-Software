@@ -146,6 +146,7 @@ const AddServiceDialog = ({
     setSelectedService(null);
     setSearchQuery("");
     setIsNewCode(false);
+    setIsPopoverOpen(false);
     form.reset();
   };
 
@@ -153,7 +154,7 @@ const AddServiceDialog = ({
     if (isOpen) {
       resetForm();
     }
-  }, [isOpen, resetForm]);
+  }, [isOpen]);
 
   return (
     <Dialog
@@ -223,50 +224,54 @@ const AddServiceDialog = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-[400px] p-0">
-                  <Command className="rounded-lg">
+                  <Command className="rounded-lg" shouldFilter={false}>
                     <CommandInput
-                      className="w-full pl-2"
                       placeholder="Search or create new service code."
                       value={searchQuery}
                       onValueChange={setSearchQuery}
                     />
                     <CommandList>
-                      <CommandEmpty className="py-4">
-                        <div className="text-center text-sm">
-                          No code found.{" "}
-                          <button
-                            className="text-[#2d8467] hover:underline"
-                            onClick={() => {
-                              handleServiceSelect(null);
-                              setIsPopoverOpen(false);
-                            }}
-                          >
-                            Add New Code
-                          </button>
-                        </div>
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {filteredServices.map((service) => (
-                          <CommandItem
-                            key={service.id}
-                            className="flex items-center justify-between"
-                            value={service.id}
-                            onSelect={() => {
-                              handleServiceSelect(service);
-                              setIsPopoverOpen(false);
-                            }}
-                          >
-                            <div>
-                              <span className="font-medium">
-                                {service.code}
-                              </span>
-                              <span className="ml-2 text-gray-500">
-                                {service.type}
-                              </span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
+                      {filteredServices.length === 0 && searchQuery && (
+                        <CommandEmpty className="py-4">
+                          <div className="text-center text-sm">
+                            No code found.{" "}
+                            <button
+                              type="button"
+                              className="text-[#2d8467] hover:underline"
+                              onClick={() => {
+                                handleServiceSelect(null);
+                                setIsPopoverOpen(false);
+                              }}
+                            >
+                              Add New Code
+                            </button>
+                          </div>
+                        </CommandEmpty>
+                      )}
+                      {filteredServices.length > 0 && (
+                        <CommandGroup>
+                          {filteredServices.map((service) => (
+                            <CommandItem
+                              key={service.id}
+                              className="flex items-center justify-between cursor-pointer"
+                              value={`${service.code}-${service.id}`}
+                              onSelect={() => {
+                                handleServiceSelect(service);
+                                setIsPopoverOpen(false);
+                              }}
+                            >
+                              <div>
+                                <span className="font-medium">
+                                  {service.code}
+                                </span>
+                                <span className="ml-2 text-gray-500">
+                                  {service.type}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
                     </CommandList>
                   </Command>
                 </PopoverContent>
