@@ -3,7 +3,6 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import "@testing-library/jest-dom";
 import { useRouter, useParams } from "next/navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import TemplateSelectionPage from "@/(dashboard)/clients/[id]/diagnosisAndTreatmentPlan/template-selection/page";

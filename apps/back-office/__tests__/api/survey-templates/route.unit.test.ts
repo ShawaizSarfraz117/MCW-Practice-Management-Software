@@ -37,15 +37,16 @@ import { getClinicianInfo } from "@/utils/helpers";
 describe("Survey Templates API Routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default to authenticated user
-    (getClinicianInfo as Mock).mockResolvedValue({
-      isClinician: true,
-      clinicianId: "test-clinician-id",
-    });
   });
 
   describe("GET", () => {
     it("should retrieve survey templates with default parameters", async () => {
+      // Set up authenticated user
+      (getClinicianInfo as Mock).mockResolvedValue({
+        isClinician: true,
+        clinicianId: "test-clinician-id",
+      });
+
       const mockTemplates = [
         {
           id: "template-1",
@@ -121,6 +122,12 @@ describe("Survey Templates API Routes", () => {
     });
 
     it("should filter templates by type", async () => {
+      // Set up authenticated user
+      (getClinicianInfo as Mock).mockResolvedValue({
+        isClinician: true,
+        clinicianId: "test-clinician-id",
+      });
+
       const mockTemplates = [
         {
           id: "template-1",
@@ -154,6 +161,12 @@ describe("Survey Templates API Routes", () => {
     });
 
     it("should filter templates by active status", async () => {
+      // Set up authenticated user
+      (getClinicianInfo as Mock).mockResolvedValue({
+        isClinician: true,
+        clinicianId: "test-clinician-id",
+      });
+
       (prisma.surveyTemplate.count as Mock).mockResolvedValue(0);
       (prisma.surveyTemplate.findMany as Mock).mockResolvedValue([]);
 
@@ -171,6 +184,12 @@ describe("Survey Templates API Routes", () => {
     });
 
     it("should include survey answers filtered by client ID", async () => {
+      // Set up authenticated user
+      (getClinicianInfo as Mock).mockResolvedValue({
+        isClinician: true,
+        clinicianId: "test-clinician-id",
+      });
+
       const mockTemplates = [
         {
           id: "template-1",
@@ -223,6 +242,12 @@ describe("Survey Templates API Routes", () => {
     });
 
     it("should exclude survey answers when requested", async () => {
+      // Set up authenticated user
+      (getClinicianInfo as Mock).mockResolvedValue({
+        isClinician: true,
+        clinicianId: "test-clinician-id",
+      });
+
       const mockTemplates = [
         {
           id: "template-1",
@@ -255,6 +280,12 @@ describe("Survey Templates API Routes", () => {
     });
 
     it("should handle pagination", async () => {
+      // Set up authenticated user
+      (getClinicianInfo as Mock).mockResolvedValue({
+        isClinician: true,
+        clinicianId: "test-clinician-id",
+      });
+
       (prisma.surveyTemplate.count as Mock).mockResolvedValue(50);
       (prisma.surveyTemplate.findMany as Mock).mockResolvedValue([]);
 
@@ -291,6 +322,12 @@ describe("Survey Templates API Routes", () => {
     });
 
     it("should handle errors gracefully", async () => {
+      // Set up authenticated user
+      (getClinicianInfo as Mock).mockResolvedValue({
+        isClinician: true,
+        clinicianId: "test-clinician-id",
+      });
+
       (prisma.surveyTemplate.count as Mock).mockRejectedValue(
         new Error("Database connection error"),
       );
@@ -304,6 +341,12 @@ describe("Survey Templates API Routes", () => {
     });
 
     it("should parse nested JSON content correctly", async () => {
+      // Set up authenticated user
+      (getClinicianInfo as Mock).mockResolvedValue({
+        isClinician: true,
+        clinicianId: "test-clinician-id",
+      });
+
       const mockTemplates = [
         {
           id: "template-1",

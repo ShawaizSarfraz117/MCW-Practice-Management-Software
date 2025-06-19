@@ -172,15 +172,15 @@ describe("Diagnosis Treatment Plan API Routes", () => {
     it("should fetch all plans for a client", async () => {
       const mockPlans = [
         {
-          id: "plan-1",
-          client_id: "client-123",
+          id: "423e4567-e89b-12d3-a456-426614174000",
+          client_id: "823e4567-e89b-12d3-a456-426614174001",
           title: "Plan 1",
           DiagnosisTreatmentPlanItem: [],
           SurveyAnswers: null,
         },
         {
-          id: "plan-2",
-          client_id: "client-123",
+          id: "523e4567-e89b-12d3-a456-426614174000",
+          client_id: "823e4567-e89b-12d3-a456-426614174001",
           title: "Plan 2",
           DiagnosisTreatmentPlanItem: [],
           SurveyAnswers: null,
@@ -192,14 +192,14 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       );
 
       const request = createRequest(
-        "/api/diagnosis-treatment-plan?clientId=client-123",
+        "/api/diagnosis-treatment-plan?clientId=823e4567-e89b-12d3-a456-426614174001",
       );
 
       const response = await GET(request);
       const data = await response.json();
 
       expect(prisma.diagnosisTreatmentPlan.findMany).toHaveBeenCalledWith({
-        where: { client_id: "client-123" },
+        where: { client_id: "823e4567-e89b-12d3-a456-426614174001" },
         include: {
           DiagnosisTreatmentPlanItem: {
             include: {
@@ -231,7 +231,7 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       );
 
       const request = createRequest(
-        "/api/diagnosis-treatment-plan?clientId=client-123",
+        "/api/diagnosis-treatment-plan?clientId=923e4567-e89b-12d3-a456-426614174001",
       );
 
       const response = await GET(request);
@@ -344,7 +344,7 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       (prisma.client.findUnique as any).mockResolvedValue(null);
 
       const request = createRequestWithBody("/api/diagnosis-treatment-plan", {
-        clientId: "non-existent",
+        clientId: "123e4567-e89b-12d3-a456-426614174001",
         title: "Test Plan",
         diagnoses: [],
       });
@@ -352,7 +352,9 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(data.error).toBe("Client not found with ID: non-existent");
+      expect(data.error).toBe(
+        "Client not found with ID: 123e4567-e89b-12d3-a456-426614174001",
+      );
       expect(response.status).toBe(404);
     });
   });
@@ -360,19 +362,19 @@ describe("Diagnosis Treatment Plan API Routes", () => {
   describe("PUT", () => {
     it("should update an existing treatment plan", async () => {
       const mockExistingPlan = {
-        id: "plan-123",
+        id: "323e4567-e89b-12d3-a456-426614174000",
         survey_answers_id: null,
         SurveyAnswers: null,
       };
 
       const mockUpdatedPlan = {
-        id: "plan-123",
-        client_id: "client-123",
+        id: "323e4567-e89b-12d3-a456-426614174000",
+        client_id: "123e4567-e89b-12d3-a456-426614174001",
         title: "Updated Plan",
         DiagnosisTreatmentPlanItem: [
           {
             Diagnosis: {
-              id: "diag-2",
+              id: "223e4567-e89b-12d3-a456-426614174000",
               code: "F41.1",
               description: "Generalized anxiety disorder",
             },
@@ -386,7 +388,7 @@ describe("Diagnosis Treatment Plan API Routes", () => {
         .mockResolvedValue(mockUpdatedPlan);
 
       const updateMock = vi.fn().mockResolvedValue({
-        id: "plan-123",
+        id: "323e4567-e89b-12d3-a456-426614174000",
         title: "Updated Plan",
       });
 
@@ -408,11 +410,11 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       });
 
       const requestBody = {
-        id: "plan-123",
+        id: "323e4567-e89b-12d3-a456-426614174000",
         title: "Updated Plan",
         diagnoses: [
           {
-            id: "diag-2",
+            id: "223e4567-e89b-12d3-a456-426614174000",
             code: "F41.1",
             description: "Generalized anxiety disorder",
           },
@@ -428,7 +430,7 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       const data = await response.json();
 
       expect(updateMock).toHaveBeenCalledWith({
-        where: { id: "plan-123" },
+        where: { id: "323e4567-e89b-12d3-a456-426614174000" },
         data: {
           title: "Updated Plan",
           client_group_id: null,
@@ -459,9 +461,9 @@ describe("Diagnosis Treatment Plan API Routes", () => {
 
     it("should update survey answers when provided", async () => {
       const mockExistingPlan = {
-        id: "plan-123",
-        survey_answers_id: "survey-123",
-        SurveyAnswers: { id: "survey-123" },
+        id: "323e4567-e89b-12d3-a456-426614174000",
+        survey_answers_id: "423e4567-e89b-12d3-a456-426614174000",
+        SurveyAnswers: { id: "423e4567-e89b-12d3-a456-426614174000" },
       };
 
       (prisma.diagnosisTreatmentPlan.findUnique as any).mockResolvedValue(
@@ -469,7 +471,7 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       );
 
       const updateSurveyMock = vi.fn().mockResolvedValue({
-        id: "survey-123",
+        id: "423e4567-e89b-12d3-a456-426614174000",
         content: '{"q1":"answer1"}',
       });
 
@@ -480,13 +482,16 @@ describe("Diagnosis Treatment Plan API Routes", () => {
           },
           diagnosisTreatmentPlan: {
             update: vi.fn().mockResolvedValue({
-              id: "plan-123",
+              id: "323e4567-e89b-12d3-a456-426614174000",
               title: "Updated Plan",
             }),
             findUnique: vi.fn().mockResolvedValue({
               ...mockExistingPlan,
               title: "Updated Plan",
-              SurveyAnswers: { id: "survey-123", content: '{"q1":"answer1"}' },
+              SurveyAnswers: {
+                id: "423e4567-e89b-12d3-a456-426614174000",
+                content: '{"q1":"answer1"}',
+              },
             }),
           },
           diagnosisTreatmentPlanItem: {
@@ -497,11 +502,11 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       });
 
       const requestBody = {
-        id: "plan-123",
+        id: "323e4567-e89b-12d3-a456-426614174000",
         title: "Updated Plan",
         diagnoses: [],
         surveyData: {
-          templateId: "template-123",
+          templateId: "123e4567-e89b-12d3-a456-426614174000",
           content: { q1: "answer1" },
         },
       };
@@ -514,7 +519,7 @@ describe("Diagnosis Treatment Plan API Routes", () => {
       const response = await PUT(request);
 
       expect(updateSurveyMock).toHaveBeenCalledWith({
-        where: { id: "survey-123" },
+        where: { id: "423e4567-e89b-12d3-a456-426614174000" },
         data: {
           content: '{"q1":"answer1"}',
           status: "COMPLETED",

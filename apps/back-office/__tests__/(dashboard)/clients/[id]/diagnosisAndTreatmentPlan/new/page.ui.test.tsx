@@ -3,7 +3,6 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import "@testing-library/jest-dom";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "@mcw/ui";
 import NewDiagnosisAndTreatmentPlan from "@/(dashboard)/clients/[id]/diagnosisAndTreatmentPlan/new/page";
@@ -406,14 +405,24 @@ describe("New Diagnosis and Treatment Plan Page", () => {
     const docHistoryButton = screen.getByText("Documentation History");
     fireEvent.click(docHistoryButton);
 
-    expect(screen.getByTestId("documentation-sidebar")).toBeDefined();
-
-    // Close sidebar
-    const closeButton = screen.getByText("Close");
-    fireEvent.click(closeButton);
-
+    // Wait for sidebar to open - look for the actual text in the component
     await waitFor(() => {
-      expect(screen.queryByTestId("documentation-sidebar")).toBeNull();
+      expect(screen.getByText("Documentation history")).toBeDefined();
+    });
+
+    // Close sidebar by clicking the X button (use aria-label or find by role)
+    const closeButtons = screen.getAllByRole("button");
+    const closeButton = closeButtons.find(
+      (btn) => btn.querySelector('svg[class*="lucide-x"]') !== null,
+    );
+
+    if (closeButton) {
+      fireEvent.click(closeButton);
+    }
+
+    // Wait for sidebar to close
+    await waitFor(() => {
+      expect(screen.queryByText("Documentation history")).toBeNull();
     });
   });
 });
