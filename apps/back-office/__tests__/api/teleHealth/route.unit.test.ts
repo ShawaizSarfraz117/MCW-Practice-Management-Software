@@ -1,126 +1,129 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, PUT } from "@/api/teleHealth/route";
 import prismaMock from "@mcw/database/mock";
-import { getClinicianInfo } from "@/utils/helpers";
+import { getBackOfficeSession } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
-import { ClinicianFactory, LocationFactory } from "@mcw/database/mock-data";
+import { LocationFactory } from "@mcw/database/mock-data";
 
 // Mock helpers
 vi.mock("@/utils/helpers", () => ({
-  getClinicianInfo: vi.fn(),
+  getBackOfficeSession: vi.fn(),
 }));
 
 describe("GET /api/teleHealth", () => {
-  const mockClinicianId = "test-clinician-id";
+  const mockUserId = "test-user-id";
 
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId: mockClinicianId,
-      clinician: null,
-    });
+    vi.mocked(getBackOfficeSession).mockResolvedValue({
+      user: {
+        id: mockUserId,
+      },
+    } as ReturnType<typeof getBackOfficeSession>);
   });
 
   it("should return telehealth location when it exists", async () => {
-    const mockLocation = LocationFactory.build();
-    const mockClinician = ClinicianFactory.build({
-      id: mockClinicianId,
-      first_name: "Test",
-      last_name: "Clinician",
-      User: {
-        email: "test@example.com",
-      },
-      ClinicianLocation: [
-        {
-          is_primary: true,
-          Location: mockLocation,
-        },
-      ],
+    const mockLocation = LocationFactory.build({
+      name: "Telehealth",
+      address: "Virtual Location",
+      street: "Virtual",
+      city: "",
+      state: "",
+      zip: "",
+      color: "#10b981",
+      is_active: true,
     });
 
-    const mockFindUnique = prismaMock.clinician
-      .findUnique as unknown as ReturnType<typeof vi.fn>;
-    mockFindUnique.mockResolvedValueOnce(mockClinician);
+    const mockFindFirst = prismaMock.location
+      .findFirst as unknown as ReturnType<typeof vi.fn>;
+    mockFindFirst.mockResolvedValueOnce(mockLocation);
 
     const response = await GET();
     expect(response.status).toBe(200);
 
     const json = await response.json();
     expect(json).toMatchObject({
-      clinician: {
-        id: mockClinicianId,
-        firstName: mockClinician.first_name,
-        lastName: mockClinician.last_name,
-        email: mockClinician.User.email,
-      },
       location: mockLocation,
     });
-  });
 
-  it("should return 403 when user is not a clinician", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValueOnce({
-      isClinician: false,
-      clinicianId: null,
-      clinician: null,
-    });
-
-    const response = await GET();
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({
-      error: "User is not a clinician",
-    });
-  });
-
-  it("should return 404 when clinician is not found", async () => {
-    const mockFindUnique = prismaMock.clinician
-      .findUnique as unknown as ReturnType<typeof vi.fn>;
-    mockFindUnique.mockResolvedValueOnce(null);
-
-    const response = await GET();
-    expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
-      error: "Clinician not found",
-    });
-  });
-
-  it("should return 404 when no telehealth location exists", async () => {
-    const mockClinician = {
-      id: mockClinicianId,
-      first_name: "Test",
-      last_name: "Clinician",
-      User: {
-        email: "test@example.com",
+    expect(mockFindFirst).toHaveBeenCalledWith({
+      where: {
+        name: "Telehealth",
+        is_active: true,
       },
-      ClinicianLocation: [], // No locations
+    });
+  });
+
+  it("should create default telehealth location when none exists", async () => {
+    const mockLocation = {
+      id: "new-location-id",
+      name: "Telehealth",
+      address: "Virtual Location",
+      street: "Virtual",
+      city: "",
+      state: "",
+      zip: "",
+      color: "#10b981",
+      is_active: true,
     };
 
-    const mockFindUnique = prismaMock.clinician
-      .findUnique as unknown as ReturnType<typeof vi.fn>;
-    mockFindUnique.mockResolvedValueOnce(mockClinician);
+    const mockFindFirst = prismaMock.location
+      .findFirst as unknown as ReturnType<typeof vi.fn>;
+    mockFindFirst.mockResolvedValueOnce(null);
+
+    const mockCreate = prismaMock.location.create as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    mockCreate.mockResolvedValueOnce(mockLocation);
 
     const response = await GET();
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
+
+    const json = await response.json();
+    expect(json).toMatchObject({
+      location: mockLocation,
+    });
+
+    expect(mockCreate).toHaveBeenCalledWith({
+      data: {
+        name: "Telehealth",
+        address: "Virtual Location",
+        street: "Virtual",
+        city: "",
+        state: "",
+        zip: "",
+        color: "#10b981",
+        is_active: true,
+      },
+    });
+  });
+
+  it("should return 401 when user is not authenticated", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
+
+    const response = await GET();
+    expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "TeleHealth location not found",
+      error: "Unauthorized",
     });
   });
 
   it("should handle database errors", async () => {
-    const mockFindUnique = prismaMock.clinician
-      .findUnique as unknown as ReturnType<typeof vi.fn>;
-    mockFindUnique.mockRejectedValueOnce(new Error("Database error"));
+    const mockFindFirst = prismaMock.location
+      .findFirst as unknown as ReturnType<typeof vi.fn>;
+    mockFindFirst.mockRejectedValueOnce(new Error("Database error"));
 
     const response = await GET();
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to fetch telehealth details",
-    });
+    const json = await response.json();
+    // In non-production, withErrorHandling returns detailed error object
+    expect(json.error.message).toBe("Database error");
+    expect(json.error.issueId).toMatch(/^ERR-/);
   });
 });
 
 describe("PUT /api/teleHealth", () => {
-  const mockClinicianId = "test-clinician-id";
+  const mockUserId = "test-user-id";
   const validUpdateData = {
     locationId: "123e4567-e89b-12d3-a456-426614174000",
     name: "Updated Virtual Office",
@@ -134,11 +137,11 @@ describe("PUT /api/teleHealth", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId: mockClinicianId,
-      clinician: null,
-    });
+    vi.mocked(getBackOfficeSession).mockResolvedValue({
+      user: {
+        id: mockUserId,
+      },
+    } as ReturnType<typeof getBackOfficeSession>);
   });
 
   it("should update telehealth location successfully", async () => {
@@ -181,19 +184,15 @@ describe("PUT /api/teleHealth", () => {
     });
   });
 
-  it("should return 403 when user is not a clinician", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValueOnce({
-      isClinician: false,
-      clinicianId: null,
-      clinician: null,
-    });
+  it("should return 401 when user is not authenticated", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
     const request = createRequestWithBody("/api/teleHealth", validUpdateData);
     const response = await PUT(request);
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "User is not a clinician",
+      error: "Unauthorized",
     });
   });
 
@@ -265,9 +264,10 @@ describe("PUT /api/teleHealth", () => {
     const response = await PUT(request);
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to update telehealth location",
-    });
+    const json = await response.json();
+    // In non-production, withErrorHandling returns detailed error object
+    expect(json.error.message).toBe("Database error");
+    expect(json.error.issueId).toMatch(/^ERR-/);
 
     // Verify our mocks were called in the right order
     expect(mockFindUnique).toHaveBeenCalledWith({

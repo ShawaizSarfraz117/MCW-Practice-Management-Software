@@ -285,15 +285,15 @@ model ClientReminderPreference {
 
 /// Billing addresses for clinicians (for insurance claims and billing).
 model BillingAddress {
-  id           String    @id @default(dbgenerated("newid()"), map: "PK_BillingAddress_ID") @db.UniqueIdentifier
-  street       String    @db.VarChar(255)
-  city         String    @db.VarChar(100)
-  state        String    @db.VarChar(50)
-  zip          String    @db.VarChar(20)
+  id           String     @id @default(dbgenerated("newid()"), map: "PK_BillingAddress_ID") @db.UniqueIdentifier
+  street       String     @db.VarChar(255)
+  city         String     @db.VarChar(100)
+  state        String     @db.VarChar(50)
+  zip          String     @db.VarChar(20)
   /// Address type: 'SERVICE_LOCATION' or 'PAY_TO_ADDRESS'.
-  type         String    @db.VarChar(50)
-  clinician_id String    @db.UniqueIdentifier
-  Clinician    Clinician @relation("ManyBillingAddresses", fields: [clinician_id], references: [id], onDelete: Cascade, map: "FK_BillingAddress_Clinician")
+  type         String     @db.VarChar(50)
+  clinician_id String?    @db.UniqueIdentifier
+  Clinician    Clinician? @relation("ManyBillingAddresses", fields: [clinician_id], references: [id], onDelete: Cascade, map: "FK_BillingAddress_Clinician")
 
   @@unique([clinician_id, type], map: "UQ_BillingAddress_Clinician_Type")
   @@index([clinician_id], map: "IX_BillingAddress_clinician_id")

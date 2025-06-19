@@ -5,137 +5,137 @@ import {
   afterEach,
   beforeAll,
   afterAll,
+  beforeEach,
   vi,
 } from "vitest";
 import { prisma } from "@mcw/database";
 import { GET, PUT } from "@/api/teleHealth/route";
 import {
-  ClinicianPrismaFactory,
+  UserPrismaFactory,
   RolePrismaFactory,
   UserRolePrismaFactory,
-  LocationPrismaFactory,
 } from "@mcw/database/mock-data";
 import { createRequestWithBody } from "@mcw/utils";
-import { getClinicianInfo } from "@/utils/helpers";
+import { getBackOfficeSession } from "@/utils/helpers";
 
-// Mock getClinicianInfo for session
+// Mock getBackOfficeSession for session
 vi.mock("@/utils/helpers", () => ({
   ...vi.importActual("@/utils/helpers"),
-  getClinicianInfo: vi.fn(),
+  getBackOfficeSession: vi.fn(),
 }));
 vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
   backofficeAuthOptions: {},
 }));
 
-// Helper to clean up all test data for a clinician
-async function cleanupTeleHealthTestData(
-  clinicianId: string,
-  userId: string,
-  locationId: string,
-) {
-  await prisma.clinicianLocation.deleteMany({
-    where: { clinician_id: clinicianId },
-  });
-  await prisma.location.deleteMany({ where: { id: locationId } });
-  await prisma.clinician.deleteMany({ where: { id: clinicianId } });
+// Helper to clean up all test data
+async function cleanupTeleHealthTestData(userId: string) {
+  // Delete all telehealth locations
+  await prisma.location.deleteMany({ where: { name: "Telehealth" } });
   await prisma.userRole.deleteMany({ where: { user_id: userId } });
   await prisma.user.deleteMany({ where: { id: userId } });
 }
 
 describe("TeleHealth API Integration Tests", () => {
-  let clinicianId: string;
   let userId: string;
-  let locationId: string;
+  let session: { user: { id: string }; expires: string };
 
   beforeAll(async () => {
-    // Ensure the CLINICIAN role exists
-    let role = await prisma.role.findUnique({ where: { name: "CLINICIAN" } });
+    // Ensure the ADMIN role exists
+    let role = await prisma.role.findUnique({ where: { name: "ADMIN" } });
     if (!role) {
-      role = await RolePrismaFactory.create({ name: "CLINICIAN" });
+      role = await RolePrismaFactory.create({ name: "ADMIN" });
     }
-    // Create a clinician and its user
-    const clinician = await ClinicianPrismaFactory.create();
-    clinicianId = clinician.id;
-    userId = clinician.user_id;
-    // Create a location
-    const location = await LocationPrismaFactory.create();
-    locationId = location.id;
-    // Link clinician to location (primary)
-    await prisma.clinicianLocation.create({
-      data: {
-        clinician_id: clinicianId,
-        location_id: locationId,
-        is_primary: true,
-      },
-    });
-    // Assign CLINICIAN role to user
+    // Create a user
+    const user = await UserPrismaFactory.create();
+    userId = user.id;
+    // Assign ADMIN role to user
     await UserRolePrismaFactory.create({
       User: { connect: { id: userId } },
       Role: { connect: { id: role.id } },
     });
+    // Simulate session object
+    session = {
+      user: {
+        id: userId,
+      },
+      expires: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    };
   });
 
   afterAll(async () => {
-    await cleanupTeleHealthTestData(clinicianId, userId, locationId);
+    await cleanupTeleHealthTestData(userId);
   });
 
   afterEach(async () => {
+    // Clean up any telehealth locations created during tests
+    await prisma.location.deleteMany({ where: { name: "Telehealth" } });
     vi.resetAllMocks();
   });
 
-  it("GET /api/teleHealth returns clinician and primary location", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId,
-      clinician: null,
-    });
+  beforeEach(() => {
+    vi.mocked(getBackOfficeSession).mockResolvedValue(session);
+  });
+
+  it("GET /api/teleHealth returns telehealth location", async () => {
     const res = await GET();
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.clinician).toMatchObject({ id: clinicianId });
-    expect(json.location).toMatchObject({ id: locationId });
+    expect(json.location).toMatchObject({
+      name: "Telehealth",
+      address: "Virtual Location",
+      street: "Virtual",
+      is_active: true,
+    });
   });
 
-  it("GET /api/teleHealth returns 403 if not a clinician", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: false,
-      clinicianId: null,
-      clinician: null,
-    });
+  it("GET /api/teleHealth returns 401 if not authenticated", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
     const res = await GET();
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
   });
 
-  it("GET /api/teleHealth returns 404 if no location", async () => {
-    await prisma.clinicianLocation.deleteMany({
-      where: { clinician_id: clinicianId },
-    });
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId,
-      clinician: null,
-    });
+  it("GET /api/teleHealth creates default location if none exists", async () => {
+    // Ensure no telehealth location exists
+    await prisma.location.deleteMany({ where: { name: "Telehealth" } });
+
     const res = await GET();
-    expect(res.status).toBe(404);
-    // Restore the link for other tests
-    await prisma.clinicianLocation.create({
-      data: {
-        clinician_id: clinicianId,
-        location_id: locationId,
-        is_primary: true,
-      },
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.location).toMatchObject({
+      name: "Telehealth",
+      address: "Virtual Location",
+      street: "Virtual",
+      color: "#10b981",
+      is_active: true,
     });
+
+    // Verify it was created in the database
+    const dbLocation = await prisma.location.findFirst({
+      where: { name: "Telehealth" },
+    });
+    expect(dbLocation).not.toBeNull();
   });
 
   it("PUT /api/teleHealth updates location details", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId,
-      clinician: null,
+    // First create a telehealth location
+    const location = await prisma.location.create({
+      data: {
+        name: "Telehealth",
+        address: "Virtual Location",
+        street: "Virtual",
+        city: "",
+        state: "",
+        zip: "",
+        color: "#10b981",
+        is_active: true,
+      },
     });
+
     const body = {
-      locationId,
-      name: "Updated Office",
+      locationId: location.id,
+      name: "Updated Virtual Office",
       address: "123 Updated St",
       street: "123 Updated St",
       city: "Updated City",
@@ -150,8 +150,8 @@ describe("TeleHealth API Integration Tests", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.location).toMatchObject({
-      id: locationId,
-      name: "Updated Office",
+      id: location.id,
+      name: "Updated Virtual Office",
       address: "123 Updated St",
       street: "123 Updated St",
       city: "Updated City",
@@ -161,14 +161,10 @@ describe("TeleHealth API Integration Tests", () => {
     });
   });
 
-  it("PUT /api/teleHealth returns 403 if not a clinician", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: false,
-      clinicianId: null,
-      clinician: null,
-    });
+  it("PUT /api/teleHealth returns 401 if not authenticated", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
     const body = {
-      locationId,
+      locationId: "00000000-0000-0000-0000-000000000000",
       name: "Should Not Update",
       address: "Should Not Update",
       street: "Should Not Update",
@@ -177,15 +173,12 @@ describe("TeleHealth API Integration Tests", () => {
       method: "PUT",
     });
     const res = await PUT(req);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
   });
 
   it("PUT /api/teleHealth returns 400 for invalid payload", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId,
-      clinician: null,
-    });
     const body = {
       locationId: "not-a-uuid",
       name: "",
@@ -203,11 +196,6 @@ describe("TeleHealth API Integration Tests", () => {
   });
 
   it("PUT /api/teleHealth returns 404 if location not found", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId,
-      clinician: null,
-    });
     const body = {
       locationId: "00000000-0000-0000-0000-000000000000",
       name: "Nonexistent",
@@ -224,37 +212,43 @@ describe("TeleHealth API Integration Tests", () => {
   });
 
   it("GET /api/teleHealth returns 500 on DB error", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId,
-      clinician: null,
-    });
-    const origFindUnique = prisma.clinician.findUnique;
+    const origFindFirst = prisma.location.findFirst;
     // @ts-expect-error: Monkey-patching for test
-    prisma.clinician.findUnique = async () => {
+    prisma.location.findFirst = async () => {
       throw new Error("DB fail");
     };
     const res = await GET();
     expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.error).toBe("Failed to fetch telehealth details");
+    // In non-production, withErrorHandling returns detailed error object
+    expect(json.error.message).toBe("DB fail");
+    expect(json.error.issueId).toMatch(/^ERR-/);
     // Restore
-    prisma.clinician.findUnique = origFindUnique;
+    prisma.location.findFirst = origFindFirst;
   });
 
   it("PUT /api/teleHealth returns 500 on DB error", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId,
-      clinician: null,
+    // First create a location to update
+    const location = await prisma.location.create({
+      data: {
+        name: "Test Location for Error",
+        address: "Test Address",
+        street: "Test Street",
+        city: "",
+        state: "",
+        zip: "",
+        color: "#000000",
+        is_active: true,
+      },
     });
+
     const origUpdate = prisma.location.update;
     // @ts-expect-error: Monkey-patching for test
     prisma.location.update = async () => {
       throw new Error("DB fail");
     };
     const body = {
-      locationId,
+      locationId: location.id,
       name: "Should Fail",
       address: "Should Fail",
       street: "Should Fail",
@@ -265,8 +259,12 @@ describe("TeleHealth API Integration Tests", () => {
     const res = await PUT(req);
     expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.error).toBe("Failed to update telehealth location");
+    // In non-production, withErrorHandling returns detailed error object
+    expect(json.error.message).toBe("DB fail");
+    expect(json.error.issueId).toMatch(/^ERR-/);
     // Restore
     prisma.location.update = origUpdate;
+    // Clean up
+    await prisma.location.delete({ where: { id: location.id } });
   });
 });

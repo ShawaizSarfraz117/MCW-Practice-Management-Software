@@ -40,15 +40,17 @@ export default function TeleHealth({
             feature. You and your clients will get a unique link to access these
             appointments.
           </p>
-          {isLoading && <div className="mt-1">Loading...</div>}
+          {practiceInfoState.tele_health && isLoading && (
+            <div className="mt-1">Loading...</div>
+          )}
 
           <div className="overflow-x-auto">
-            {error && (
+            {practiceInfoState.tele_health && error && (
               <div className="500 mt-1">
                 Telehealth information is not available.
               </div>
             )}
-            {teleHealthInfo?.location && (
+            {practiceInfoState.tele_health && teleHealthInfo?.location && (
               <Table>
                 <TableHeader>
                   <TableRow>

@@ -31,7 +31,11 @@ const useBillingAddresses = () => {
       const res = await fetch("/api/billingAddress");
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData?.error);
+        const errorMessage =
+          typeof errorData?.error === "string"
+            ? errorData.error
+            : errorData?.error?.message || "Failed to fetch billing addresses";
+        throw new Error(errorMessage);
       }
       const data = await res.json();
       return data.billingAddresses;
@@ -50,12 +54,17 @@ const useBillingAddresses = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        const errorMessage =
+          typeof errorData?.error === "string"
+            ? errorData.error
+            : errorData?.error?.message || "Failed to create billing address";
+
         toast({
           title: "Error creating billing address",
-          description: errorData?.error,
+          description: errorMessage,
           variant: "destructive",
         });
-        throw new Error(errorData?.error);
+        throw new Error(errorMessage);
       }
       return response.json();
     },

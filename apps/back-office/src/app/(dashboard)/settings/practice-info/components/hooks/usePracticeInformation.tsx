@@ -3,12 +3,6 @@ import { toast } from "@mcw/ui";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface TeleHealthInfo {
-  clinician: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
   location: {
     id: string;
     name: string;
