@@ -8,55 +8,11 @@ import {
   DropdownMenuItem,
 } from "@mcw/ui";
 import { ChevronDown } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchSingleClientGroup } from "@/(dashboard)/clients/services/client.service";
-
-interface ClientInfo {
-  preferred_name?: string;
-  legal_first_name?: string;
-  legal_last_name?: string;
-}
-
-interface ClientGroupMembership {
-  Client: ClientInfo;
-}
-
-interface ClientGroup {
-  ClientGroupMembership?: ClientGroupMembership[];
-}
-
-// Helper function to extract client name from client group
-function getClientGroupInfo(clientGroup: ClientGroup) {
-  if (!clientGroup?.ClientGroupMembership) {
-    return "";
-  }
-
-  const memberNames = clientGroup.ClientGroupMembership.map(
-    (membership: ClientGroupMembership) => {
-      const client = membership.Client;
-      const firstName =
-        client?.preferred_name || client?.legal_first_name || "";
-      const lastName = client?.legal_last_name || "";
-      return `${firstName} ${lastName}`.trim();
-    },
-  ).filter(Boolean);
-
-  return memberNames.join(" & ");
-}
 
 export default function NavigationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const params = useParams();
-
-  // Fetch client data to get the name
-  const { data: clientGroup } = useQuery({
-    queryKey: ["clientGroup", params.id],
-    queryFn: () => fetchSingleClientGroup({ id: params.id as string }),
-    enabled: !!params.id,
-  });
-
-  const clientName = clientGroup ? getClientGroupInfo(clientGroup) : "";
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -90,13 +46,7 @@ export default function NavigationDropdown() {
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => {
-            const searchParams = new URLSearchParams();
-            if (clientName) {
-              searchParams.set("clientName", clientName);
-            }
-            router.push(
-              `/clients/${params.id}/scoredMeasure?${searchParams.toString()}`,
-            );
+            router.push(`/clients/${params.id}/scoredMeasure`);
           }}
         >
           Scored Measure

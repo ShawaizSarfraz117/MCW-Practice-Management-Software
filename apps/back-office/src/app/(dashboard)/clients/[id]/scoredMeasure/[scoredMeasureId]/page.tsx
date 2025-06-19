@@ -337,16 +337,6 @@ export default function EditScoredMeasure() {
       <div className="text-sm text-gray-500 mb-4 flex flex-wrap gap-2 items-center">
         {clientInfo?.date_of_birth && (
           <>
-            {new Date().getFullYear() -
-              new Date(clientInfo.date_of_birth).getFullYear() >=
-            18
-              ? "Adult"
-              : "Minor"}
-            <span className="text-gray-300">|</span>
-          </>
-        )}
-        {clientInfo?.date_of_birth && (
-          <>
             {new Date(clientInfo.date_of_birth).toLocaleDateString()}
             <span className="text-gray-300">|</span>
           </>

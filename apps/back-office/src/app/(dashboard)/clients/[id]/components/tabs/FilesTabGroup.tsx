@@ -30,7 +30,6 @@ import {
   Share,
   Trash2,
   ChevronUp,
-  Loader2,
   AlertCircle,
   Upload,
   Bell,
@@ -58,6 +57,7 @@ import {
   fetchSingleClientGroup,
   ClientGroupWithMembership,
 } from "@/(dashboard)/clients/services/client.service";
+import Loading from "@/components/Loading";
 
 type SortColumn = "name" | "type" | "status" | "updated";
 type SortDirection = "asc" | "desc";
@@ -391,13 +391,7 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
 
     // Show loading state
     if (isLoading) {
-      return (
-        <div className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
-          </div>
-        </div>
-      );
+      return <Loading />;
     }
 
     // Show error state
@@ -420,7 +414,7 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
           <div className="relative w-full sm:w-[300px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              className="pl-9 h-10 bg-white border-[#e5e7eb]"
+              className="pl-9 px-9 h-10 bg-white border-[#e5e7eb]"
               placeholder="Search files"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
