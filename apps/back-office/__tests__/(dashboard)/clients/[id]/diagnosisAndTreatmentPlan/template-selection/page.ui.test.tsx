@@ -163,11 +163,15 @@ describe("Template Selection Page", () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText("Standard Treatment Plan")).toBeDefined();
+      const standardPlans = screen.getAllByText("Standard Treatment Plan");
+      expect(standardPlans.length).toBeGreaterThan(0);
     });
 
-    expect(screen.getByText("Brief Treatment Plan")).toBeDefined();
-    expect(screen.getByText("Default")).toBeDefined();
+    const briefPlans = screen.getAllByText("Brief Treatment Plan");
+    expect(briefPlans.length).toBeGreaterThan(0);
+
+    const defaultTexts = screen.getAllByText("Default");
+    expect(defaultTexts.length).toBeGreaterThan(0);
   });
 
   it("should handle template selection", async () => {

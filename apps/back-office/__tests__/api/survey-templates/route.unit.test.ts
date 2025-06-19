@@ -338,9 +338,9 @@ describe("Survey Templates API Routes", () => {
 
       expect(response.status).toBe(500);
       // In development, withErrorHandling returns detailed error info
-      expect(data).toHaveProperty("message", "Database connection error");
-      expect(data).toHaveProperty("issueId");
-      expect(data.issueId).toMatch(/^ERR-\d{8}-\d{6}-[A-Z0-9]{4}$/);
+      expect(data.error).toBeDefined();
+      expect(data.error.message).toBe("Database connection error");
+      expect(data.error.issueId).toMatch(/^ERR-\d{8}-\d{6}-[A-Z0-9]{4}$/);
     });
 
     it("should parse nested JSON content correctly", async () => {
