@@ -88,7 +88,47 @@ async function main() {
       color: "#4f46e5"
     }
   });
+
+  // Create Telehealth location
+  const telehealthLocationId = uuidv4();
+  const telehealthLocation = await prisma.location.upsert({
+    where: { id: telehealthLocationId },
+    update: {},
+    create: {
+      id: telehealthLocationId,
+      name: "Telehealth",
+      address: "Virtual Location",
+      street: "Virtual",
+      city: "",
+      state: "",
+      zip: "",
+      is_active: true,
+      color: "#10b981" // Green color for telehealth
+    }
+  });
   console.log("Locations created");
+
+  // Create practice information
+  console.log('Seeding practice information...');
+  const practiceInfoId = uuidv4();
+  await prisma.practiceInformation.upsert({
+    where: { id: practiceInfoId },
+    update: {},
+    create: {
+      id: practiceInfoId,
+      clinician_id: null, // Practice-wide information
+      practice_name: "MCW Practice Management",
+      practice_email: "info@mcwpractice.com",
+      time_zone: "America/New_York",
+      practice_logo: "",
+      phone_numbers: JSON.stringify([
+        { number: "(617) 555-0100", type: "main" },
+        { number: "(617) 555-0101", type: "fax" }
+      ]),
+      tele_health: true
+    }
+  });
+  console.log("Practice information created");
 
   // Create practice services
   console.log('Seeding practice services...');
