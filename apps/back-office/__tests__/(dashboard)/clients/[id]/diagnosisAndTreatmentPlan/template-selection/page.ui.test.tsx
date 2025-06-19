@@ -40,7 +40,7 @@ vi.mock("@/(dashboard)/clients/[id]/components/ClientInfoHeader", () => ({
   ClientInfoHeader: vi.fn(({ onDocumentationHistoryClick }) => (
     <div data-testid="client-info-header">
       <button onClick={onDocumentationHistoryClick}>
-        Documentation History
+        Documentation history
       </button>
     </div>
   )),
@@ -417,7 +417,7 @@ describe("Template Selection Page", () => {
     renderComponent();
 
     // Open sidebar
-    const docHistoryButton = await screen.findByText("Documentation History");
+    const docHistoryButton = await screen.findByText("Documentation history");
     fireEvent.click(docHistoryButton);
 
     expect(screen.getByTestId("documentation-sidebar")).toBeDefined();
