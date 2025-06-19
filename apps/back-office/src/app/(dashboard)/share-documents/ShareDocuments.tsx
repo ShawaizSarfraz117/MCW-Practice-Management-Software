@@ -657,15 +657,15 @@ export const ShareDocuments: React.FC<ShareDocumentsProps> = ({
 
         {showReminders && context === "appointment" && clients.length === 1 && (
           <RemindersDialog
+            appointmentDate={appointmentDate}
+            appointmentId={appointmentId}
+            appointmentTime={appointmentTime}
             clientEmail={clients[0].email || ""}
             clientName={clients[0].name}
-            isOpen={showReminders}
-            onClose={() => setShowReminders(false)}
-            appointmentDate={appointmentDate}
-            appointmentTime={appointmentTime}
             clinicianName={clinicianName}
+            isOpen={showReminders}
             locationName={locationName}
-            appointmentId={appointmentId}
+            onClose={() => setShowReminders(false)}
           />
         )}
       </div>

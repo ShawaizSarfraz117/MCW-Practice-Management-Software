@@ -262,10 +262,10 @@ export default function AssessmentPage({
       <div className="max-w-6xl mx-auto space-y-6 print-content">
         {/* Client Info */}
         <AssessmentInfo
-          surveyAnswer={surveyAnswer}
           clientId={params.id}
           getClientDisplayName={getClientDisplayName}
           getFormattedDate={getFormattedDate}
+          surveyAnswer={surveyAnswer}
         />
 
         {/* Assessment Header with Action Buttons */}
@@ -286,24 +286,24 @@ export default function AssessmentPage({
               )}
             </div>
             <AssessmentHeader
+              isPending={updateMutation.isPending}
               isSignable={surveyAnswer.status !== "COMPLETED"}
               isSigned={surveyAnswer.status === "COMPLETED"}
-              isPending={updateMutation.isPending}
-              onSignMeasure={handleSignMeasure}
-              onPrint={handlePrint}
-              onDownloadPDF={handleDownload}
               onDelete={() => setShowDeleteDialog(true)}
+              onDownloadPDF={handleDownload}
+              onPrint={handlePrint}
+              onSignMeasure={handleSignMeasure}
             />
           </div>
         </div>
 
         {/* Score and Interpretation */}
         <AssessmentScore
-          totalScore={totalScore}
-          severity={severity}
           interpretation={interpretation}
           maxScore={surveyMetadata?.maxScore || 21}
+          severity={severity}
           surveyType={surveyType}
+          totalScore={totalScore}
           onViewScoringGuide={() => setShowScoringGuide(true)}
         />
 
@@ -312,30 +312,30 @@ export default function AssessmentPage({
 
         {/* Summary Section */}
         <AssessmentSummary
-          surveyType={surveyType}
-          status={surveyAnswer.status}
-          isSignable={surveyAnswer.status !== "COMPLETED"}
           isPending={updateMutation.isPending}
+          isSignable={surveyAnswer.status !== "COMPLETED"}
+          status={surveyAnswer.status}
+          surveyType={surveyType}
           onSignMeasure={handleSignMeasure}
         />
 
         {/* Delete Confirmation Dialog */}
         <DeleteAssessmentDialog
-          open={showDeleteDialog}
-          onOpenChange={setShowDeleteDialog}
+          assessmentDate={getFormattedDate()}
           assessmentName={surveyAnswer?.SurveyTemplate.name || ""}
           clientName={getClientDisplayName()}
-          assessmentDate={getFormattedDate()}
           isPending={deleteMutation.isPending}
+          open={showDeleteDialog}
           onConfirm={handleDelete}
+          onOpenChange={setShowDeleteDialog}
         />
 
         {/* Scoring Guide Sheet */}
         {surveyType && (
           <ScoringGuideSheet
             open={showScoringGuide}
-            onOpenChange={setShowScoringGuide}
             surveyType={surveyType as SurveyType}
+            onOpenChange={setShowScoringGuide}
           />
         )}
       </div>

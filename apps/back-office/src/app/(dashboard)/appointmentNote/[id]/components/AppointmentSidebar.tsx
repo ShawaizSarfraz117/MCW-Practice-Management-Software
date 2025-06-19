@@ -130,7 +130,7 @@ export function AppointmentSidebar({
               />
             </div>
           ) : (
-            <div id="treatment-progress" className="py-8">
+            <div className="py-8" id="treatment-progress">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Treatment Progress
@@ -139,8 +139,8 @@ export function AppointmentSidebar({
                   View and manage the treatment progress for this client
                 </p>
                 <Button
-                  onClick={() => setIsDrawerOpen(true)}
                   className="bg-primary hover:bg-primary/90"
+                  onClick={() => setIsDrawerOpen(true)}
                 >
                   Open Treatment Details
                 </Button>
@@ -163,8 +163,8 @@ export function AppointmentSidebar({
                 client.
               </p>
               <Button
-                onClick={handleCreateDiagnosisPlan}
                 className="bg-primary hover:bg-primary/90 w-full"
+                onClick={handleCreateDiagnosisPlan}
               >
                 Create diagnosis and treatment plan
               </Button>

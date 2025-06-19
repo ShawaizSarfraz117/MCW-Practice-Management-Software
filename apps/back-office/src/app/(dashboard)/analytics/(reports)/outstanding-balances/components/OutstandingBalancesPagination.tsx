@@ -28,9 +28,9 @@ export default function OutstandingBalancesPagination({
       <div className="flex items-center gap-4">
         <span className="text-sm text-gray-700">Rows per page</span>
         <select
+          className="border border-gray-300 rounded px-3 py-1 text-sm"
           value={itemsPerPage}
           onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-          className="border border-gray-300 rounded px-3 py-1 text-sm"
         >
           <option value={10}>10</option>
           <option value={20}>20</option>
@@ -43,34 +43,34 @@ export default function OutstandingBalancesPagination({
 
       <div className="flex items-center gap-2">
         <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
+          size="sm"
+          variant="outline"
+          onClick={() => onPageChange(1)}
         >
           First
         </Button>
         <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
+          size="sm"
+          variant="outline"
+          onClick={() => onPageChange(currentPage - 1)}
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
+          size="sm"
+          variant="outline"
+          onClick={() => onPageChange(currentPage + 1)}
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
         <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
+          size="sm"
+          variant="outline"
+          onClick={() => onPageChange(totalPages)}
         >
           Last
         </Button>

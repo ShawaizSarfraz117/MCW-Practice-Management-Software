@@ -161,13 +161,13 @@ export default function AssignSurveyDialog({
         </div>
         <DialogFooter>
           <Button
+            disabled={isPending}
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isPending}
           >
             Cancel
           </Button>
-          <Button onClick={handleAssign} disabled={isPending}>
+          <Button disabled={isPending} onClick={handleAssign}>
             {isPending ? "Assigning..." : "Assign Survey"}
           </Button>
         </DialogFooter>

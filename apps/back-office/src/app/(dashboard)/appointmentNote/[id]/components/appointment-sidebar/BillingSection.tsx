@@ -60,10 +60,10 @@ export function BillingSection({ appointment }: BillingSectionProps) {
 
       {appointment?.ClientGroup?.id && (
         <Link
-          href={billingUrl}
-          target="_blank"
-          rel="noopener noreferrer"
           className="text-blue-600 hover:underline text-sm mt-3 flex items-center"
+          href={billingUrl}
+          rel="noopener noreferrer"
+          target="_blank"
         >
           <ExternalLink className="h-3 w-3 mr-1" />
           Open billing

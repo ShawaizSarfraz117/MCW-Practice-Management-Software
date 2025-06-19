@@ -90,13 +90,13 @@ export default function AttendanceTable({
             {[...Array(5)].map((_, index) => (
               <TableRow key={index} className="hover:bg-gray-50">
                 <TableCell>
-                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
                 </TableCell>
               </TableRow>
             ))}
@@ -119,7 +119,7 @@ export default function AttendanceTable({
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+              <TableCell className="text-center py-8 text-gray-500" colSpan={3}>
                 No appointments found for the selected criteria
               </TableCell>
             </TableRow>

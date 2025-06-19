@@ -154,30 +154,30 @@ export default function ManageAvailabilityModal({
         </div>
         {step === 1 ? (
           <PracticeSettingsStep
-            startTime={startTime}
-            setStartTime={setStartTime}
-            requestBefore={requestBefore}
-            setRequestBefore={setRequestBefore}
             requestAdvance={requestAdvance}
+            requestBefore={requestBefore}
             setRequestAdvance={setRequestAdvance}
+            setRequestBefore={setRequestBefore}
+            setStartTime={setStartTime}
+            startTime={startTime}
             onNext={() => setStep(2)}
           />
         ) : (
           <AvailabilitySettingsStep
-            startDate={startDate}
-            setStartDate={setStartDate}
-            endType={endType}
-            setEndType={setEndType}
-            location={location}
-            setLocation={setLocation}
-            services={services}
-            setServices={setServices}
             addServiceOpen={addServiceOpen}
-            setAddServiceOpen={setAddServiceOpen}
+            endType={endType}
+            location={location}
+            services={services}
             serviceSearch={serviceSearch}
-            setServiceSearch={setServiceSearch}
-            onBack={() => setStep(1)}
             ServicesSection={ServicesSection}
+            setAddServiceOpen={setAddServiceOpen}
+            setEndType={setEndType}
+            setLocation={setLocation}
+            setServices={setServices}
+            setServiceSearch={setServiceSearch}
+            setStartDate={setStartDate}
+            startDate={startDate}
+            onBack={() => setStep(1)}
           />
         )}
       </div>

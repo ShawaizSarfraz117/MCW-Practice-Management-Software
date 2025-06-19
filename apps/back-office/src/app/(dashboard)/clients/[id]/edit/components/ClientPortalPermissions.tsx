@@ -370,8 +370,8 @@ export function ClientPortalPermissions({
   return (
     <>
       <DeleteConfirmationModal
-        isOpen={showDeleteModal}
         clientName={`${clientData.Client.legal_first_name} ${clientData.Client.legal_last_name}`}
+        isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleConfirmDelete}
       />
@@ -568,9 +568,9 @@ export function ClientPortalPermissions({
                   </div>
 
                   <button
-                    type="button"
-                    disabled={loading}
                     className="text-red-600 hover:text-red-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loading}
+                    type="button"
                     onClick={handleDeleteClick}
                   >
                     Disable access to this Client Portal

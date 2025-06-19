@@ -106,14 +106,15 @@ export default function IncomePage() {
 
         {/* Filters */}
         <IncomeFilters
+          clinicians={cliniciansData || []}
           filters={filters}
           onFiltersChange={handleFiltersChange}
-          clinicians={cliniciansData || []}
         />
 
         {/* Table */}
         <IncomeTable
           data={incomeData?.data || []}
+          isLoading={isLoading}
           totals={
             incomeData?.totals || {
               clientPayments: 0,
@@ -122,7 +123,6 @@ export default function IncomePage() {
               clinicianCut: 0,
             }
           }
-          isLoading={isLoading}
         />
       </div>
     </div>

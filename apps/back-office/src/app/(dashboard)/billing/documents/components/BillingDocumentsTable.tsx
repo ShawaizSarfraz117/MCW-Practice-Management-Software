@@ -92,15 +92,15 @@ export default function BillingDocumentsTable({
           <tr className="bg-[#f9fafb] border-b border-[#e5e7eb]">
             <th className="py-3 px-4 text-sm font-medium text-[#6b7280] w-10">
               <input
-                className="rounded border-[#d1d5db]"
-                type="checkbox"
-                checked={allSelected}
-                onChange={(e) => onSelectAll(e.target.checked)}
                 ref={(input) => {
                   if (input) {
                     input.indeterminate = !allSelected && someSelected;
                   }
                 }}
+                checked={allSelected}
+                className="rounded border-[#d1d5db]"
+                type="checkbox"
+                onChange={(e) => onSelectAll(e.target.checked)}
               />
             </th>
             <th className="text-left py-3 px-4 text-sm font-medium text-[#6b7280]">
@@ -123,13 +123,13 @@ export default function BillingDocumentsTable({
         <tbody>
           {isLoading ? (
             <tr>
-              <td colSpan={6} className="py-8">
+              <td className="py-8" colSpan={6}>
                 <Loading message="Loading billing documents..." />
               </td>
             </tr>
           ) : error ? (
             <tr>
-              <td colSpan={6} className="py-8 text-center text-red-500">
+              <td className="py-8 text-center text-red-500" colSpan={6}>
                 {error instanceof Error
                   ? error.message
                   : "Failed to load documents"}
@@ -137,7 +137,7 @@ export default function BillingDocumentsTable({
             </tr>
           ) : documents.length === 0 ? (
             <tr>
-              <td colSpan={6} className="py-8 text-center text-gray-500">
+              <td className="py-8 text-center text-gray-500" colSpan={6}>
                 No billing documents found
               </td>
             </tr>
@@ -188,7 +188,7 @@ export default function BillingDocumentsTable({
           )}
           {isFetchingNextPage && (
             <tr>
-              <td colSpan={6} className="py-4">
+              <td className="py-4" colSpan={6}>
                 <Loading message="Loading more..." />
               </td>
             </tr>

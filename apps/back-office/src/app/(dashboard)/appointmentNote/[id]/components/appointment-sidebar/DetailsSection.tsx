@@ -77,10 +77,10 @@ export function DetailsSection({
         </div>
       </div>
       <Link
-        href="/calendar"
-        target="_blank"
-        rel="noopener noreferrer"
         className="text-blue-600 hover:underline text-sm mt-3 flex items-center"
+        href="/calendar"
+        rel="noopener noreferrer"
+        target="_blank"
       >
         <ExternalLink className="h-3 w-3 mr-1" />
         Open in calendar

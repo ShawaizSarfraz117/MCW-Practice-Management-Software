@@ -124,16 +124,16 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
 
   return (
     <ShareDocuments
-      clients={clients}
+      appointmentDate={appointmentDate}
+      appointmentId={appointmentId}
+      appointmentTime={appointmentTime}
       clientGroupId={clientGroupId}
+      clients={clients}
+      clinicianName={clinicianName}
       context="appointment"
+      locationName={locationName}
       showReminders={true}
       onClose={onClose}
-      appointmentDate={appointmentDate}
-      appointmentTime={appointmentTime}
-      clinicianName={clinicianName}
-      locationName={locationName}
-      appointmentId={appointmentId}
     />
   );
 };

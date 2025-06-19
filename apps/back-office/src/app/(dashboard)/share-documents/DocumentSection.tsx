@@ -90,8 +90,8 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
                 <div className="col-span-6 flex items-center gap-2">
                   <Checkbox
                     checked={isChecked}
-                    id={item.id}
                     disabled={isDisabled}
+                    id={item.id}
                     onCheckedChange={() => !isDisabled && onToggle?.(item.id)}
                   />
                   <Label
@@ -163,8 +163,8 @@ export const DocumentSection: React.FC<DocumentSectionProps> = ({
                 <div className="flex items-center gap-2">
                   <Checkbox
                     checked={isChecked}
-                    id={item.id}
                     disabled={isDisabled}
+                    id={item.id}
                     onCheckedChange={() => !isDisabled && onToggle?.(item.id)}
                   />
                   <Label

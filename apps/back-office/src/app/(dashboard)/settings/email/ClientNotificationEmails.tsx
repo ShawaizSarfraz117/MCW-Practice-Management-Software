@@ -278,30 +278,30 @@ export default function ClientNotificationEmails() {
       <ReminderEmails
         clientData={clientData}
         clinicianData={clinicianData}
+        isReminderSectionOpen={isReminderSectionOpen}
+        openReminderIndexes={openReminderIndexes}
+        remindersOn={remindersOn}
+        reminderTab={reminderTab}
+        reminderTime={reminderTime}
+        setIsReminderSectionOpen={setIsReminderSectionOpen}
+        setOpenReminderIndexes={setOpenReminderIndexes}
+        setRemindersOn={setRemindersOn}
+        setReminderTab={setReminderTab}
+        setReminderTime={setReminderTime}
         templates={templates}
         onEdit={handleEdit}
-        isReminderSectionOpen={isReminderSectionOpen}
-        setIsReminderSectionOpen={setIsReminderSectionOpen}
-        openReminderIndexes={openReminderIndexes}
-        setOpenReminderIndexes={setOpenReminderIndexes}
-        reminderTab={reminderTab}
-        setReminderTab={setReminderTab}
-        remindersOn={remindersOn}
-        setRemindersOn={setRemindersOn}
-        reminderTime={reminderTime}
-        setReminderTime={setReminderTime}
       />
 
       {/* Billing document emails */}
       <BillingEmails
         clientData={clientData}
         clinicianData={clinicianData}
+        isBillingSectionOpen={isBillingSectionOpen}
+        openBillingIndexes={openBillingIndexes}
+        setIsBillingSectionOpen={setIsBillingSectionOpen}
+        setOpenBillingIndexes={setOpenBillingIndexes}
         templates={templates}
         onEdit={handleEdit}
-        isBillingSectionOpen={isBillingSectionOpen}
-        setIsBillingSectionOpen={setIsBillingSectionOpen}
-        openBillingIndexes={openBillingIndexes}
-        setOpenBillingIndexes={setOpenBillingIndexes}
       />
 
       <EmailTemplateEditSidebar

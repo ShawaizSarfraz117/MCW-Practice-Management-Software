@@ -13,22 +13,22 @@ export function AnalyticsHeader() {
       <div>
         <div className="flex">
           <Link
-            href="/analytics/dashboard"
             className={`px-4 py-2 font-medium text-sm ${
               isActiveTab("dashboard")
                 ? "text-primary border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-800"
             }`}
+            href="/analytics/dashboard"
           >
             Dashboard
           </Link>
           <Link
-            href="/analytics/reports"
             className={`px-4 py-2 font-medium text-sm ${
               isActiveTab("reports")
                 ? "text-primary border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-800"
             }`}
+            href="/analytics/reports"
           >
             Reports
           </Link>

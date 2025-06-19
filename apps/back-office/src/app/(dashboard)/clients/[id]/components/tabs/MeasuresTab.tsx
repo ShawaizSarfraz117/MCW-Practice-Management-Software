@@ -332,7 +332,7 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
               <div className="flex items-start">
                 {/* Main chart */}
                 <div className="flex-1 h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer height="100%" width="100%">
                     <LineChart
                       data={data}
                       margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
@@ -343,19 +343,19 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                         vertical={false}
                       />
                       <XAxis
-                        dataKey="displayDate"
                         axisLine={{ stroke: "#9ca3af" }}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fill: "#6b7280" }}
+                        dataKey="displayDate"
                         interval="preserveStartEnd"
+                        tick={{ fontSize: 10, fill: "#6b7280" }}
+                        tickLine={false}
                       />
                       <YAxis
+                        axisLine={{ stroke: "#e5e7eb" }}
                         domain={[0, maxScore]}
                         tick={{ fontSize: 11, fill: "#6b7280" }}
-                        axisLine={{ stroke: "#e5e7eb" }}
                         tickLine={false}
-                        width={24}
                         ticks={yAxisTicks.length > 0 ? yAxisTicks : undefined}
+                        width={24}
                       />
                       <Tooltip
                         content={({ active, payload }) => {
@@ -379,10 +379,7 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                         }}
                       />
                       <Line
-                        type="monotone"
                         dataKey="score"
-                        stroke="#6b7280"
-                        strokeWidth={2}
                         dot={(props) => {
                           const { cx, cy, payload } = props;
                           const isLast =
@@ -394,19 +391,19 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                                   <circle
                                     cx={cx}
                                     cy={cy}
-                                    r={8}
                                     fill="#22c55e"
+                                    r={8}
                                     stroke="white"
                                     strokeWidth={2}
                                   />
                                   <text
-                                    x={cx}
-                                    y={cy}
-                                    textAnchor="middle"
                                     dominantBaseline="middle"
                                     fill="white"
                                     fontSize="11"
                                     fontWeight="500"
+                                    textAnchor="middle"
+                                    x={cx}
+                                    y={cy}
                                   >
                                     {payload.score}
                                   </text>
@@ -418,21 +415,24 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                                 <circle
                                   cx={cx}
                                   cy={cy}
-                                  r={3.5}
                                   fill="white"
+                                  r={3.5}
                                   stroke="#6b7280"
                                   strokeWidth={1.5}
                                 />
-                                <circle cx={cx} cy={cy} r={2} fill="#6b7280" />
+                                <circle cx={cx} cy={cy} fill="#6b7280" r={2} />
                               </g>
                             );
                           }
                           return (
                             <g key={`empty-${cx}-${cy}`}>
-                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                              <circle cx={0} cy={0} fill="transparent" r={0} />
                             </g>
                           );
                         }}
+                        stroke="#6b7280"
+                        strokeWidth={2}
+                        type="monotone"
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -565,7 +565,7 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
               <div className="flex items-start">
                 {/* Main chart */}
                 <div className="flex-1 h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer height="100%" width="100%">
                     <LineChart
                       data={data}
                       margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
@@ -576,27 +576,24 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                         vertical={false}
                       />
                       <XAxis
-                        dataKey="month"
                         axisLine={{ stroke: "#9ca3af" }}
-                        tickLine={false}
+                        dataKey="month"
                         tick={{ fontSize: 12, fill: "#6b7280" }}
+                        tickLine={false}
                         ticks={[...new Set(data.map((d) => d.month))]}
                       />
                       <YAxis
+                        axisLine={{ stroke: "#e5e7eb" }}
                         domain={[0, 7]}
                         tick={{ fontSize: 11, fill: "#6b7280" }}
-                        axisLine={{ stroke: "#e5e7eb" }}
                         tickLine={false}
-                        width={24}
                         ticks={[0, 1, 2, 3, 4, 5, 6, 7]}
+                        width={24}
                       />
                       <Tooltip content={<ARM5CustomTooltip />} />
                       {/* Total line (blue) - Circle */}
                       <Line
-                        type="monotone"
                         dataKey="total"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
                         dot={(props) => {
                           const { cx, cy } = props;
                           if (cx && cy) {
@@ -605,8 +602,8 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                                 <circle
                                   cx={cx}
                                   cy={cy}
-                                  r={5}
                                   fill="#3b82f6"
+                                  r={5}
                                   stroke="white"
                                   strokeWidth={1}
                                 />
@@ -615,26 +612,26 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                           }
                           return (
                             <g key={`total-empty-${cx}-${cy}`}>
-                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                              <circle cx={0} cy={0} fill="transparent" r={0} />
                             </g>
                           );
                         }}
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        type="monotone"
                       />
 
                       {/* Bond line (red) - Diamond */}
                       <Line
-                        type="monotone"
                         dataKey="bond"
-                        stroke="#ef4444"
-                        strokeWidth={2}
                         dot={(props) => {
                           const { cx, cy } = props;
                           if (cx && cy) {
                             return (
                               <g key={`bond-${cx}-${cy}`}>
                                 <polygon
-                                  points={`${cx},${cy - 5} ${cx + 5},${cy} ${cx},${cy + 5} ${cx - 5},${cy}`}
                                   fill="#ef4444"
+                                  points={`${cx},${cy - 5} ${cx + 5},${cy} ${cx},${cy + 5} ${cx - 5},${cy}`}
                                   stroke="white"
                                   strokeWidth={1}
                                 />
@@ -643,26 +640,26 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                           }
                           return (
                             <g key={`bond-empty-${cx}-${cy}`}>
-                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                              <circle cx={0} cy={0} fill="transparent" r={0} />
                             </g>
                           );
                         }}
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        type="monotone"
                       />
 
                       {/* Partnership line (purple) - Triangle */}
                       <Line
-                        type="monotone"
                         dataKey="partnership"
-                        stroke="#8b5cf6"
-                        strokeWidth={2}
                         dot={(props) => {
                           const { cx, cy } = props;
                           if (cx && cy) {
                             return (
                               <g key={`partnership-${cx}-${cy}`}>
                                 <polygon
-                                  points={`${cx},${cy - 5} ${cx + 4.5},${cy + 4} ${cx - 4.5},${cy + 4}`}
                                   fill="#8b5cf6"
+                                  points={`${cx},${cy - 5} ${cx + 4.5},${cy + 4} ${cx - 4.5},${cy + 4}`}
                                   stroke="white"
                                   strokeWidth={1}
                                 />
@@ -671,41 +668,44 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                           }
                           return (
                             <g key={`partnership-empty-${cx}-${cy}`}>
-                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                              <circle cx={0} cy={0} fill="transparent" r={0} />
                             </g>
                           );
                         }}
+                        stroke="#8b5cf6"
+                        strokeWidth={2}
+                        type="monotone"
                       />
 
                       {/* Confidence line (cyan) - Square */}
                       <Line
-                        type="monotone"
                         dataKey="confidence"
-                        stroke="#06b6d4"
-                        strokeWidth={2}
                         dot={(props) => {
                           const { cx, cy } = props;
                           if (cx && cy) {
                             return (
                               <g key={`confidence-${cx}-${cy}`}>
                                 <rect
-                                  x={cx - 4.5}
-                                  y={cy - 4.5}
-                                  width={9}
-                                  height={9}
                                   fill="#06b6d4"
+                                  height={9}
                                   stroke="white"
                                   strokeWidth={1}
+                                  width={9}
+                                  x={cx - 4.5}
+                                  y={cy - 4.5}
                                 />
                               </g>
                             );
                           }
                           return (
                             <g key={`confidence-empty-${cx}-${cy}`}>
-                              <circle cx={0} cy={0} r={0} fill="transparent" />
+                              <circle cx={0} cy={0} fill="transparent" r={0} />
                             </g>
                           );
                         }}
+                        stroke="#06b6d4"
+                        strokeWidth={2}
+                        type="monotone"
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -714,26 +714,26 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                 <div className="ml-6 flex items-center">
                   <div className="space-y-3 text-sm">
                     <div className="flex items-center gap-2">
-                      <svg width="12" height="12" viewBox="0 0 12 12">
-                        <circle cx="6" cy="6" r="4" fill="#3b82f6" />
+                      <svg height="12" viewBox="0 0 12 12" width="12">
+                        <circle cx="6" cy="6" fill="#3b82f6" r="4" />
                       </svg>
                       <span>Total</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <svg width="12" height="12" viewBox="0 0 12 12">
-                        <polygon points="6,1 11,6 6,11 1,6" fill="#ef4444" />
+                      <svg height="12" viewBox="0 0 12 12" width="12">
+                        <polygon fill="#ef4444" points="6,1 11,6 6,11 1,6" />
                       </svg>
                       <span>Bond</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <svg width="12" height="12" viewBox="0 0 12 12">
-                        <polygon points="6,2 9,10 3,10" fill="#8b5cf6" />
+                      <svg height="12" viewBox="0 0 12 12" width="12">
+                        <polygon fill="#8b5cf6" points="6,2 9,10 3,10" />
                       </svg>
                       <span>Partnership</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <svg width="12" height="12" viewBox="0 0 12 12">
-                        <rect x="2" y="2" width="8" height="8" fill="#06b6d4" />
+                      <svg height="12" viewBox="0 0 12 12" width="12">
+                        <rect fill="#06b6d4" height="8" width="8" x="2" y="2" />
                       </svg>
                       <span>Confidence</span>
                     </div>
@@ -788,7 +788,7 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button className="w-full" size="sm" variant="outline">
                     {survey.status === "IN_PROGRESS" ? "Continue" : "Start"}{" "}
                     Assessment
                   </Button>
@@ -862,9 +862,9 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
 
       {/* Dialogs */}
       <AssignSurveyDialog
+        clientId={clientId}
         open={assignSurveyOpen}
         onOpenChange={setAssignSurveyOpen}
-        clientId={clientId}
         onSuccess={() => {
           queryClient.invalidateQueries({
             queryKey: ["surveyAnswers", clientId],
@@ -879,8 +879,8 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
       {selectedSurveyAnswer && (
         <CompleteSurveyDialog
           open={completeSurveyOpen}
-          onOpenChange={setCompleteSurveyOpen}
           surveyAnswer={selectedSurveyAnswer}
+          onOpenChange={setCompleteSurveyOpen}
           onSuccess={() => {
             queryClient.invalidateQueries({
               queryKey: ["surveyAnswers", clientId],

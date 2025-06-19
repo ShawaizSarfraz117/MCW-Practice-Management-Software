@@ -105,9 +105,9 @@ Please see below for important information about parking and access at each of o
                 </div>
                 <Textarea
                   className="min-h-[200px] border-0 focus-visible:ring-0 p-0 resize-none"
+                  placeholder={`Email content for ${client.name}...`}
                   value={emailContent}
                   onChange={(e) => setEmailContent(e.target.value)}
-                  placeholder={`Email content for ${client.name}...`}
                 />
               </div>
             </div>

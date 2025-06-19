@@ -48,7 +48,7 @@ export default function AppointmentStatusTable({
         <div className="p-6">
           <div className="animate-pulse space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-4 bg-gray-200 rounded w-full"></div>
+              <div key={i} className="h-4 bg-gray-200 rounded w-full" />
             ))}
           </div>
         </div>

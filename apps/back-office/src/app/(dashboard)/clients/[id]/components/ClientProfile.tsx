@@ -495,6 +495,7 @@ export default function ClientProfile({
             <TabsContent value="files">
               <FilesTabGroup
                 ref={filesTabRef}
+                clientEmail={clientEmail || ""}
                 clientGroupId={id as string}
                 clients={
                   clientGroup?.ClientGroupMembership?.map((m) => ({
@@ -503,7 +504,6 @@ export default function ClientProfile({
                   })) || []
                 }
                 practiceName={practiceInfo?.practice_name || ""}
-                clientEmail={clientEmail || ""}
                 onShareFile={() => setShareModalOpen(true)}
               />
             </TabsContent>

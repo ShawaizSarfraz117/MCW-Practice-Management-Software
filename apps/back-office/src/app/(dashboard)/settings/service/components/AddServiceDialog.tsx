@@ -236,8 +236,8 @@ const AddServiceDialog = ({
                           <div className="text-center text-sm">
                             No code found.{" "}
                             <button
-                              type="button"
                               className="text-[#2d8467] hover:underline"
+                              type="button"
                               onClick={() => {
                                 handleServiceSelect(null);
                                 setIsPopoverOpen(false);

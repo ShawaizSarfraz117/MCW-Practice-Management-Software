@@ -542,10 +542,10 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
                                 ? "text-gray-400 cursor-not-allowed"
                                 : "text-red-600 focus:text-red-600"
                             }`}
+                            disabled={file.hasLockedChildren}
                             onClick={() =>
                               !file.hasLockedChildren && handleDelete(file)
                             }
-                            disabled={file.hasLockedChildren}
                           >
                             <Trash2 className="h-4 w-4" />
                             {file.hasLockedChildren
@@ -564,8 +564,8 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
 
         {/* Send Reminders Sidebar */}
         <SendRemindersSidebar
-          isOpen={showReminderSidebar}
-          onClose={() => setShowReminderSidebar(false)}
+          clientEmail={clientEmail || ""}
+          clientName={clients[0]?.name || ""}
           filesData={sortedFilesData.map((file) => ({
             id: parseInt(file.id),
             name: file.name,
@@ -575,9 +575,9 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
             updated: file.updated,
             nameColor: file.nameColor,
           }))}
-          clientName={clients[0]?.name || ""}
-          clientEmail={clientEmail || ""}
+          isOpen={showReminderSidebar}
           practiceName={practiceName || "Practice"}
+          onClose={() => setShowReminderSidebar(false)}
         />
       </div>
     );

@@ -391,12 +391,12 @@ export default function EditScoredMeasure() {
       <div className="border rounded-lg bg-white p-6">
         <SurveyPreview
           content={templateContent}
+          defaultAnswers={defaultAnswers}
           mode="edit"
           showInstructions={false}
           title={templateName}
           type="scored_measures"
           onComplete={handleUpdateScoredMeasure}
-          defaultAnswers={defaultAnswers}
         />
       </div>
 
@@ -408,8 +408,8 @@ export default function EditScoredMeasure() {
         <Button
           className="bg-[#2d8467] hover:bg-[#236c53] text-white"
           disabled={isSubmitting}
-          type="submit"
           form="sq-root-form"
+          type="submit"
         >
           {isSubmitting ? "Updating..." : "Update Scored Measure"}
         </Button>

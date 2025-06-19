@@ -59,11 +59,11 @@ export default function AppointmentStatusPagination({
 
       <div className="flex items-center gap-2">
         <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
           className="flex items-center gap-1"
+          disabled={currentPage <= 1}
+          size="sm"
+          variant="outline"
+          onClick={() => onPageChange(currentPage - 1)}
         >
           <ChevronLeft className="w-4 h-4" />
           Previous
@@ -87,10 +87,10 @@ export default function AppointmentStatusPagination({
             return (
               <Button
                 key={pageNumber}
-                variant={isActive ? "default" : "outline"}
-                size="sm"
-                onClick={() => onPageChange(pageNumber)}
                 className="min-w-[2rem]"
+                size="sm"
+                variant={isActive ? "default" : "outline"}
+                onClick={() => onPageChange(pageNumber)}
               >
                 {pageNumber}
               </Button>
@@ -99,11 +99,11 @@ export default function AppointmentStatusPagination({
         </div>
 
         <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
           className="flex items-center gap-1"
+          disabled={currentPage >= totalPages}
+          size="sm"
+          variant="outline"
+          onClick={() => onPageChange(currentPage + 1)}
         >
           Next
           <ChevronRight className="w-4 h-4" />

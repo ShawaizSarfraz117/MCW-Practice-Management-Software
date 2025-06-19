@@ -125,24 +125,24 @@ export const RemindersDialog: React.FC<RemindersDialogProps> = ({
               <div className="flex items-center gap-2">
                 <Checkbox
                   checked={emailChecked}
+                  disabled={!clientEmail}
                   id="email"
                   onCheckedChange={(checked) =>
                     setEmailChecked(checked as boolean)
                   }
-                  disabled={!clientEmail}
                 />
                 <label className="flex items-center gap-1" htmlFor="email">
                   <Mail className="h-4 w-4" /> Email
                 </label>
               </div>
               <div className="flex items-center gap-2">
-                <Checkbox id="text" disabled />
+                <Checkbox disabled id="text" />
                 <label className="flex items-center gap-1" htmlFor="text">
                   <MessageCircle className="h-4 w-4" /> Text
                 </label>
               </div>
               <div className="flex items-center gap-2">
-                <Checkbox id="voice" disabled />
+                <Checkbox disabled id="voice" />
                 <label className="flex items-center gap-1" htmlFor="voice">
                   <Phone className="h-4 w-4" /> Voice
                 </label>
@@ -161,8 +161,8 @@ export const RemindersDialog: React.FC<RemindersDialogProps> = ({
           </Button>
           <Button
             className="bg-emerald-600 hover:bg-emerald-700"
-            onClick={handleSendReminders}
             disabled={isSending || !clientEmail || !emailChecked}
+            onClick={handleSendReminders}
           >
             {isSending ? "Sending..." : "Send Reminders"}
           </Button>

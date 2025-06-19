@@ -227,17 +227,17 @@ export default function CompleteSurveyDialog({
         <DialogFooter className="flex justify-between items-center">
           <div className="flex gap-2">
             <Button
+              disabled={isCompleting}
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isCompleting}
             >
               Close
             </Button>
             {surveyAnswer.status !== "COMPLETED" && (
               <Button
+                disabled={isCompleting || !surveyModel}
                 variant="outline"
                 onClick={handleSaveProgress}
-                disabled={isCompleting || !surveyModel}
               >
                 Save Progress
               </Button>

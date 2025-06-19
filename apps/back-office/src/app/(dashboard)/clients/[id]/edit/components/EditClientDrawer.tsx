@@ -383,14 +383,14 @@ export function EditClientDrawer({
             <div className="overflow-y-auto flex-1 h-full">
               <ClientPortalPermissions
                 clientData={clientData}
-                onSave={() => onClose()}
                 onClose={onClose}
+                onLoadingChange={setIsPortalFormLoading}
                 onOpenEditDrawer={() => {
                   if (onSwitchToEdit) {
                     onSwitchToEdit();
                   }
                 }}
-                onLoadingChange={setIsPortalFormLoading}
+                onSave={() => onClose()}
               />
             </div>
           )}

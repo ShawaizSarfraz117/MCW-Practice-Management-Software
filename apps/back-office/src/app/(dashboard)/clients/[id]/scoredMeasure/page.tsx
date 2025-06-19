@@ -458,7 +458,7 @@ export default function ScoredMeasure({ params, searchParams }: PageProps) {
               <div className="text-right">
                 <div className="text-2xl font-bold">{score.totalScore}</div>
                 {score.severity && (
-                  <Badge variant="outline" className="mt-1">
+                  <Badge className="mt-1" variant="outline">
                     {score.severity}
                   </Badge>
                 )}
@@ -526,8 +526,8 @@ export default function ScoredMeasure({ params, searchParams }: PageProps) {
           </Button>
           <Button
             className="bg-[#2d8467] hover:bg-[#236c53] text-white"
-            type="submit"
             disabled={isPending}
+            type="submit"
           >
             {isPending ? "Saving..." : "Save"}
           </Button>
