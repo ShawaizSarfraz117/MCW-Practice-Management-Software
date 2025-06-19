@@ -192,13 +192,15 @@ describe("Analytics API Integration", () => {
         { name: "Late Canceled", value: 0 },
         { name: "Clinician Canceled", value: 0 },
       ]);
-      expect(data.notes).toBe(2);
-      expect(data.notesChart).toEqual([
-        { name: "Assigned", value: 1 },
-        { name: "In Progress", value: 0 },
-        { name: "Completed", value: 1 },
-        { name: "Submitted", value: 0 },
-      ]);
+      expect(data.notes).toBe(4); // 1 completed + 1 assigned + 2 no note (2 appointments without survey answers)
+      expect(data.notesChart).toHaveLength(3);
+      expect(data.notesChart).toEqual(
+        expect.arrayContaining([
+          { name: "Completed", value: 1 },
+          { name: "Assigned", value: 1 },
+          { name: "No Note", value: 2 },
+        ]),
+      );
       expect(data.clients).toBe(2); // 2 unique client groups (one with SHOW, one with NO_SHOW)
     });
 
@@ -582,6 +584,145 @@ describe("Analytics API Integration", () => {
       // Should only count appointment with fee: 150
       expect(data.uninvoiced).toBe("150"); // Prisma Decimal serialized as string
       expect(data.clients).toBe(0); // No client_group_id set on appointments
+    });
+
+    it("should correctly calculate notes with No Note category", async () => {
+      // Create a user
+      const user = await prisma.user.create({
+        data: {
+          id: uuidv4(),
+          email: "testnotes@example.com",
+          password_hash: "hashed_password",
+          last_login: new Date(),
+        },
+      });
+
+      // Create client groups for appointments
+      const clientGroup1 = await prisma.clientGroup.create({
+        data: {
+          id: uuidv4(),
+          name: "Notes Group 1",
+          type: "individual",
+        },
+      });
+
+      const clientGroup2 = await prisma.clientGroup.create({
+        data: {
+          id: uuidv4(),
+          name: "Notes Group 2",
+          type: "individual",
+        },
+      });
+
+      const clientGroup3 = await prisma.clientGroup.create({
+        data: {
+          id: uuidv4(),
+          name: "Notes Group 3",
+          type: "individual",
+        },
+      });
+
+      // Create appointments
+      const appointment1 = await prisma.appointment.create({
+        data: {
+          id: uuidv4(),
+          start_date: new Date(),
+          end_date: new Date(Date.now() + 3600000),
+          type: "APPOINTMENT",
+          status: "SHOW",
+          created_by: user.id,
+          client_group_id: clientGroup1.id,
+        },
+      });
+
+      const appointment2 = await prisma.appointment.create({
+        data: {
+          id: uuidv4(),
+          start_date: new Date(),
+          end_date: new Date(Date.now() + 3600000),
+          type: "APPOINTMENT",
+          status: "SHOW",
+          created_by: user.id,
+          client_group_id: clientGroup2.id,
+        },
+      });
+
+      await prisma.appointment.create({
+        data: {
+          id: uuidv4(),
+          start_date: new Date(),
+          end_date: new Date(Date.now() + 3600000),
+          type: "APPOINTMENT",
+          status: "SHOW",
+          created_by: user.id,
+          client_group_id: clientGroup3.id,
+        },
+      });
+
+      // Create a client and survey template for survey answers
+      const client = await prisma.client.create({
+        data: {
+          legal_first_name: "Test",
+          legal_last_name: "Notes",
+          is_waitlist: false,
+          is_active: true,
+          created_at: new Date(),
+        },
+      });
+
+      const template = await prisma.surveyTemplate.create({
+        data: {
+          name: "Notes Template",
+          description: "Test Description",
+          content: '{"questions": []}',
+          type: "CUSTOM",
+          updated_at: new Date(),
+          created_at: new Date(),
+          is_active: true,
+          requires_signature: false,
+        },
+      });
+
+      // Create survey answers linked to appointments
+      await prisma.surveyAnswers.create({
+        data: {
+          template_id: template.id,
+          client_id: client.id,
+          appointment_id: appointment1.id,
+          content: '{"answers": []}',
+          status: "COMPLETED",
+          assigned_at: new Date(),
+          completed_at: new Date(),
+        },
+      });
+
+      await prisma.surveyAnswers.create({
+        data: {
+          template_id: template.id,
+          client_id: client.id,
+          appointment_id: appointment2.id,
+          content: '{"answers": []}',
+          status: "COMPLETED",
+          assigned_at: new Date(),
+          completed_at: new Date(),
+        },
+      });
+
+      // appointment3 has no survey answers - should count as "No Note"
+
+      const request = createRequest("/api/analytics");
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.notes).toBe(3); // 2 completed + 1 no note
+      expect(data.notesChart).toHaveLength(2);
+      expect(data.notesChart).toEqual(
+        expect.arrayContaining([
+          { name: "Completed", value: 2 },
+          { name: "No Note", value: 1 },
+        ]),
+      );
     });
 
     it("should handle database errors gracefully", async () => {

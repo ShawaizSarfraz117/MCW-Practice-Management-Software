@@ -185,8 +185,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     0,
   );
 
-  // Get notes breakdown by status
-  const notesStatusCounts = await prisma.surveyAnswers.groupBy({
+  // Get SurveyAnswers statuses within date range
+  const surveyAnswersCounts = await prisma.surveyAnswers.groupBy({
     by: ["status"],
     where: {
       assigned_at: { gte: startDate, lte: endDate },
@@ -196,35 +196,48 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     },
   });
 
-  // Format notes data for charts
+  // Get all appointments in the date range
+  const totalAppointmentsInRange = await prisma.appointment.count({
+    where: {
+      start_date: { gte: startDate, lte: endDate },
+      type: "APPOINTMENT", // Only client appointments
+    },
+  });
+
+  // Get count of appointments that have associated SurveyAnswers
+  const appointmentsWithSurveyAnswers = await prisma.appointment.count({
+    where: {
+      start_date: { gte: startDate, lte: endDate },
+      type: "APPOINTMENT",
+      SurveyAnswers: {
+        some: {},
+      },
+    },
+  });
+
+  // Calculate appointments without notes
+  const appointmentsWithoutNotes =
+    totalAppointmentsInRange - appointmentsWithSurveyAnswers;
+
+  // Format notes data for charts - dynamically include all statuses
   const notesData = [
+    // Add all dynamic statuses from SurveyAnswers
+    ...surveyAnswersCounts.map((item) => ({
+      name:
+        item.status.charAt(0).toUpperCase() +
+        item.status.slice(1).toLowerCase().replace(/_/g, " "),
+      value: item._count.status,
+    })),
+    // Add No Note category
     {
-      name: "Assigned",
-      value:
-        notesStatusCounts.find((s) => s.status === "ASSIGNED")?._count.status ||
-        0,
-    },
-    {
-      name: "In Progress",
-      value:
-        notesStatusCounts.find((s) => s.status === "IN_PROGRESS")?._count
-          .status || 0,
-    },
-    {
-      name: "Completed",
-      value:
-        notesStatusCounts.find((s) => s.status === "COMPLETED")?._count
-          .status || 0,
-    },
-    {
-      name: "Submitted",
-      value:
-        notesStatusCounts.find((s) => s.status === "SUBMITTED")?._count
-          .status || 0,
+      name: "No Note",
+      value: appointmentsWithoutNotes,
     },
   ];
 
-  const totalNotes = notesData.reduce((sum, item) => sum + item.value, 0);
+  const totalNotes =
+    surveyAnswersCounts.reduce((sum, item) => sum + item._count.status, 0) +
+    appointmentsWithoutNotes;
 
   // Outstanding balances calculation
   // Calculate unpaid invoices (invoiced but not fully paid)

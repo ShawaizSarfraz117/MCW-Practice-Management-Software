@@ -23,6 +23,19 @@ const appointmentLegend = [
   { name: "Clinician Canceled", color: "#3B82F6" },
 ];
 
+// Note status colors mapping
+const notesStatusColors: Record<string, string> = {
+  "No Note": "#EF4444", // Red for missing notes
+  Unlocked: "#F59E0B", // Amber for unlocked
+  Locked: "#22C55E", // Green for locked/completed
+  Supervision: "#3B82F6", // Blue for supervision
+  Completed: "#22C55E", // Green for completed
+  "In Progress": "#F59E0B", // Amber for in progress
+  Assigned: "#6B7280", // Gray for assigned
+  Submitted: "#10B981", // Emerald for submitted
+};
+
+// Fallback colors if status not in mapping
 const NOTES_COLORS = ["#22C55E", "#3B82F6", "#F59E0B", "#D1D5DB"];
 
 // TODO: Remove mock data once API returns time-series data
@@ -339,6 +352,11 @@ export function NotesChart({ analyticsData, isLoading }: NotesChartProps) {
   const totalNotes = analyticsData?.notes || 0;
   const notesData = analyticsData?.notesChart || [];
 
+  // Helper function to get color for note status
+  const getColorForNoteStatus = (name: string) => {
+    return notesStatusColors[name] || NOTES_COLORS[0];
+  };
+
   return (
     <div className="bg-white border rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-start mb-3">
@@ -375,27 +393,43 @@ export function NotesChart({ analyticsData, isLoading }: NotesChartProps) {
                 {notesData.map((entry, index) => (
                   <Cell
                     key={`cell-${entry.name}-${index}`}
-                    fill={NOTES_COLORS[index]}
+                    fill={getColorForNoteStatus(entry.name)}
                   />
                 ))}
               </Pie>
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-sm">
-            <p className="font-medium">100%</p>
-            <p className="text-gray-500">{totalNotes} Notes</p>
+            {(() => {
+              const noNoteData = notesData.find(
+                (item) => item.name === "No Note",
+              );
+              const noNoteValue = noNoteData?.value || 0;
+              const noNotePercent =
+                totalNotes > 0
+                  ? Math.round((noNoteValue / totalNotes) * 100)
+                  : 0;
+              return (
+                <>
+                  <p className="font-medium">{noNotePercent}%</p>
+                  <p className="text-gray-500">{noNoteValue} No Note</p>
+                </>
+              );
+            })()}
           </div>
         </div>
         <div className="space-y-1.5 text-sm">
-          {notesData.map((entry, index) => (
+          {notesData.map((entry) => (
             <div key={entry.name} className="flex items-center gap-2">
               <span
                 className="w-2 h-2 rounded-full"
                 style={{
-                  backgroundColor: NOTES_COLORS[index % NOTES_COLORS.length],
+                  backgroundColor: getColorForNoteStatus(entry.name),
                 }}
               />
-              <span>{entry.name}</span>
+              <span>
+                {entry.name} ({entry.value})
+              </span>
             </div>
           ))}
         </div>

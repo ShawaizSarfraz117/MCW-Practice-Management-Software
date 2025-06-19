@@ -10,6 +10,7 @@ vi.mock("@mcw/database", () => {
   const mockAppointmentGroupBy = vi.fn();
   const mockAppointmentFindMany = vi.fn();
   const mockAppointmentAggregate = vi.fn();
+  const mockAppointmentCount = vi.fn();
   const mockSurveyAnswersGroupBy = vi.fn();
 
   return {
@@ -20,6 +21,7 @@ vi.mock("@mcw/database", () => {
         groupBy: mockAppointmentGroupBy,
         findMany: mockAppointmentFindMany,
         aggregate: mockAppointmentAggregate,
+        count: mockAppointmentCount,
       },
       surveyAnswers: { groupBy: mockSurveyAnswersGroupBy },
     },
@@ -42,6 +44,9 @@ const mockAppointmentAggregate = prisma.appointment.aggregate as ReturnType<
   typeof vi.fn
 >;
 const mockAppointmentFindMany = prisma.appointment.findMany as ReturnType<
+  typeof vi.fn
+>;
+const mockAppointmentCount = prisma.appointment.count as ReturnType<
   typeof vi.fn
 >;
 const mockSurveyAnswersGroupBy = prisma.surveyAnswers.groupBy as ReturnType<
@@ -100,9 +105,14 @@ describe("Analytics API Unit Tests", () => {
 
       // Mock surveyAnswers groupBy
       mockSurveyAnswersGroupBy.mockResolvedValueOnce([
-        { status: "COMPLETED", _count: { status: 1 } },
-        { status: "ASSIGNED", _count: { status: 1 } },
+        { status: "COMPLETED", _count: { status: 2 } },
       ]);
+
+      // Mock total appointments count
+      mockAppointmentCount.mockResolvedValueOnce(3); // Total appointments
+
+      // Mock appointments with SurveyAnswers count
+      mockAppointmentCount.mockResolvedValueOnce(2); // Appointments with notes
 
       // Mock unpaid invoices
       mockInvoiceFindMany.mockResolvedValueOnce([
@@ -141,14 +151,12 @@ describe("Analytics API Unit Tests", () => {
         { name: "Late Canceled", value: 0 },
         { name: "Clinician Canceled", value: 0 },
       ]);
-      expect(data.notes).toBe(2);
+      expect(data.notes).toBe(3); // 2 completed + 1 no note
       expect(data.notesChart).toBeDefined();
       expect(Array.isArray(data.notesChart)).toBe(true);
       expect(data.notesChart).toEqual([
-        { name: "Assigned", value: 1 },
-        { name: "In Progress", value: 0 },
-        { name: "Completed", value: 1 },
-        { name: "Submitted", value: 0 },
+        { name: "Completed", value: 2 },
+        { name: "No Note", value: 1 },
       ]);
       expect(data.clients).toBe(3); // 3 unique client groups
 
@@ -179,6 +187,12 @@ describe("Analytics API Unit Tests", () => {
 
       // Mock surveyAnswers groupBy with empty results
       mockSurveyAnswersGroupBy.mockResolvedValueOnce([]);
+
+      // Mock total appointments count
+      mockAppointmentCount.mockResolvedValueOnce(0); // No appointments
+
+      // Mock appointments with SurveyAnswers count
+      mockAppointmentCount.mockResolvedValueOnce(0); // No appointments with notes
 
       // Mock unpaid invoices
       mockInvoiceFindMany.mockResolvedValueOnce([
@@ -238,6 +252,12 @@ describe("Analytics API Unit Tests", () => {
         { status: "COMPLETED", _count: { status: 3 } },
       ]);
 
+      // Mock total appointments count
+      mockAppointmentCount.mockResolvedValueOnce(3); // Total appointments
+
+      // Mock appointments with SurveyAnswers count
+      mockAppointmentCount.mockResolvedValueOnce(3); // All appointments have notes
+
       // Mock unpaid invoices
       mockInvoiceFindMany.mockResolvedValueOnce([
         createMockInvoice(2500, 1500), // 2500 invoice with 1500 paid
@@ -291,8 +311,14 @@ describe("Analytics API Unit Tests", () => {
       // Mock surveyAnswers groupBy
       mockSurveyAnswersGroupBy.mockResolvedValueOnce([
         { status: "COMPLETED", _count: { status: 10 } },
-        { status: "ASSIGNED", _count: { status: 5 } },
+        { status: "UNLOG", _count: { status: 3 } },
       ]);
+
+      // Mock total appointments count
+      mockAppointmentCount.mockResolvedValueOnce(15); // Total appointments
+
+      // Mock appointments with SurveyAnswers count
+      mockAppointmentCount.mockResolvedValueOnce(13); // 13 appointments have notes
 
       // Mock unpaid invoices
       mockInvoiceFindMany.mockResolvedValueOnce([
@@ -328,8 +354,13 @@ describe("Analytics API Unit Tests", () => {
       expect(data.uninvoiced).toBe("2000"); // Prisma Decimal serialized as string
       expect(data.appointments).toBe(15);
       expect(data.appointmentsChart).toBeDefined();
-      expect(data.notes).toBe(15);
+      expect(data.notes).toBe(15); // 10 completed + 3 unlog + 2 no note
       expect(data.notesChart).toBeDefined();
+      expect(data.notesChart).toEqual([
+        { name: "Completed", value: 10 },
+        { name: "Unlog", value: 3 },
+        { name: "No Note", value: 2 },
+      ]);
       expect(data.clients).toBe(10); // 10 unique clients
     });
 
@@ -355,6 +386,12 @@ describe("Analytics API Unit Tests", () => {
       mockSurveyAnswersGroupBy.mockResolvedValueOnce([
         { status: "COMPLETED", _count: { status: 2 } },
       ]);
+
+      // Mock total appointments count
+      mockAppointmentCount.mockResolvedValueOnce(2); // Total appointments
+
+      // Mock appointments with SurveyAnswers count
+      mockAppointmentCount.mockResolvedValueOnce(2); // All appointments have notes
 
       // Mock unpaid invoices
       mockInvoiceFindMany.mockResolvedValueOnce([
@@ -410,6 +447,12 @@ describe("Analytics API Unit Tests", () => {
       mockSurveyAnswersGroupBy.mockResolvedValueOnce([
         { status: "COMPLETED", _count: { status: 1 } },
       ]);
+
+      // Mock total appointments count
+      mockAppointmentCount.mockResolvedValueOnce(1); // Total appointments
+
+      // Mock appointments with SurveyAnswers count
+      mockAppointmentCount.mockResolvedValueOnce(1); // All appointments have notes
 
       // Mock unpaid invoices
       mockInvoiceFindMany.mockResolvedValueOnce([
