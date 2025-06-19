@@ -105,7 +105,7 @@ vi.mock("@/(dashboard)/clients/[id]/components/ClientInfoHeader", () => ({
   ClientInfoHeader: vi.fn(({ onDocumentationHistoryClick }) => (
     <div data-testid="client-info-header">
       <button onClick={onDocumentationHistoryClick}>
-        Documentation History
+        Documentation history
       </button>
     </div>
   )),
@@ -162,10 +162,8 @@ describe("New Diagnosis and Treatment Plan Page", () => {
       });
     });
 
-    expect(screen.getAllByTestId("client-info-header").length).toBeGreaterThan(
-      0,
-    );
-    expect(screen.getAllByTestId("diagnosis-rows").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("client-info-header")).toBeDefined();
+    expect(screen.getByTestId("diagnosis-rows")).toBeDefined();
   });
 
   it("should handle adding and removing diagnoses", async () => {
@@ -185,17 +183,20 @@ describe("New Diagnosis and Treatment Plan Page", () => {
 
     render(<NewDiagnosisAndTreatmentPlan />);
 
+    // Wait for client data to load
+    await waitFor(() => {
+      expect(fetchSingleClientGroup).toHaveBeenCalled();
+    });
+
     // Initially should have one diagnosis row
-    const diagnosisRows = screen.getAllByTestId("diagnosis-0");
-    expect(diagnosisRows.length).toBeGreaterThan(0);
+    expect(screen.getByTestId("diagnosis-0")).toBeDefined();
 
     // Add a diagnosis
     const addButton = screen.getByTestId("add-diagnosis");
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      const diagnosis1Rows = screen.getAllByTestId("diagnosis-1");
-      expect(diagnosis1Rows.length).toBeGreaterThan(0);
+      expect(screen.getByTestId("diagnosis-1")).toBeDefined();
     });
 
     // Try to remove when there's more than one
@@ -402,12 +403,12 @@ describe("New Diagnosis and Treatment Plan Page", () => {
     render(<NewDiagnosisAndTreatmentPlan />);
 
     // Open sidebar
-    const docHistoryButton = screen.getByText("Documentation History");
+    const docHistoryButton = screen.getByText("Documentation history");
     fireEvent.click(docHistoryButton);
 
-    // Wait for sidebar to open - look for the actual text in the component
+    // Wait for sidebar to open - look for a unique element in the sidebar
     await waitFor(() => {
-      expect(screen.getByText("Documentation history")).toBeDefined();
+      expect(screen.getByText("View current treatment plan")).toBeDefined();
     });
 
     // Close sidebar by looking for a specific button - the close button should have an X icon
@@ -422,7 +423,7 @@ describe("New Diagnosis and Treatment Plan Page", () => {
 
     // Wait for sidebar to close
     await waitFor(() => {
-      expect(screen.queryByText("Documentation history")).toBeNull();
+      expect(screen.queryByText("View current treatment plan")).toBeNull();
     });
   });
 });

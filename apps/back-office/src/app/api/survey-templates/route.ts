@@ -4,8 +4,10 @@ import { logger } from "@mcw/logger";
 import { getClinicianInfo } from "@/utils/helpers";
 import { Prisma } from "@mcw/database";
 import { SurveyAnswers } from "@prisma/client";
+import { withErrorHandling } from "@mcw/utils";
+
 // GET - Retrieve survey templates with their survey answers, filtered by type
-export async function GET(request: NextRequest) {
+export const GET = withErrorHandling(async (request: NextRequest) => {
   try {
     // Validate authentication
     const clinicianInfo = await getClinicianInfo();
@@ -117,4 +119,4 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
-}
+});
