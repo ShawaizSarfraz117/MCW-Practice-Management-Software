@@ -220,11 +220,11 @@ describe("Template Selection Page", () => {
     // Wait for visual changes that indicate selection
     await waitFor(() => {
       // Look for other visual indicators of selection without accessing DOM nodes
-      const continueButton = screen.getByRole("button", {
+      const continueButtons = screen.getAllByRole("button", {
         name: /continue with selected template/i,
       });
       // If a template is selected, the continue button should be enabled
-      expect(continueButton).not.toBeDisabled();
+      expect(continueButtons[0]).not.toBeDisabled();
     });
   });
 
@@ -271,17 +271,17 @@ describe("Template Selection Page", () => {
 
     // Wait for the template to be selected by checking if continue button is enabled
     await waitFor(() => {
-      const continueBtn = screen.getByRole("button", {
+      const continueBtns = screen.getAllByRole("button", {
         name: /continue with selected template/i,
       });
-      expect(continueBtn).not.toBeDisabled();
+      expect(continueBtns[0]).not.toBeDisabled();
     });
 
     // Now click the continue button
-    const continueButton = screen.getByRole("button", {
+    const continueButtons = screen.getAllByRole("button", {
       name: /continue with selected template/i,
     });
-    fireEvent.click(continueButton);
+    fireEvent.click(continueButtons[0]);
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith(
@@ -315,10 +315,10 @@ describe("Template Selection Page", () => {
 
     renderComponent();
 
-    const skipButton = await screen.findByRole("button", {
+    const skipButtons = await screen.findAllByRole("button", {
       name: /continue without template/i,
     });
-    fireEvent.click(skipButton);
+    fireEvent.click(skipButtons[0]);
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith(
