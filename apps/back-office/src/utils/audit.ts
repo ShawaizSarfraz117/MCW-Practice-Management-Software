@@ -39,32 +39,47 @@ export async function createAuditLog(params: CreateAuditLogParams) {
 }
 
 /**
- * Common audit event types
+ * Common audit event types (max 10 chars due to DB constraint)
  */
 export const AuditEventTypes = {
   CLIENT: {
-    CREATE: "CLI_CREATE",
-    UPDATE: "CLI_UPDATE",
-    DELETE: "CLI_DEL",
-    VIEW: "CLI_VIEW",
+    CREATE: "CL_CREATE",
+    UPDATE: "CL_UPDATE",
+    DELETE: "CL_DELETE",
+    VIEW: "CL_VIEW",
+    ARCHIVE: "CL_ARCHIVE",
   },
   USER: {
-    CREATE: "USR_CREATE",
-    UPDATE: "USR_UPDATE",
-    DELETE: "USR_DEL",
-    LOGIN: "USR_LOGIN",
-    LOGOUT: "USR_OUT",
+    CREATE: "US_CREATE",
+    UPDATE: "US_UPDATE",
+    DELETE: "US_DELETE",
+    LOGIN: "US_LOGIN",
+    LOGOUT: "US_LOGOUT",
   },
   APPOINTMENT: {
-    CREATE: "APT_CREATE",
-    UPDATE: "APT_UPDATE",
-    DELETE: "APT_DEL",
-    CANCEL: "APT_CANCL",
+    CREATE: "AP_CREATE",
+    UPDATE: "AP_UPDATE",
+    DELETE: "AP_DELETE",
+    CANCEL: "AP_CANCEL",
+    RESCHEDULE: "AP_RESCHED",
+    NO_SHOW: "AP_NOSHOW",
+    COMPLETE: "AP_COMPLETE",
+  },
+  NOTE: {
+    CREATE: "NOTE_ADD",
+    UPDATE: "NOTE_EDIT",
+    DELETE: "NOTE_DEL",
+    UNLOCK: "NOTE_UNLCK",
+  },
+  BILLING: {
+    INVOICE: "BL_INVOICE",
+    PAYMENT: "BL_PAYMENT",
+    REFUND: "BL_REFUND",
   },
   DOCUMENT: {
     CREATE: "DOC_CREATE",
     UPDATE: "DOC_UPDATE",
-    DELETE: "DOC_DEL",
+    DELETE: "DOC_DELETE",
     VIEW: "DOC_VIEW",
   },
 } as const;

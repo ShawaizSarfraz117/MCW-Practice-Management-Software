@@ -7,6 +7,9 @@ import { Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import { getClinicianInfo } from "@/utils/helpers";
 import { PrismaClient } from "@prisma/client";
+import { withErrorHandling } from "@mcw/utils";
+import { withAuditLogging } from "@mcw/utils/server";
+import { AuditEventTypes } from "@/utils/audit";
 
 interface NotificationOptions {
   upcomingAppointments: {
@@ -49,8 +52,7 @@ interface ClientData {
 }
 
 // GET - Retrieve all clients or a specific client by ID
-export async function GET(request: NextRequest) {
-  try {
+export const GET = withErrorHandling(async (request: NextRequest) => {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
     const status = searchParams.get("status");
@@ -177,35 +179,29 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-  } catch (error) {
-    console.error("Error fetching clients:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch clients" },
-      { status: 500 },
-    );
-  }
-}
+});
 
 // PUT - Update a client
-export async function PUT(request: NextRequest) {
-  try {
-    const data = await request.json();
-    const { id } = data;
+export const PUT = withErrorHandling(
+  withAuditLogging(
+    async (request: NextRequest) => {
+      const data = await request.json();
+      const { id } = data;
 
-    if (!id) {
-      return NextResponse.json(
-        { error: "Client ID is required" },
-        { status: 400 },
-      );
-    }
+  if (!id) {
+    return NextResponse.json(
+      { error: "Client ID is required" },
+      { status: 400 },
+    );
+  }
 
-    // Check if client exists
-    const existingClient = await prisma.client.findUnique({
-      where: { id },
-      include: {
-        ClientContact: true,
-      },
-    });
+  // Check if client exists
+  const existingClient = await prisma.client.findUnique({
+    where: { id },
+    include: {
+      ClientContact: true,
+    },
+  });
 
     if (!existingClient) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
@@ -402,21 +398,24 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    // Store client ID in response headers for audit wrapper
+    const response = NextResponse.json({
       message: "Client updated successfully",
       client: updatedClient,
     });
-  } catch (error) {
-    console.error("Error updating client:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to update client",
-        message: error instanceof Error ? error.message : "Unknown error",
+    response.headers.set('X-Client-Id', id);
+    return response;
+    },
+    {
+      eventType: AuditEventTypes.CLIENT.UPDATE,
+      getEventText: () => "You updated client information",
+      getClientId: (_req, res) => {
+        return res?.headers.get('X-Client-Id') || null;
       },
-      { status: 500 },
-    );
-  }
-}
+      isHipaa: true,
+    }
+  )
+);
 
 // POST - Create new clients with contacts
 export async function POST(request: NextRequest) {

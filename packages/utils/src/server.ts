@@ -2,3 +2,4 @@
 export * from "./withErrorHandling";
 export * from "./test-utils";
 export * from "./fetch";
+export * from "./withAuditLogging";
