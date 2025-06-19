@@ -13,17 +13,19 @@ interface ActivityPageState {
   selectedEventType: string;
   fromDate: string;
   toDate: string;
+  showDetails: boolean;
 }
 
 export default function AccountActivitySection() {
   const [state, setState] = useState<ActivityPageState>({
     activeTab: "history",
     searchQuery: "",
-    selectedClient: "Select Client",
+    selectedClient: "All Team Members",
     selectedTimeRange: "All Time",
     selectedEventType: "All Events",
     fromDate: "",
     toDate: "",
+    showDetails: false,
   });
 
   // Helper functions to update specific parts of state
@@ -41,6 +43,8 @@ export default function AccountActivitySection() {
     setState((prev) => ({ ...prev, fromDate }));
   const setToDate = (toDate: string) =>
     setState((prev) => ({ ...prev, toDate }));
+  const setShowDetails = (showDetails: boolean) =>
+    setState((prev) => ({ ...prev, showDetails }));
 
   return (
     <div className="p-6">
@@ -66,29 +70,23 @@ export default function AccountActivitySection() {
           setSelectedClient={setSelectedClient}
           setSelectedEventType={setSelectedEventType}
           setSelectedTimeRange={setSelectedTimeRange}
+          setShowDetails={setShowDetails}
           setToDate={setToDate}
+          showDetails={state.showDetails}
           toDate={state.toDate}
         />
 
         {/* Activity Content */}
-        {state.activeTab === "history" && (
-          <ActivityTable
-            searchQuery={state.searchQuery}
-            timeRange={state.selectedTimeRange}
-          />
-        )}
-
-        {state.activeTab === "signin" && (
-          <div className="p-8 text-center text-gray-500">
-            Sign In Events will be displayed here
-          </div>
-        )}
-
-        {state.activeTab === "hipaa" && (
-          <div className="p-8 text-center text-gray-500">
-            HIPAA Audit Log will be displayed here
-          </div>
-        )}
+        <ActivityTable
+          activeTab={state.activeTab}
+          eventType={state.selectedEventType}
+          fromDate={state.fromDate}
+          searchQuery={state.searchQuery}
+          selectedUserId={state.selectedClient}
+          showDetails={state.showDetails}
+          timeRange={state.selectedTimeRange}
+          toDate={state.toDate}
+        />
       </div>
     </div>
   );

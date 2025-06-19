@@ -3,6 +3,7 @@ import { prisma } from "@mcw/database";
 import { logger } from "@mcw/logger";
 import { withErrorHandling } from "@mcw/utils";
 import { AppointmentType } from "@mcw/types";
+import { ActivityLogger } from "@/utils/activity-logger";
 import {
   validateAppointmentData,
   createAppointmentWhereClause,
@@ -318,6 +319,22 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       },
     },
   });
+
+  // Log activity for appointment creation
+  if (newAppointment.type === AppointmentType.APPOINTMENT) {
+    await ActivityLogger.log(
+      "APPOINTMENT_CREATED",
+      {
+        appointmentId: newAppointment.id,
+        clientGroupId: newAppointment.client_group_id,
+        clinicianId: newAppointment.clinician_id,
+        serviceId: newAppointment.service_id,
+        locationId: newAppointment.location_id,
+        startDate: newAppointment.start_date,
+      },
+      request,
+    );
+  }
 
   return NextResponse.json(appointmentWithTags, { status: 201 });
 });

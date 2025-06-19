@@ -1,6 +1,6 @@
 "use client";
 
-export type TabType = "history" | "signin" | "hipaa";
+export type TabType = "history";
 
 interface TabNavigationProps {
   activeTab: TabType;
@@ -8,41 +8,17 @@ interface TabNavigationProps {
 }
 
 export default function TabNavigation({
-  activeTab,
+  _activeTab,
   setActiveTab,
 }: TabNavigationProps) {
   return (
     <div className="mb-4 flex">
       <div className="flex">
         <button
-          className={`px-4 py-2 text-base font-normal ${
-            activeTab === "history"
-              ? "border-b-2 border-[#2D8467] text-[#000000] font-medium"
-              : "text-gray-800"
-          }`}
+          className="px-4 py-2 text-base font-medium border-b-2 border-[#2D8467] text-[#000000]"
           onClick={() => setActiveTab("history")}
         >
           History
-        </button>
-        <button
-          className={`px-4 py-2 text-base font-normal ${
-            activeTab === "signin"
-              ? "border-b-2 border-[#2D8467] text-[#000000] font-medium"
-              : "text-gray-800"
-          }`}
-          onClick={() => setActiveTab("signin")}
-        >
-          Sign In Events
-        </button>
-        <button
-          className={`px-4 py-2 text-base font-normal ${
-            activeTab === "hipaa"
-              ? "border-b-2 border-[#2D8467] text-[#000000] font-medium"
-              : "text-gray-800"
-          }`}
-          onClick={() => setActiveTab("hipaa")}
-        >
-          HIPAA Audit Log
         </button>
       </div>
     </div>

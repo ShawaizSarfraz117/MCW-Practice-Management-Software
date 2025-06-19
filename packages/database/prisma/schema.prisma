@@ -75,50 +75,57 @@ model AppointmentTag {
 
 /// HIPAA compliance audit trail for tracking access and events related to protected health information (PHI).
 model Audit {
-  Id         String   @id(map: "PK_Audit_ID") @default(dbgenerated("newid()"), map: "DF_Audit_ID") @db.UniqueIdentifier
+  Id              String       @id(map: "PK_Audit_ID") @default(dbgenerated("newid()"), map: "DF_Audit_ID") @db.UniqueIdentifier
   /// Client whose data was accessed or affected (null for system-level events).
-  client_id  String?  @db.UniqueIdentifier
+  client_id       String?      @db.UniqueIdentifier
+  /// Client group whose data was accessed or affected (null for individual client events).
+  client_group_id String?      @db.UniqueIdentifier
   /// User who performed the action or triggered the event.
-  user_id    String?  @db.UniqueIdentifier
+  user_id         String?      @db.UniqueIdentifier
   /// Timestamp of the event in UTC.
-  datetime   DateTime @default(now(), map: "DF__Audit__datetime__17ED6F58") @db.DateTime
+  datetime        DateTime     @default(now(), map: "DF__Audit__datetime__17ED6F58") @db.DateTime
   /// Type of event (e.g., 'VIEW', 'UPDATE', 'DELETE', 'LOGIN_SUCCESS', 'PHI_ACCESS').
-  event_type String?  @db.NChar(10)
+  event_type      String?      @db.NChar(10)
   /// Human-readable description of the event.
-  event_text String   @db.NVarChar(255)
+  event_text      String       @db.NVarChar(255)
   /// Whether this event involves HIPAA-protected information.
-  is_hipaa   Boolean  @default(false, map: "DF_Audit_IsHipaa")
-  Client     Client?  @relation(fields: [client_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Audit_Client")
-  User       User?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Audit_User")
+  is_hipaa        Boolean      @default(false, map: "DF_Audit_IsHipaa")
+  /// IP address from which the action was performed.
+  ip_address      String?      @db.NVarChar(45)
+  /// Geographic location derived from IP address.
+  location        String?      @db.NVarChar(255)
+  Client          Client?      @relation(fields: [client_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Audit_Client")
+  ClientGroup     ClientGroup? @relation(fields: [client_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Audit_ClientGroup")
+  User            User?        @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Audit_User")
 }
 
 /// Clinician availability windows for scheduling appointments.
 /// Supports both one-time and recurring availability patterns.
 model Availability {
-  id                    String                 @id @default(dbgenerated("newid()"), map: "PK_Availability_ID") @db.UniqueIdentifier
-  clinician_id          String                 @db.UniqueIdentifier
-  created_at            DateTime               @default(now(), map: "DF_Availability_CreatedAt")
-  updated_at            DateTime               @updatedAt
+  id                        String                 @id @default(dbgenerated("newid()"), map: "PK_Availability_ID") @db.UniqueIdentifier
+  clinician_id              String                 @db.UniqueIdentifier
+  created_at                DateTime               @default(now(), map: "DF_Availability_CreatedAt")
+  updated_at                DateTime               @updatedAt
   /// Whether this availability repeats according to recurring_rule.
-  is_recurring          Boolean                @default(false, map: "DF_Availability_IsRecurring")
+  is_recurring              Boolean                @default(false, map: "DF_Availability_IsRecurring")
   /// iCalendar RRULE format for recurring availability.
-  recurring_rule        String?                @db.Text
-  end_time              DateTime               @default(now(), map: "DF_Availability_EndTime")
-  start_time            DateTime               @default(now(), map: "DF_Availability_StartTime")
-  end_date              DateTime               @default(now(), map: "DF_Availability_EndDate")
-  start_date            DateTime               @default(now(), map: "DF_Availability_StartDate")
+  recurring_rule            String?                @db.Text
+  end_time                  DateTime               @default(now(), map: "DF_Availability_EndTime")
+  start_time                DateTime               @default(now(), map: "DF_Availability_StartTime")
+  end_date                  DateTime               @default(now(), map: "DF_Availability_EndDate")
+  start_date                DateTime               @default(now(), map: "DF_Availability_StartDate")
   /// Display title (e.g., "Morning Hours", "Evening Availability").
-  title                 String                 @db.Text
+  title                     String                 @db.Text
   /// Whether clients can request appointments during this time via portal.
-  allow_online_requests Boolean                @default(false, map: "DF_Availability_AllowOnlineRequests")
-  location_id           String                 @db.UniqueIdentifier
+  allow_online_requests     Boolean                @default(false, map: "DF_Availability_AllowOnlineRequests")
+  location_id               String                 @db.UniqueIdentifier
   /// For recurring availabilities: NULL if this is the parent/template, or parent's ID if this is a child instance.
-  recurring_availability_id String?            @db.UniqueIdentifier
-  Clinician             Clinician              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Clinician")
-  Location              Location               @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Location")
-  Availability          Availability?         @relation("AvailabilityToAvailability", fields: [recurring_availability_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Availability_RecurringAvailability")
-  other_Availability    Availability[]        @relation("AvailabilityToAvailability")
-  AvailabilityServices  AvailabilityServices[]
+  recurring_availability_id String?                @db.UniqueIdentifier
+  Clinician                 Clinician              @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Clinician")
+  Location                  Location               @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK_Availability_Location")
+  Availability              Availability?          @relation("AvailabilityToAvailability", fields: [recurring_availability_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Availability_RecurringAvailability")
+  other_Availability        Availability[]         @relation("AvailabilityToAvailability")
+  AvailabilityServices      AvailabilityServices[]
 
   @@index([clinician_id], map: "IX_Availability_clinician_id")
   @@index([start_time, end_time], map: "IX_Availability_time_range")
@@ -243,6 +250,7 @@ model ClientGroup {
   Superbill                      Superbill[]
   SurveyAnswers                  SurveyAnswers[]
   ClientGroupChartNote           ClientGroupChartNote[]
+  Audit                          Audit[]
 }
 
 /// Junction table linking clients to groups with role information.
@@ -263,12 +271,12 @@ model ClientGroupMembership {
 }
 
 model ClientGroupChartNote {
-  id                 String        @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  text               String        @db.Text
-  client_group_id    String        @db.UniqueIdentifier
-  note_date          DateTime      @default(now())
-  created_at         DateTime      @default(now()) @db.DateTime
-  ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupChartNote_ClientGroup")
+  id              String      @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  text            String      @db.Text
+  client_group_id String      @db.UniqueIdentifier
+  note_date       DateTime    @default(now())
+  created_at      DateTime    @default(now()) @db.DateTime
+  ClientGroup     ClientGroup @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupChartNote_ClientGroup")
 
   @@index([client_group_id], map: "IX_ClientGroupChartNote_client_group_id")
 }
@@ -342,7 +350,7 @@ model ClinicianClient {
   is_primary    Boolean   @default(false, map: "DF_ClinicianClient_IsPrimary")
   assigned_date DateTime  @default(now(), map: "DF__Clinician__assig__430CD787")
   Client        Client    @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Client")
-  Clinician     Clinician  @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Clinician")
+  Clinician     Clinician @relation(fields: [clinician_id], references: [id], onUpdate: NoAction, map: "FK_ClinicianClient_Clinician")
 
   @@id([client_id, clinician_id], map: "PK_ClinicianClient_ID")
 }
@@ -451,26 +459,26 @@ model Payment {
 
 /// Catalog of services offered by the practice.
 model PracticeService {
-  id                  String                @id @default(dbgenerated("newid()"), map: "PK_PracticeService_ID") @db.UniqueIdentifier
-  type                String                @db.VarChar(255)
+  id                   String                 @id @default(dbgenerated("newid()"), map: "PK_PracticeService_ID") @db.UniqueIdentifier
+  type                 String                 @db.VarChar(255)
   /// Standard rate in dollars for this service.
-  rate                Decimal               @db.Decimal(10, 2)
+  rate                 Decimal                @db.Decimal(10, 2)
   /// Service code (e.g., CPT code like 90834, or internal code) for billing.
-  code                String                @db.VarChar(50)
-  description         String?               @db.Text
+  code                 String                 @db.VarChar(50)
+  description          String?                @db.Text
   /// Standard duration of the service in minutes.
-  duration            Int
-  color               String?               @db.VarChar(7)
+  duration             Int
+  color                String?                @db.VarChar(7)
   /// Whether new clients are allowed to book this service.
-  allow_new_clients   Boolean               @default(false)
+  allow_new_clients    Boolean                @default(false)
   /// Whether this service can be booked online via the client portal.
-  available_online    Boolean               @default(false)
+  available_online     Boolean                @default(false)
   /// Whether to bill insurance in units (e.g., 15-minute increments).
-  bill_in_units       Boolean               @default(false)
-  block_after         Int                   @default(0)
-  block_before        Int                   @default(0)
-  is_default          Boolean               @default(false)
-  require_call        Boolean               @default(false)
+  bill_in_units        Boolean                @default(false)
+  block_after          Int                    @default(0)
+  block_before         Int                    @default(0)
+  is_default           Boolean                @default(false)
+  require_call         Boolean                @default(false)
   Appointment          Appointment[]
   AppointmentRequests  AppointmentRequests[]
   AvailabilityServices AvailabilityServices[]
@@ -685,22 +693,22 @@ model RolePermission {
 
 /// Documents and files associated with client groups.
 model ClientGroupFile {
-  id                 String        @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  survey_template_id String?       @db.UniqueIdentifier
-  title              String        @db.VarChar(255)
-  type               String        @default("PRACTICE_UPLOAD") @db.VarChar(50)
-  url                String?       @db.Text
-  client_group_id    String        @db.UniqueIdentifier
-  uploaded_by_id     String?       @db.UniqueIdentifier
-  created_at         DateTime      @default(now())
-  updated_at         DateTime      @updatedAt
-  is_template        Boolean       @default(false)
-  original_template_id String?     @db.UniqueIdentifier
-  sharing_enabled    Boolean       @default(true)
-  expiry_date        DateTime?     @db.DateTime
-  ClientFiles        ClientFiles[]
-  ClientGroup        ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupFile_ClientGroup")
-  User               User?         @relation(fields: [uploaded_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientGroupFile_User")
+  id                   String        @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  survey_template_id   String?       @db.UniqueIdentifier
+  title                String        @db.VarChar(255)
+  type                 String        @default("PRACTICE_UPLOAD") @db.VarChar(50)
+  url                  String?       @db.Text
+  client_group_id      String        @db.UniqueIdentifier
+  uploaded_by_id       String?       @db.UniqueIdentifier
+  created_at           DateTime      @default(now())
+  updated_at           DateTime      @updatedAt
+  is_template          Boolean       @default(false)
+  original_template_id String?       @db.UniqueIdentifier
+  sharing_enabled      Boolean       @default(true)
+  expiry_date          DateTime?     @db.DateTime
+  ClientFiles          ClientFiles[]
+  ClientGroup          ClientGroup   @relation(fields: [client_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ClientGroupFile_ClientGroup")
+  User                 User?         @relation(fields: [uploaded_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ClientGroupFile_User")
 
   @@index([client_group_id], map: "IX_ClientGroupFile_client_group_id")
   @@index([uploaded_by_id], map: "IX_ClientGroupFile_uploaded_by_id")
@@ -910,21 +918,21 @@ model GoodFaithEstimate {
 }
 
 model GoodFaithClients {
-  id                String            @id(map: "PK_GoodFaithClients") @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  client_id         String            @db.UniqueIdentifier
-  good_faith_id     String            @db.UniqueIdentifier
-  name              String            @db.VarChar(100)
-  dob               DateTime          @db.Date 
-  address           String?           @db.VarChar(250)
-  city              String?           @db.VarChar(100)
-  state             String?           @db.VarChar(100)
-  zip_code          String?           @db.VarChar(50)
-  phone             String?           @db.VarChar(50)
-  email             String?           @db.VarChar(100)
-  should_voice      Boolean           @default(false, map: "DF_GoodFaithClients_should_voice")
-  should_text       Boolean           @default(false, map: "DF_GoodFaithClients_should_text")
-  should_email      Boolean           @default(false, map: "DF_GoodFaithClients_should_email")
- 
+  id            String   @id(map: "PK_GoodFaithClients") @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  client_id     String   @db.UniqueIdentifier
+  good_faith_id String   @db.UniqueIdentifier
+  name          String   @db.VarChar(100)
+  dob           DateTime @db.Date
+  address       String?  @db.VarChar(250)
+  city          String?  @db.VarChar(100)
+  state         String?  @db.VarChar(100)
+  zip_code      String?  @db.VarChar(50)
+  phone         String?  @db.VarChar(50)
+  email         String?  @db.VarChar(100)
+  should_voice  Boolean  @default(false, map: "DF_GoodFaithClients_should_voice")
+  should_text   Boolean  @default(false, map: "DF_GoodFaithClients_should_text")
+  should_email  Boolean  @default(false, map: "DF_GoodFaithClients_should_email")
+
   Client            Client            @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithClients_Client")
   GoodFaithEstimate GoodFaithEstimate @relation(fields: [good_faith_id], references: [id], onUpdate: NoAction, map: "FK_GoodFaithClients_GoodFaithEstimate")
 }

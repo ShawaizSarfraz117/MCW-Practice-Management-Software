@@ -42,3 +42,6 @@ export * from "./appointment";
 
 // Re-export client overview types
 export * from "./client-overview";
+
+// Re-export activity types
+export * from "./activity";
