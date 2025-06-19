@@ -1,4 +1,5 @@
 /* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines */
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
@@ -70,7 +71,7 @@ describe("Template Selection Page", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    cleanup();
+    queryClient.clear();
     (useRouter as Mock).mockReturnValue({
       push: mockPush,
       back: mockBack,
@@ -86,10 +87,6 @@ describe("Template Selection Page", () => {
         <TemplateSelectionPage />
       </QueryClientProvider>,
     );
-  };
-
-  const cleanup = () => {
-    queryClient.clear();
   };
 
   it("should render the page with loading state", async () => {

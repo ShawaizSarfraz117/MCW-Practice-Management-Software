@@ -1,14 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines */
 import React from "react";
-import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  cleanup,
-} from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "@mcw/ui";
 import NewDiagnosisAndTreatmentPlan from "@/(dashboard)/clients/[id]/diagnosisAndTreatmentPlan/new/page";
@@ -133,10 +128,6 @@ describe("New Diagnosis and Treatment Plan Page", () => {
     (useParams as Mock).mockReturnValue({
       id: "test-client-group-id",
     });
-  });
-
-  afterEach(() => {
-    cleanup();
   });
 
   it("should render the page and fetch client data", async () => {
