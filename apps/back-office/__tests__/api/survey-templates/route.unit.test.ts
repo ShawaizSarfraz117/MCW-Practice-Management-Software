@@ -337,7 +337,10 @@ describe("Survey Templates API Routes", () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe("Internal server error");
+      // In development, withErrorHandling returns detailed error info
+      expect(data).toHaveProperty("message", "Database connection error");
+      expect(data).toHaveProperty("issueId");
+      expect(data.issueId).toMatch(/^ERR-\d{8}-\d{6}-[A-Z0-9]{4}$/);
     });
 
     it("should parse nested JSON content correctly", async () => {

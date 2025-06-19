@@ -414,8 +414,11 @@ describe("Template Selection Page", () => {
     renderComponent();
 
     // Open sidebar
-    const docHistoryButton = await screen.findByText("Documentation history");
-    fireEvent.click(docHistoryButton);
+    const docHistoryButtons = await screen.findAllByText(
+      "Documentation history",
+    );
+    expect(docHistoryButtons.length).toBeGreaterThan(0);
+    fireEvent.click(docHistoryButtons[0]);
 
     expect(screen.getByTestId("documentation-sidebar")).toBeDefined();
 
