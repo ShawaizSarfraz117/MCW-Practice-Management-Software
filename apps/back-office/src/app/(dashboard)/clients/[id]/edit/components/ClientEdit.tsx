@@ -88,11 +88,15 @@ export interface ClientGroupFromAPI {
   id: string;
   name: string;
   type: string;
-  status?: string;
-  notes?: string;
+  clinician_id?: string | null;
   is_active?: boolean;
-  first_seen_at?: string;
-  referred_by?: string;
+  available_credit?: number;
+  created_at?: Date | string | null;
+  auto_monthly_statement_enabled?: boolean | null;
+  auto_monthly_superbill_enabled?: boolean | null;
+  first_seen_at?: Date | string | null;
+  notes?: string | null;
+  administrative_notes?: string | null;
   ClientGroupMembership: ClientMembership[];
 }
 
