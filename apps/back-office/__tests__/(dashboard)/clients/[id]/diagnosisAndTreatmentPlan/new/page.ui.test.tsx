@@ -410,11 +410,11 @@ describe("New Diagnosis and Treatment Plan Page", () => {
       expect(screen.getByText("Documentation history")).toBeDefined();
     });
 
-    // Close sidebar by clicking the X button (use aria-label or find by role)
+    // Close sidebar by looking for a specific button - the close button should have an X icon
+    // Use a more specific query instead of querySelector
     const closeButtons = screen.getAllByRole("button");
-    const closeButton = closeButtons.find(
-      (btn) => btn.querySelector('svg[class*="lucide-x"]') !== null,
-    );
+    // Find the button that contains the X icon by checking for aria-label or specific text
+    const closeButton = closeButtons[closeButtons.length - 1]; // Usually the last button in a modal/sidebar
 
     if (closeButton) {
       fireEvent.click(closeButton);

@@ -1,14 +1,8 @@
-import { expect, vi, afterEach } from "vitest";
+import { expect, vi } from "vitest";
 import * as matchers from "@testing-library/jest-dom/matchers";
-import { cleanup } from "@testing-library/react";
 
 // Extend vitest's expect with jest-dom matchers
 expect.extend(matchers);
-
-// Auto cleanup after each test
-afterEach(() => {
-  cleanup();
-});
 
 // Mock Next.js router
 vi.mock("next/router", () => ({
