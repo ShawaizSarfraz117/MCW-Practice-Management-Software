@@ -26,7 +26,8 @@ export const getISODateTime = (
         minutes = 59;
         seconds = 59;
       }
-      // Otherwise, start date for an all-day event uses 00:00:00
+      // For start date for an all-day event, use 00:00:00 (already initialized above)
+      // This covers both timeStr === "start" and any other value
     } else if (timeStr) {
       // Parse time string (e.g., "6:30 PM")
       const [time, ampm] = timeStr.split(" ");

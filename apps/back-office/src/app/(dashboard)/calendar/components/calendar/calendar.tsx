@@ -14,7 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppointmentDialog } from "../AppointmentDialog";
 import { CalendarToolbar } from "./components/CalendarToolbar";
 import { useAppointmentHandler } from "./hooks/useAppointmentHandler";
-import { getHeaderDateFormat } from "./utils/date-utils";
+import { getHeaderDateFormat, getISODateTime } from "./utils/date-utils";
 import {
   CalendarViewProps,
   CalendarEvent,
@@ -320,6 +320,7 @@ export function CalendarView({
             title: appointment.title,
             start: appointment.start_date,
             end: appointment.end_date,
+            allDay: appointment.is_all_day, // Add missing allDay property
             location: appointment.location_id || "",
             extendedProps: {
               type: "appointment" as const,
@@ -617,6 +618,7 @@ export function CalendarView({
         title: appointment.title,
         start: appointment.start_date,
         end: appointment.end_date,
+        allDay: appointment.is_all_day, // Add missing allDay property
         location: appointment.location_id || "",
         extendedProps: {
           type: "appointment" as const,
@@ -704,8 +706,16 @@ export function CalendarView({
     // Create start and end dates with the correct times
     let startDateTime, endDateTime;
     try {
-      startDateTime = getDateTimeISOString(values.startDate, values.startTime);
-      endDateTime = getDateTimeISOString(values.endDate, values.endTime);
+      if (values.allDay) {
+        startDateTime = getISODateTime(values.startDate, "start", true);
+        endDateTime = getISODateTime(values.endDate, "end", true);
+      } else {
+        startDateTime = getDateTimeISOString(
+          values.startDate,
+          values.startTime,
+        );
+        endDateTime = getDateTimeISOString(values.endDate, values.endTime);
+      }
     } catch (error) {
       console.error("Error parsing dates:", error);
       throw error;
@@ -932,6 +942,7 @@ export function CalendarView({
           title: appointment.title,
           start: appointment.start_date,
           end: appointment.end_date,
+          allDay: appointment.is_all_day,
           location: appointment.location_id || "",
           extendedProps: {
             type: "appointment" as const,
