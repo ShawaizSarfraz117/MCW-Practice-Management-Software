@@ -18,7 +18,8 @@ describe("GET /api/billingAddress", () => {
       user: {
         id: mockUserId,
       },
-    } as ReturnType<typeof getBackOfficeSession>);
+      expires: new Date().toISOString(),
+    });
   });
 
   it("should return billing addresses when they exist", async () => {
@@ -107,7 +108,8 @@ describe("POST /api/billingAddress", () => {
       user: {
         id: mockUserId,
       },
-    } as ReturnType<typeof getBackOfficeSession>);
+      expires: new Date().toISOString(),
+    });
   });
 
   it("should create new billing address successfully", async () => {

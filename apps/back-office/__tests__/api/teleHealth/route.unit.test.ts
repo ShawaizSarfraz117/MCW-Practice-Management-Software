@@ -19,7 +19,8 @@ describe("GET /api/teleHealth", () => {
       user: {
         id: mockUserId,
       },
-    } as ReturnType<typeof getBackOfficeSession>);
+      expires: new Date().toISOString(),
+    });
   });
 
   it("should return telehealth location when it exists", async () => {
@@ -38,7 +39,8 @@ describe("GET /api/teleHealth", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockResolvedValueOnce(mockLocation);
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/teleHealth", {});
+    const response = await GET(request);
     expect(response.status).toBe(200);
 
     const json = await response.json();
@@ -76,7 +78,8 @@ describe("GET /api/teleHealth", () => {
     >;
     mockCreate.mockResolvedValueOnce(mockLocation);
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/teleHealth", {});
+    const response = await GET(request);
     expect(response.status).toBe(200);
 
     const json = await response.json();
@@ -101,7 +104,8 @@ describe("GET /api/teleHealth", () => {
   it("should return 401 when user is not authenticated", async () => {
     vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/teleHealth", {});
+    const response = await GET(request);
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
       error: "Unauthorized",
@@ -113,7 +117,8 @@ describe("GET /api/teleHealth", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockRejectedValueOnce(new Error("Database error"));
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/teleHealth", {});
+    const response = await GET(request);
     expect(response.status).toBe(500);
     const json = await response.json();
     // In non-production, withErrorHandling returns detailed error object
@@ -141,7 +146,8 @@ describe("PUT /api/teleHealth", () => {
       user: {
         id: mockUserId,
       },
-    } as ReturnType<typeof getBackOfficeSession>);
+      expires: new Date().toISOString(),
+    });
   });
 
   it("should update telehealth location successfully", async () => {

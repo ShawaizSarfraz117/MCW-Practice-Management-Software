@@ -77,7 +77,8 @@ describe("TeleHealth API Integration Tests", () => {
   });
 
   it("GET /api/teleHealth returns telehealth location", async () => {
-    const res = await GET();
+    const req = createRequestWithBody("/api/teleHealth", {});
+    const res = await GET(req);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.location).toMatchObject({
@@ -90,7 +91,8 @@ describe("TeleHealth API Integration Tests", () => {
 
   it("GET /api/teleHealth returns 401 if not authenticated", async () => {
     vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
-    const res = await GET();
+    const req = createRequestWithBody("/api/teleHealth", {});
+    const res = await GET(req);
     expect(res.status).toBe(401);
     const json = await res.json();
     expect(json.error).toBe("Unauthorized");
@@ -100,7 +102,8 @@ describe("TeleHealth API Integration Tests", () => {
     // Ensure no telehealth location exists
     await prisma.location.deleteMany({ where: { name: "Telehealth" } });
 
-    const res = await GET();
+    const req = createRequestWithBody("/api/teleHealth", {});
+    const res = await GET(req);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.location).toMatchObject({
@@ -217,7 +220,8 @@ describe("TeleHealth API Integration Tests", () => {
     prisma.location.findFirst = async () => {
       throw new Error("DB fail");
     };
-    const res = await GET();
+    const req = createRequestWithBody("/api/teleHealth", {});
+    const res = await GET(req);
     expect(res.status).toBe(500);
     const json = await res.json();
     // In non-production, withErrorHandling returns detailed error object

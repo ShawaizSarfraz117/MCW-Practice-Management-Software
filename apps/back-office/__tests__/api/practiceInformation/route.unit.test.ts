@@ -40,7 +40,8 @@ describe("GET /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockResolvedValueOnce(mockPracticeInfo);
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/practiceInformation", {});
+    const response = await GET(request);
     expect(response.status).toBe(200);
 
     const json = await response.json();
@@ -53,7 +54,8 @@ describe("GET /api/practiceInformation", () => {
   it("should return 401 if session is invalid", async () => {
     vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/practiceInformation", {});
+    const response = await GET(request);
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Unauthorized" });
   });
@@ -63,7 +65,8 @@ describe("GET /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockResolvedValueOnce(null);
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/practiceInformation", {});
+    const response = await GET(request);
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
       error: "Practice information not found",
@@ -75,7 +78,8 @@ describe("GET /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockRejectedValueOnce(new Error("Database error"));
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/practiceInformation", {});
+    const response = await GET(request);
     expect(response.status).toBe(500);
     const json = await response.json();
     expect(json.error).toBeDefined();

@@ -89,7 +89,8 @@ describe("Practice Information API Integration Tests", () => {
       where: { clinician_id: null },
     });
 
-    const res = await GET();
+    const req = createRequestWithBody("/api/practiceInformation", {});
+    const res = await GET(req);
     expect(res.status).toBe(404);
     const json = await res.json();
     expect(json.error).toMatch(/not found/i);
@@ -181,7 +182,8 @@ describe("Practice Information API Integration Tests", () => {
         tele_health: true,
       },
     });
-    const res = await GET();
+    const req = createRequestWithBody("/api/practiceInformation", {});
+    const res = await GET(req);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.practice_name).toBe("Practice Info");
@@ -196,7 +198,8 @@ describe("Practice Information API Integration Tests", () => {
 
   it("GET /api/practiceInformation returns 401 if not authenticated", async () => {
     vi.mocked(getBackOfficeSession).mockResolvedValue(null);
-    const res = await GET();
+    const req = createRequestWithBody("/api/practiceInformation", {});
+    const res = await GET(req);
     expect(res.status).toBe(401);
   });
 
@@ -242,7 +245,8 @@ describe("Practice Information API Integration Tests", () => {
     prisma.practiceInformation.findFirst = async () => {
       throw new Error("DB fail");
     };
-    const res = await GET();
+    const req = createRequestWithBody("/api/practiceInformation", {});
+    const res = await GET(req);
     expect(res.status).toBe(500);
     const json = await res.json();
     // In non-production, withErrorHandling returns detailed error object
