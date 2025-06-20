@@ -3,6 +3,7 @@
 import { useState } from "react";
 import EditClinicianSidebar from "./components/EditClinicianSidebar";
 import AddLicenseSidebar, { LicenseInfo } from "./components/AddLicenseSidebar";
+import EditLicenseSidebar from "./components/EditLicenseSidebar";
 import { Button, Input, Label } from "@mcw/ui";
 import { useClinicalInfo, useLicenses } from "./hooks/useClinicalInfo";
 import { PlusIcon } from "lucide-react";
@@ -14,6 +15,8 @@ export default function ClinicalInfo() {
 
   const [isEditSidebarOpen, setIsEditSidebarOpen] = useState(false);
   const [isAddLicenseSidebarOpen, setIsAddLicenseSidebarOpen] = useState(false);
+  const [isEditLicenseSidebarOpen, setIsEditLicenseSidebarOpen] =
+    useState(false);
 
   return (
     <div className="relative w-full">
@@ -91,9 +94,23 @@ export default function ClinicalInfo() {
         {/* License Section */}
         <div>
           <div className="border border-gray-200 rounded-lg p-6 mb-4">
-            <h2 className="text-base font-semibold text-gray-800 mb-4">
-              License and degree info
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-gray-800">
+                License and degree info
+              </h2>
+              {licenses?.length > 0 && (
+                <Link
+                  className="text-blue-600 text-sm font-medium hover:text-blue-700"
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsEditLicenseSidebarOpen(true);
+                  }}
+                >
+                  Edit
+                </Link>
+              )}
+            </div>
             <p className="text-sm text-gray-600">
               Add license type, number, expiration date, and state
             </p>
@@ -183,14 +200,22 @@ export default function ClinicalInfo() {
         isOpen={isAddLicenseSidebarOpen}
         onClose={() => setIsAddLicenseSidebarOpen(false)}
       />
+      <EditLicenseSidebar
+        isOpen={isEditLicenseSidebarOpen}
+        onClose={() => setIsEditLicenseSidebarOpen(false)}
+        existingLicenses={licenses}
+      />
 
       {/* Overlay */}
-      {(isEditSidebarOpen || isAddLicenseSidebarOpen) && (
+      {(isEditSidebarOpen ||
+        isAddLicenseSidebarOpen ||
+        isEditLicenseSidebarOpen) && (
         <div
           className="fixed inset-0 bg-black bg-opacity-30 z-40"
           onClick={() => {
             setIsEditSidebarOpen(false);
             setIsAddLicenseSidebarOpen(false);
+            setIsEditLicenseSidebarOpen(false);
           }}
         />
       )}

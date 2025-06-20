@@ -1,7 +1,7 @@
 "use client";
 
-import { X, PlusIcon } from "lucide-react";
-import { useState } from "react";
+import { X, PlusIcon, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -16,27 +16,51 @@ import {
   useToast,
 } from "@mcw/ui";
 
-interface AddLicenseSidebarProps {
+interface EditLicenseSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  existingLicenses?: LicenseInfo[];
 }
 
 export interface LicenseInfo {
+  id?: string;
   license_type: string;
   license_number: string;
   expiration_date: string;
   state: string;
 }
 
-export default function AddLicenseSidebar({
+export default function EditLicenseSidebar({
   isOpen,
   onClose,
-}: AddLicenseSidebarProps) {
+  existingLicenses = [],
+}: EditLicenseSidebarProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [licenses, setLicenses] = useState<LicenseInfo[]>([
-    { license_type: "", license_number: "", expiration_date: "", state: "" },
-  ]);
+  const [licenses, setLicenses] = useState<LicenseInfo[]>([]);
+
+  // Initialize licenses when sidebar opens or existingLicenses changes
+  useEffect(() => {
+    if (isOpen && existingLicenses.length > 0) {
+      setLicenses(
+        existingLicenses.map((license) => ({
+          ...license,
+          expiration_date: license.expiration_date
+            ? new Date(license.expiration_date).toISOString().split("T")[0]
+            : "",
+        })),
+      );
+    } else if (isOpen && existingLicenses.length === 0) {
+      setLicenses([
+        {
+          license_type: "",
+          license_number: "",
+          expiration_date: "",
+          state: "",
+        },
+      ]);
+    }
+  }, [isOpen, existingLicenses]);
 
   const handleAddLicense = () => {
     setLicenses([
@@ -60,21 +84,21 @@ export default function AddLicenseSidebar({
     setLicenses(updatedLicenses);
   };
 
-  // Mutation to save licenses
+  // Mutation to update licenses
   const mutation = useMutation({
     mutationFn: async (licenses: LicenseInfo[]) => {
       const response = await fetch("/api/license", {
-        method: "POST",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(licenses), // Send the licenses array
+        body: JSON.stringify({ licenses }), // Send the licenses array in an object
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         toast({
-          title: "Error saving licenses",
+          title: "Error updating licenses",
           description: errorData?.error,
           variant: "destructive",
         });
@@ -86,14 +110,14 @@ export default function AddLicenseSidebar({
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["license"] });
       toast({
-        title: "Licenses saved successfully",
-        description: "Licenses have been saved successfully",
+        title: "Licenses updated successfully",
+        description: "Licenses have been updated successfully",
         variant: "success",
       });
       onClose(); // Close the sidebar after successful save
     },
     onError: (error: Error) => {
-      console.error("Error saving licenses:", error);
+      console.error("Error updating licenses:", error);
     },
   });
 
@@ -110,7 +134,7 @@ export default function AddLicenseSidebar({
       <div className="h-full flex flex-col">
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-medium">Add License</h2>
+          <h2 className="text-lg font-medium">Edit Licenses</h2>
           <Button
             className="p-2 hover:bg-gray-100 rounded-full"
             variant="ghost"
@@ -124,17 +148,17 @@ export default function AddLicenseSidebar({
         <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-4">
             {licenses?.map((license, index) => (
-              <div key={index} className="space-y-2">
+              <div key={index} className="space-y-2 p-4 border rounded-lg">
                 <div className="flex items-center justify-between">
                   <Label className="block text-sm font-medium text-gray-700 mb-1">
                     License type
                   </Label>
                   <Button
-                    className="text-red-600"
+                    className="text-red-600 hover:text-red-700 p-1"
                     variant="ghost"
                     onClick={() => handleRemoveLicense(index)}
                   >
-                    <X className="h-5 w-5" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
                 <Select
