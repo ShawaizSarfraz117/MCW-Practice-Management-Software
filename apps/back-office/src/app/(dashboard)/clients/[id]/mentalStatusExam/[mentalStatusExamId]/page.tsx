@@ -1,8 +1,9 @@
 /* eslint-disable max-lines-per-function */
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Button, toast, SurveyPreview } from "@mcw/ui";
+import React, { useState, useEffect, useRef } from "react";
+import { Button, toast, SurveyPreview, SurveyPreviewRef } from "@mcw/ui";
+import Loading from "@/components/Loading";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -48,6 +49,7 @@ export default function EditMentalStatusExam() {
     preferred_first_name: string | null;
     date_of_birth: Date | null;
   } | null>(null);
+  const surveyRef = useRef<SurveyPreviewRef>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -155,6 +157,12 @@ export default function EditMentalStatusExam() {
     setDefaultAnswers(normalValues);
   };
 
+  const handleSubmit = () => {
+    if (surveyRef.current) {
+      surveyRef.current.submit();
+    }
+  };
+
   if (isLoading || !templateContent) {
     return (
       <div className="px-4 w-full max-w-6xl mx-auto">
@@ -218,8 +226,9 @@ export default function EditMentalStatusExam() {
       </div>
 
       {/* Survey Form */}
-      <div className="border rounded-lg bg-white p-6">
+      <div className="border rounded-lg bg-white p-6 relative">
         <SurveyPreview
+          ref={surveyRef}
           content={templateContent}
           defaultAnswers={defaultAnswers}
           mode="edit"
@@ -228,6 +237,13 @@ export default function EditMentalStatusExam() {
           type="mental_status_exam"
           onComplete={handleUpdateMentalStatusExam}
         />
+
+        {/* Loading Overlay */}
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg">
+            <Loading message="Updating mental status exam..." />
+          </div>
+        )}
       </div>
 
       {/* Buttons */}
@@ -238,9 +254,12 @@ export default function EditMentalStatusExam() {
         <Button
           className="bg-[#2d8467] hover:bg-[#236c53] text-white"
           disabled={isSubmitting}
-          form="sq-root-form"
-          type="submit"
+          onClick={handleSubmit}
+          type="button"
         >
+          {isSubmitting && (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+          )}
           {isSubmitting ? "Updating..." : "Update Mental Status Exam"}
         </Button>
       </div>

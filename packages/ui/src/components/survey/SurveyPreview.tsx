@@ -17,8 +17,6 @@ import {
   initializeCustomWidgets,
 } from "@mcw/utils";
 
-/* eslint-disable max-lines-per-function */
-
 interface SurveyPreviewProps {
   content: string;
   title?: string;
@@ -74,9 +72,6 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
 
     useEffect(() => {
       const setupSurvey = async () => {
-        console.log("=== DEBUG SurveyPreview: Setting up survey ===");
-        console.log("Mode:", mode);
-
         // Initialize custom widgets
         await initializeCustomWidgets();
         const theme = configureSurveyTheme();
@@ -101,16 +96,6 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
             showProgressBar: "off",
             theme,
           });
-
-          // Ensure mode is properly set
-          console.log(
-            "=== DEBUG SurveyPreview: Final model mode ===",
-            model.mode,
-          );
-          console.log(
-            "=== DEBUG SurveyPreview: Model is read-only? ===",
-            model.isReadOnly,
-          );
 
           setSurveyModel(model);
           setError(null);
@@ -176,13 +161,9 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
     useEffect(() => {
       const dataToSet = initialData || defaultAnswers;
       if (surveyModel && dataToSet && mode === "edit") {
-        console.log(
-          "=== DEBUG SurveyPreview: Updating survey with initial data ===",
-        );
         Object.keys(dataToSet).forEach((key) => {
           if (dataToSet[key] !== undefined && dataToSet[key] !== null) {
             const value = dataToSet[key];
-            console.log(`Setting ${key}:`, value, "type:", typeof value);
 
             // Convert string boolean values to actual booleans for checkboxes
             let finalValue = value;
@@ -197,22 +178,19 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
               try {
                 finalValue = JSON.parse(value);
               } catch (_e) {
-                console.log("Failed to parse array string:", value);
+                // Failed to parse
               }
             }
 
             surveyModel.setValue(key, finalValue);
           }
         });
-        console.log("Survey model data after update:", surveyModel.data);
       }
     }, [surveyModel, initialData, defaultAnswers, mode]);
 
     // Ensure the survey stays in the correct mode
     useEffect(() => {
       if (surveyModel && surveyModel.mode !== mode) {
-        console.log("=== DEBUG SurveyPreview: Correcting survey mode ===");
-        console.log("Current mode:", surveyModel.mode, "Expected mode:", mode);
         surveyModel.mode = mode;
       }
     }, [surveyModel, mode]);
@@ -226,17 +204,7 @@ export const SurveyPreview = forwardRef<SurveyPreviewRef, SurveyPreviewProps>(
     }
 
     return (
-      <div
-        className="survey-preview-container"
-        onClick={() =>
-          console.log(
-            "=== DEBUG: Survey container clicked, mode:",
-            surveyModel?.mode,
-            "isReadOnly:",
-            surveyModel?.isReadOnly,
-          )
-        }
-      >
+      <div className="survey-preview-container">
         {showInstructions && mode === "display" && (
           <div className="mb-4">
             <p className="text-xs text-gray-500 text-right">

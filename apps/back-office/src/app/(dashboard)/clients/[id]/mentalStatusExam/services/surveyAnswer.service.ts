@@ -5,8 +5,21 @@ interface SurveyAnswerContent {
   [key: string]: string;
 }
 
-interface SurveyAnswerWithRelations extends Omit<SurveyAnswers, "content"> {
+interface SurveyScore {
+  totalScore: number;
+  severity?: string;
+  interpretation?: string;
+  flaggedItems?: string[];
+  // ARM-5 specific subscale scores
+  bond?: number;
+  partnership?: number;
+  confidence?: number;
+}
+
+interface SurveyAnswerWithRelations
+  extends Omit<SurveyAnswers, "content" | "score"> {
   content: SurveyAnswerContent | null;
+  score?: SurveyScore | null;
   SurveyTemplate: {
     id: string;
     name: string;
@@ -29,8 +42,10 @@ interface SurveyAnswerWithRelations extends Omit<SurveyAnswers, "content"> {
   } | null;
 }
 
-interface CreateSurveyAnswerResponse extends Omit<SurveyAnswers, "content"> {
+interface CreateSurveyAnswerResponse
+  extends Omit<SurveyAnswers, "content" | "score"> {
   content: SurveyAnswerContent | null;
+  score?: SurveyScore | null;
   SurveyTemplate: {
     id: string;
     name: string;

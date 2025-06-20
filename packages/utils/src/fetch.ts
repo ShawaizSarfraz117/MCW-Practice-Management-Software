@@ -57,18 +57,7 @@ const get = async ({
     }
 
     if (!promise.ok) {
-      let errorData;
-      try {
-        errorData = await promise.json();
-      } catch {
-        // If response is not JSON (like 404 from Next.js), create error object
-        errorData = {
-          error: {
-            message: `Request failed: ${promise.status} ${promise.statusText} - GET ${url}`,
-            status: promise.status,
-          },
-        };
-      }
+      const errorData = await promise.json();
       return Promise.reject(errorData);
     }
 
@@ -101,18 +90,7 @@ const post = async ({
     });
 
     if (!promise.ok) {
-      let errorData;
-      try {
-        errorData = await promise.json();
-      } catch {
-        // If response is not JSON (like 404 from Next.js), create error object
-        errorData = {
-          error: {
-            message: `Request failed: ${promise.status} ${promise.statusText} - POST ${url}`,
-            status: promise.status,
-          },
-        };
-      }
+      const errorData = await promise.json();
       return Promise.reject(errorData);
     }
 
@@ -148,7 +126,6 @@ const update = async ({
     const fullUrl = id
       ? `${ROUTES.BASE_URL}/${url}/${id}`
       : `${ROUTES.BASE_URL}/${url}`;
-    console.log(`Making ${method} request to: ${fullUrl}`);
 
     const promise = await fetch(fullUrl, {
       method: method,
@@ -157,24 +134,7 @@ const update = async ({
     });
 
     if (!promise.ok) {
-      let errorData;
-      try {
-        errorData = await promise.json();
-      } catch {
-        // If response is not JSON (like 404 from Next.js), create error object
-        errorData = {
-          error: {
-            message: `Request failed: ${promise.status} ${promise.statusText} - ${method} ${fullUrl}`,
-            status: promise.status,
-          },
-        };
-      }
-      console.error(`API Request Failed:`, {
-        url: fullUrl,
-        status: promise.status,
-        statusText: promise.statusText,
-        errorData,
-      });
+      const errorData = await promise.json();
       return Promise.reject(errorData);
     }
 

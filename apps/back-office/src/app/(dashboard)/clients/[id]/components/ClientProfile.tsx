@@ -32,14 +32,18 @@ import { ClientGroupFromAPI } from "../edit/components/ClientEdit";
 
 export function getClientGroupInfo(client: unknown) {
   if (!client) return "";
-  const name = (
-    client as {
-      ClientGroupMembership: {
-        Client: { legal_first_name: string; legal_last_name: string };
-      }[];
-    }
-  ).ClientGroupMembership.map((m) =>
-    `${m.Client?.legal_first_name ?? ""} ${m.Client?.legal_last_name ?? ""}`.trim(),
+  const clientData = client as {
+    ClientGroupMembership?: {
+      Client?: { legal_first_name: string; legal_last_name: string };
+    }[];
+  };
+
+  if (!clientData.ClientGroupMembership) return "";
+
+  const name = clientData.ClientGroupMembership.map((m) =>
+    m.Client
+      ? `${m.Client.legal_first_name ?? ""} ${m.Client.legal_last_name ?? ""}`.trim()
+      : "",
   )
     .filter(Boolean)
     .join(" & ");
