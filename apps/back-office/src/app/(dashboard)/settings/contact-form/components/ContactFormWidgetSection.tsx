@@ -1,17 +1,42 @@
 "use client";
 
 import { Button } from "@mcw/ui";
-import { useState } from "react";
-
-const WIDGET_CODE = `<!-- Start SimplePractice Contact Form Widget Embed Code --> <style>.spwidget-button-wrapper{text-align: center;}.spwidget-button{display: inline-block;padding: 6px 24px 7px 24px;margin: 0 auto;background: #4f46e5;color: #fff;border-radius: 6px;font-size: 16px;font-weight: 600;cursor: pointer;transition: background 0.2s;}.spwidget-button:hover{background: #3730a3;}</style><div class="spwidget-button-wrapper"><a class="spwidget-button" href="https://alam-naqvi.clientsecure.me/contact-widget" target="_blank">Contact</a></div><!-- End SimplePractice Contact Form Widget Embed Code -->`;
+import { useState, useEffect } from "react";
 
 export default function ContactFormWidgetSection() {
   const [copied, setCopied] = useState(false);
+  const [widgetCode, setWidgetCode] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchWidgetCode();
+  }, []);
+
+  const fetchWidgetCode = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        "/api/client-care-settings?category=contactForm",
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // The widget code is stored in the general.widgetCode field
+        setWidgetCode(data.data?.general?.widgetCode || "");
+      }
+    } catch (error) {
+      console.error("Error fetching widget code:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(WIDGET_CODE);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    if (widgetCode) {
+      navigator.clipboard.writeText(widgetCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
   };
 
   return (
@@ -21,18 +46,35 @@ export default function ContactFormWidgetSection() {
         Add the contact form to your website
       </p>
       <div className="mb-4">
-        <textarea
-          readOnly
-          className="w-full font-mono text-xs bg-gray-100 border border-gray-300 rounded-md p-3 resize-none"
-          rows={3}
-          value={WIDGET_CODE}
-        />
+        {loading ? (
+          <div className="animate-pulse">
+            <div className="h-20 bg-gray-200 rounded" />
+          </div>
+        ) : (
+          <textarea
+            readOnly
+            className="w-full font-mono text-xs bg-gray-100 border border-gray-300 rounded-md p-3 resize-none"
+            rows={3}
+            value={
+              widgetCode ||
+              "No widget code configured. Please run database seed to initialize widget codes."
+            }
+          />
+        )}
       </div>
       <div className="flex gap-3">
-        <Button className="w-full md:w-auto" onClick={handleCopy}>
+        <Button
+          className="w-full md:w-auto"
+          disabled={!widgetCode || loading}
+          onClick={handleCopy}
+        >
           {copied ? "Copied!" : "Copy Code"}
         </Button>
-        <Button className="w-full md:w-auto" variant="outline">
+        <Button
+          className="w-full md:w-auto"
+          disabled={loading}
+          variant="outline"
+        >
           Preview Widget
         </Button>
       </div>

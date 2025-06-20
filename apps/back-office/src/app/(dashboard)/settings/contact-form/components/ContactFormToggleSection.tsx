@@ -7,9 +7,14 @@ import ContactFormModal from "./ContactFormModal";
 import Image from "next/image";
 import ProfileLogo from "@/assets/images/profile-logo.svg";
 import MonarchWarning from "@/assets/images/MonarchWarning.svg";
+import { useContactFormSettings } from "../hooks/useContactFormSettings";
+import { useToast } from "@mcw/ui";
 
 export default function ContactFormToggleSection() {
   const [monarchEnabled, setMonarchEnabled] = useState(false);
+  const { settings } = useContactFormSettings();
+  const { toast } = useToast();
+  const contactFormLink = settings?.general?.link || "";
 
   return (
     <section className="rounded-lg p-0 mt-0">
@@ -27,9 +32,22 @@ export default function ContactFormToggleSection() {
             readOnly
             className="w-[40%] px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700 text-sm font-mono"
             type="text"
-            value="https://alam-naqvi.clientsecure.me/contact-widget"
+            value={contactFormLink}
           />
-          <Button className="w-[20] sm:w-auto">Copy</Button>
+          <Button
+            className="w-[20] sm:w-auto"
+            onClick={() => {
+              if (contactFormLink) {
+                navigator.clipboard.writeText(contactFormLink);
+                toast({
+                  title: "Copied!",
+                  description: "Contact form link copied to clipboard",
+                });
+              }
+            }}
+          >
+            Copy
+          </Button>
         </div>
       </div>
       <div className="pt-2">
@@ -64,6 +82,7 @@ export default function ContactFormToggleSection() {
           <Switch
             checked={monarchEnabled}
             onCheckedChange={setMonarchEnabled}
+            disabled
           />
           <div>
             <div className="font-medium text-gray-400">

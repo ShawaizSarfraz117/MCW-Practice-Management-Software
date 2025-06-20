@@ -1,11 +1,16 @@
 "use client";
-import { Button, Card } from "@mcw/ui";
+import { Button, Card, useToast } from "@mcw/ui";
 import WidgetPreview from "@/assets/images/widget-preview.png";
 import Image from "next/image";
 import CopyIcon from "@/assets/images/copy-icon.svg";
+import { useWidgetSettings } from "./hooks/useWidgetSettings";
 
 export default function AppointmentRequestWidgetPage() {
-  const widgetCode = `<!-- Start SimplePractice Appointment-Request Widget Embed Code --> <style>.spwidget-button-wrapper{text-align: center;}.spwidget-button{display: inline-block;padding: 12px 24px;color: #fff !important;background: #de6a26;border: 0;border-radius: 4px;font-size: 16px;font-weight: 600;text-decoration: none;}.spwidget-button:hover{background: #f15913;}.spwidget-button:active{color: rgba(255, 255, 255, .75) !important;box-shadow: 0 1px 3px rgba(0,0,0,.1);} </style> <div class='spwidget-button-wrapper'><a href='https://alam-naqvi.clientsecure.me' class='spwidget-button' data-spwidget-scope-url='alam-naqvi' data-spwidget-application-id='7c27cb99b89193654b8b96d7b4e7a1797b130192051da3538b4a0d6c6b505bd' data-spwidget-scope-global data-spwidget-autobind>Request Appointment</a></div> <script src='https://widget-cdn.simplepractice.com/assets/integration-1.0.js'></script> <!-- End SimplePractice Appointment-Request Widget Embed Code -->`;
+  const { settings, loading } = useWidgetSettings();
+  const { toast } = useToast();
+
+  // Use widget code from settings
+  const displayWidgetCode = settings?.general?.widgetCode || "";
 
   return (
     <div className="min-h-screen p-4 sm:p-6 md:p-8 text-[#1f2937]">
@@ -64,34 +69,54 @@ export default function AppointmentRequestWidgetPage() {
           </div>
         </div>
         <div className="mb-2">
-          <h2 className="text-lg font-semibold text-[#1F2937] mb-1">
-            Code for your appointment request widget:
-          </h2>
-          <p className="text-[#374151] text-sm mb-3">
-            Add this code into your website where you want your appointment
-            request widget to be.{" "}
-            <a className="text-[#2563EB] hover:underline" href="#">
-              How to add it
-            </a>
-          </p>
+          <div className="mb-3">
+            <h2 className="text-lg font-semibold text-[#1F2937] mb-1">
+              Code for your appointment request widget:
+            </h2>
+            <p className="text-[#374151] text-sm">
+              Add this code into your website where you want your appointment
+              request widget to be.{" "}
+              <a className="text-[#2563EB] hover:underline" href="#">
+                How to add it
+              </a>
+            </p>
+          </div>
+          {/* Widget code is fetched from database using the ClientCareSettingsService dictionary pattern */}
           <Card className="rounded-lg border border-[#E5E7EB] bg-[#FFFFFF] p-4">
-            <pre className="overflow-x-auto text-xs text-[#374151] bg-transparent p-0 whitespace-pre-wrap break-all mb-4">
-              {widgetCode}
-            </pre>
-            <div className="flex justify-between items-center">
-              <Button
-                className="bg-[#188153] hover:bg-[#146945] text-white font-medium px-4 py-1"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(widgetCode);
-                }}
-              >
-                <span>
-                  <Image alt="Copy" height={14} src={CopyIcon} width={14} />
-                </span>
-                Copy code
-              </Button>
-            </div>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-20 bg-gray-200 rounded mb-4" />
+                <div className="h-8 bg-gray-200 rounded w-24" />
+              </div>
+            ) : (
+              <>
+                <pre className="overflow-x-auto text-xs text-[#374151] bg-transparent p-0 whitespace-pre-wrap break-all mb-4">
+                  {displayWidgetCode ||
+                    "Widget code will be displayed here when available."}
+                </pre>
+                <div className="flex justify-between items-center">
+                  <Button
+                    className="bg-[#188153] hover:bg-[#146945] text-white font-medium px-4 py-1"
+                    disabled={!displayWidgetCode}
+                    size="sm"
+                    onClick={() => {
+                      if (displayWidgetCode) {
+                        navigator.clipboard.writeText(displayWidgetCode);
+                        toast({
+                          title: "Copied!",
+                          description: "Widget code copied to clipboard",
+                        });
+                      }
+                    }}
+                  >
+                    <span className="mr-2">
+                      <Image alt="Copy" height={14} src={CopyIcon} width={14} />
+                    </span>
+                    Copy code
+                  </Button>
+                </div>
+              </>
+            )}
           </Card>
         </div>
       </div>

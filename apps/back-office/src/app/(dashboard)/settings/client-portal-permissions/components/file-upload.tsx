@@ -1,18 +1,34 @@
 "use client";
 import { Card, CardHeader } from "@mcw/ui";
-import { useClientPortalSettings } from "../hooks/useClientPortalSettings";
 
-export default function FileUploadCard() {
-  const { settings, loading, updateSettings } = useClientPortalSettings();
+interface FileUploadCardProps {
+  settings: {
+    documents?: {
+      isUploadDocumentsAllowed?: boolean;
+    };
+  } | null;
+  loading: boolean;
+  stageChanges: (updates: {
+    documents?: {
+      isUploadDocumentsAllowed?: boolean;
+    };
+  }) => void;
+}
 
-  const isUploadAllowed = settings?.is_upload_documents_allowed ?? false;
+export default function FileUploadCard({
+  settings,
+  loading,
+  stageChanges,
+}: FileUploadCardProps) {
+  const isUploadAllowed =
+    settings?.documents?.isUploadDocumentsAllowed ?? false;
 
-  const handleUploadToggle = async (enabled: boolean) => {
-    try {
-      await updateSettings({ is_upload_documents_allowed: enabled });
-    } catch (error) {
-      console.error("Failed to update file upload settings:", error);
-    }
+  const handleUploadToggle = (enabled: boolean) => {
+    stageChanges({
+      documents: {
+        isUploadDocumentsAllowed: enabled,
+      },
+    });
   };
 
   if (loading) {

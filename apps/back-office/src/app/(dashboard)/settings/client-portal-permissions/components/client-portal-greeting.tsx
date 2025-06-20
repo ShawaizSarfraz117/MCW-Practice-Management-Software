@@ -2,25 +2,41 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@mcw/ui";
 import ClientPortalGreetingModal from "./clientPortalGreetingModal";
-import { useClientPortalSettings } from "../hooks/useClientPortalSettings";
 
-export default function ClientPortalGreetingCard() {
-  const { settings, loading, updateSettings } = useClientPortalSettings();
+interface ClientPortalGreetingCardProps {
+  settings: {
+    general?: {
+      welcomeMessage?: string | null;
+    };
+  } | null;
+  loading: boolean;
+  stageChanges: (updates: {
+    general?: {
+      welcomeMessage?: string;
+    };
+  }) => void;
+}
+
+export default function ClientPortalGreetingCard({
+  settings,
+  loading,
+  stageChanges,
+}: ClientPortalGreetingCardProps) {
   const [isEditingGreeting, setIsEditingGreeting] = useState(false);
 
   const welcomeMessage =
-    settings?.welcome_message ||
+    settings?.general?.welcomeMessage ||
     `Hi Karen,
 
 This Client Portal will help us get started by making it easy for you to review our practice policies and provide some basic information before our first session.
 If you leave the portal before completing everything, you can use the link we emailed to come back and start over. It should take between 5–20 minutes to finish.`;
 
-  const handleSaveGreeting = async (newGreeting: string) => {
-    try {
-      await updateSettings({ welcome_message: newGreeting });
-    } catch (error) {
-      console.error("Failed to update welcome message:", error);
-    }
+  const handleSaveGreeting = (newGreeting: string) => {
+    stageChanges({
+      general: {
+        welcomeMessage: newGreeting,
+      },
+    });
   };
 
   if (loading) {

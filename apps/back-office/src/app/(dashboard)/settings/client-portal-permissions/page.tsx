@@ -1,10 +1,15 @@
+"use client";
 import { Button } from "@mcw/ui";
 import ClientPortalCard from "./components/client-portal";
 import AppointmentRequestsCard from "./components/appointment-requests";
 import FileUploadCard from "./components/file-upload";
 import ClientPortalGreetingCard from "./components/client-portal-greeting";
+import { useClientPortalSettings } from "./hooks/useClientPortalSettings";
 
 export default function ClientPortalDashboard() {
+  const { settings, loading, saving, hasChanges, stageChanges, saveChanges } =
+    useClientPortalSettings();
+
   return (
     <div className="min-h-screen p-4 sm:p-6 md:p-8 text-[#1f2937]">
       <div className="space-y-6">
@@ -17,12 +22,34 @@ export default function ClientPortalDashboard() {
               Online appointment requests, client permissions and greetings.
             </p>
           </div>
-          <Button variant="default">Save Changes</Button>
+          <Button
+            disabled={!hasChanges || saving}
+            variant="default"
+            onClick={saveChanges}
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
         </div>
-        <ClientPortalCard />
-        <AppointmentRequestsCard />
-        <FileUploadCard />
-        <ClientPortalGreetingCard />
+        <ClientPortalCard
+          loading={loading}
+          settings={settings}
+          stageChanges={stageChanges}
+        />
+        <AppointmentRequestsCard
+          loading={loading}
+          settings={settings}
+          stageChanges={stageChanges}
+        />
+        <FileUploadCard
+          loading={loading}
+          settings={settings}
+          stageChanges={stageChanges}
+        />
+        <ClientPortalGreetingCard
+          loading={loading}
+          settings={settings}
+          stageChanges={stageChanges}
+        />
       </div>
     </div>
   );

@@ -1,12 +1,21 @@
 "use client";
 import { Switch, Card, CardContent, CardHeader, CardTitle } from "@mcw/ui";
-import { useClientPortalSettings } from "../hooks/useClientPortalSettings";
 import ManageAvailabilityModal from "./ManageAvailabilityModal";
 import { useState } from "react";
 
-type ClientPortalSettings = NonNullable<
-  ReturnType<typeof useClientPortalSettings>["settings"]
->;
+interface AppointmentSettings {
+  isAppointmentRequestsEnabled?: boolean;
+  allowNewClientsRequest?: boolean;
+  requestsFromNewIndividuals?: boolean;
+  requestsFromNewCouples?: boolean;
+  requestsFromNewContacts?: boolean;
+  isPrescreenNewClients?: boolean;
+  cardForAppointmentRequest?: boolean;
+}
+
+interface Settings {
+  appointments?: AppointmentSettings;
+}
 
 function AvailabilityWarning({ onManageClick }: { onManageClick: () => void }) {
   return (
@@ -44,7 +53,7 @@ function NewClientRequestSettings({
   onAllowNewClientsChange,
   onNewClientTypeChange,
 }: {
-  settings: ClientPortalSettings | null;
+  settings: Settings;
   onAllowNewClientsChange: (allow: boolean) => void;
   onNewClientTypeChange: (type: string, checked: boolean) => void;
 }) {
@@ -65,7 +74,7 @@ function NewClientRequestSettings({
       <div className="flex gap-6 mb-2">
         <div className="flex items-center gap-2">
           <input
-            checked={settings?.allow_new_clients_request ?? false}
+            checked={settings?.appointments?.allowNewClientsRequest ?? false}
             className="accent-[#188153]"
             id="allowYes"
             name="allowNewClients"
@@ -78,7 +87,7 @@ function NewClientRequestSettings({
         </div>
         <div className="flex items-center gap-2">
           <input
-            checked={!(settings?.allow_new_clients_request ?? false)}
+            checked={!(settings?.appointments?.allowNewClientsRequest ?? false)}
             className="accent-[#188153]"
             id="allowNo"
             name="allowNewClients"
@@ -90,11 +99,13 @@ function NewClientRequestSettings({
           </label>
         </div>
       </div>
-      {settings?.allow_new_clients_request && (
+      {settings?.appointments?.allowNewClientsRequest && (
         <div className="flex flex-col gap-2">
           <label className="flex items-center gap-2 text-sm">
             <input
-              checked={settings?.requests_from_new_individuals ?? false}
+              checked={
+                settings?.appointments?.requestsFromNewIndividuals ?? false
+              }
               className="accent-[#188153]"
               type="checkbox"
               onChange={(e) =>
@@ -105,7 +116,7 @@ function NewClientRequestSettings({
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input
-              checked={settings?.requests_from_new_couples ?? false}
+              checked={settings?.appointments?.requestsFromNewCouples ?? false}
               className="accent-[#188153]"
               type="checkbox"
               onChange={(e) =>
@@ -116,7 +127,7 @@ function NewClientRequestSettings({
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input
-              checked={settings?.requests_from_new_contacts ?? false}
+              checked={settings?.appointments?.requestsFromNewContacts ?? false}
               className="accent-[#188153]"
               type="checkbox"
               onChange={(e) =>
@@ -137,7 +148,7 @@ function InformationCollectionSettings({
   onPaymentMethodChange,
   onCreditCardRequirementChange,
 }: {
-  settings: ClientPortalSettings | null;
+  settings: Settings;
   onPrescreenerChange: (show: boolean) => void;
   onPaymentMethodChange: (ask: boolean) => void;
   onCreditCardRequirementChange: (require: boolean) => void;
@@ -163,7 +174,7 @@ function InformationCollectionSettings({
         <div className="flex gap-6 mt-1">
           <div className="flex items-center gap-2">
             <input
-              checked={settings?.is_prescreen_new_clinets ?? false}
+              checked={settings?.appointments?.isPrescreenNewClients ?? false}
               className="accent-[#188153]"
               id="prescreenerYes"
               name="prescreener"
@@ -176,7 +187,9 @@ function InformationCollectionSettings({
           </div>
           <div className="flex items-center gap-2">
             <input
-              checked={!(settings?.is_prescreen_new_clinets ?? false)}
+              checked={
+                !(settings?.appointments?.isPrescreenNewClients ?? false)
+              }
               className="accent-[#188153]"
               id="prescreenerNo"
               name="prescreener"
@@ -248,7 +261,9 @@ function InformationCollectionSettings({
         <div className="flex gap-6 mt-1">
           <div className="flex items-center gap-2">
             <input
-              checked={settings?.card_for_appointment_request ?? false}
+              checked={
+                settings?.appointments?.cardForAppointmentRequest ?? false
+              }
               className="accent-[#188153]"
               id="cardYes"
               name="requireCard"
@@ -261,7 +276,9 @@ function InformationCollectionSettings({
           </div>
           <div className="flex items-center gap-2">
             <input
-              checked={!(settings?.card_for_appointment_request ?? false)}
+              checked={
+                !(settings?.appointments?.cardForAppointmentRequest ?? false)
+              }
               className="accent-[#188153]"
               id="cardNo"
               name="requireCard"
@@ -278,64 +295,66 @@ function InformationCollectionSettings({
   );
 }
 
-export default function AppointmentRequestsCard() {
-  const { settings, loading, updateSettings } = useClientPortalSettings();
+interface AppointmentRequestsCardProps {
+  settings: Settings | null;
+  loading: boolean;
+  stageChanges: (updates: Partial<Settings>) => void;
+}
+
+export default function AppointmentRequestsCard({
+  settings,
+  loading,
+  stageChanges,
+}: AppointmentRequestsCardProps) {
   const [showModal, setShowModal] = useState(false);
 
-  const handleAppointmentRequestsToggle = async (checked: boolean) => {
-    try {
-      await updateSettings({ is_appointment_requests_enabled: checked });
-    } catch (error) {
-      console.error("Failed to update appointment requests setting:", error);
-    }
+  const handleAppointmentRequestsToggle = (checked: boolean) => {
+    stageChanges({
+      appointments: {
+        isAppointmentRequestsEnabled: checked,
+      },
+    });
   };
 
-  const handleAllowNewClientsChange = async (allow: boolean) => {
-    try {
-      await updateSettings({ allow_new_clients_request: allow });
-    } catch (error) {
-      console.error("Failed to update allow new clients setting:", error);
-    }
+  const handleAllowNewClientsChange = (allow: boolean) => {
+    stageChanges({
+      appointments: {
+        allowNewClientsRequest: allow,
+      },
+    });
   };
 
-  const handleNewClientTypeChange = async (type: string, checked: boolean) => {
-    try {
-      const updates: Record<string, boolean> = {};
-      if (type === "individuals") {
-        updates.requests_from_new_individuals = checked;
-      } else if (type === "couples") {
-        updates.requests_from_new_couples = checked;
-      } else if (type === "contacts") {
-        updates.requests_from_new_contacts = checked;
-      }
-      await updateSettings(updates);
-    } catch (error) {
-      console.error(`Failed to update ${type} setting:`, error);
+  const handleNewClientTypeChange = (type: string, checked: boolean) => {
+    const updates: Partial<Settings> = { appointments: {} };
+    if (type === "individuals") {
+      updates.appointments!.requestsFromNewIndividuals = checked;
+    } else if (type === "couples") {
+      updates.appointments!.requestsFromNewCouples = checked;
+    } else if (type === "contacts") {
+      updates.appointments!.requestsFromNewContacts = checked;
     }
+    stageChanges(updates);
   };
 
-  const handlePrescreenerChange = async (show: boolean) => {
-    try {
-      await updateSettings({ is_prescreen_new_clinets: show });
-    } catch (error) {
-      console.error("Failed to update prescreener setting:", error);
-    }
+  const handlePrescreenerChange = (show: boolean) => {
+    stageChanges({
+      appointments: {
+        isPrescreenNewClients: show,
+      },
+    });
   };
 
-  const handlePaymentMethodChange = async (ask: boolean) => {
-    try {
-      console.log("Payment method setting would be updated to:", ask);
-    } catch (error) {
-      console.error("Failed to update payment method setting:", error);
-    }
+  const handlePaymentMethodChange = (ask: boolean) => {
+    // TODO: Implement when payment method setting is added
+    console.log("Payment method setting would be updated to:", ask);
   };
 
-  const handleCreditCardRequirementChange = async (require: boolean) => {
-    try {
-      await updateSettings({ card_for_appointment_request: require });
-    } catch (error) {
-      console.error("Failed to update credit card requirement:", error);
-    }
+  const handleCreditCardRequirementChange = (require: boolean) => {
+    stageChanges({
+      appointments: {
+        cardForAppointmentRequest: require,
+      },
+    });
   };
 
   if (loading) {
@@ -368,13 +387,15 @@ export default function AppointmentRequestsCard() {
             </div>
           </div>
           <Switch
-            checked={settings?.is_appointment_requests_enabled ?? false}
+            checked={
+              settings?.appointments?.isAppointmentRequestsEnabled ?? false
+            }
             className="mt-1 scale-125 data-[state=checked]:bg-[#188153]"
             onCheckedChange={handleAppointmentRequestsToggle}
           />
         </div>
       </CardHeader>
-      {settings?.is_appointment_requests_enabled && (
+      {settings?.appointments?.isAppointmentRequestsEnabled && (
         <CardContent className="pt-0">
           <AvailabilityWarning onManageClick={() => setShowModal(true)} />
           <ManageAvailabilityModal
@@ -382,13 +403,13 @@ export default function AppointmentRequestsCard() {
             onClose={() => setShowModal(false)}
           />
           <NewClientRequestSettings
-            settings={settings}
+            settings={settings || {}}
             onAllowNewClientsChange={handleAllowNewClientsChange}
             onNewClientTypeChange={handleNewClientTypeChange}
           />
-          {settings?.allow_new_clients_request && (
+          {settings?.appointments?.allowNewClientsRequest && (
             <InformationCollectionSettings
-              settings={settings}
+              settings={settings || {}}
               onCreditCardRequirementChange={handleCreditCardRequirementChange}
               onPaymentMethodChange={handlePaymentMethodChange}
               onPrescreenerChange={handlePrescreenerChange}

@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "@mcw/ui";
 import { useState, useEffect } from "react";
-import { useClientPortalSettings } from "../hooks/useClientPortalSettings";
 
 // Domain Input Component
 function DomainInput({
@@ -131,42 +130,61 @@ function PortalEnabledInfo() {
   );
 }
 
-export default function ClientPortalCard() {
-  const { settings, loading, updateSettings } = useClientPortalSettings();
+interface ClientPortalCardProps {
+  settings: {
+    general?: {
+      isEnabled?: boolean;
+      domainUrl?: string | null;
+    };
+  } | null;
+  loading: boolean;
+  stageChanges: (updates: {
+    general?: {
+      isEnabled?: boolean;
+      domainUrl?: string;
+    };
+  }) => void;
+}
+
+export default function ClientPortalCard({
+  settings,
+  loading,
+  stageChanges,
+}: ClientPortalCardProps) {
   const [editing, setEditing] = useState(false);
   const [subdomain, setSubdomain] = useState("");
 
   useEffect(() => {
-    if (settings?.domain_url) {
-      const extractedSubdomain = settings.domain_url
+    if (settings?.general?.domainUrl) {
+      const extractedSubdomain = settings.general.domainUrl
         .replace("https://", "")
         .replace(".clientsecure.me", "");
       setSubdomain(extractedSubdomain);
     }
   }, [settings]);
 
-  const handlePortalToggle = async (enabled: boolean) => {
-    try {
-      await updateSettings({ is_enabled: enabled });
-    } catch (error) {
-      console.error("Failed to update portal settings:", error);
-    }
+  const handlePortalToggle = (enabled: boolean) => {
+    stageChanges({
+      general: {
+        isEnabled: enabled,
+      },
+    });
   };
 
-  const handleSubdomainSave = async () => {
-    try {
-      const domainUrl = `https://${subdomain}.clientsecure.me`;
-      await updateSettings({ domain_url: domainUrl });
-      setEditing(false);
-    } catch (error) {
-      console.error("Failed to update domain:", error);
-    }
+  const handleSubdomainSave = () => {
+    const domainUrl = `https://${subdomain}.clientsecure.me`;
+    stageChanges({
+      general: {
+        domainUrl: domainUrl,
+      },
+    });
+    setEditing(false);
   };
 
   const handleCancel = () => {
     setEditing(false);
-    if (settings?.domain_url) {
-      const extractedSubdomain = settings.domain_url
+    if (settings?.general?.domainUrl) {
+      const extractedSubdomain = settings.general.domainUrl
         .replace("https://", "")
         .replace(".clientsecure.me", "");
       setSubdomain(extractedSubdomain);
@@ -187,7 +205,7 @@ export default function ClientPortalCard() {
     );
   }
 
-  const isEnabled = settings?.is_enabled ?? false;
+  const isEnabled = settings?.general?.isEnabled ?? false;
 
   return (
     <Card className="rounded-xl shadow-sm border border-[#E5E7EB]">
