@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 interface NotesSectionProps {
   appointmentData:
@@ -31,33 +32,26 @@ export function NotesSection({
   const [nextAppointment, setNextAppointment] =
     useState<AppointmentInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasNotes, setHasNotes] = useState(false);
-  const [isLoadingNotes, setIsLoadingNotes] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const checkForNotes = async () => {
-      if (!appointmentData?.id) return;
+  const {
+    data: notesData,
+    isLoading: isLoadingNotes,
+    error,
+  } = useQuery({
+    queryKey: ["appointmentNotes", appointmentData?.id],
+    queryFn: async () => {
+      if (!appointmentData?.id) return null;
+      const response = await fetch(
+        `/api/appointmentNote?appointment_id=${appointmentData.id}`,
+      );
+      if (!response.ok) throw new Error("Failed to fetch notes");
+      return response.json();
+    },
+    enabled: !!appointmentData?.id,
+  });
 
-      setIsLoadingNotes(true);
-      try {
-        const response = await fetch(
-          `/api/appointmentNote?appointment_id=${appointmentData.id}`,
-        );
-        if (response.ok) {
-          const notes = await response.json();
-          setHasNotes(Array.isArray(notes) && notes.length > 0);
-        }
-      } catch (error) {
-        console.error("Error checking for notes:", error);
-        setHasNotes(false);
-      } finally {
-        setIsLoadingNotes(false);
-      }
-    };
-
-    checkForNotes();
-  }, [appointmentData?.id]);
+  const hasNotes = Array.isArray(notesData) && notesData.length > 0;
 
   useEffect(() => {
     const fetchAdjacentAppointments = async () => {
@@ -164,6 +158,8 @@ export function NotesSection({
         <div className="flex items-center gap-3">
           {isLoadingNotes ? (
             <span className="text-[#717171] text-xs">Checking notes...</span>
+          ) : error ? (
+            <span className="text-red-500 text-xs">Failed to load notes</span>
           ) : hasNotes ? (
             <p
               className="text-[#0a96d4] text-[13px] cursor-pointer hover:underline"
