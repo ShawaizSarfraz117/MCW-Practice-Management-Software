@@ -433,7 +433,6 @@ export default function ClientProfile({
             <TabsContent value="files">
               <FilesTabGroup
                 ref={filesTabRef}
-                clientEmail={clientEmail || ""}
                 clientGroupId={id as string}
                 clients={
                   clientGroup?.ClientGroupMembership?.map((m) => ({
