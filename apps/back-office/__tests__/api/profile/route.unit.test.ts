@@ -116,19 +116,8 @@ describe("PUT /api/profile", () => {
       profile_photo: "https://example.com/photo.jpg",
     });
 
-    // Mock the transaction
-    vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
-      const tx = {
-        user: {
-          update: vi.fn().mockResolvedValue(mockUser),
-        },
-        clinician: {
-          findUnique: vi.fn().mockResolvedValue(null),
-          update: vi.fn(),
-        },
-      };
-      return callback(tx);
-    });
+    // Mock the transaction to resolve with the mocked user
+    vi.mocked(prisma.$transaction).mockResolvedValue(mockUser);
 
     const request = createRequestWithBody(
       "/api/profile",
