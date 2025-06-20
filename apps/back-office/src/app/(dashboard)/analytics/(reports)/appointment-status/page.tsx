@@ -128,11 +128,11 @@ export default function AppointmentStatusPage() {
           {appointmentData && appointmentData.pagination.totalPages > 1 && (
             <AppointmentStatusPagination
               currentPage={appointmentData.pagination.page}
-              totalPages={appointmentData.pagination.totalPages}
-              totalItems={appointmentData.pagination.total}
               itemsPerPage={appointmentData.pagination.limit}
-              onPageChange={handlePageChange}
+              totalItems={appointmentData.pagination.total}
+              totalPages={appointmentData.pagination.totalPages}
               onItemsPerPageChange={handleItemsPerPageChange}
+              onPageChange={handlePageChange}
             />
           )}
         </div>

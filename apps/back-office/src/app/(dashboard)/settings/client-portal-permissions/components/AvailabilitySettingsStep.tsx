@@ -144,11 +144,11 @@ export function AvailabilitySettingsStep({
           </div>
 
           <ServicesSection
-            services={services}
-            setServices={setServices}
             addServiceOpen={addServiceOpen}
-            setAddServiceOpen={setAddServiceOpen}
+            services={services}
             serviceSearch={serviceSearch}
+            setAddServiceOpen={setAddServiceOpen}
+            setServices={setServices}
             setServiceSearch={setServiceSearch}
           />
         </div>

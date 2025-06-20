@@ -152,7 +152,7 @@ export default function IncomeTable({
             ))
           ) : (
             <TableRow className="border-gray-200">
-              <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+              <TableCell className="text-center text-gray-500 py-8" colSpan={5}>
                 No income data found for the selected period
               </TableCell>
             </TableRow>
