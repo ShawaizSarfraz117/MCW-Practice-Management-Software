@@ -45,3 +45,29 @@ export const fetchSurveyTemplateByType = async (
     return [null, error instanceof Error ? error : new Error("Unknown error")];
   }
 };
+
+export const fetchSurveyTemplateByName = async (
+  name: string,
+): Promise<[SurveyTemplate | null, Error | null]> => {
+  try {
+    const response = (await FETCH.get({
+      url: "/survey-templates",
+      searchParams: { limit: "100" }, // Get more templates to search through
+    })) as SurveyTemplateResponse;
+
+    if (response.data && response.data.length > 0) {
+      // Find template by name (case-insensitive match)
+      const template = response.data.find((t) =>
+        t.name.toLowerCase().includes(name.toLowerCase()),
+      );
+
+      if (template) {
+        return [template, null];
+      }
+    }
+
+    return [null, new Error(`Survey template with name "${name}" not found`)];
+  } catch (error) {
+    return [null, error instanceof Error ? error : new Error("Unknown error")];
+  }
+};

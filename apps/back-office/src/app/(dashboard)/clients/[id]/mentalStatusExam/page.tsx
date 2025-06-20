@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Button, toast, SurveyPreview } from "@mcw/ui";
+import React, { useState, useEffect, useRef } from "react";
+import { Button, toast, SurveyPreview, SurveyPreviewRef } from "@mcw/ui";
+import Loading from "@/components/Loading";
 import { useParams, useRouter } from "next/navigation";
 import { createMentalStatusExamAnswer } from "./services/surveyAnswer.service";
 import { fetchSingleClientGroup } from "@/(dashboard)/clients/services/client.service";
@@ -60,6 +61,7 @@ export default function MentalStatusExam() {
   const [defaultAnswers, setDefaultAnswers] = useState<Record<string, unknown>>(
     {},
   );
+  const surveyRef = useRef<SurveyPreviewRef>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -154,6 +156,12 @@ export default function MentalStatusExam() {
     setDefaultAnswers(normalValues);
   };
 
+  const handleSubmit = () => {
+    if (surveyRef.current) {
+      surveyRef.current.submit();
+    }
+  };
+
   // Show loading state while fetching template
   if (!templateContent) {
     return (
@@ -186,8 +194,9 @@ export default function MentalStatusExam() {
       </div>
 
       {/* Survey Form */}
-      <div className="border rounded-lg bg-white p-6">
+      <div className="border rounded-lg bg-white p-6 relative">
         <SurveyPreview
+          ref={surveyRef}
           content={templateContent}
           defaultAnswers={defaultAnswers}
           mode="edit"
@@ -196,6 +205,13 @@ export default function MentalStatusExam() {
           type="mental_status_exam"
           onComplete={handleSaveMentalStatusExam}
         />
+
+        {/* Loading Overlay */}
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg">
+            <Loading message="Saving mental status exam..." />
+          </div>
+        )}
       </div>
 
       {/* Buttons */}
@@ -206,9 +222,12 @@ export default function MentalStatusExam() {
         <Button
           className="bg-[#2d8467] hover:bg-[#236c53] text-white"
           disabled={isSubmitting}
-          form="sq-root-form"
-          type="submit"
+          onClick={handleSubmit}
+          type="button"
         >
+          {isSubmitting && (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+          )}
           {isSubmitting ? "Saving..." : "Save Mental Status Exam"}
         </Button>
       </div>

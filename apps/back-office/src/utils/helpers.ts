@@ -42,11 +42,13 @@ export function getClientGroupInfo(client: unknown) {
   const name = (
     client as {
       ClientGroupMembership: {
-        Client: { legal_first_name: string; legal_last_name: string };
+        Client?: { legal_first_name: string; legal_last_name: string };
       }[];
     }
   ).ClientGroupMembership.map((m) =>
-    `${m.Client?.legal_first_name ?? ""} ${m.Client?.legal_last_name ?? ""}`.trim(),
+    m.Client
+      ? `${m.Client.legal_first_name ?? ""} ${m.Client.legal_last_name ?? ""}`.trim()
+      : "",
   )
     .filter(Boolean)
     .join(" & ");

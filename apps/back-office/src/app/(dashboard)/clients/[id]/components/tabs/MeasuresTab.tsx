@@ -240,14 +240,18 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
     }
 
     const filterByDateRange = (data: ChartDataPoint[]) => {
+      if (!data || !Array.isArray(data)) return [];
       return data.filter((item) => {
+        if (!item || !item.date) return false;
         const itemDate = new Date(item.date);
         return itemDate >= startDate && itemDate <= endDate;
       });
     };
 
     const filterARM5ByDateRange = (data: ARM5DataPoint[]) => {
+      if (!data || !Array.isArray(data)) return [];
       return data.filter((item) => {
+        if (!item || !item.date) return false;
         const itemDate = new Date(item.date);
         return itemDate >= startDate && itemDate <= endDate;
       });
@@ -272,12 +276,14 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
     surveyType: string,
     maxScore: number,
   ) => {
-    if (data.length === 0) return null;
+    if (!data || data.length === 0) return null;
 
-    const latestScore = data[data.length - 1]?.score;
-    const firstScore = data[0]?.score;
+    const latestScore = data[data.length - 1]?.score ?? 0;
+    const firstScore = data[0]?.score ?? 0;
     const previousScore =
-      data.length > 1 ? data[data.length - 2]?.score : firstScore;
+      data.length > 1
+        ? (data[data.length - 2]?.score ?? firstScore)
+        : firstScore;
     const changeFromBaseline = latestScore - firstScore;
     const changeFromLast = latestScore - previousScore;
 
@@ -511,11 +517,13 @@ export default function MeasuresTab({ clientId }: MeasuresTabProps) {
   };
 
   const renderARM5Chart = (data: ARM5DataPoint[]) => {
-    if (data.length === 0) return null;
+    if (!data || data.length === 0) return null;
 
     const latestData = data[data.length - 1];
     const firstData = data[0];
     const previousData = data.length > 1 ? data[data.length - 2] : firstData;
+
+    if (!latestData || !firstData) return null;
 
     const totalChangeFromBaseline = latestData.total - firstData.total;
     const totalChangeFromLast = latestData.total - previousData.total;

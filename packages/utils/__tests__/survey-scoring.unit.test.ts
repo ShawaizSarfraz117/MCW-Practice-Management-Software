@@ -18,7 +18,7 @@ describe("Survey Scoring Utilities", () => {
         gad7_q5: "Item 1",
         gad7_q6: "Item 1",
         gad7_q7: "Item 1",
-        gad7_q8: "Item 1",
+        gad7_q8: "Item 1", // Difficulty question - not included in score
       };
 
       const result = calculateGAD7Score(answers);
@@ -36,7 +36,7 @@ describe("Survey Scoring Utilities", () => {
         gad7_q5: "Item 2",
         gad7_q6: "Item 1",
         gad7_q7: "Item 1",
-        gad7_q8: "Item 1",
+        gad7_q8: "Item 1", // Difficulty question - not included in score
       };
 
       const result = calculateGAD7Score(answers);
@@ -54,11 +54,11 @@ describe("Survey Scoring Utilities", () => {
         gad7_q5: "Item 3", // Over half the days = 2
         gad7_q6: "Item 3", // Over half the days = 2
         gad7_q7: "Item 1", // Not at all = 0
-        gad7_q8: "Item 1", // Not at all = 0
+        gad7_q8: "Item 1", // Difficulty question - not included in score
       };
 
       const result = calculateGAD7Score(answers);
-      expect(result.totalScore).toBe(12); // 2+2+2+2+2+2+0+0 = 12
+      expect(result.totalScore).toBe(12); // 2+2+2+2+2+2+0 = 12
       expect(result.severity).toBe("Moderate"); // 12 falls in the Moderate range (10-14)
       expect(result.interpretation).toBe("Moderate anxiety");
     });
@@ -72,11 +72,11 @@ describe("Survey Scoring Utilities", () => {
         gad7_q5: "Item 3",
         gad7_q6: "Item 3",
         gad7_q7: "Item 2",
-        gad7_q8: "Item 1",
+        gad7_q8: "Item 1", // Difficulty question - not included in score
       };
 
       const result = calculateGAD7Score(answers);
-      expect(result.totalScore).toBe(16); // 3+3+3+2+2+2+1+0 = 16
+      expect(result.totalScore).toBe(16); // 3+3+3+2+2+2+1 = 16
       expect(result.severity).toBe("Severe"); // 16 falls in the Severe range (15-21)
       expect(result.interpretation).toBe("Severe anxiety");
     });
@@ -90,6 +90,23 @@ describe("Survey Scoring Utilities", () => {
 
       const result = calculateGAD7Score(answers);
       expect(result.totalScore).toBe(3); // 1 + 2
+    });
+
+    it("should not include question 8 (difficulty/impairment) in total score", () => {
+      const answers = {
+        gad7_q1: "Item 1", // 0
+        gad7_q2: "Item 1", // 0
+        gad7_q3: "Item 1", // 0
+        gad7_q4: "Item 1", // 0
+        gad7_q5: "Item 1", // 0
+        gad7_q6: "Item 1", // 0
+        gad7_q7: "Item 1", // 0
+        gad7_q8: "Item 4", // 3 - but should not be included
+      };
+
+      const result = calculateGAD7Score(answers);
+      expect(result.totalScore).toBe(0); // Should be 0, not 3
+      expect(result.severity).toBe("Minimal");
     });
   });
 

@@ -1,445 +1,326 @@
 /* eslint-disable max-lines-per-function */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Button,
-  Input,
+  toast,
+  SurveyPreview,
+  SurveyPreviewRef,
   Select,
   SelectTrigger,
   SelectContent,
   SelectItem,
-  Card,
-  CardContent,
-  Badge,
 } from "@mcw/ui";
-import Link from "next/link";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@mcw/ui";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { toast } from "@mcw/ui";
-import { useRouter } from "next/navigation";
-import GAD7Form from "./components/GAD7";
-import PHQ9Form from "./components/PHQ9";
-import ARM5Form from "./components/ARM5";
+import Loading from "@/components/Loading";
+import { useParams, useRouter } from "next/navigation";
+import { createSurveyAnswer } from "../mentalStatusExam/services/surveyAnswer.service";
+import { fetchSingleClientGroup } from "@/(dashboard)/clients/services/client.service";
+import { fetchSurveyTemplateByName } from "@/(dashboard)/clients/services/surveyTemplate.service";
+import { ClientGroupFromAPI } from "../edit/components/ClientEdit";
 import { ClientInfoHeader } from "../components/ClientInfoHeader";
-import { getClientGroupInfo } from "@/(dashboard)/clients/[id]/components/ClientProfile";
 
-interface PageProps {
-  params: { id: string };
-  searchParams: { clientName?: string };
-}
+// Available scored measures
+const SCORED_MEASURES = [
+  { value: "GAD-7", label: "GAD-7 (Generalized Anxiety Disorder)" },
+  { value: "PHQ-9", label: "PHQ-9 (Patient Health Questionnaire)" },
+  { value: "ARM-5", label: "ARM-5 (Agnew Relationship Measure)" },
+];
 
-export default function ScoredMeasure({ params, searchParams }: PageProps) {
+// Function to map generic survey question names to scoring format
+const mapSurveyAnswersToScoringFormat = (
+  answers: Record<string, unknown>,
+  measureType: string,
+): Record<string, string> => {
+  const mappedAnswers: Record<string, string> = {};
+
+  switch (measureType) {
+    case "GAD-7":
+      // GAD-7 has 9 questions (question2-question9 map to gad7_q1-gad7_q8)
+      // question9 is the difficulty question (maps to gad7_q8)
+      for (let i = 2; i <= 9; i++) {
+        const questionKey = `question${i}`;
+        const scoringKey = `gad7_q${i - 1}`; // question2 -> gad7_q1, question3 -> gad7_q2, etc.
+        if (answers[questionKey]) {
+          mappedAnswers[scoringKey] = answers[questionKey] as string;
+        }
+      }
+      break;
+
+    case "PHQ-9":
+      // PHQ-9 has 11 questions (question2-question11 map to phq9_q1-phq9_q10)
+      // question11 is the difficulty question (maps to phq9_q10)
+      for (let i = 2; i <= 11; i++) {
+        const questionKey = `question${i}`;
+        const scoringKey = `phq9_q${i - 1}`; // question2 -> phq9_q1, question3 -> phq9_q2, etc.
+        if (answers[questionKey]) {
+          mappedAnswers[scoringKey] = answers[questionKey] as string;
+        }
+      }
+      break;
+
+    case "ARM-5":
+      // ARM-5 has 5 questions (question2-question6 map to arm5_q1-arm5_q5)
+      for (let i = 2; i <= 6; i++) {
+        const questionKey = `question${i}`;
+        const scoringKey = `arm5_q${i - 1}`; // question2 -> arm5_q1, question3 -> arm5_q2, etc.
+        if (answers[questionKey]) {
+          mappedAnswers[scoringKey] = answers[questionKey] as string;
+        }
+      }
+      break;
+
+    default:
+      // If no mapping is found, return original answers
+      Object.keys(answers).forEach((key) => {
+        if (typeof answers[key] === "string") {
+          mappedAnswers[key] = answers[key] as string;
+        }
+      });
+  }
+
+  return mappedAnswers;
+};
+
+export default function ScoredMeasure() {
+  const params = useParams();
   const router = useRouter();
-  const clientGroupId = params.id; // This is actually the client group ID from the URL
+  const clientGroupId = params.id as string;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clientInfo, setClientInfo] = useState<ClientGroupFromAPI | null>(null);
+  const [selectedMeasure, setSelectedMeasure] = useState("GAD-7");
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [templateContent, setTemplateContent] = useState<string | null>(null);
+  const surveyRef = useRef<SurveyPreviewRef>(null);
 
-  const [measure, setMeasure] = useState("GAD-7");
-  const [gad7Answers, setGad7Answers] = useState<string[]>(Array(7).fill(""));
-  const [gad7Difficulty, setGad7Difficulty] = useState<string>("");
-  const [phq9Answers, setPhq9Answers] = useState<string[]>(Array(9).fill(""));
-  const [phq9Difficulty, setPhq9Difficulty] = useState<string>("");
-  const [arm5Answers, setArm5Answers] = useState<string[]>(Array(5).fill(""));
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
-  interface SurveyScore {
-    totalScore: number;
-    severity?: string;
-    interpretation?: string;
-    flaggedItems?: string[];
-  }
-
-  const [score, setScore] = useState<SurveyScore | null>(null);
-
-  // Fetch client group data
-  const {
-    data: clientGroup,
-    isLoading: isLoadingClient,
-    error: clientError,
-  } = useQuery({
-    queryKey: ["clientGroup", clientGroupId],
-    queryFn: async () => {
-      console.log("Fetching client group:", clientGroupId);
-      const response = await fetch(`/api/client/group/${clientGroupId}`);
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Client group API error:", response.status, errorText);
-        throw new Error(`Failed to fetch client group: ${response.status}`);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch client info
+        const data = (await fetchSingleClientGroup({
+          id: clientGroupId,
+          searchParams: {
+            includeProfile: "true",
+            includeAdress: "true",
+            includeMembership: "true",
+            includeContacts: "true",
+          },
+        })) as { data: ClientGroupFromAPI } | null;
+        if (data?.data) {
+          setClientInfo(data?.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch client data:", error);
       }
-      const data = await response.json();
-      console.log("Client group API response:", data);
-      return data.data;
-    },
-    enabled: !!clientGroupId,
-    retry: 1,
-  });
+    };
 
-  // Get client name from either query params or fetched data
-  const clientName = (() => {
-    if (searchParams.clientName) {
-      return searchParams.clientName;
-    }
+    fetchData();
+  }, [clientGroupId]);
 
-    if (isLoadingClient) {
-      return "Loading...";
-    }
+  // Fetch survey template when measure changes
+  useEffect(() => {
+    const fetchTemplate = async () => {
+      try {
+        const [surveyTemplate, error] =
+          await fetchSurveyTemplateByName(selectedMeasure);
 
-    if (clientError) {
-      console.error("Client group error:", clientError);
-      return "Error loading client";
-    }
-
-    if (clientGroup) {
-      console.log("Client group data:", clientGroup);
-      return getClientGroupInfo(clientGroup);
-    }
-
-    console.log("Client group response:", clientGroup);
-    return "Client";
-  })();
-
-  // Fetch survey templates
-  const { data: templatesData, error: templatesError } = useQuery({
-    queryKey: ["surveyTemplates"],
-    queryFn: async () => {
-      const response = await fetch("/api/survey-templates");
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(
-          "Survey templates API error:",
-          response.status,
-          errorText,
-        );
-        throw new Error(
-          `Failed to fetch templates: ${response.status} ${errorText}`,
-        );
-      }
-      return response.json();
-    },
-    retry: 3,
-    retryDelay: 1000,
-  });
-
-  interface SurveyAnswerData {
-    template_id: string;
-    client_group_id: string;
-    content: Record<string, string>;
-    status: string;
-  }
-
-  // Create survey answer mutation
-  const { mutate: saveSurvey, isPending } = useMutation({
-    mutationFn: async (data: SurveyAnswerData) => {
-      const response = await fetch("/api/survey-answers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save survey");
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setScore(data.score);
-      toast({
-        title: "Survey saved successfully",
-        description: data.score
-          ? `Score: ${data.score.totalScore} - ${data.score.severity}`
-          : "Survey saved",
-      });
-
-      // Check for clinical alerts
-      if (data.score?.flaggedItems?.length > 0) {
+        if (surveyTemplate && !error) {
+          setTemplateId(surveyTemplate.id);
+          setTemplateContent(
+            typeof surveyTemplate.content === "string"
+              ? surveyTemplate.content
+              : JSON.stringify(surveyTemplate.content),
+          );
+        } else {
+          console.error("Failed to fetch template:", error);
+          toast({
+            title: "Error",
+            description: `Failed to load ${selectedMeasure} template`,
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch template:", error);
         toast({
-          title: "⚠️ Clinical Alert",
-          description: data.score.flaggedItems[0],
+          title: "Error",
+          description: `Failed to load ${selectedMeasure} template`,
           variant: "destructive",
         });
       }
-
-      // Redirect to client profile after 2 seconds
-      setTimeout(() => {
-        router.push(`/clients/${clientGroupId}?tab=measures`);
-      }, 2000);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save survey",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Map answers to survey format
-  const mapAnswersToSurveyFormat = () => {
-    const answerMap: Record<string, string> = {
-      "Not at all": "Item 1",
-      "Several days": "Item 2",
-      "Over half the days": "Item 3",
-      "More than half the days": "Item 3", // PHQ-9 specific
-      "Nearly every day": "Item 4",
-      // ARM-5 specific
-      "Strongly Disagree": "Item 1",
-      Disagree: "Item 2",
-      "Slightly Disagree": "Item 3",
-      Neutral: "Item 4",
-      "Slightly Agree": "Item 5",
-      Agree: "Item 6",
-      "Strongly Agree": "Item 7",
     };
 
-    const content: Record<string, string> = {};
+    fetchTemplate();
+  }, [selectedMeasure]);
 
-    if (measure === "GAD-7") {
-      gad7Answers.forEach((answer, idx) => {
-        if (answer) {
-          content[`gad7_q${idx + 1}`] = answerMap[answer] || answer;
-        }
-      });
-      if (gad7Difficulty) {
-        content["gad7_q8"] = answerMap[gad7Difficulty] || gad7Difficulty;
+  const handleSaveScoredMeasure = async (result: Record<string, unknown>) => {
+    setIsSubmitting(true);
+
+    try {
+      // Check if we have the template ID from the initial load
+      if (!templateId) {
+        throw new Error(`${selectedMeasure} template not found`);
       }
-    } else if (measure === "PHQ-9") {
-      phq9Answers.forEach((answer, idx) => {
-        if (answer) {
-          content[`phq9_q${idx + 1}`] = answerMap[answer] || answer;
-        }
-      });
-      if (phq9Difficulty) {
-        content["phq9_q10"] = answerMap[phq9Difficulty] || phq9Difficulty;
+      if (!clientInfo?.ClientGroupMembership?.[0]?.Client?.id) {
+        toast({
+          title: "Client not found",
+          variant: "destructive",
+        });
+        return;
       }
-    } else if (measure === "ARM-5") {
-      arm5Answers.forEach((answer, idx) => {
-        if (answer) {
-          content[`arm5_q${idx + 1}`] = answerMap[answer] || answer;
-        }
+
+      // Map the generic survey answers to the expected scoring format
+      const mappedContent = mapSurveyAnswersToScoringFormat(
+        result,
+        selectedMeasure,
+      );
+
+      const [response, error] = await createSurveyAnswer({
+        client_id: clientInfo.ClientGroupMembership?.[0]?.Client?.id || "",
+        template_id: templateId,
+        content: mappedContent,
+        status: "COMPLETED",
+        client_group_id: clientGroupId,
       });
-    }
 
-    return content;
-  };
+      if (error || !response) {
+        throw new Error(error?.message || "Failed to save scored measure");
+      }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+      // Show score if available
+      if (response.score) {
+        toast({
+          title: "Scored Measure saved successfully",
+          description: `Score: ${response.score.totalScore} - ${response.score.severity || "Completed"}`,
+          variant: "success",
+        });
 
-    // Validate that all questions are answered
-    let isValid = true;
-    if (measure === "GAD-7") {
-      isValid = gad7Answers.every((a) => a !== "") && gad7Difficulty !== "";
-    } else if (measure === "PHQ-9") {
-      isValid = phq9Answers.every((a) => a !== "") && phq9Difficulty !== "";
-    } else if (measure === "ARM-5") {
-      isValid = arm5Answers.every((a) => a !== "");
-    }
+        // Check for clinical alerts
+        if (
+          response.score.flaggedItems &&
+          response.score.flaggedItems.length > 0
+        ) {
+          toast({
+            title: "⚠️ Clinical Alert",
+            description: response.score.flaggedItems[0],
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Scored Measure saved successfully",
+          variant: "success",
+        });
+      }
 
-    if (!isValid) {
+      router.push(`/clients/${clientGroupId}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to save scored measure";
       toast({
-        title: "Incomplete form",
-        description: "Please answer all questions before submitting.",
+        title: errorMessage,
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Find the template ID
-    interface SurveyTemplate {
-      id: string;
-      name: string;
-    }
-
-    const template = templatesData?.data?.find((t: SurveyTemplate) =>
-      t.name.toLowerCase().includes(measure.toLowerCase()),
-    );
-
-    if (!template) {
-      toast({
-        title: "Error",
-        description: "Survey template not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Save the survey
-    saveSurvey({
-      template_id: template.id,
-      client_group_id: clientGroupId,
-      content: mapAnswersToSurveyFormat(),
-      status: "COMPLETED",
-    });
   };
 
-  // Check for PHQ-9 suicidal ideation
-  const showSuicidalIdeationWarning =
-    measure === "PHQ-9" && phq9Answers[8] && phq9Answers[8] !== "Not at all";
+  const handleCancel = () => {
+    router.push(`/clients/${clientGroupId}`);
+  };
 
-  // Show error states
-  if (clientError) {
-    return (
-      <div className="px-4 py-8 w-full max-w-6xl mx-auto">
-        <Alert className="mb-4 border-red-500 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <strong>Error loading client:</strong>{" "}
-            {clientError instanceof Error
-              ? clientError.message
-              : "Unknown error"}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  const handleSubmit = () => {
+    if (surveyRef.current) {
+      surveyRef.current.submit();
+    }
+  };
 
-  if (templatesError) {
+  // Show loading state while fetching template
+  if (!templateContent) {
     return (
-      <div className="px-4 py-8 w-full max-w-6xl mx-auto">
-        <Alert className="mb-4 border-red-500 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <strong>Error loading survey templates:</strong>{" "}
-            {templatesError instanceof Error
-              ? templatesError.message
-              : "Unknown error"}
-          </AlertDescription>
-        </Alert>
+      <div className="px-4 w-full max-w-6xl mx-auto mt-4">
+        <ClientInfoHeader
+          clientGroupId={clientGroupId}
+          clientInfo={clientInfo}
+        />
+        <div className="flex items-center justify-center p-8">
+          <p className="text-gray-500">Loading scored measure form...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-8 w-full max-w-6xl mx-auto">
-      {clientGroup ? (
-        <ClientInfoHeader
-          clientGroupId={clientGroupId}
-          clientInfo={clientGroup}
+    <div className="px-4 w-full max-w-6xl mx-auto mt-4">
+      <ClientInfoHeader clientGroupId={clientGroupId} clientInfo={clientInfo} />
+
+      {/* Section Title and Measure Selection */}
+      <div className="flex items-center justify-between mt-8 mb-6">
+        <h2 className="text-xl font-semibold">Scored Measure</h2>
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-medium text-gray-700">
+            Select Measure:
+          </label>
+          <Select value={selectedMeasure} onValueChange={setSelectedMeasure}>
+            <SelectTrigger className="w-80">
+              <span>
+                {
+                  SCORED_MEASURES.find((m) => m.value === selectedMeasure)
+                    ?.label
+                }
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {SCORED_MEASURES.map((measure) => (
+                <SelectItem key={measure.value} value={measure.value}>
+                  {measure.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Survey Form */}
+      <div className="border rounded-lg bg-white p-6 relative">
+        <SurveyPreview
+          ref={surveyRef}
+          content={templateContent}
+          defaultAnswers={{}}
+          mode="edit"
+          showInstructions={false}
+          title={selectedMeasure}
+          type="scored_measures"
+          onComplete={handleSaveScoredMeasure}
         />
-      ) : null}
 
-      {/* Section Title and Subtext */}
-      <div className="flex flex-col gap-1 mb-4">
-        <h2 className="text-xl font-semibold">Scored measure</h2>
-        <div className="text-sm text-gray-600">
-          Completing on behalf of {clientName}. For client completion,{" "}
-          <Link className="text-[#2d8467] hover:underline" href="#">
-            share now.
-          </Link>
-        </div>
+        {/* Loading Overlay */}
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg">
+            <Loading message="Saving scored measure..." />
+          </div>
+        )}
       </div>
 
-      {/* Measure Dropdown */}
-      <div className="mb-4">
-        <Select value={measure} onValueChange={setMeasure}>
-          <SelectTrigger className="w-full max-w-xs">{measure}</SelectTrigger>
-          <SelectContent>
-            <SelectItem value="GAD-7">GAD-7</SelectItem>
-            <SelectItem value="PHQ-9">PHQ-9</SelectItem>
-            <SelectItem value="ARM-5">ARM-5</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Buttons */}
+      <div className="flex gap-2 my-6">
+        <Button type="button" variant="outline" onClick={handleCancel}>
+          Cancel
+        </Button>
+        <Button
+          className="bg-[#2d8467] hover:bg-[#236c53] text-white"
+          disabled={isSubmitting}
+          onClick={handleSubmit}
+          type="button"
+        >
+          {isSubmitting && (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+          )}
+          {isSubmitting ? "Saving..." : "Save Scored Measure"}
+        </Button>
       </div>
-
-      {/* Clinical Alert for PHQ-9 */}
-      {showSuicidalIdeationWarning && (
-        <Alert className="mb-4 border-red-500 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <strong>Clinical Alert:</strong> Client has indicated thoughts of
-            self-harm. Immediate clinical attention and safety assessment
-            required.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Score Display */}
-      {score && (
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-lg">{measure} Score</h3>
-                <p className="text-sm text-gray-600">{score.interpretation}</p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold">{score.totalScore}</div>
-                {score.severity && (
-                  <Badge variant="outline" className="mt-1">
-                    {score.severity}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Questionnaire */}
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        {measure === "GAD-7" && (
-          <GAD7Form
-            answers={gad7Answers}
-            difficulty={gad7Difficulty}
-            setAnswers={setGad7Answers}
-            setDifficulty={setGad7Difficulty}
-          />
-        )}
-        {measure === "PHQ-9" && (
-          <PHQ9Form
-            answers={phq9Answers}
-            difficulty={phq9Difficulty}
-            setAnswers={setPhq9Answers}
-            setDifficulty={setPhq9Difficulty}
-          />
-        )}
-        {measure === "ARM-5" && (
-          <ARM5Form answers={arm5Answers} setAnswers={setArm5Answers} />
-        )}
-
-        {/* Date and Time */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date and time of completion
-            </label>
-            <Input
-              className="w-full"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
-          <div className="flex items-end">
-            <Input
-              className="w-full"
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-2 mt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              router.push(`/clients/${clientGroupId}?tab=measures`)
-            }
-          >
-            Cancel
-          </Button>
-          <Button
-            className="bg-[#2d8467] hover:bg-[#236c53] text-white"
-            type="submit"
-            disabled={isPending}
-          >
-            {isPending ? "Saving..." : "Save"}
-          </Button>
-        </div>
-      </form>
     </div>
   );
 }

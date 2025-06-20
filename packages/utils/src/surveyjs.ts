@@ -62,10 +62,17 @@ export const createSurveyModel = (
   survey.showQuestionNumbers = options?.showQuestionNumbers ?? "on";
   survey.showProgressBar = options?.showProgressBar ?? "off";
   survey.showCompleteButton = true;
+
   // Configure for preview/display mode
   if (mode === "display" || mode === "preview") {
     survey.showNavigationButtons = false;
     survey.showCompletedPage = false;
+  }
+
+  // For edit mode, ensure survey can be completed programmatically
+  if (mode === "edit") {
+    survey.showCompleteButton = false; // Hide the built-in complete button since we use external button
+    survey.showCompletedPage = false; // Prevent auto-redirect after completion
   }
 
   return survey;
