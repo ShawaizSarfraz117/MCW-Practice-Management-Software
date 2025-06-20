@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@mcw/ui";
 import { useState, useEffect } from "react";
+import type { PortalSettings, DeepPartial } from "@mcw/types";
 
 // Domain Input Component
 function DomainInput({
@@ -131,19 +132,9 @@ function PortalEnabledInfo() {
 }
 
 interface ClientPortalCardProps {
-  settings: {
-    general?: {
-      isEnabled?: boolean;
-      domainUrl?: string | null;
-    };
-  } | null;
+  settings: PortalSettings | null;
   loading: boolean;
-  stageChanges: (updates: {
-    general?: {
-      isEnabled?: boolean;
-      domainUrl?: string;
-    };
-  }) => void;
+  stageChanges: (updates: DeepPartial<PortalSettings>) => void;
 }
 
 export default function ClientPortalCard({

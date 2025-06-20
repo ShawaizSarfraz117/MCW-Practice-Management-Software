@@ -24,15 +24,12 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
 
-  // Build where clause for practice-wide addresses
-  const where = {
-    clinician_id: null,
-    ...(type && ["business", "client"].includes(type) ? { type } : {}),
-  };
-
   // Get billing addresses
   const billingAddresses = await prisma.billingAddress.findMany({
-    where,
+    where: {
+      clinician_id: { equals: null },
+      ...(type && ["business", "client"].includes(type) ? { type } : {}),
+    },
     select: {
       id: true,
       street: true,
@@ -71,7 +68,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   // Check if address of this type already exists for practice
   const existingAddress = await prisma.billingAddress.findFirst({
     where: {
-      clinician_id: null,
+      clinician_id: { equals: null },
       type,
     },
   });

@@ -20,7 +20,7 @@ export default function CalendarSettingsPage() {
 
   const handleCancellationNoticeChange = (value: string) => {
     const hours = parseInt(value.match(/\d+/)?.[0] || "24");
-    stageSetting("policies", "cancellationNoticeHours", hours);
+    stageSetting("display", "cancellationNoticeHours", hours);
   };
 
   if (loading) {
@@ -114,7 +114,7 @@ export default function CalendarSettingsPage() {
             </div>
             <select
               className="w-[277px] h-10 sm:w-64 p-2 border border-[#E5E7EB] rounded-md text-sm bg-white"
-              value={`At least ${settings?.policies?.cancellationNoticeHours || 24} hours`}
+              value={`At least ${settings?.display?.cancellationNoticeHours || 24} hours`}
               onChange={(e) => handleCancellationNoticeChange(e.target.value)}
             >
               <option>At least 12 hours</option>

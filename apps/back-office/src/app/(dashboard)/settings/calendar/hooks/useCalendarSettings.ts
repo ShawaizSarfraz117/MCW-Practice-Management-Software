@@ -34,15 +34,17 @@ export function useCalendarSettings() {
 
         // For objects, recursively check each property
         if (typeof original === "object" && typeof staged === "object") {
-          const originalKeys = Object.keys(original);
-          const stagedKeys = Object.keys(staged);
+          const originalObj = original as Record<string, unknown>;
+          const stagedObj = staged as Record<string, unknown>;
+          const originalKeys = Object.keys(originalObj);
+          const stagedKeys = Object.keys(stagedObj);
 
           // If different number of keys, there's a change
           if (originalKeys.length !== stagedKeys.length) return true;
 
           // Check each key
           for (const key of originalKeys) {
-            if (detectChanges(original[key], staged[key])) return true;
+            if (detectChanges(originalObj[key], stagedObj[key])) return true;
           }
 
           return false;

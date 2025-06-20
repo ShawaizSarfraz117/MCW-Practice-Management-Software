@@ -2,20 +2,7 @@
 import { Switch, Card, CardContent, CardHeader, CardTitle } from "@mcw/ui";
 import ManageAvailabilityModal from "./ManageAvailabilityModal";
 import { useState } from "react";
-
-interface AppointmentSettings {
-  isAppointmentRequestsEnabled?: boolean;
-  allowNewClientsRequest?: boolean;
-  requestsFromNewIndividuals?: boolean;
-  requestsFromNewCouples?: boolean;
-  requestsFromNewContacts?: boolean;
-  isPrescreenNewClients?: boolean;
-  cardForAppointmentRequest?: boolean;
-}
-
-interface Settings {
-  appointments?: AppointmentSettings;
-}
+import type { PortalSettings, DeepPartial } from "@mcw/types";
 
 function AvailabilityWarning({ onManageClick }: { onManageClick: () => void }) {
   return (
@@ -53,7 +40,7 @@ function NewClientRequestSettings({
   onAllowNewClientsChange,
   onNewClientTypeChange,
 }: {
-  settings: Settings;
+  settings: PortalSettings;
   onAllowNewClientsChange: (allow: boolean) => void;
   onNewClientTypeChange: (type: string, checked: boolean) => void;
 }) {
@@ -148,7 +135,7 @@ function InformationCollectionSettings({
   onPaymentMethodChange,
   onCreditCardRequirementChange,
 }: {
-  settings: Settings;
+  settings: PortalSettings;
   onPrescreenerChange: (show: boolean) => void;
   onPaymentMethodChange: (ask: boolean) => void;
   onCreditCardRequirementChange: (require: boolean) => void;
@@ -296,9 +283,9 @@ function InformationCollectionSettings({
 }
 
 interface AppointmentRequestsCardProps {
-  settings: Settings | null;
+  settings: PortalSettings | null;
   loading: boolean;
-  stageChanges: (updates: Partial<Settings>) => void;
+  stageChanges: (updates: DeepPartial<PortalSettings>) => void;
 }
 
 export default function AppointmentRequestsCard({
@@ -325,7 +312,7 @@ export default function AppointmentRequestsCard({
   };
 
   const handleNewClientTypeChange = (type: string, checked: boolean) => {
-    const updates: Partial<Settings> = { appointments: {} };
+    const updates: DeepPartial<PortalSettings> = { appointments: {} };
     if (type === "individuals") {
       updates.appointments!.requestsFromNewIndividuals = checked;
     } else if (type === "couples") {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { prisma } from "@mcw/database";
 import { randomUUID } from "crypto";
 import { NextRequest } from "next/server";
-import { GET, PUT } from "@/app/api/client-care-settings/route";
+import { GET, PUT } from "@/api/client-care-settings/route";
 import { createRequest, createRequestWithBody } from "@mcw/utils";
 
 // Mock next-auth

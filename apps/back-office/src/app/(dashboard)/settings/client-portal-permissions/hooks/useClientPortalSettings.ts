@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@mcw/ui";
-import type { PortalSettings } from "@mcw/types";
+import type { PortalSettings, DeepPartial } from "@mcw/types";
 
 export function useClientPortalSettings() {
   const [settings, setSettings] = useState<PortalSettings | null>(null);
@@ -154,7 +154,7 @@ export function useClientPortalSettings() {
   };
 
   // Stage changes without saving
-  const stageChanges = (updates: Partial<PortalSettings>) => {
+  const stageChanges = (updates: DeepPartial<PortalSettings>) => {
     setStagedSettings((current) => {
       if (!current) return current;
 
@@ -162,15 +162,15 @@ export function useClientPortalSettings() {
         general: {
           ...current.general,
           ...(updates.general || {}),
-        },
+        } as PortalSettings["general"],
         appointments: {
           ...current.appointments,
           ...(updates.appointments || {}),
-        },
+        } as PortalSettings["appointments"],
         documents: {
           ...current.documents,
           ...(updates.documents || {}),
-        },
+        } as PortalSettings["documents"],
       };
 
       return updatedSettings;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { withErrorHandling } from "@mcw/utils";
-import { clientCareSettingsService } from "../../../utils/client-care-settings.service";
+import { clientCareSettingsService } from "@/utils/client-care-settings.service";
 import { backofficeAuthOptions } from "../auth/[...nextauth]/auth-options";
 
 /**

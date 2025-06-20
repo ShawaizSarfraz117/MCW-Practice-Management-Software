@@ -2,19 +2,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@mcw/ui";
 import ClientPortalGreetingModal from "./clientPortalGreetingModal";
+import type { PortalSettings, DeepPartial } from "@mcw/types";
 
 interface ClientPortalGreetingCardProps {
-  settings: {
-    general?: {
-      welcomeMessage?: string | null;
-    };
-  } | null;
+  settings: PortalSettings | null;
   loading: boolean;
-  stageChanges: (updates: {
-    general?: {
-      welcomeMessage?: string;
-    };
-  }) => void;
+  stageChanges: (updates: DeepPartial<PortalSettings>) => void;
 }
 
 export default function ClientPortalGreetingCard({

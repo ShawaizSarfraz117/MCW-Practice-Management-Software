@@ -1,18 +1,11 @@
 "use client";
 import { Card, CardHeader } from "@mcw/ui";
+import type { PortalSettings, DeepPartial } from "@mcw/types";
 
 interface FileUploadCardProps {
-  settings: {
-    documents?: {
-      isUploadDocumentsAllowed?: boolean;
-    };
-  } | null;
+  settings: PortalSettings | null;
   loading: boolean;
-  stageChanges: (updates: {
-    documents?: {
-      isUploadDocumentsAllowed?: boolean;
-    };
-  }) => void;
+  stageChanges: (updates: DeepPartial<PortalSettings>) => void;
 }
 
 export default function FileUploadCard({

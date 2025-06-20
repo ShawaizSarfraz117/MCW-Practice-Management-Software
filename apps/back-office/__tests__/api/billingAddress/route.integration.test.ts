@@ -31,7 +31,7 @@ vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
 async function cleanupBillingAddresses(userId: string) {
   // Delete all practice-wide billing addresses
   await prisma.billingAddress.deleteMany({
-    where: { clinician_id: null },
+    where: { clinician_id: { equals: null } },
   });
   await prisma.userRole.deleteMany({ where: { user_id: userId } });
   await prisma.user.deleteMany({ where: { id: userId } });
@@ -72,7 +72,7 @@ describe("Billing Address API Integration Tests", () => {
   afterEach(async () => {
     // Clean up practice-wide billing addresses
     await prisma.billingAddress.deleteMany({
-      where: { clinician_id: null },
+      where: { clinician_id: { equals: null } },
     });
     vi.resetAllMocks();
   });
@@ -104,7 +104,7 @@ describe("Billing Address API Integration Tests", () => {
     expect(json.billingAddress).toMatchObject(body);
     // Confirm in DB
     const db = await prisma.billingAddress.findFirst({
-      where: { clinician_id: null, type: "business" },
+      where: { clinician_id: { equals: null }, type: "business" },
     });
     expect(db).not.toBeNull();
     expect(db?.street).toBe("123 Main St");
@@ -137,7 +137,7 @@ describe("Billing Address API Integration Tests", () => {
     expect(json.message).toMatch(/updated/);
     // Confirm in DB
     const db = await prisma.billingAddress.findFirst({
-      where: { clinician_id: null, type: "business" },
+      where: { clinician_id: { equals: null }, type: "business" },
     });
     expect(db?.street).toBe("456 New St");
   });

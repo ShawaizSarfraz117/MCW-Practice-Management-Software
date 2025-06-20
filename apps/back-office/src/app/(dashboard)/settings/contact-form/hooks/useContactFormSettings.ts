@@ -28,13 +28,15 @@ export function useContactFormSettings() {
         if (original === undefined || staged === undefined) return true;
 
         if (typeof original === "object" && typeof staged === "object") {
-          const originalKeys = Object.keys(original);
-          const stagedKeys = Object.keys(staged);
+          const originalObj = original as Record<string, unknown>;
+          const stagedObj = staged as Record<string, unknown>;
+          const originalKeys = Object.keys(originalObj);
+          const stagedKeys = Object.keys(stagedObj);
 
           if (originalKeys.length !== stagedKeys.length) return true;
 
           for (const key of originalKeys) {
-            if (detectChanges(original[key], staged[key])) return true;
+            if (detectChanges(originalObj[key], stagedObj[key])) return true;
           }
 
           return false;

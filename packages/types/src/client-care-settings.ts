@@ -63,6 +63,13 @@ export interface ContactFormSettings {
   };
 }
 
+// Deep partial type helper
+export type DeepPartial<T> = T extends object
+  ? {
+      [P in keyof T]?: DeepPartial<T[P]>;
+    }
+  : T;
+
 // Update request types
 export interface UpdateClientCareSettingsRequest {
   category: "portal" | "widget" | "calendar" | "contactForm";
