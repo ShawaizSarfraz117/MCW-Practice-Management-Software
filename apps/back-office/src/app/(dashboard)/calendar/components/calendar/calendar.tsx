@@ -14,7 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppointmentDialog } from "../AppointmentDialog";
 import { CalendarToolbar } from "./components/CalendarToolbar";
 import { useAppointmentHandler } from "./hooks/useAppointmentHandler";
-import { getHeaderDateFormat } from "./utils/date-utils";
+import { getHeaderDateFormat, getISODateTime } from "./utils/date-utils";
 import {
   CalendarViewProps,
   CalendarEvent,
@@ -117,9 +117,14 @@ export function CalendarView({
   const userId = session?.user?.id;
 
   // Set the view based on user role and page type
-  const [currentView, setCurrentView] = useState(
-    isScheduledPage ? "resourceTimeGridDay" : "timeGridDay",
-  );
+  const [currentView, setCurrentView] = useState(() => {
+    if (isScheduledPage) {
+      return "resourceTimeGridDay";
+    } else {
+      // For calendar page, admin users should use resource view to see multiple team members
+      return isAdmin ? "resourceTimeGridDay" : "timeGridDay";
+    }
+  });
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Update events when initialEvents changes (for reactive updates)
@@ -315,6 +320,7 @@ export function CalendarView({
             title: appointment.title,
             start: appointment.start_date,
             end: appointment.end_date,
+            allDay: appointment.is_all_day, // Add missing allDay property
             location: appointment.location_id || "",
             extendedProps: {
               type: "appointment" as const,
@@ -612,6 +618,7 @@ export function CalendarView({
         title: appointment.title,
         start: appointment.start_date,
         end: appointment.end_date,
+        allDay: appointment.is_all_day, // Add missing allDay property
         location: appointment.location_id || "",
         extendedProps: {
           type: "appointment" as const,
@@ -699,8 +706,16 @@ export function CalendarView({
     // Create start and end dates with the correct times
     let startDateTime, endDateTime;
     try {
-      startDateTime = getDateTimeISOString(values.startDate, values.startTime);
-      endDateTime = getDateTimeISOString(values.endDate, values.endTime);
+      if (values.allDay) {
+        startDateTime = getISODateTime(values.startDate, "start", true);
+        endDateTime = getISODateTime(values.endDate, "end", true);
+      } else {
+        startDateTime = getDateTimeISOString(
+          values.startDate,
+          values.startTime,
+        );
+        endDateTime = getDateTimeISOString(values.endDate, values.endTime);
+      }
     } catch (error) {
       console.error("Error parsing dates:", error);
       throw error;
@@ -927,6 +942,7 @@ export function CalendarView({
           title: appointment.title,
           start: appointment.start_date,
           end: appointment.end_date,
+          allDay: appointment.is_all_day,
           location: appointment.location_id || "",
           extendedProps: {
             type: "appointment" as const,
@@ -1358,9 +1374,13 @@ export function CalendarView({
       }
       // Keep week view as regular timeGridWeek (no resource view)
     } else {
-      // On regular calendar page, non-admin users don't use resource views
+      // On regular calendar page, admin users can use resource views, non-admin users cannot
       if (!isAdmin && newView.startsWith("resourceTimeGrid")) {
         newView = newView.replace("resourceTimeGrid", "timeGrid");
+      }
+      // For admin users on calendar page, allow resource views but convert day view to resource day view
+      if (isAdmin && newView === "timeGridDay") {
+        newView = "resourceTimeGridDay";
       }
     }
 
@@ -2130,7 +2150,8 @@ export function CalendarView({
               : undefined
           }
           resources={
-            isScheduledPage && currentView === "resourceTimeGridDay"
+            (isScheduledPage && currentView === "resourceTimeGridDay") ||
+            (!isScheduledPage && currentView.startsWith("resourceTimeGrid"))
               ? resources
               : undefined
           }

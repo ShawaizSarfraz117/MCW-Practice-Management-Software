@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 interface NotesSectionProps {
   appointmentData:
@@ -30,6 +32,26 @@ export function NotesSection({
   const [nextAppointment, setNextAppointment] =
     useState<AppointmentInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const {
+    data: notesData,
+    isLoading: isLoadingNotes,
+    error,
+  } = useQuery({
+    queryKey: ["appointmentNotes", appointmentData?.id],
+    queryFn: async () => {
+      if (!appointmentData?.id) return null;
+      const response = await fetch(
+        `/api/appointmentNote?appointment_id=${appointmentData.id}`,
+      );
+      if (!response.ok) throw new Error("Failed to fetch notes");
+      return response.json();
+    },
+    enabled: !!appointmentData?.id,
+  });
+
+  const hasNotes = Array.isArray(notesData) && notesData.length > 0;
 
   useEffect(() => {
     const fetchAdjacentAppointments = async () => {
@@ -92,6 +114,12 @@ export function NotesSection({
     }
   };
 
+  const handleViewNotes = () => {
+    if (appointmentData?.id) {
+      router.push(`/appointmentNote/${appointmentData.id}`);
+    }
+  };
+
   return (
     <div className="pb-4 border-b">
       <div className="flex justify-between items-center">
@@ -127,12 +155,27 @@ export function NotesSection({
             </span>
           )}
         </p>
-        <p
-          className="text-[#0a96d4] text-[13px] cursor-pointer hover:underline"
-          onClick={onAddNote}
-        >
-          Add Note
-        </p>
+        <div className="flex items-center gap-3">
+          {isLoadingNotes ? (
+            <span className="text-[#717171] text-xs">Checking notes...</span>
+          ) : error ? (
+            <span className="text-red-500 text-xs">Failed to load notes</span>
+          ) : hasNotes ? (
+            <p
+              className="text-[#0a96d4] text-[13px] cursor-pointer hover:underline"
+              onClick={handleViewNotes}
+            >
+              View Note
+            </p>
+          ) : (
+            <p
+              className="text-[#0a96d4] text-[13px] cursor-pointer hover:underline"
+              onClick={onAddNote}
+            >
+              Add Note
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

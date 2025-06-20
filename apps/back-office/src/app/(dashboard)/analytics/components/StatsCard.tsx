@@ -23,6 +23,19 @@ const appointmentLegend = [
   { name: "Clinician Canceled", color: "#3B82F6" },
 ];
 
+// Note status colors mapping
+const notesStatusColors: Record<string, string> = {
+  "No Note": "#EF4444", // Red for missing notes
+  Unlocked: "#F59E0B", // Amber for unlocked
+  Locked: "#22C55E", // Green for locked/completed
+  Supervision: "#3B82F6", // Blue for supervision
+  Completed: "#22C55E", // Green for completed
+  "In Progress": "#F59E0B", // Amber for in progress
+  Assigned: "#6B7280", // Gray for assigned
+  Submitted: "#10B981", // Emerald for submitted
+};
+
+// Fallback colors if status not in mapping
 const NOTES_COLORS = ["#22C55E", "#3B82F6", "#F59E0B", "#D1D5DB"];
 
 // TODO: Remove mock data once API returns time-series data
@@ -33,6 +46,10 @@ interface IncomeChartProps {
   analyticsData?: {
     income: number;
     incomeChart: Array<{ date: string; value: number }>;
+    outstanding?: number;
+    uninvoiced?: number;
+    appointments?: number;
+    clients?: number;
   };
   isLoading?: boolean;
   onTimeRangeChange?: (timeRange: {
@@ -80,6 +97,7 @@ export function IncomeChart({
         <TimeRangeFilter
           customRange={customRange}
           selectedRange={selectedRange}
+          analyticsData={analyticsData}
           onChange={(range) => {
             setSelectedRange(range);
             if (onTimeRangeChange) {
@@ -153,9 +171,10 @@ export function OutstandingBalancesChart({
   analyticsData,
   isLoading,
 }: OutstandingBalancesChartProps) {
-  const outstanding = analyticsData?.outstanding || 0;
-  const uninvoiced = analyticsData?.uninvoiced || 0;
+  const outstanding = Number(analyticsData?.outstanding) || 0;
+  const uninvoiced = Number(analyticsData?.uninvoiced) || 0;
   const total = outstanding + uninvoiced;
+
   const outstandingPercent = total > 0 ? (outstanding / total) * 100 : 0;
   const uninvoicedPercent = total > 0 ? (uninvoiced / total) * 100 : 0;
 
@@ -168,7 +187,7 @@ export function OutstandingBalancesChart({
             {isLoading ? (
               <span className="inline-block h-6 w-24 bg-gray-200 rounded animate-pulse" />
             ) : (
-              `$${outstanding.toLocaleString()}`
+              `$${total}`
             )}
           </p>
         </div>
@@ -183,7 +202,7 @@ export function OutstandingBalancesChart({
       <div className="space-y-3 mt-3">
         <div>
           <div className="flex justify-between text-sm mb-1">
-            <span>Clients</span>
+            <span>Unpaid Invoices</span>
             <span>${outstanding.toLocaleString()}</span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -209,11 +228,11 @@ export function OutstandingBalancesChart({
       <div className="flex gap-4 mt-3 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-orange-500" />
-          <span>Unpaid</span>
+          <span>Unpaid Invoices</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-gray-400" />
-          <span>Uninvoiced</span>
+          <span>Uninvoiced Appointments</span>
         </div>
       </div>
     </div>
@@ -234,6 +253,24 @@ export function AppointmentsChart({
 }: AppointmentsChartProps) {
   const totalAppointments = analyticsData?.appointments || 0;
   const appointmentData = analyticsData?.appointmentsChart || [];
+
+  // Calculate the largest segment for center display
+  const largestSegment = appointmentData.reduce(
+    (max, item) => (item.value > max.value ? item : max),
+    { name: "Show", value: 0 },
+  );
+  const largestPercent =
+    totalAppointments > 0
+      ? Math.round((largestSegment.value / totalAppointments) * 100)
+      : 0;
+
+  // Map appointment status names to colors
+  const getColorForStatus = (name: string) => {
+    const legend = appointmentLegend.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase(),
+    );
+    return legend?.color || "#D1D5DB";
+  };
 
   return (
     <div className="bg-white border rounded-lg shadow-sm p-4">
@@ -269,23 +306,32 @@ export function AppointmentsChart({
                 outerRadius={45}
                 startAngle={90}
               >
-                <Cell fill="#4F46E5" />
+                {appointmentData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${entry.name}-${index}`}
+                    fill={getColorForStatus(entry.name)}
+                  />
+                ))}
               </Pie>
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-sm">
-            <p className="font-medium">100%</p>
-            <p className="text-gray-500">{totalAppointments} Show</p>
+            <p className="font-medium">{largestPercent}%</p>
+            <p className="text-gray-500">
+              {largestSegment.value} {largestSegment.name}
+            </p>
           </div>
         </div>
         <div className="space-y-1.5 text-sm">
-          {appointmentLegend.map((item) => (
+          {appointmentData.map((item) => (
             <div key={item.name} className="flex items-center gap-2">
               <span
                 className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: item.color }}
+                style={{ backgroundColor: getColorForStatus(item.name) }}
               />
-              <span>{item.name}</span>
+              <span>
+                {item.name} ({item.value})
+              </span>
             </div>
           ))}
         </div>
@@ -305,6 +351,11 @@ interface NotesChartProps {
 export function NotesChart({ analyticsData, isLoading }: NotesChartProps) {
   const totalNotes = analyticsData?.notes || 0;
   const notesData = analyticsData?.notesChart || [];
+
+  // Helper function to get color for note status
+  const getColorForNoteStatus = (name: string) => {
+    return notesStatusColors[name] || NOTES_COLORS[0];
+  };
 
   return (
     <div className="bg-white border rounded-lg shadow-sm p-4">
@@ -342,27 +393,43 @@ export function NotesChart({ analyticsData, isLoading }: NotesChartProps) {
                 {notesData.map((entry, index) => (
                   <Cell
                     key={`cell-${entry.name}-${index}`}
-                    fill={NOTES_COLORS[index]}
+                    fill={getColorForNoteStatus(entry.name)}
                   />
                 ))}
               </Pie>
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-sm">
-            <p className="font-medium">100%</p>
-            <p className="text-gray-500">{totalNotes} Notes</p>
+            {(() => {
+              const noNoteData = notesData.find(
+                (item) => item.name === "No Note",
+              );
+              const noNoteValue = noNoteData?.value || 0;
+              const noNotePercent =
+                totalNotes > 0
+                  ? Math.round((noNoteValue / totalNotes) * 100)
+                  : 0;
+              return (
+                <>
+                  <p className="font-medium">{noNotePercent}%</p>
+                  <p className="text-gray-500">{noNoteValue} No Note</p>
+                </>
+              );
+            })()}
           </div>
         </div>
         <div className="space-y-1.5 text-sm">
-          {notesData.map((entry, index) => (
+          {notesData.map((entry) => (
             <div key={entry.name} className="flex items-center gap-2">
               <span
                 className="w-2 h-2 rounded-full"
                 style={{
-                  backgroundColor: NOTES_COLORS[index % NOTES_COLORS.length],
+                  backgroundColor: getColorForNoteStatus(entry.name),
                 }}
               />
-              <span>{entry.name}</span>
+              <span>
+                {entry.name} ({entry.value})
+              </span>
             </div>
           ))}
         </div>

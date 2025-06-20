@@ -98,8 +98,16 @@ export function DateTimeControls({ id: _ }: DateTimeControlsProps) {
             {differenceInDays(
               (endDate as Date) || new Date(),
               (startDate as Date) || new Date(),
-            )}{" "}
-            days
+            ) + 1}{" "}
+            day
+            {differenceInDays(
+              (endDate as Date) || new Date(),
+              (startDate as Date) || new Date(),
+            ) +
+              1 !==
+            1
+              ? "s"
+              : ""}
           </span>
         </div>
       </div>

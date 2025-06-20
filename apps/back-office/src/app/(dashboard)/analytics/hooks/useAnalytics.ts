@@ -44,7 +44,9 @@ export const useAnalytics = (timeRange: TimeRange) => {
   return useQuery({
     queryKey: ["analytics", timeRange],
     queryFn: () => fetchAnalyticsData(timeRange),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 };
 
@@ -57,6 +59,7 @@ interface AppointmentStatusData {
     totalFee: string;
     progressNoteStatus: string;
     status: string;
+    invoiceStatus: string;
     charge: string;
     uninvoiced: string;
     paid: string;
@@ -85,7 +88,10 @@ const fetchAppointmentStatus = async (
 ): Promise<AppointmentStatusData> => {
   const response = await FETCH.get({
     url: "/analytics/appointmentStatus",
-    searchParams: params as unknown as Record<string, string>,
+    searchParams: params as unknown as Record<
+      string,
+      string | number | boolean
+    >,
   });
 
   return response as AppointmentStatusData;

@@ -10,7 +10,6 @@ import { StatementModal } from "./StatementModal";
 
 import { Button } from "@mcw/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mcw/ui";
-import { format } from "date-fns";
 
 import OverviewTab from "./tabs/OverviewTab";
 import BillingTab from "./tabs/BillingTab";
@@ -20,16 +19,16 @@ import { AddPaymentModal } from "./AddPaymentModal";
 import {
   fetchInvoices,
   fetchSingleClientGroup,
-  ClientGroupWithMembership,
 } from "@/(dashboard)/clients/services/client.service";
 import { Invoice, Payment } from "@prisma/client";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ClientBillingCard } from "./ClientBillingCard";
 import { InvoicesDocumentsCard } from "./InvoicesDocumentsCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ClientInfoHeader } from "./ClientInfoHeader";
 import { ClientInfoCard } from "./ClientInfoCard";
-import Link from "next/link";
 import { useToast } from "@mcw/ui";
+import { ClientGroupFromAPI } from "../edit/components/ClientEdit";
 
 export function getClientGroupInfo(client: unknown) {
   if (!client) return "";
@@ -55,8 +54,8 @@ interface ClientProfileProps {
 export interface InvoiceWithPayments extends Invoice {
   Payment: Payment[];
   ClientGroup: {
-    name?: string;
-    type?: string;
+    name: string;
+    type: string;
     available_credit?: number;
     ClientGroupMembership?: Array<{
       id: string;
@@ -99,11 +98,6 @@ export default function ClientProfile({
   const [editingNote, setEditingNote] = useState<AdministrativeNote | null>(
     null,
   );
-  const [practiceInfo, setPracticeInfo] = useState<{
-    practice_name: string;
-    practice_email: string;
-  } | null>(null);
-  const [clientEmail, setClientEmail] = useState<string>("");
   const { id } = useParams();
   const searchParams = useSearchParams();
 
@@ -113,21 +107,6 @@ export default function ClientProfile({
   const filesTabRef = useRef<FilesTabRef>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Helper function to get the next appointment date
-  const getNextAppointmentDate = (): string | null => {
-    if (!invoices.length) return null;
-
-    const nextAppointment = invoices.find(
-      (inv) => inv.Appointment && inv.Appointment.start_date > new Date(),
-    );
-
-    if (nextAppointment?.Appointment?.start_date) {
-      return format(nextAppointment.Appointment.start_date, "MM/dd/yyyy");
-    }
-
-    return null;
-  };
 
   // Parse administrative notes from client group data
   const parseAdministrativeNotes = (
@@ -143,26 +122,13 @@ export default function ClientProfile({
     }
   };
 
-  // Fetch practice information
-  const fetchPracticeInfo = useCallback(async () => {
-    try {
-      const response = await fetch("/api/practiceInformation");
-      if (response.ok) {
-        const data = await response.json();
-        setPracticeInfo(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch practice information:", error);
-    }
-  }, []);
-
   const { data: clientGroup } = useQuery({
     queryKey: ["clientGroup", id],
     queryFn: async () => {
       const response = (await fetchSingleClientGroup({
         id: id as string,
         searchParams: {},
-      })) as { data: ClientGroupWithMembership } | null;
+      })) as { data: ClientGroupFromAPI } | null;
 
       if (response?.data) {
         const clientGroupData = response.data;
@@ -171,18 +137,6 @@ export default function ClientProfile({
         if (clientGroupData.ClientGroupMembership?.length) {
           const name = getClientGroupInfo(clientGroupData);
           setClientName(name || "");
-
-          // Get the primary email for the first client in the group
-          const firstClient = clientGroupData.ClientGroupMembership[0]?.Client;
-          if (firstClient?.ClientContact) {
-            const primaryEmail = firstClient.ClientContact.find(
-              (contact) =>
-                contact.contact_type === "EMAIL" && contact.is_primary,
-            );
-            if (primaryEmail) {
-              setClientEmail(primaryEmail.value);
-            }
-          }
         }
 
         // Parse and set administrative notes from the response
@@ -214,8 +168,7 @@ export default function ClientProfile({
 
   useEffect(() => {
     fetchInvoicesData();
-    fetchPracticeInfo();
-  }, [fetchInvoicesData, fetchPracticeInfo]);
+  }, [fetchInvoicesData]);
 
   useEffect(() => {
     // Handle invoice related URL parameters
@@ -364,27 +317,12 @@ export default function ClientProfile({
       {/* Client Header */}
       <div className="px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
-          <h1 className="text-2xl font-semibold mb-1">{clientName}</h1>
-          <div className="text-sm text-gray-500 mb-2 flex flex-wrap gap-2 items-center">
-            {clientGroup && "type" in clientGroup ? clientGroup.type : ""}
-            {getNextAppointmentDate() && (
-              <>
-                <span className="text-gray-300">|</span>
-                <span>Next Appt: {getNextAppointmentDate()}</span>
-                <span className="text-gray-300">|</span>
-              </>
-            )}
-            <Link className="text-[#2d8467] hover:underline" href="/calendar">
-              Schedule appointment
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link
-              className="text-[#2d8467] hover:underline"
-              href={`/clients/${id}/edit`}
-            >
-              Edit
-            </Link>
-          </div>
+          {clientGroup ? (
+            <ClientInfoHeader
+              clientGroupId={id as string}
+              clientInfo={clientGroup}
+            />
+          ) : null}
         </div>
         <div className="flex gap-2">
           <Button
@@ -503,7 +441,6 @@ export default function ClientProfile({
                     name: `${m.Client?.legal_first_name || ""} ${m.Client?.legal_last_name || ""}`.trim(),
                   })) || []
                 }
-                practiceName={practiceInfo?.practice_name || ""}
                 onShareFile={() => setShareModalOpen(true)}
               />
             </TabsContent>

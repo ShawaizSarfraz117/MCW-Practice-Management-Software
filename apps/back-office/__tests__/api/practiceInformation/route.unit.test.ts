@@ -3,15 +3,11 @@ import { GET, PUT } from "@/api/practiceInformation/route";
 import prismaMock from "@mcw/database/mock";
 import { getBackOfficeSession } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
-import * as helpers from "@/utils/helpers";
 
 // Mock helpers
 vi.mock("@/utils/helpers", () => ({
   getBackOfficeSession: vi.fn(),
-  getClinicianInfo: vi.fn(),
 }));
-
-const mockClinicianId = "mock-clinician-id";
 
 describe("GET /api/practiceInformation", () => {
   const mockSession = {
@@ -26,17 +22,12 @@ describe("GET /api/practiceInformation", () => {
       ...mockSession,
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
     });
-    vi.mocked(helpers.getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId: mockClinicianId,
-      clinician: { id: mockClinicianId, first_name: "Test", last_name: "User" },
-    });
   });
 
   it("should return practice information", async () => {
     const mockPracticeInfo = {
       id: "1",
-      clinician_id: mockClinicianId,
+      clinician_id: null,
       practice_name: "Test Practice",
       practice_email: "test@practice.com",
       time_zone: "UTC",
@@ -49,7 +40,8 @@ describe("GET /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockResolvedValueOnce(mockPracticeInfo);
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/practiceInformation", {});
+    const response = await GET(request);
     expect(response.status).toBe(200);
 
     const json = await response.json();
@@ -62,7 +54,8 @@ describe("GET /api/practiceInformation", () => {
   it("should return 401 if session is invalid", async () => {
     vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/practiceInformation", {});
+    const response = await GET(request);
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Unauthorized" });
   });
@@ -72,7 +65,8 @@ describe("GET /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockResolvedValueOnce(null);
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/practiceInformation", {});
+    const response = await GET(request);
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
       error: "Practice information not found",
@@ -84,11 +78,12 @@ describe("GET /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFindFirst.mockRejectedValueOnce(new Error("Database error"));
 
-    const response = await GET();
+    const request = createRequestWithBody("/api/practiceInformation", {});
+    const response = await GET(request);
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to fetch practice information",
-    });
+    const json = await response.json();
+    expect(json.error).toBeDefined();
+    expect(json.error.message).toBeDefined();
   });
 });
 
@@ -104,11 +99,6 @@ describe("PUT /api/practiceInformation", () => {
     vi.mocked(getBackOfficeSession).mockResolvedValue({
       ...mockSession,
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-    });
-    vi.mocked(helpers.getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId: mockClinicianId,
-      clinician: { id: mockClinicianId, first_name: "Test", last_name: "User" },
     });
   });
 
@@ -127,13 +117,22 @@ describe("PUT /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFind.mockResolvedValueOnce({
       id: "existing-id",
-      clinician_id: mockClinicianId,
+      clinician_id: null,
     });
 
-    // Mock updateMany to simulate successful update
+    // Mock update to simulate successful update
     const mockUpdate = prismaMock.practiceInformation
-      .updateMany as unknown as ReturnType<typeof vi.fn>;
-    mockUpdate.mockResolvedValueOnce({ count: 1 });
+      .update as unknown as ReturnType<typeof vi.fn>;
+    mockUpdate.mockResolvedValueOnce({
+      id: "existing-id",
+      clinician_id: null,
+      practice_name: validUpdateData.practiceName,
+      practice_email: validUpdateData.practiceEmail,
+      time_zone: validUpdateData.timeZone,
+      practice_logo: validUpdateData.practiceLogo,
+      phone_numbers: JSON.stringify(validUpdateData.phoneNumbers),
+      tele_health: validUpdateData.tele_health,
+    });
 
     const request = createRequestWithBody(
       "/api/practiceInformation",
@@ -143,11 +142,11 @@ describe("PUT /api/practiceInformation", () => {
 
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json).toEqual({ count: 1 });
+    expect(json.id).toBe("existing-id");
 
     // Verify correct data was passed to update
     expect(mockUpdate).toHaveBeenCalledWith({
-      where: { clinician_id: mockClinicianId },
+      where: { id: "existing-id" },
       data: {
         practice_name: validUpdateData.practiceName,
         practice_email: validUpdateData.practiceEmail,
@@ -169,13 +168,13 @@ describe("PUT /api/practiceInformation", () => {
       .create as unknown as ReturnType<typeof vi.fn>;
     const expectedNewRecord = {
       id: "new-id",
-      clinician_id: mockClinicianId,
+      clinician_id: null,
       practice_name: validUpdateData.practiceName,
       practice_email: validUpdateData.practiceEmail,
       time_zone: validUpdateData.timeZone,
       practice_logo: validUpdateData.practiceLogo,
       phone_numbers: JSON.stringify(validUpdateData.phoneNumbers),
-      tele_health: true,
+      tele_health: validUpdateData.tele_health,
     };
     mockCreate.mockResolvedValueOnce(expectedNewRecord);
 
@@ -227,11 +226,11 @@ describe("PUT /api/practiceInformation", () => {
       .findFirst as unknown as ReturnType<typeof vi.fn>;
     mockFind.mockResolvedValueOnce({
       id: "existing-id",
-      clinician_id: mockClinicianId,
+      clinician_id: null,
     });
 
     const mockUpdate = prismaMock.practiceInformation
-      .updateMany as unknown as ReturnType<typeof vi.fn>;
+      .update as unknown as ReturnType<typeof vi.fn>;
     mockUpdate.mockRejectedValueOnce(new Error("Database error"));
 
     const request = createRequestWithBody(
@@ -241,9 +240,9 @@ describe("PUT /api/practiceInformation", () => {
     const response = await PUT(request);
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to update practice information",
-    });
+    const json = await response.json();
+    expect(json.error).toBeDefined();
+    expect(json.error.message).toBeDefined();
   });
 
   it("should handle database errors during create", async () => {
@@ -262,8 +261,8 @@ describe("PUT /api/practiceInformation", () => {
     const response = await PUT(request);
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to update practice information",
-    });
+    const json = await response.json();
+    expect(json.error).toBeDefined();
+    expect(json.error.message).toBeDefined();
   });
 });

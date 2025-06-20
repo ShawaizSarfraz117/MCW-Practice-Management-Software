@@ -29,8 +29,27 @@ function addAuthToRequest(req: ReturnType<typeof createRequest>) {
 async function cleanupLocations(locationIds: string[]) {
   if (!locationIds || locationIds.length === 0) return;
   try {
-    // Add deletions for related data if locations have dependencies
-    // e.g., await prisma.clinicianLocation.deleteMany({ where: { location_id: { in: locationIds } } });
+    // Delete related data first due to foreign key constraints
+    await prisma.clinicianLocation.deleteMany({
+      where: { location_id: { in: locationIds } },
+    });
+    await prisma.appointment.deleteMany({
+      where: { location_id: { in: locationIds } },
+    });
+    await prisma.availability.deleteMany({
+      where: { location_id: { in: locationIds } },
+    });
+    await prisma.goodFaithEstimate.deleteMany({
+      where: { Location: { id: { in: locationIds } } },
+    });
+    await prisma.goodFaithServices.deleteMany({
+      where: { Location: { id: { in: locationIds } } },
+    });
+    await prisma.client.deleteMany({
+      where: { Location: { id: { in: locationIds } } },
+    });
+
+    // Now delete the locations
     await prisma.location.deleteMany({ where: { id: { in: locationIds } } });
   } catch (error) {
     console.error("Error cleaning up locations:", error);
@@ -48,6 +67,13 @@ describe("Location API Integration Tests", () => {
 
   it("GET /api/location should return all locations", async () => {
     // Clean up any existing locations first
+    // First delete related records due to foreign key constraints
+    await prisma.clinicianLocation.deleteMany({});
+    await prisma.appointment.deleteMany({});
+    await prisma.availability.deleteMany({});
+    await prisma.goodFaithEstimate.deleteMany({});
+    await prisma.goodFaithServices.deleteMany({});
+    await prisma.client.deleteMany({});
     await prisma.location.deleteMany({});
 
     // Create test locations
@@ -144,9 +170,9 @@ describe("Location API Integration Tests", () => {
     expect(updatedLocation).toHaveProperty("address", updateData.address);
   });
 
-  it("PUT /api/location should return 500 for non-existent location", async () => {
+  it("PUT /api/location should return 404 for non-existent location", async () => {
     const updateData = {
-      id: "non-existent-id",
+      id: "00000000-0000-0000-0000-000000000000", // Valid UUID that doesn't exist
       name: "Updated Office",
       address: "456 Updated Avenue",
       is_active: true,
@@ -157,9 +183,9 @@ describe("Location API Integration Tests", () => {
     });
     const response = await PUT(req);
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
     const json = await response.json();
-    expect(json).toHaveProperty("error");
+    expect(json).toHaveProperty("error", "Location not found");
   });
 
   it("DELETE /api/location/?id=<id> should deactivate a location", async () => {
@@ -191,14 +217,17 @@ describe("Location API Integration Tests", () => {
     expect(deactivatedLocation).toHaveProperty("is_active", false);
   });
 
-  it("DELETE /api/location/?id=<id> should return 500 for non-existent location", async () => {
-    const req = createRequest("/api/location/?id=non-existent-id", {
-      method: "DELETE",
-    });
+  it("DELETE /api/location/?id=<id> should return 404 for non-existent location", async () => {
+    const req = createRequest(
+      "/api/location/?id=00000000-0000-0000-0000-000000000000",
+      {
+        method: "DELETE",
+      },
+    );
     const response = await DELETE(req);
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
     const json = await response.json();
-    expect(json).toHaveProperty("error");
+    expect(json).toHaveProperty("error", "Location not found");
   });
 });

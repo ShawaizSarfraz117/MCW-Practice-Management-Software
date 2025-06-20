@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
-import { getClinicianInfo } from "@/utils/helpers";
+import { getBackOfficeSession } from "@/utils/helpers";
+import { withErrorHandling } from "@mcw/utils";
 import { z } from "zod";
 
 const billingAddressSchema = z.object({
@@ -13,126 +14,100 @@ const billingAddressSchema = z.object({
   }),
 });
 
-export async function GET(request: NextRequest) {
-  try {
-    // Get clinician info from the session
-    const { isClinician, clinicianId } = await getClinicianInfo();
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    if (!isClinician || !clinicianId) {
-      return NextResponse.json(
-        { error: "User is not a clinician" },
-        { status: 403 },
-      );
-    }
+  // Get type from query params if specified
+  const { searchParams } = new URL(request.url);
+  const type = searchParams.get("type");
 
-    // Get type from query params if specified
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type");
+  // Build where clause for practice-wide addresses
+  const where = {
+    clinician_id: null,
+    ...(type && ["business", "client"].includes(type) ? { type } : {}),
+  };
 
-    // Build where clause based on type
-    const where = {
-      clinician_id: clinicianId,
-      ...(type && ["business", "client"].includes(type) ? { type } : {}),
-    };
+  // Get billing addresses
+  const billingAddresses = await prisma.billingAddress.findMany({
+    where,
+    select: {
+      id: true,
+      street: true,
+      city: true,
+      state: true,
+      zip: true,
+      type: true,
+    },
+  });
 
-    // Get clinician's billing addresses
-    const billingAddresses = await prisma.billingAddress.findMany({
-      where,
-      select: {
-        id: true,
-        street: true,
-        city: true,
-        state: true,
-        zip: true,
-        type: true,
-      },
-    });
+  return NextResponse.json({ billingAddresses });
+});
 
-    return NextResponse.json({ billingAddresses });
-  } catch (error) {
-    console.error("Error fetching billing addresses:", error);
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const data = await request.json();
+
+  // Validate request body
+  const validationResult = billingAddressSchema.safeParse(data);
+  if (!validationResult.success) {
     return NextResponse.json(
-      { error: "Failed to fetch billing addresses" },
-      { status: 500 },
+      {
+        error: "Invalid data",
+        details: validationResult.error.errors,
+      },
+      { status: 400 },
     );
   }
-}
 
-export async function POST(request: NextRequest) {
-  try {
-    // Get clinician info from the session
-    const { isClinician, clinicianId } = await getClinicianInfo();
+  const { street, city, state, zip, type } = validationResult.data;
 
-    if (!isClinician || !clinicianId) {
-      return NextResponse.json(
-        { error: "User is not a clinician" },
-        { status: 403 },
-      );
-    }
+  // Check if address of this type already exists for practice
+  const existingAddress = await prisma.billingAddress.findFirst({
+    where: {
+      clinician_id: null,
+      type,
+    },
+  });
 
-    const data = await request.json();
-
-    // Validate request body
-    const validationResult = billingAddressSchema.safeParse(data);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid data",
-          details: validationResult.error.errors,
-        },
-        { status: 400 },
-      );
-    }
-
-    const { street, city, state, zip, type } = validationResult.data;
-
-    // Check if address of this type already exists for the clinician
-    const existingAddress = await prisma.billingAddress.findFirst({
-      where: {
-        clinician_id: clinicianId,
-        type,
-      },
-    });
-
-    if (existingAddress) {
-      // Update existing address instead of returning error
-      const updatedAddress = await prisma.billingAddress.update({
-        where: { id: existingAddress.id },
-        data: {
-          street,
-          city,
-          state,
-          zip,
-        },
-      });
-
-      return NextResponse.json(
-        {
-          billingAddress: updatedAddress,
-          message: `Existing ${type} billing address was updated`,
-        },
-        { status: 200 },
-      );
-    }
-
-    // Create new billing address
-    const newAddress = await prisma.billingAddress.create({
+  if (existingAddress) {
+    // Update existing address instead of returning error
+    const updatedAddress = await prisma.billingAddress.update({
+      where: { id: existingAddress.id },
       data: {
         street,
         city,
         state,
         zip,
-        type,
-        clinician_id: clinicianId,
       },
     });
 
-    return NextResponse.json({ billingAddress: newAddress }, { status: 201 });
-  } catch (error) {
-    console.error("Error creating billing address:", error);
     return NextResponse.json(
-      { error: "Failed to create billing address" },
-      { status: 500 },
+      {
+        billingAddress: updatedAddress,
+        message: `Existing ${type} billing address was updated`,
+      },
+      { status: 200 },
     );
   }
-}
+
+  // Create new billing address
+  const newAddress = await prisma.billingAddress.create({
+    data: {
+      street,
+      city,
+      state,
+      zip,
+      type,
+      clinician_id: null,
+    },
+  });
+
+  return NextResponse.json({ billingAddress: newAddress }, { status: 201 });
+});

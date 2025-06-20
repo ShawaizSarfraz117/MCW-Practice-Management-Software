@@ -28,17 +28,27 @@ export default function BillingAddressDialog({
   });
 
   useEffect(() => {
-    setAddress(
-      currentAddress ?? {
-        id: undefined,
-        type: type,
-        street: undefined,
-        city: undefined,
-        state: undefined,
-        zip: undefined,
-      },
-    );
-  }, [currentAddress, type]);
+    // Reset form when dialog opens or type changes
+    if (isOpen) {
+      setAddress(
+        currentAddress ?? {
+          id: undefined,
+          type: type,
+          street: undefined,
+          city: undefined,
+          state: undefined,
+          zip: undefined,
+        },
+      );
+      // Reset errors when dialog opens
+      setErrors({
+        street: false,
+        city: false,
+        state: false,
+        zip: false,
+      });
+    }
+  }, [currentAddress, type, isOpen]);
 
   const [errors, setErrors] = useState({
     street: false,
@@ -113,10 +123,9 @@ export default function BillingAddressDialog({
               </Label>
               <Input
                 className={errors.street ? "border-red-500" : ""}
-                defaultValue={currentAddress?.street}
                 id="street"
                 placeholder="Search address"
-                value={address?.street}
+                value={address?.street || ""}
                 onChange={(e) =>
                   setAddress({ ...address, street: e.target.value })
                 }
@@ -137,9 +146,8 @@ export default function BillingAddressDialog({
                 </Label>
                 <Input
                   className={errors.city ? "border-red-500" : ""}
-                  defaultValue={currentAddress?.city}
                   id="city"
-                  value={address.city}
+                  value={address.city || ""}
                   onChange={(e) =>
                     setAddress({ ...address, city: e.target.value })
                   }
@@ -159,9 +167,8 @@ export default function BillingAddressDialog({
                 </Label>
                 <Input
                   className={errors.state ? "border-red-500" : ""}
-                  defaultValue={currentAddress?.state}
                   id="state"
-                  value={address.state}
+                  value={address.state || ""}
                   onChange={(e) =>
                     setAddress({ ...address, state: e.target.value })
                   }
@@ -181,9 +188,8 @@ export default function BillingAddressDialog({
                 </Label>
                 <Input
                   className={errors.zip ? "border-red-500" : ""}
-                  defaultValue={currentAddress?.zip}
                   id="zip"
-                  value={address.zip}
+                  value={address.zip || ""}
                   onChange={(e) =>
                     setAddress({ ...address, zip: e.target.value })
                   }

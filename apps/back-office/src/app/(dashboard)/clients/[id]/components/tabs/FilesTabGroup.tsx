@@ -30,7 +30,6 @@ import {
   Share,
   Trash2,
   ChevronUp,
-  Loader2,
   AlertCircle,
   Upload,
   Bell,
@@ -41,6 +40,8 @@ import {
   useRef,
   forwardRef,
   useImperativeHandle,
+  useEffect,
+  useCallback,
 } from "react";
 import {
   useClientGroupFiles,
@@ -48,10 +49,15 @@ import {
   useDownloadFile,
 } from "@/(dashboard)/clients/hooks/useClientFiles";
 import { ClientFile } from "@mcw/types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@mcw/ui";
 import { showErrorToast } from "@mcw/utils";
 import SendRemindersSidebar from "./SendRemindersSidebar";
+import {
+  fetchSingleClientGroup,
+  ClientGroupWithMembership,
+} from "@/(dashboard)/clients/services/client.service";
+import Loading from "@/components/Loading";
 
 type SortColumn = "name" | "type" | "status" | "updated";
 type SortDirection = "asc" | "desc";
@@ -64,8 +70,6 @@ interface FilesTabGroupProps {
   clientGroupId: string;
   clients: Array<{ id: string; name: string }>;
   onShareFile?: (file: ClientFile) => void;
-  practiceName?: string;
-  clientEmail?: string;
 }
 
 function useFileSorting(filesData: ClientFile[]) {
@@ -233,12 +237,68 @@ function useFileActions(
 }
 
 const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
-  ({ clientGroupId, clients, onShareFile, practiceName, clientEmail }, ref) => {
+  ({ clientGroupId, clients, onShareFile }, ref) => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [showReminderSidebar, setShowReminderSidebar] = useState(false);
+    const [practiceInfo, setPracticeInfo] = useState<{
+      practice_name: string;
+      practice_email: string;
+    } | null>(null);
+    const [clientEmail, setClientEmail] = useState<string>("");
+
+    // Fetch practice information
+    const fetchPracticeInfo = useCallback(async () => {
+      try {
+        const response = await fetch("/api/practiceInformation");
+        if (response.ok) {
+          const data = await response.json();
+          setPracticeInfo(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch practice information:", error);
+      }
+    }, []);
+
+    // Fetch client group to get email
+    useQuery({
+      queryKey: ["clientGroup", clientGroupId],
+      queryFn: async () => {
+        const response = (await fetchSingleClientGroup({
+          id: clientGroupId,
+          searchParams: {},
+        })) as { data: ClientGroupWithMembership } | null;
+
+        if (response?.data) {
+          const clientGroupData = response.data;
+
+          // Get the primary email for the first client in the group
+          if (clientGroupData.ClientGroupMembership?.length) {
+            const firstClient =
+              clientGroupData.ClientGroupMembership[0]?.Client;
+            if (firstClient?.ClientContact) {
+              const primaryEmail = firstClient.ClientContact.find(
+                (contact) =>
+                  contact.contact_type === "EMAIL" && contact.is_primary,
+              );
+              if (primaryEmail) {
+                setClientEmail(primaryEmail.value);
+              }
+            }
+          }
+
+          return clientGroupData;
+        }
+        return null;
+      },
+      enabled: !!clientGroupId,
+    });
+
+    useEffect(() => {
+      fetchPracticeInfo();
+    }, [fetchPracticeInfo]);
 
     // Fetch client files from database
     const {
@@ -331,13 +391,7 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
 
     // Show loading state
     if (isLoading) {
-      return (
-        <div className="mt-0 p-4 sm:p-6 pb-16 lg:pb-6">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
-          </div>
-        </div>
-      );
+      return <Loading />;
     }
 
     // Show error state
@@ -360,7 +414,7 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
           <div className="relative w-full sm:w-[300px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              className="pl-9 h-10 bg-white border-[#e5e7eb]"
+              className="pl-9 px-9 h-10 bg-white border-[#e5e7eb]"
               placeholder="Search files"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -576,7 +630,7 @@ const FilesTabGroup = forwardRef<FilesTabRef, FilesTabGroupProps>(
             nameColor: file.nameColor,
           }))}
           isOpen={showReminderSidebar}
-          practiceName={practiceName || "Practice"}
+          practiceName={practiceInfo?.practice_name || "Practice"}
           onClose={() => setShowReminderSidebar(false)}
         />
       </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@mcw/database";
-import { getBackOfficeSession, getClinicianInfo } from "@/utils/helpers";
+import { getBackOfficeSession } from "@/utils/helpers";
+import { withErrorHandling } from "@mcw/utils";
 import { z } from "zod";
 
 const practiceInformationPayload = z.object({
@@ -17,132 +18,103 @@ const practiceInformationPayload = z.object({
 const phoneRegex = /^[- +()0-9]*$/;
 
 export const dynamic = "force-dynamic";
-export async function PUT(request: NextRequest) {
-  try {
-    const session = await getBackOfficeSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const { isClinician, clinicianId } = await getClinicianInfo();
-    if (!isClinician || !clinicianId) {
-      return NextResponse.json(
-        { error: "Clinician not found for user" },
-        { status: 404 },
-      );
-    }
 
-    const data = await request.json();
-    // Validate request body
-    const validationResult = practiceInformationPayload.safeParse(data);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid request payload",
-          details: validationResult.error.message,
-        },
-        { status: 422 },
-      );
-    }
+export const PUT = withErrorHandling(async (request: NextRequest) => {
+  const session = await getBackOfficeSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    // Backend phone number validation
-    const phoneNumbers = validationResult.data.phoneNumbers || [];
-    const invalidPhones = phoneNumbers?.filter(
-      (p) => p.number && !phoneRegex.test(p.number),
-    );
-    if (invalidPhones.length > 0) {
-      return NextResponse.json(
-        {
-          error: "Invalid phone number(s)",
-          details: invalidPhones.map((p) => p.number),
-        },
-        { status: 422 },
-      );
-    }
-
-    // Check if practice information exists
-    const existingPracticeInformation =
-      await prisma.practiceInformation.findFirst({
-        where: {
-          clinician_id: clinicianId,
-        },
-      });
-
-    if (existingPracticeInformation) {
-      // Update existing practice information
-      const updatedPracticeInformation =
-        await prisma.practiceInformation.updateMany({
-          where: { clinician_id: clinicianId },
-          data: {
-            practice_name: validationResult.data.practiceName ?? undefined,
-            practice_email: validationResult.data.practiceEmail ?? undefined,
-            time_zone: validationResult.data.timeZone ?? undefined,
-            practice_logo: validationResult.data.practiceLogo ?? undefined,
-            phone_numbers: JSON.stringify(validationResult.data.phoneNumbers),
-            tele_health: validationResult.data.teleHealth ?? false,
-          },
-        });
-
-      return NextResponse.json(updatedPracticeInformation);
-    } else {
-      // Insert new practice information
-      const newPracticeInformation = await prisma.practiceInformation.create({
-        data: {
-          clinician_id: clinicianId,
-          practice_name: validationResult.data.practiceName ?? "",
-          practice_email: validationResult.data.practiceEmail ?? "",
-          time_zone: validationResult.data.timeZone ?? "",
-          practice_logo: validationResult.data.practiceLogo ?? "",
-          phone_numbers: JSON.stringify(validationResult.data.phoneNumbers),
-          tele_health: validationResult.data.teleHealth ?? false,
-        },
-      });
-      return NextResponse.json(newPracticeInformation);
-    }
-  } catch (error) {
-    console.error("Error updating practice information:", error);
+  const data = await request.json();
+  // Validate request body
+  const validationResult = practiceInformationPayload.safeParse(data);
+  if (!validationResult.success) {
     return NextResponse.json(
-      { error: "Failed to update practice information" },
-      { status: 500 },
+      {
+        error: "Invalid request payload",
+        details: validationResult.error.message,
+      },
+      { status: 422 },
     );
   }
-}
 
-export async function GET() {
-  try {
-    const session = await getBackOfficeSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const { isClinician, clinicianId } = await getClinicianInfo();
-    if (!isClinician || !clinicianId) {
-      return NextResponse.json(
-        { error: "Clinician not found for user" },
-        { status: 404 },
-      );
-    }
+  // Backend phone number validation
+  const phoneNumbers = validationResult.data.phoneNumbers || [];
+  const invalidPhones = phoneNumbers?.filter(
+    (p) => p.number && !phoneRegex.test(p.number),
+  );
+  if (invalidPhones.length > 0) {
+    return NextResponse.json(
+      {
+        error: "Invalid phone number(s)",
+        details: invalidPhones.map((p) => p.number),
+      },
+      { status: 422 },
+    );
+  }
 
-    const practiceInformation = await prisma.practiceInformation.findFirst({
+  // Check if practice-wide information exists (without clinician_id)
+  const existingPracticeInformation =
+    await prisma.practiceInformation.findFirst({
       where: {
-        clinician_id: clinicianId,
+        clinician_id: null,
       },
     });
 
-    if (!practiceInformation) {
-      return NextResponse.json(
-        { error: "Practice information not found" },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json({
-      ...practiceInformation,
-      phone_numbers: JSON.parse(practiceInformation.phone_numbers),
+  if (existingPracticeInformation) {
+    // Update existing practice information
+    const updatedPracticeInformation = await prisma.practiceInformation.update({
+      where: { id: existingPracticeInformation.id },
+      data: {
+        practice_name: validationResult.data.practiceName ?? undefined,
+        practice_email: validationResult.data.practiceEmail ?? undefined,
+        time_zone: validationResult.data.timeZone ?? undefined,
+        practice_logo: validationResult.data.practiceLogo ?? undefined,
+        phone_numbers: JSON.stringify(validationResult.data.phoneNumbers),
+        tele_health: validationResult.data.teleHealth ?? false,
+      },
     });
-  } catch (error) {
-    console.error("Error fetching practice information:", error);
+
+    return NextResponse.json(updatedPracticeInformation);
+  } else {
+    // Insert new practice information (without clinician_id)
+    const newPracticeInformation = await prisma.practiceInformation.create({
+      data: {
+        clinician_id: null,
+        practice_name: validationResult.data.practiceName ?? "",
+        practice_email: validationResult.data.practiceEmail ?? "",
+        time_zone: validationResult.data.timeZone ?? "",
+        practice_logo: validationResult.data.practiceLogo ?? "",
+        phone_numbers: JSON.stringify(validationResult.data.phoneNumbers),
+        tele_health: validationResult.data.teleHealth ?? false,
+      },
+    });
+    return NextResponse.json(newPracticeInformation);
+  }
+});
+
+export const GET = withErrorHandling(async () => {
+  const session = await getBackOfficeSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Fetch practice-wide information (without clinician_id)
+  const practiceInformation = await prisma.practiceInformation.findFirst({
+    where: {
+      clinician_id: null,
+    },
+  });
+
+  if (!practiceInformation) {
     return NextResponse.json(
-      { error: "Failed to fetch practice information" },
-      { status: 500 },
+      { error: "Practice information not found" },
+      { status: 404 },
     );
   }
-}
+
+  return NextResponse.json({
+    ...practiceInformation,
+    phone_numbers: JSON.parse(practiceInformation.phone_numbers),
+  });
+});

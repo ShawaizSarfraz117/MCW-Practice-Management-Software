@@ -1,23 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, POST } from "@/api/billingAddress/route";
 import prismaMock from "@mcw/database/mock";
-import { getClinicianInfo } from "@/utils/helpers";
+import { getBackOfficeSession } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
 
 // Mock helpers
 vi.mock("@/utils/helpers", () => ({
-  getClinicianInfo: vi.fn(),
+  getBackOfficeSession: vi.fn(),
 }));
 
 describe("GET /api/billingAddress", () => {
-  const mockClinicianId = "test-clinician-id";
+  const mockUserId = "test-user-id";
 
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId: mockClinicianId,
-      clinician: null,
+    vi.mocked(getBackOfficeSession).mockResolvedValue({
+      user: {
+        id: mockUserId,
+      },
+      expires: new Date().toISOString(),
     });
   });
 
@@ -53,7 +54,7 @@ describe("GET /api/billingAddress", () => {
     expect(json).toEqual({ billingAddresses: mockAddresses });
 
     expect(mockFindMany).toHaveBeenCalledWith({
-      where: { clinician_id: mockClinicianId },
+      where: { clinician_id: null },
       select: {
         id: true,
         street: true,
@@ -65,18 +66,14 @@ describe("GET /api/billingAddress", () => {
     });
   });
 
-  it("should return 403 when user is not a clinician", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValueOnce({
-      isClinician: false,
-      clinicianId: null,
-      clinician: null,
-    });
+  it("should return 401 when user is not authenticated", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
     const request = createRequestWithBody("/api/billingAddress", {});
     const response = await GET(request);
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "User is not a clinician",
+      error: "Unauthorized",
     });
   });
 
@@ -88,14 +85,15 @@ describe("GET /api/billingAddress", () => {
     const request = createRequestWithBody("/api/billingAddress", {});
     const response = await GET(request);
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to fetch billing addresses",
-    });
+    const json = await response.json();
+    // In non-production, withErrorHandling returns detailed error object
+    expect(json.error.message).toBe("Database error");
+    expect(json.error.issueId).toMatch(/^ERR-/);
   });
 });
 
 describe("POST /api/billingAddress", () => {
-  const mockClinicianId = "test-clinician-id";
+  const mockUserId = "test-user-id";
   const validData = {
     street: "789 New St",
     city: "New City",
@@ -106,10 +104,11 @@ describe("POST /api/billingAddress", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId: mockClinicianId,
-      clinician: null,
+    vi.mocked(getBackOfficeSession).mockResolvedValue({
+      user: {
+        id: mockUserId,
+      },
+      expires: new Date().toISOString(),
     });
   });
 
@@ -117,7 +116,7 @@ describe("POST /api/billingAddress", () => {
     const mockAddress = {
       id: "new-address-id",
       ...validData,
-      clinician_id: mockClinicianId,
+      clinician_id: null,
     };
 
     const mockFindFirst = prismaMock.billingAddress
@@ -140,7 +139,7 @@ describe("POST /api/billingAddress", () => {
     expect(mockCreate).toHaveBeenCalledWith({
       data: {
         ...validData,
-        clinician_id: mockClinicianId,
+        clinician_id: null,
       },
     });
   });
@@ -153,7 +152,7 @@ describe("POST /api/billingAddress", () => {
       state: "OC",
       zip: "11111",
       type: "business",
-      clinician_id: mockClinicianId,
+      clinician_id: null,
     };
 
     const updatedAddress = {
@@ -192,19 +191,15 @@ describe("POST /api/billingAddress", () => {
     });
   });
 
-  it("should return 403 when user is not a clinician", async () => {
-    vi.mocked(getClinicianInfo).mockResolvedValueOnce({
-      isClinician: false,
-      clinicianId: null,
-      clinician: null,
-    });
+  it("should return 401 when user is not authenticated", async () => {
+    vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
     const request = createRequestWithBody("/api/billingAddress", validData);
     const response = await POST(request);
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
-      error: "User is not a clinician",
+      error: "Unauthorized",
     });
   });
 
@@ -239,16 +234,17 @@ describe("POST /api/billingAddress", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to create billing address",
-    });
+    const json = await response.json();
+    // In non-production, withErrorHandling returns detailed error object
+    expect(json.error.message).toBe("Database error");
+    expect(json.error.issueId).toMatch(/^ERR-/);
   });
 
   it("should handle database errors during update", async () => {
     const existingAddress = {
       id: "existing-id",
       type: "business",
-      clinician_id: mockClinicianId,
+      clinician_id: null,
     };
 
     const mockFindFirstUpdateError = prismaMock.billingAddress
@@ -263,8 +259,9 @@ describe("POST /api/billingAddress", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: "Failed to create billing address",
-    });
+    const json = await response.json();
+    // In non-production, withErrorHandling returns detailed error object
+    expect(json.error.message).toBe("Database error");
+    expect(json.error.issueId).toMatch(/^ERR-/);
   });
 });

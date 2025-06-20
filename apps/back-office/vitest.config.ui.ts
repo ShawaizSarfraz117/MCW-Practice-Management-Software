@@ -10,6 +10,7 @@ export default defineProject({
     name: "back-office/ui",
     include: ["**/*.ui.test.tsx"],
     environment: "happy-dom",
+    setupFiles: ["./vitest.setup.ui.ts"],
     testTimeout: 120000, // Increase timeout to 120 seconds
     pool: "threads",
     poolOptions: {

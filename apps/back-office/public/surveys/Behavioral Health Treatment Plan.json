@@ -1,0 +1,197 @@
+{
+  "pages": [
+    {
+      "name": "page1",
+      "elements": [
+        {
+          "type": "checkbox",
+          "name": "client_strengths",
+          "title": "Client strengths:",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Community support"
+            },
+            {
+              "value": "Item 2",
+              "text": "Family qualities"
+            },
+            {
+              "value": "Item 3",
+              "text": "Past strategies"
+            },
+            {
+              "value": "Item 4",
+              "text": "Accomplishments, interests, and activities"
+            },
+            {
+              "value": "Item 5",
+              "text": "Motivation to change"
+            },
+            {
+              "value": "Item 6",
+              "text": "Engagement with volunteer work"
+            }
+          ]
+        },
+        {
+          "type": "checkbox",
+          "name": "client_risks",
+          "title": "Client risks:",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Unemployment"
+            },
+            {
+              "value": "Item 2",
+              "text": "Job insecurity"
+            },
+            {
+              "value": "Item 3",
+              "text": "Truancy"
+            },
+            {
+              "value": "Item 4",
+              "text": "Financial instability"
+            }
+          ]
+        },
+        {
+          "type": "checkbox",
+          "name": "risk_assessment",
+          "title": "Risk assessment",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Suicide"
+            },
+            {
+              "value": "Item 2",
+              "text": "Homicide"
+            },
+            {
+              "value": "Item 3",
+              "text": "Assault"
+            },
+            {
+              "value": "Item 5",
+              "text": "No risk identified"
+            }
+          ],
+          "showOtherItem": true
+        },
+        {
+          "type": "html",
+          "name": "Goals and Objectives HTML",
+          "html": "<b>Goals and Objectives</b>"
+        },
+        {
+          "type": "dropdown",
+          "name": "goal",
+          "title": "Goal 1\nGoal:",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Increase variety and use of health coping strategies"
+            },
+            {
+              "value": "Item 2",
+              "text": "Reduce frequency and intensity of anxiety"
+            },
+            {
+              "value": "Item 3",
+              "text": "Increase mood stability"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "name": "estimated_date",
+          "title": "Estimated date of completion:",
+          "inputType": "date"
+        },
+        {
+          "type": "dropdown",
+          "name": "status",
+          "title": "Status:",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Completed"
+            },
+            {
+              "value": "Item 2",
+              "text": "Significant improvement"
+            },
+            {
+              "value": "Item 3",
+              "text": "Some improvement"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "name": "objective",
+          "title": "Objective 1A:\nObjective:"
+        },
+        {
+          "type": "text",
+          "name": "estimated_completion_date",
+          "title": "Estimated date of completion:\n",
+          "inputType": "date"
+        },
+        {
+          "type": "dropdown",
+          "name": "question1",
+          "title": "Status:",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Completed"
+            },
+            {
+              "value": "Item 2",
+              "text": "Significant improvement"
+            },
+            {
+              "value": "Item 3",
+              "text": "Some improvement"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "name": "question2",
+          "title": "Objective 1B:\nObjective:"
+        },
+        {
+          "type": "text",
+          "name": "question3",
+          "title": "Estimated date of completion:\n",
+          "inputType": "date"
+        },
+        {
+          "type": "dropdown",
+          "name": "question4",
+          "title": "Status:",
+          "choices": [
+            {
+              "value": "Item 1",
+              "text": "Completed"
+            },
+            {
+              "value": "Item 2",
+              "text": "Significant improvement"
+            },
+            {
+              "value": "Item 3",
+              "text": "Some improvement"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "headerView": "advanced"
+}

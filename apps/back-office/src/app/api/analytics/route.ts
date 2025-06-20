@@ -90,7 +90,6 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       endDate = endOfDay(parsedEnd);
       break;
     }
-    case "thisMonth":
     default: {
       const now = new Date();
       startDate = startOfMonth(now);
@@ -186,8 +185,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     0,
   );
 
-  // Get notes breakdown by status
-  const notesStatusCounts = await prisma.surveyAnswers.groupBy({
+  // Get SurveyAnswers statuses within date range
+  const surveyAnswersCounts = await prisma.surveyAnswers.groupBy({
     by: ["status"],
     where: {
       assigned_at: { gte: startDate, lte: endDate },
@@ -197,73 +196,105 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     },
   });
 
-  // Format notes data for charts
+  // Get all appointments in the date range
+  const totalAppointmentsInRange = await prisma.appointment.count({
+    where: {
+      start_date: { gte: startDate, lte: endDate },
+      type: "APPOINTMENT", // Only client appointments
+    },
+  });
+
+  // Get count of appointments that have associated SurveyAnswers
+  const appointmentsWithSurveyAnswers = await prisma.appointment.count({
+    where: {
+      start_date: { gte: startDate, lte: endDate },
+      type: "APPOINTMENT",
+      SurveyAnswers: {
+        some: {},
+      },
+    },
+  });
+
+  // Calculate appointments without notes
+  const appointmentsWithoutNotes =
+    totalAppointmentsInRange - appointmentsWithSurveyAnswers;
+
+  // Format notes data for charts - dynamically include all statuses
   const notesData = [
+    // Add all dynamic statuses from SurveyAnswers
+    ...surveyAnswersCounts.map((item) => ({
+      name:
+        item.status.charAt(0).toUpperCase() +
+        item.status.slice(1).toLowerCase().replace(/_/g, " "),
+      value: item._count.status,
+    })),
+    // Add No Note category
     {
-      name: "Assigned",
-      value:
-        notesStatusCounts.find((s) => s.status === "ASSIGNED")?._count.status ||
-        0,
-    },
-    {
-      name: "In Progress",
-      value:
-        notesStatusCounts.find((s) => s.status === "IN_PROGRESS")?._count
-          .status || 0,
-    },
-    {
-      name: "Completed",
-      value:
-        notesStatusCounts.find((s) => s.status === "COMPLETED")?._count
-          .status || 0,
-    },
-    {
-      name: "Submitted",
-      value:
-        notesStatusCounts.find((s) => s.status === "SUBMITTED")?._count
-          .status || 0,
+      name: "No Note",
+      value: appointmentsWithoutNotes,
     },
   ];
 
-  const totalNotes = notesData.reduce((sum, item) => sum + item.value, 0);
+  const totalNotes =
+    surveyAnswersCounts.reduce((sum, item) => sum + item._count.status, 0) +
+    appointmentsWithoutNotes;
 
   // Outstanding balances calculation
-  const outstandingResult = await prisma.invoice.aggregate({
+  // Calculate unpaid invoices (invoiced but not fully paid)
+  const unpaidInvoices = await prisma.invoice.findMany({
     where: {
-      status: { in: ["SENT", "OVERDUE"] },
+      status: { in: ["SENT", "OVERDUE", "UNPAID", "PARTIAL"] },
     },
-    _sum: {
-      amount: true,
+    include: {
+      Payment: true,
     },
   });
 
-  const totalPaidResult = await prisma.payment.aggregate({
+  let totalUnpaid = 0;
+  for (const invoice of unpaidInvoices) {
+    const invoiceAmount = Number(invoice.amount);
+    const totalPaid = invoice.Payment.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0,
+    );
+    const unpaidAmount = invoiceAmount - totalPaid;
+    if (unpaidAmount > 0) {
+      totalUnpaid += unpaidAmount;
+    }
+  }
+
+  const uninvoicedSum = await prisma.appointment.aggregate({
+    _sum: {
+      appointment_fee: true,
+    },
     where: {
-      Invoice: {
-        status: { in: ["SENT", "OVERDUE"] },
+      type: "APPOINTMENT",
+      appointment_fee: { not: null },
+      NOT: {
+        Invoice: {
+          some: {},
+        },
       },
     },
-    _sum: {
-      amount: true,
-    },
   });
 
-  const uninvoicedResult = await prisma.invoice.aggregate({
+  const outstanding = totalUnpaid;
+  console.log(uninvoicedSum);
+  const uninvoiced = uninvoicedSum._sum.appointment_fee;
+
+  // Count unique clients with appointments in the date range
+  const uniqueClientsResult = await prisma.appointment.findMany({
     where: {
-      status: { in: ["SENT", "OVERDUE"] },
-      Payment: {
-        none: {},
-      },
+      start_date: { gte: startDate, lte: endDate },
+      client_group_id: { not: null },
     },
-    _sum: {
-      amount: true,
+    select: {
+      client_group_id: true,
     },
+    distinct: ["client_group_id"],
   });
 
-  const outstanding =
-    Number(outstandingResult._sum?.amount || 0) -
-    Number(totalPaidResult._sum?.amount || 0);
-  const uninvoiced = Number(uninvoicedResult._sum?.amount || 0);
+  const uniqueClients = uniqueClientsResult.length;
 
   return NextResponse.json({
     income: totalIncome,
@@ -274,5 +305,6 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     appointmentsChart: appointmentData,
     notes: totalNotes,
     notesChart: notesData,
+    clients: uniqueClients,
   });
 });

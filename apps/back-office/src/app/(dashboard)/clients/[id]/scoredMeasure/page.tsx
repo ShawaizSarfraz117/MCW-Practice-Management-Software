@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 "use client";
 
 import React, { useState } from "react";
@@ -13,7 +14,7 @@ import {
   Badge,
 } from "@mcw/ui";
 import Link from "next/link";
-import { MessageCircle, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@mcw/ui";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "@mcw/ui";
@@ -21,69 +22,12 @@ import { useRouter } from "next/navigation";
 import GAD7Form from "./components/GAD7";
 import PHQ9Form from "./components/PHQ9";
 import ARM5Form from "./components/ARM5";
+import { ClientInfoHeader } from "../components/ClientInfoHeader";
+import { getClientGroupInfo } from "@/(dashboard)/clients/[id]/components/ClientProfile";
 
 interface PageProps {
   params: { id: string };
   searchParams: { clientName?: string };
-}
-
-interface ClientGroupMembership {
-  Client: {
-    preferred_name?: string;
-    legal_first_name?: string;
-    legal_last_name?: string;
-  };
-}
-
-interface ClientGroupData {
-  name?: string;
-  ClientGroupMembership?: ClientGroupMembership[];
-}
-
-// Helper function to extract client name from client group
-function getClientGroupInfo(clientGroup: ClientGroupData) {
-  try {
-    console.log("getClientGroupInfo called with:", clientGroup);
-
-    if (!clientGroup) {
-      console.log("No client group provided");
-      return "No Client Data";
-    }
-
-    // Handle different possible data structures
-    const memberships = clientGroup.ClientGroupMembership || [];
-    console.log("Memberships found:", memberships);
-
-    if (!Array.isArray(memberships) || memberships.length === 0) {
-      // Fallback to group name if no memberships
-      console.log("No memberships, using group name:", clientGroup.name);
-      return clientGroup.name || "Unknown Client";
-    }
-
-    const memberNames = memberships
-      .map((membership: ClientGroupMembership) => {
-        const client = membership.Client;
-        if (!client) return "";
-
-        const firstName =
-          client.preferred_name || client.legal_first_name || "";
-        const lastName = client.legal_last_name || "";
-        const fullName = `${firstName} ${lastName}`.trim();
-        console.log("Found member:", fullName);
-        return fullName;
-      })
-      .filter(Boolean);
-
-    const finalName =
-      memberNames.length > 0
-        ? memberNames.join(" & ")
-        : clientGroup.name || "Unknown Client";
-    console.log("Final client name:", finalName);
-    return finalName;
-  } catch (error) {
-    console.error("Error extracting client group info:", error, clientGroup);
-    return "Error Loading Client";
-  }
 }
 
 export default function ScoredMeasure({ params, searchParams }: PageProps) {
@@ -124,7 +68,7 @@ export default function ScoredMeasure({ params, searchParams }: PageProps) {
       }
       const data = await response.json();
       console.log("Client group API response:", data);
-      return data;
+      return data.data;
     },
     enabled: !!clientGroupId,
     retry: 1,
@@ -145,9 +89,9 @@ export default function ScoredMeasure({ params, searchParams }: PageProps) {
       return "Error loading client";
     }
 
-    if (clientGroup?.data) {
-      console.log("Client group data:", clientGroup.data);
-      return getClientGroupInfo(clientGroup.data);
+    if (clientGroup) {
+      console.log("Client group data:", clientGroup);
+      return getClientGroupInfo(clientGroup);
     }
 
     console.log("Client group response:", clientGroup);
@@ -367,49 +311,12 @@ export default function ScoredMeasure({ params, searchParams }: PageProps) {
 
   return (
     <div className="px-4 py-8 w-full max-w-6xl mx-auto">
-      {/* Breadcrumb and Message Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-        <div className="text-sm text-gray-500 flex flex-wrap items-center gap-1">
-          <Link className="hover:underline" href="/clients">
-            Clients and contacts
-          </Link>
-          <span>/</span>
-          <Link className="hover:underline" href={`/clients/${clientGroupId}`}>
-            {clientName}&apos;s profile
-          </Link>
-          <span>/</span>
-          <span className="text-gray-700 font-medium">Scored measure</span>
-        </div>
-        <Button
-          className="mt-2 sm:mt-0 flex items-center gap-2"
-          variant="outline"
-        >
-          <MessageCircle className="h-4 w-4" />
-          Message
-        </Button>
-      </div>
-
-      {/* Client Info */}
-      <h1 className="text-2xl font-semibold mt-4 mb-1">{clientName}</h1>
-      <div className="text-sm text-gray-500 mb-4 flex flex-wrap gap-2 items-center">
-        Adult
-        <span className="text-gray-300">|</span>
-        {new Date().toLocaleDateString()}
-        <span className="text-gray-300">|</span>
-        <Link
-          className="text-[#2d8467] hover:underline"
-          href={`/calendar?clientId=${clientGroupId}`}
-        >
-          Schedule appointment
-        </Link>
-        <span className="text-gray-300">|</span>
-        <Link
-          className="text-[#2d8467] hover:underline"
-          href={`/clients/${clientGroupId}/edit`}
-        >
-          Edit
-        </Link>
-      </div>
+      {clientGroup ? (
+        <ClientInfoHeader
+          clientGroupId={clientGroupId}
+          clientInfo={clientGroup}
+        />
+      ) : null}
 
       {/* Section Title and Subtext */}
       <div className="flex flex-col gap-1 mb-4">

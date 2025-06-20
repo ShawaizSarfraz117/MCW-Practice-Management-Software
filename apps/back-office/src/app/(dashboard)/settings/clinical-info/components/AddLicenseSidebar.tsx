@@ -147,11 +147,32 @@ export default function AddLicenseSidebar({
                     <SelectValue placeholder="Select License Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Type 1">License type 1</SelectItem>
-                    <SelectItem value="Type 2">License type 2</SelectItem>
-                    <SelectItem value="Type 3">License type 3</SelectItem>
-                    <SelectItem value="Type 4">License type 4</SelectItem>
-                    <SelectItem value="Type 5">License type 5</SelectItem>
+                    <SelectItem value="MD">MD - Doctor of Medicine</SelectItem>
+                    <SelectItem value="DO">
+                      DO - Doctor of Osteopathic Medicine
+                    </SelectItem>
+                    <SelectItem value="PhD">
+                      PhD - Doctor of Philosophy
+                    </SelectItem>
+                    <SelectItem value="PsyD">
+                      PsyD - Doctor of Psychology
+                    </SelectItem>
+                    <SelectItem value="LCSW">
+                      LCSW - Licensed Clinical Social Worker
+                    </SelectItem>
+                    <SelectItem value="LMFT">
+                      LMFT - Licensed Marriage and Family Therapist
+                    </SelectItem>
+                    <SelectItem value="LPC">
+                      LPC - Licensed Professional Counselor
+                    </SelectItem>
+                    <SelectItem value="LPCC">
+                      LPCC - Licensed Professional Clinical Counselor
+                    </SelectItem>
+                    <SelectItem value="NP">NP - Nurse Practitioner</SelectItem>
+                    <SelectItem value="PA">PA - Physician Assistant</SelectItem>
+                    <SelectItem value="RN">RN - Registered Nurse</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -193,11 +214,56 @@ export default function AddLicenseSidebar({
                     <SelectValue placeholder="Select State" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="State 1">State 1</SelectItem>
-                    <SelectItem value="State 2">State 2</SelectItem>
-                    <SelectItem value="State 3">State 3</SelectItem>
-                    <SelectItem value="State 4">State 4</SelectItem>
-                    <SelectItem value="State 5">State 5</SelectItem>
+                    <SelectItem value="AL">Alabama</SelectItem>
+                    <SelectItem value="AK">Alaska</SelectItem>
+                    <SelectItem value="AZ">Arizona</SelectItem>
+                    <SelectItem value="AR">Arkansas</SelectItem>
+                    <SelectItem value="CA">California</SelectItem>
+                    <SelectItem value="CO">Colorado</SelectItem>
+                    <SelectItem value="CT">Connecticut</SelectItem>
+                    <SelectItem value="DE">Delaware</SelectItem>
+                    <SelectItem value="FL">Florida</SelectItem>
+                    <SelectItem value="GA">Georgia</SelectItem>
+                    <SelectItem value="HI">Hawaii</SelectItem>
+                    <SelectItem value="ID">Idaho</SelectItem>
+                    <SelectItem value="IL">Illinois</SelectItem>
+                    <SelectItem value="IN">Indiana</SelectItem>
+                    <SelectItem value="IA">Iowa</SelectItem>
+                    <SelectItem value="KS">Kansas</SelectItem>
+                    <SelectItem value="KY">Kentucky</SelectItem>
+                    <SelectItem value="LA">Louisiana</SelectItem>
+                    <SelectItem value="ME">Maine</SelectItem>
+                    <SelectItem value="MD">Maryland</SelectItem>
+                    <SelectItem value="MA">Massachusetts</SelectItem>
+                    <SelectItem value="MI">Michigan</SelectItem>
+                    <SelectItem value="MN">Minnesota</SelectItem>
+                    <SelectItem value="MS">Mississippi</SelectItem>
+                    <SelectItem value="MO">Missouri</SelectItem>
+                    <SelectItem value="MT">Montana</SelectItem>
+                    <SelectItem value="NE">Nebraska</SelectItem>
+                    <SelectItem value="NV">Nevada</SelectItem>
+                    <SelectItem value="NH">New Hampshire</SelectItem>
+                    <SelectItem value="NJ">New Jersey</SelectItem>
+                    <SelectItem value="NM">New Mexico</SelectItem>
+                    <SelectItem value="NY">New York</SelectItem>
+                    <SelectItem value="NC">North Carolina</SelectItem>
+                    <SelectItem value="ND">North Dakota</SelectItem>
+                    <SelectItem value="OH">Ohio</SelectItem>
+                    <SelectItem value="OK">Oklahoma</SelectItem>
+                    <SelectItem value="OR">Oregon</SelectItem>
+                    <SelectItem value="PA">Pennsylvania</SelectItem>
+                    <SelectItem value="RI">Rhode Island</SelectItem>
+                    <SelectItem value="SC">South Carolina</SelectItem>
+                    <SelectItem value="SD">South Dakota</SelectItem>
+                    <SelectItem value="TN">Tennessee</SelectItem>
+                    <SelectItem value="TX">Texas</SelectItem>
+                    <SelectItem value="UT">Utah</SelectItem>
+                    <SelectItem value="VT">Vermont</SelectItem>
+                    <SelectItem value="VA">Virginia</SelectItem>
+                    <SelectItem value="WA">Washington</SelectItem>
+                    <SelectItem value="WV">West Virginia</SelectItem>
+                    <SelectItem value="WI">Wisconsin</SelectItem>
+                    <SelectItem value="WY">Wyoming</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
