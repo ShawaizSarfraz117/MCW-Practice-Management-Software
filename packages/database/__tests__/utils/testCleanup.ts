@@ -107,10 +107,9 @@ export async function cleanupDatabase(
 
         // Level 6: User-dependent entities (must be deleted before user)
         log("Level 6: Cleaning user-dependent entities...");
-        await Promise.all([
-          tx.clinician.deleteMany(),
-          tx.clinicalInfo.deleteMany(),
-        ]);
+        // Delete clinicalInfo first, then clinician to respect FK constraints
+        await tx.clinicalInfo.deleteMany();
+        await tx.clinician.deleteMany();
 
         // Level 7: Foundation tables (least dependent)
         log("Level 7: Cleaning foundation tables...");
