@@ -32,10 +32,11 @@ import {
   AlertDialogAction,
 } from "@mcw/ui";
 import { X } from "lucide-react";
+import Loading from "@/components/Loading";
 
 export default function PracticeDetailsForm() {
   const queryClient = useQueryClient();
-  const { practiceInformation } = usePracticeInformation();
+  const { practiceInformation, isLoading } = usePracticeInformation();
 
   const [practiceInfoState, setPracticeInfoState] =
     useState<PracticeInformation>({
@@ -96,6 +97,10 @@ export default function PracticeDetailsForm() {
     }
     mutate(practiceInfoState);
   };
+
+  if (isLoading) {
+    return <Loading fullScreen message="Loading practice information..." />;
+  }
 
   return (
     <Card className="w-full">
