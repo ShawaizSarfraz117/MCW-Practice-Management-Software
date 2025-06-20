@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 interface NotesSectionProps {
   appointmentData:
@@ -30,6 +31,33 @@ export function NotesSection({
   const [nextAppointment, setNextAppointment] =
     useState<AppointmentInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasNotes, setHasNotes] = useState(false);
+  const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkForNotes = async () => {
+      if (!appointmentData?.id) return;
+
+      setIsLoadingNotes(true);
+      try {
+        const response = await fetch(
+          `/api/appointmentNote?appointment_id=${appointmentData.id}`,
+        );
+        if (response.ok) {
+          const notes = await response.json();
+          setHasNotes(Array.isArray(notes) && notes.length > 0);
+        }
+      } catch (error) {
+        console.error("Error checking for notes:", error);
+        setHasNotes(false);
+      } finally {
+        setIsLoadingNotes(false);
+      }
+    };
+
+    checkForNotes();
+  }, [appointmentData?.id]);
 
   useEffect(() => {
     const fetchAdjacentAppointments = async () => {
@@ -92,6 +120,12 @@ export function NotesSection({
     }
   };
 
+  const handleViewNotes = () => {
+    if (appointmentData?.id) {
+      router.push(`/appointmentNote/${appointmentData.id}`);
+    }
+  };
+
   return (
     <div className="pb-4 border-b">
       <div className="flex justify-between items-center">
@@ -127,12 +161,25 @@ export function NotesSection({
             </span>
           )}
         </p>
-        <p
-          className="text-[#0a96d4] text-[13px] cursor-pointer hover:underline"
-          onClick={onAddNote}
-        >
-          Add Note
-        </p>
+        <div className="flex items-center gap-3">
+          {isLoadingNotes ? (
+            <span className="text-[#717171] text-xs">Checking notes...</span>
+          ) : hasNotes ? (
+            <p
+              className="text-[#0a96d4] text-[13px] cursor-pointer hover:underline"
+              onClick={handleViewNotes}
+            >
+              View Note
+            </p>
+          ) : (
+            <p
+              className="text-[#0a96d4] text-[13px] cursor-pointer hover:underline"
+              onClick={onAddNote}
+            >
+              Add Note
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

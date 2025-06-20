@@ -75,24 +75,25 @@ export function AppointmentDialog({
       const errors: Record<string, boolean> = {};
       let hasErrors = false;
 
-      // Validate time fields format
-      if (!value.startTime || !value.endTime) {
+      if (!value.allDay && (!value.startTime || !value.endTime)) {
         setGeneralError("Time fields are required");
         return;
       }
 
-      // Time format validation - accept both 12-hour and 24-hour formats
-      const time24Regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-      const time12Regex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
+      if (!value.allDay) {
+        const time24Regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        const time12Regex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
 
-      const isValidStartTime =
-        time24Regex.test(value.startTime) || time12Regex.test(value.startTime);
-      const isValidEndTime =
-        time24Regex.test(value.endTime) || time12Regex.test(value.endTime);
+        const isValidStartTime =
+          time24Regex.test(value.startTime) ||
+          time12Regex.test(value.startTime);
+        const isValidEndTime =
+          time24Regex.test(value.endTime) || time12Regex.test(value.endTime);
 
-      if (!isValidStartTime || !isValidEndTime) {
-        setGeneralError("Invalid time format. Please select a valid time.");
-        return;
+        if (!isValidStartTime || !isValidEndTime) {
+          setGeneralError("Invalid time format. Please select a valid time.");
+          return;
+        }
       }
 
       // Tab-specific validation

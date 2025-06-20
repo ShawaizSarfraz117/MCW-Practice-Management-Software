@@ -10,7 +10,7 @@ export function calculateDuration(
   if (!startDate || !endDate) return "0 mins";
 
   if (allDay) {
-    const days = differenceInDays(endDate, startDate);
+    const days = differenceInDays(endDate, startDate) + 1;
     return `${days} day${days !== 1 ? "s" : ""}`;
   }
 
