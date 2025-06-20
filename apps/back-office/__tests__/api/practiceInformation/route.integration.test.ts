@@ -14,40 +14,24 @@ import {
   UserPrismaFactory,
   RolePrismaFactory,
   UserRolePrismaFactory,
-  ClinicianPrismaFactory,
 } from "@mcw/database/mock-data";
 import { createRequestWithBody } from "@mcw/utils";
 import { getBackOfficeSession } from "@/utils/helpers";
-import * as helpers from "@/utils/helpers";
 
 // Mock getBackOfficeSession for session
 vi.mock("@/utils/helpers", () => ({
   ...vi.importActual("@/utils/helpers"),
   getBackOfficeSession: vi.fn(),
-  getClinicianInfo: vi.fn(),
 }));
 vi.mock("@/api/auth/[...nextauth]/auth-options", () => ({
   backofficeAuthOptions: {},
 }));
 
-// At the top of the file after imports
-type ClinicianWithUserId = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  user_id: string;
-};
-
 // Helper to clean up all practice information for a user
-async function cleanupPracticeInformation(userId: string, clinicianId: string) {
-  // Delete in the right order (practice info → clinician → user roles → user)
+async function cleanupPracticeInformation(userId: string) {
+  // Delete practice information without clinician_id
   await prisma.practiceInformation.deleteMany({
-    where: { clinician_id: clinicianId },
-  });
-
-  // Delete clinician before user (clinician has FK to user)
-  await prisma.clinician.deleteMany({
-    where: { id: clinicianId },
+    where: { clinician_id: null },
   });
 
   // Now delete user roles and user
@@ -57,7 +41,6 @@ async function cleanupPracticeInformation(userId: string, clinicianId: string) {
 
 describe("Practice Information API Integration Tests", () => {
   let userId: string;
-  let clinicianId: string;
   let session: { user: { id: string; roles: string[] }; expires: string };
 
   beforeAll(async () => {
@@ -69,11 +52,6 @@ describe("Practice Information API Integration Tests", () => {
     // Create a user
     const user = await UserPrismaFactory.create();
     userId = user.id;
-    // Create a clinician connected to the user
-    const clinician = await ClinicianPrismaFactory.create({
-      User: { connect: { id: userId } },
-    });
-    clinicianId = clinician.id;
     // Assign ADMIN role to user
     await UserRolePrismaFactory.create({
       User: { connect: { id: userId } },
@@ -90,33 +68,29 @@ describe("Practice Information API Integration Tests", () => {
   });
 
   afterAll(async () => {
-    await cleanupPracticeInformation(userId, clinicianId);
+    await cleanupPracticeInformation(userId);
   });
 
   afterEach(async () => {
     await prisma.practiceInformation.deleteMany({
-      where: { clinician_id: clinicianId },
+      where: { clinician_id: null },
     });
     vi.resetAllMocks();
   });
 
-  // Add beforeEach to mock getClinicianInfo for all tests
+  // Add beforeEach to mock getBackOfficeSession for all tests
   beforeEach(() => {
     vi.mocked(getBackOfficeSession).mockResolvedValue(session);
-    vi.mocked(helpers.getClinicianInfo).mockResolvedValue({
-      isClinician: true,
-      clinicianId: clinicianId,
-      clinician: {
-        id: clinicianId,
-        first_name: "Test",
-        last_name: "User",
-        user_id: userId,
-      } as ClinicianWithUserId,
-    });
   });
 
   it("GET /api/practiceInformation returns 404 if none exist", async () => {
-    const res = await GET();
+    // Ensure no practice information exists
+    await prisma.practiceInformation.deleteMany({
+      where: { clinician_id: null },
+    });
+
+    const req = createRequestWithBody("/api/practiceInformation", {});
+    const res = await GET(req);
     expect(res.status).toBe(404);
     const json = await res.json();
     expect(json.error).toMatch(/not found/i);
@@ -148,7 +122,7 @@ describe("Practice Information API Integration Tests", () => {
     expect(json.tele_health).toBe(true);
     // Confirm in DB
     const db = await prisma.practiceInformation.findFirst({
-      where: { clinician_id: clinicianId },
+      where: { clinician_id: null },
     });
     expect(db).not.toBeNull();
     expect(db?.practice_name).toBe("Test Practice");
@@ -158,7 +132,7 @@ describe("Practice Information API Integration Tests", () => {
     // Create initial
     await prisma.practiceInformation.create({
       data: {
-        clinician_id: clinicianId,
+        clinician_id: null,
         practice_name: "Old Name",
         practice_email: "old@example.com",
         time_zone: "UTC",
@@ -184,7 +158,7 @@ describe("Practice Information API Integration Tests", () => {
     expect(res.status).toBe(200);
     // Confirm in DB
     const db = await prisma.practiceInformation.findFirst({
-      where: { clinician_id: clinicianId },
+      where: { clinician_id: null },
     });
     expect(db?.practice_name).toBe("New Name");
     expect(db?.practice_email).toBe("new@example.com");
@@ -197,7 +171,7 @@ describe("Practice Information API Integration Tests", () => {
   it("GET /api/practiceInformation returns info for user", async () => {
     await prisma.practiceInformation.create({
       data: {
-        clinician_id: clinicianId,
+        clinician_id: null,
         practice_name: "Practice Info",
         practice_email: "info@example.com",
         time_zone: "America/Denver",
@@ -208,7 +182,8 @@ describe("Practice Information API Integration Tests", () => {
         tele_health: true,
       },
     });
-    const res = await GET();
+    const req = createRequestWithBody("/api/practiceInformation", {});
+    const res = await GET(req);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.practice_name).toBe("Practice Info");
@@ -223,7 +198,8 @@ describe("Practice Information API Integration Tests", () => {
 
   it("GET /api/practiceInformation returns 401 if not authenticated", async () => {
     vi.mocked(getBackOfficeSession).mockResolvedValue(null);
-    const res = await GET();
+    const req = createRequestWithBody("/api/practiceInformation", {});
+    const res = await GET(req);
     expect(res.status).toBe(401);
   });
 
@@ -269,19 +245,22 @@ describe("Practice Information API Integration Tests", () => {
     prisma.practiceInformation.findFirst = async () => {
       throw new Error("DB fail");
     };
-    const res = await GET();
+    const req = createRequestWithBody("/api/practiceInformation", {});
+    const res = await GET(req);
     expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.error).toBe("Failed to fetch practice information");
+    // In non-production, withErrorHandling returns detailed error object
+    expect(json.error.message).toBe("DB fail");
+    expect(json.error.issueId).toMatch(/^ERR-/);
     // Restore
     prisma.practiceInformation.findFirst = origFindFirst;
   });
 
   it("PUT /api/practiceInformation returns 500 on DB error", async () => {
-    // Ensure there is an existing record so updateMany is called
+    // Ensure there is an existing record so update is called
     await prisma.practiceInformation.create({
       data: {
-        clinician_id: clinicianId,
+        clinician_id: null,
         practice_name: "Existing",
         practice_email: "existing@example.com",
         time_zone: "UTC",
@@ -291,9 +270,9 @@ describe("Practice Information API Integration Tests", () => {
       },
     });
 
-    const origUpdateMany = prisma.practiceInformation.updateMany;
+    const origUpdate = prisma.practiceInformation.update;
     // @ts-expect-error: Monkey-patching for test
-    prisma.practiceInformation.updateMany = async () => {
+    prisma.practiceInformation.update = async () => {
       throw new Error("DB fail");
     };
     const body = {
@@ -310,8 +289,10 @@ describe("Practice Information API Integration Tests", () => {
     const res = await PUT(req);
     expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.error).toBe("Failed to update practice information");
+    // In non-production, withErrorHandling returns detailed error object
+    expect(json.error.message).toBe("DB fail");
+    expect(json.error.issueId).toMatch(/^ERR-/);
     // Restore
-    prisma.practiceInformation.updateMany = origUpdateMany;
+    prisma.practiceInformation.update = origUpdate;
   });
 });

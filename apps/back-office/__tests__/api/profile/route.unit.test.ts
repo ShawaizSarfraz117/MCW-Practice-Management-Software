@@ -3,7 +3,13 @@ vi.mock("@mcw/database", () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),
+      update: vi.fn(),
     },
+    clinician: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    $transaction: vi.fn(),
   },
 }));
 
@@ -11,12 +17,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, PUT } from "@/api/profile/route";
 import { prisma } from "@mcw/database";
 import { UserFactory } from "@mcw/database/mock-data";
-import { getServerSession } from "next-auth";
+import { getBackOfficeSession } from "@/utils/helpers";
 import { createRequestWithBody } from "@mcw/utils";
 
-// 🔁 Mock next-auth
-vi.mock("next-auth", () => ({
-  getServerSession: vi.fn(),
+// 🔁 Mock helpers
+vi.mock("@/utils/helpers", () => ({
+  getBackOfficeSession: vi.fn(),
 }));
 
 describe("GET /api/profile", () => {
@@ -24,18 +30,25 @@ describe("GET /api/profile", () => {
     user: {
       id: "test-user-id",
     },
+    expires: new Date().toISOString(),
   };
 
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(getServerSession).mockResolvedValue(mockSession);
+    vi.mocked(getBackOfficeSession).mockResolvedValue(mockSession);
   });
 
   it("should return the user profile", async () => {
-    const mockUser = UserFactory.build({
-      id: mockSession.user.id,
+    const mockUser = {
       email: "admin@example.com",
-    });
+      date_of_birth: new Date("1990-01-01"),
+      phone: "+1234567890",
+      profile_photo: "https://example.com/photo.jpg",
+      Clinician: {
+        first_name: "John",
+        last_name: "Doe",
+      },
+    };
 
     const mockFindUnique = prisma.user.findUnique as unknown as ReturnType<
       typeof vi.fn
@@ -46,17 +59,16 @@ describe("GET /api/profile", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json).toMatchObject({
-      id: mockUser.id,
       email: mockUser.email,
       phone: mockUser.phone,
       profile_photo: mockUser.profile_photo,
-
-      // add only the relevant keys
+      first_name: "John",
+      last_name: "Doe",
     });
   });
 
   it("should return 401 if session is invalid", async () => {
-    vi.mocked(getServerSession).mockResolvedValueOnce(null);
+    vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
     const response = await GET();
 
@@ -82,26 +94,30 @@ describe("PUT /api/profile", () => {
     user: {
       id: "test-user-id",
     },
+    expires: new Date().toISOString(),
   };
 
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(getServerSession).mockResolvedValue(mockSession);
+    vi.mocked(getBackOfficeSession).mockResolvedValue(mockSession);
   });
 
   it("should update birth date, phone, and profile photo", async () => {
     const updateData = {
-      birth_date: "1990-01-01",
+      dateOfBirth: "1990-01-01",
       phone: "+1234567890",
-      profile_photo: "https://example.com/photo.jpg",
+      profilePhoto: "https://example.com/photo.jpg",
     };
 
     const mockUser = UserFactory.build({
       id: mockSession.user.id,
-      ...updateData,
+      date_of_birth: new Date("1990-01-01"),
+      phone: "+1234567890",
+      profile_photo: "https://example.com/photo.jpg",
     });
 
-    vi.mocked(prisma.user.update).mockResolvedValueOnce(mockUser);
+    // Mock the transaction to resolve with the mocked user
+    vi.mocked(prisma.$transaction).mockResolvedValue(mockUser);
 
     const request = createRequestWithBody(
       "/api/profile",
@@ -112,18 +128,16 @@ describe("PUT /api/profile", () => {
 
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(JSON.stringify(json)).toEqual(
-      JSON.stringify({
-        ...mockUser,
-        date_of_birth: mockUser.date_of_birth?.toISOString(),
-        phone: mockUser.phone,
-        profile_photo: mockUser.profile_photo,
-      }),
-    );
+    expect(json).toMatchObject({
+      id: mockUser.id,
+      email: mockUser.email,
+      phone: mockUser.phone,
+      profile_photo: mockUser.profile_photo,
+    });
   });
 
   it("should return 401 if session is missing", async () => {
-    vi.mocked(getServerSession).mockResolvedValueOnce(null);
+    vi.mocked(getBackOfficeSession).mockResolvedValueOnce(null);
 
     const request = createRequestWithBody(
       "/api/profile",
@@ -135,15 +149,13 @@ describe("PUT /api/profile", () => {
   });
 
   it("should return 500 on database error", async () => {
-    const mockUpdate = prisma.user.update as unknown as ReturnType<
-      typeof vi.fn
-    >;
-    mockUpdate?.mockRejectedValueOnce(new Error("DB error"));
+    // Mock transaction to throw error
+    vi.mocked(prisma.$transaction).mockRejectedValueOnce(new Error("DB error"));
 
     const request = createRequestWithBody("/api/profile", {
-      birth_date: "1990-01-01",
+      dateOfBirth: "1990-01-01",
       phone: "+1234567890",
-      profile_photo: "https://example.com/photo.jpg",
+      profilePhoto: "https://example.com/photo.jpg",
     } as unknown as Record<string, unknown>);
 
     const response = await PUT(request);

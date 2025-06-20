@@ -33,6 +33,8 @@ const ProfileInfo = ({ form }: { form: ProfileFormType }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          firstName: form.getFieldValue("firstName"),
+          lastName: form.getFieldValue("lastName"),
           dateOfBirth,
           // Only include fields relevant to this section
           phone: profileInfo?.phone, // preserve existing phone
@@ -62,6 +64,14 @@ const ProfileInfo = ({ form }: { form: ProfileFormType }) => {
     }
   };
 
+  // Initialize form values when entering edit mode
+  const handleEdit = () => {
+    form.setFieldValue("firstName", profileInfo?.first_name || "");
+    form.setFieldValue("lastName", profileInfo?.last_name || "");
+    form.setFieldValue("dateOfBirth", profileInfo?.date_of_birth || "");
+    setIsEditing(true);
+  };
+
   return (
     <div className="bg-white rounded-md shadow-sm border border-gray-200 mb-6">
       <div className="px-6 py-4 flex justify-between items-center border-b border-gray-100">
@@ -70,38 +80,84 @@ const ProfileInfo = ({ form }: { form: ProfileFormType }) => {
         </h2>
         <button
           className="text-blue-600 text-sm font-medium hover:text-blue-700"
-          onClick={() => setIsEditing(true)}
+          onClick={handleEdit}
         >
           {isEditing ? "" : "Edit"}
         </button>
       </div>
       <div className="px-6 py-5">
         <h3 className="text-base font-medium text-gray-800 mb-3">
-          {profileInfo?.name || "User Name"}
+          {profileInfo?.name ||
+            `${profileInfo?.first_name || ""} ${profileInfo?.last_name || ""}`.trim() ||
+            "User Name"}
         </h3>
 
-        <div>
-          <div className="text-sm text-gray-700 mb-1">Date of birth:</div>
-          {isEditing ? (
-            form.Field({
-              name: "dateOfBirth",
-              children: (field: FieldProps) => (
-                <Input
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-9"
-                  max={new Date().toISOString().split("T")[0]}
-                  type="date"
-                  value={(form.getFieldValue("dateOfBirth") as string) || ""}
-                  onChange={(e) => field.handleChange(e.target.value || null)}
-                />
-              ),
-            })
-          ) : (
-            <div className="text-sm text-gray-900">
-              {profileInfo?.date_of_birth
-                ? new Date(profileInfo.date_of_birth).toLocaleDateString()
-                : "mm/dd/yyyy"}
-            </div>
-          )}
+        <div className="space-y-4">
+          <div>
+            <div className="text-sm text-gray-700 mb-1">First name:</div>
+            {isEditing ? (
+              form.Field({
+                name: "firstName",
+                children: (field: FieldProps) => (
+                  <Input
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-9"
+                    type="text"
+                    value={(form.getFieldValue("firstName") as string) || ""}
+                    onChange={(e) => field.handleChange(e.target.value || null)}
+                  />
+                ),
+              })
+            ) : (
+              <div className="text-sm text-gray-900">
+                {profileInfo?.first_name || "-"}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="text-sm text-gray-700 mb-1">Last name:</div>
+            {isEditing ? (
+              form.Field({
+                name: "lastName",
+                children: (field: FieldProps) => (
+                  <Input
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-9"
+                    type="text"
+                    value={(form.getFieldValue("lastName") as string) || ""}
+                    onChange={(e) => field.handleChange(e.target.value || null)}
+                  />
+                ),
+              })
+            ) : (
+              <div className="text-sm text-gray-900">
+                {profileInfo?.last_name || "-"}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="text-sm text-gray-700 mb-1">Date of birth:</div>
+            {isEditing ? (
+              form.Field({
+                name: "dateOfBirth",
+                children: (field: FieldProps) => (
+                  <Input
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-9"
+                    max={new Date().toISOString().split("T")[0]}
+                    type="date"
+                    value={(form.getFieldValue("dateOfBirth") as string) || ""}
+                    onChange={(e) => field.handleChange(e.target.value || null)}
+                  />
+                ),
+              })
+            ) : (
+              <div className="text-sm text-gray-900">
+                {profileInfo?.date_of_birth
+                  ? new Date(profileInfo.date_of_birth).toLocaleDateString()
+                  : "mm/dd/yyyy"}
+              </div>
+            )}
+          </div>
         </div>
 
         {isEditing && (
