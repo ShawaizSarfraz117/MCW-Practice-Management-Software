@@ -66,15 +66,19 @@ export function useCalendarSettings() {
       return createCompleteSettings(data.data);
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    onError: (error) => {
+  });
+
+  // Handle query errors with useEffect
+  useEffect(() => {
+    if (error) {
       console.error("Error fetching calendar settings:", error);
       toast({
         title: "Error",
         description: "Failed to load calendar settings",
         variant: "destructive",
       });
-    },
-  });
+    }
+  }, [error, toast]);
 
   // Initialize staged settings when settings are loaded
   useEffect(() => {
@@ -214,7 +218,7 @@ export function useCalendarSettings() {
 
   // Discard staged changes
   const discardChanges = () => {
-    setStagedSettings(settings);
+    setStagedSettings(settings || null);
   };
 
   return {

@@ -1,11 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@mcw/ui";
+import { useEffect } from "react";
 import type { WidgetSettings } from "@mcw/types";
 
-export function useWidgetSettings() {
+export function useWidgetSettings(): {
+  settings: WidgetSettings | null;
+  loading: boolean;
+} {
   const { toast } = useToast();
 
-  const { data: settings, isLoading: loading } = useQuery({
+  const {
+    data: settings,
+    isLoading: loading,
+    error,
+  } = useQuery<WidgetSettings>({
     queryKey: ["client-care-settings", "widget"],
     queryFn: async (): Promise<WidgetSettings> => {
       const response = await fetch("/api/client-care-settings?category=widget");
@@ -31,18 +39,22 @@ export function useWidgetSettings() {
       };
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    onError: (error) => {
+  });
+
+  // Handle errors with useEffect
+  useEffect(() => {
+    if (error) {
       console.error("Error fetching widget settings:", error);
       toast({
         title: "Error",
         description: "Failed to load widget settings",
         variant: "destructive",
       });
-    },
-  });
+    }
+  }, [error, toast]);
 
   return {
     settings: settings ?? null,
     loading,
-  };
+  } as const;
 }

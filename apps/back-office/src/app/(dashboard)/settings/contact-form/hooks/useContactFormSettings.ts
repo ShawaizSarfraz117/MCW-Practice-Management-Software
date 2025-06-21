@@ -49,15 +49,19 @@ export function useContactFormSettings() {
       };
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    onError: (error) => {
+  });
+
+  // Handle query errors with useEffect
+  useEffect(() => {
+    if (error) {
       console.error("Error fetching contact form settings:", error);
       toast({
         title: "Error",
         description: "Failed to load contact form settings",
         variant: "destructive",
       });
-    },
-  });
+    }
+  }, [error, toast]);
 
   // Initialize staged settings when settings are loaded
   useEffect(() => {
@@ -194,7 +198,7 @@ export function useContactFormSettings() {
 
   // Discard staged changes
   const discardChanges = () => {
-    setStagedSettings(settings);
+    setStagedSettings(settings || null);
   };
 
   // Convenience method to toggle form
