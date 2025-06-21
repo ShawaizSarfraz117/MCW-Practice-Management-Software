@@ -28,6 +28,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     | "widget"
     | "calendar"
     | "contactForm"
+    | "demographicsForm"
+    | "documentFormat"
     | null;
 
   try {
@@ -35,12 +37,19 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 
     if (category) {
       // Validate category
-      const validCategories = ["portal", "widget", "calendar", "contactForm"];
+      const validCategories = [
+        "portal",
+        "widget",
+        "calendar",
+        "contactForm",
+        "demographicsForm",
+        "documentFormat",
+      ];
       if (!validCategories.includes(category)) {
         return NextResponse.json(
           {
             error:
-              "Invalid category. Must be one of: portal, widget, calendar, contactForm",
+              "Invalid category. Must be one of: portal, widget, calendar, contactForm, demographicsForm, documentFormat",
           },
           { status: 400 },
         );
@@ -97,12 +106,19 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
   }
 
   // Validate category
-  const validCategories = ["portal", "widget", "calendar", "contactForm"];
+  const validCategories = [
+    "portal",
+    "widget",
+    "calendar",
+    "contactForm",
+    "demographicsForm",
+    "documentFormat",
+  ];
   if (!validCategories.includes(category)) {
     return NextResponse.json(
       {
         error:
-          "Invalid category. Must be one of: portal, widget, calendar, contactForm",
+          "Invalid category. Must be one of: portal, widget, calendar, contactForm, demographicsForm, documentFormat",
       },
       { status: 400 },
     );

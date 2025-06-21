@@ -6,6 +6,8 @@ import type {
   WidgetSettings,
   CalendarSettings,
   ContactFormSettings,
+  DemographicsFormSettings,
+  DocumentFormatSettings,
   ClientCareSettingsData,
 } from "@mcw/types";
 
@@ -137,6 +139,43 @@ export const CLIENT_CARE_SETTINGS_DICTIONARY = {
       },
     },
   },
+
+  // Demographics Form Settings
+  demographicsForm: {
+    fields: {
+      nameTheyGoBy: {
+        type: "boolean",
+        default: false,
+        label: "Name they go by",
+      },
+      insurance: {
+        type: "boolean",
+        default: false,
+        label: "Insurance",
+      },
+      genderIdentity: {
+        type: "boolean",
+        default: false,
+        label: "Gender identity",
+      },
+    },
+  },
+
+  // Document Format Settings
+  documentFormat: {
+    general: {
+      includePracticeLogo: {
+        type: "boolean",
+        default: false,
+        label: "Include practice logo",
+      },
+      footerInformation: {
+        type: "string",
+        default: null,
+        label: "Footer information",
+      },
+    },
+  },
 } as const;
 
 // Type definitions
@@ -202,11 +241,32 @@ const contactFormSettingsSchema = z.object({
     .optional(),
 });
 
+const demographicsFormSettingsSchema = z.object({
+  fields: z
+    .object({
+      nameTheyGoBy: z.boolean().optional(),
+      insurance: z.boolean().optional(),
+      genderIdentity: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+const documentFormatSettingsSchema = z.object({
+  general: z
+    .object({
+      includePracticeLogo: z.boolean().optional(),
+      footerInformation: z.string().nullable().optional(),
+    })
+    .optional(),
+});
+
 export const settingsValidationSchemas = {
   portal: portalSettingsSchema,
   widget: widgetSettingsSchema,
   calendar: calendarSettingsSchema,
   contactForm: contactFormSettingsSchema,
+  demographicsForm: demographicsFormSettingsSchema,
+  documentFormat: documentFormatSettingsSchema,
 };
 
 // Service class
@@ -261,6 +321,15 @@ export class ClientCareSettingsService {
         "contactForm",
       );
 
+      const demographicsFormSettings = await this.getPracticeSettingsCategory(
+        clinicianId,
+        "demographicsForm",
+      );
+      const documentFormatSettings = await this.getPracticeSettingsCategory(
+        clinicianId,
+        "documentFormat",
+      );
+
       return {
         ...migratedSettings,
         widget: (widgetSettings ||
@@ -271,6 +340,14 @@ export class ClientCareSettingsService {
           this.getDefaultCategorySettings(
             "contactForm",
           )) as ContactFormSettings,
+        demographicsForm: (demographicsFormSettings ||
+          this.getDefaultCategorySettings(
+            "demographicsForm",
+          )) as DemographicsFormSettings,
+        documentFormat: (documentFormatSettings ||
+          this.getDefaultCategorySettings(
+            "documentFormat",
+          )) as DocumentFormatSettings,
       };
     }
 
@@ -282,6 +359,8 @@ export class ClientCareSettingsService {
       "widget",
       "calendar",
       "contactForm",
+      "demographicsForm",
+      "documentFormat",
     ] as const) {
       const categorySettings = await this.getPracticeSettingsCategory(
         clinicianId,
@@ -301,7 +380,12 @@ export class ClientCareSettingsService {
     clinicianId: string,
     category: SettingCategory,
   ): Promise<
-    PortalSettings | WidgetSettings | CalendarSettings | ContactFormSettings
+    | PortalSettings
+    | WidgetSettings
+    | CalendarSettings
+    | ContactFormSettings
+    | DemographicsFormSettings
+    | DocumentFormatSettings
   > {
     const allSettings = await this.getAllSettings(clinicianId);
     const categorySettings = allSettings[category];
@@ -320,6 +404,10 @@ export class ClientCareSettingsService {
         return categorySettings as CalendarSettings;
       case "contactForm":
         return categorySettings as ContactFormSettings;
+      case "demographicsForm":
+        return categorySettings as DemographicsFormSettings;
+      case "documentFormat":
+        return categorySettings as DocumentFormatSettings;
       default:
         return categorySettings;
     }
@@ -333,9 +421,16 @@ export class ClientCareSettingsService {
       | Partial<PortalSettings>
       | Partial<WidgetSettings>
       | Partial<CalendarSettings>
-      | Partial<ContactFormSettings>,
+      | Partial<ContactFormSettings>
+      | Partial<DemographicsFormSettings>
+      | Partial<DocumentFormatSettings>,
   ): Promise<
-    PortalSettings | WidgetSettings | CalendarSettings | ContactFormSettings
+    | PortalSettings
+    | WidgetSettings
+    | CalendarSettings
+    | ContactFormSettings
+    | DemographicsFormSettings
+    | DocumentFormatSettings
   > {
     // Validate settings
     const schema = settingsValidationSchemas[category];
@@ -388,7 +483,13 @@ export class ClientCareSettingsService {
 
   private getDefaultCategorySettings(
     category: SettingCategory,
-  ): PortalSettings | WidgetSettings | CalendarSettings | ContactFormSettings {
+  ):
+    | PortalSettings
+    | WidgetSettings
+    | CalendarSettings
+    | ContactFormSettings
+    | DemographicsFormSettings
+    | DocumentFormatSettings {
     const categoryDefaults: Record<string, Record<string, unknown>> = {};
     const categoryDict = CLIENT_CARE_SETTINGS_DICTIONARY[category];
 
@@ -405,7 +506,9 @@ export class ClientCareSettingsService {
       | PortalSettings
       | WidgetSettings
       | CalendarSettings
-      | ContactFormSettings;
+      | ContactFormSettings
+      | DemographicsFormSettings
+      | DocumentFormatSettings;
   }
 
   private async migrateFromOldStructure(oldSettings: {
@@ -554,7 +657,9 @@ export class ClientCareSettingsService {
       | Partial<PortalSettings>
       | Partial<WidgetSettings>
       | Partial<CalendarSettings>
-      | Partial<ContactFormSettings>,
+      | Partial<ContactFormSettings>
+      | Partial<DemographicsFormSettings>
+      | Partial<DocumentFormatSettings>,
   ): Promise<unknown> {
     // Save each setting as an individual key-value pair
     const updates: Promise<unknown>[] = [];
@@ -616,6 +721,8 @@ export class ClientCareSettingsService {
     | WidgetSettings
     | CalendarSettings
     | ContactFormSettings
+    | DemographicsFormSettings
+    | DocumentFormatSettings
     | null
   > {
     // Get all settings for this category with simpler keys
@@ -691,7 +798,9 @@ export class ClientCareSettingsService {
       | PortalSettings
       | WidgetSettings
       | CalendarSettings
-      | ContactFormSettings;
+      | ContactFormSettings
+      | DemographicsFormSettings
+      | DocumentFormatSettings;
   }
 
   // Helper method to convert camelCase to snake_case
@@ -738,6 +847,15 @@ export class ClientCareSettingsService {
         isPrescreenNewClients: "appointments",
         cardForAppointmentRequest: "appointments",
         isUploadDocumentsAllowed: "documents",
+      },
+      demographicsForm: {
+        nameTheyGoBy: "fields",
+        insurance: "fields",
+        genderIdentity: "fields",
+      },
+      documentFormat: {
+        includePracticeLogo: "general",
+        footerInformation: "general",
       },
     };
 

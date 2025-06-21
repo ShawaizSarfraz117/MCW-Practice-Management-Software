@@ -597,7 +597,62 @@ async function main() {
     }
   }
 
-  console.log('Practice settings for widget codes and calendar seeded successfully');
+  // Store demographics form settings as individual key-value pairs (practice-wide)
+  const demographicsFormSettingsToStore = [
+    { key: 'demographicsForm_name_they_go_by', value: 'false' },
+    { key: 'demographicsForm_insurance', value: 'false' },
+    { key: 'demographicsForm_gender_identity', value: 'false' },
+  ];
+
+  for (const setting of demographicsFormSettingsToStore) {
+    const existing = await prisma.practiceSettings.findFirst({
+      where: { key: setting.key }
+    });
+    
+    if (existing) {
+      await prisma.practiceSettings.update({
+        where: { id: existing.id },
+        data: { value: setting.value }
+      });
+    } else {
+      await prisma.practiceSettings.create({
+        data: {
+          id: uuidv4(),
+          key: setting.key,
+          value: setting.value
+        }
+      });
+    }
+  }
+
+  // Store document format settings as individual key-value pairs (practice-wide)
+  const documentFormatSettingsToStore = [
+    { key: 'documentFormat_include_practice_logo', value: 'false' },
+    { key: 'documentFormat_footer_information', value: '' },
+  ];
+
+  for (const setting of documentFormatSettingsToStore) {
+    const existing = await prisma.practiceSettings.findFirst({
+      where: { key: setting.key }
+    });
+    
+    if (existing) {
+      await prisma.practiceSettings.update({
+        where: { id: existing.id },
+        data: { value: setting.value }
+      });
+    } else {
+      await prisma.practiceSettings.create({
+        data: {
+          id: uuidv4(),
+          key: setting.key,
+          value: setting.value
+        }
+      });
+    }
+  }
+
+  console.log('Practice settings for widget codes, calendar, demographics form, and document format seeded successfully');
   
   // Create sample appointments with tags
   console.log("Creating sample appointments with tags...");

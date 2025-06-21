@@ -10,6 +10,8 @@ export interface ClientCareSettingsData {
   widget: WidgetSettings;
   calendar: CalendarSettings;
   contactForm: ContactFormSettings;
+  demographicsForm: DemographicsFormSettings;
+  documentFormat: DocumentFormatSettings;
 }
 
 // Portal Settings
@@ -63,6 +65,23 @@ export interface ContactFormSettings {
   };
 }
 
+// Demographics Form Settings
+export interface DemographicsFormSettings {
+  fields: {
+    nameTheyGoBy: boolean;
+    insurance: boolean;
+    genderIdentity: boolean;
+  };
+}
+
+// Document Format Settings
+export interface DocumentFormatSettings {
+  general: {
+    includePracticeLogo: boolean;
+    footerInformation: string | null;
+  };
+}
+
 // Deep partial type helper
 export type DeepPartial<T> = T extends object
   ? {
@@ -72,12 +91,20 @@ export type DeepPartial<T> = T extends object
 
 // Update request types
 export interface UpdateClientCareSettingsRequest {
-  category: "portal" | "widget" | "calendar" | "contactForm";
+  category:
+    | "portal"
+    | "widget"
+    | "calendar"
+    | "contactForm"
+    | "demographicsForm"
+    | "documentFormat";
   settings:
     | Partial<PortalSettings>
     | Partial<WidgetSettings>
     | Partial<CalendarSettings>
-    | Partial<ContactFormSettings>;
+    | Partial<ContactFormSettings>
+    | Partial<DemographicsFormSettings>
+    | Partial<DocumentFormatSettings>;
 }
 
 // Individual client portal permissions (existing functionality)
