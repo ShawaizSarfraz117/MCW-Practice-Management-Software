@@ -1,19 +1,70 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@mcw/ui";
 import type { ContactFormSettings } from "@mcw/types";
 
 export function useContactFormSettings() {
-  const [settings, setSettings] = useState<ContactFormSettings | null>(null);
-  const [stagedSettings, setStagedSettings] =
-    useState<ContactFormSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // State for staging changes
+  const [stagedSettings, setStagedSettings] =
+    useState<ContactFormSettings | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Fetch settings using React Query
+  const {
+    data: settings,
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey: ["client-care-settings", "contactForm"],
+    queryFn: async (): Promise<ContactFormSettings> => {
+      const response = await fetch(
+        "/api/client-care-settings?category=contactForm",
+      );
+
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 500) {
+          // Return default settings for 404/500 errors
+          return {
+            general: {
+              isEnabled: false,
+              link: null,
+              widgetCode: null,
+            },
+          };
+        }
+        throw new Error("Failed to fetch settings");
+      }
+
+      const data = await response.json();
+      // Ensure we have a complete settings structure
+      return {
+        general: {
+          isEnabled: data.data?.general?.isEnabled ?? false,
+          link: data.data?.general?.link ?? null,
+          widgetCode: data.data?.general?.widgetCode ?? null,
+        },
+      };
+    },
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    onError: (error) => {
+      console.error("Error fetching contact form settings:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load contact form settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Initialize staged settings when settings are loaded
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (settings && !stagedSettings) {
+      setStagedSettings(settings);
+    }
+  }, [settings, stagedSettings]);
 
   // Track changes whenever stagedSettings differs from settings
   useEffect(() => {
@@ -52,52 +103,55 @@ export function useContactFormSettings() {
     }
   }, [settings, stagedSettings]);
 
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        "/api/client-care-settings?category=contactForm",
-      );
+  // Save mutation
+  const saveMutation = useMutation({
+    mutationFn: async (settingsToSave: ContactFormSettings) => {
+      const response = await fetch("/api/client-care-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: "contactForm",
+          settings: settingsToSave,
+        }),
+      });
 
       if (!response.ok) {
-        if (response.status === 404 || response.status === 500) {
-          // Initialize with default settings locally
-          const defaultSettings: ContactFormSettings = {
-            general: {
-              isEnabled: false,
-              link: null,
-              widgetCode: null,
-            },
-          };
-          setSettings(defaultSettings);
-          setStagedSettings(defaultSettings);
-          return;
-        }
-        throw new Error("Failed to fetch settings");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update settings");
       }
 
-      const data = await response.json();
-      // Ensure we have a complete settings structure
-      const completeSettings: ContactFormSettings = {
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Update cached data
+      queryClient.invalidateQueries({
+        queryKey: ["client-care-settings", "contactForm"],
+      });
+
+      // Update local state with saved settings
+      const savedSettings: ContactFormSettings = {
         general: {
           isEnabled: data.data?.general?.isEnabled ?? false,
           link: data.data?.general?.link ?? null,
           widgetCode: data.data?.general?.widgetCode ?? null,
         },
       };
-      setSettings(completeSettings);
-      setStagedSettings(completeSettings);
-    } catch (error) {
-      console.error("Error fetching contact form settings:", error);
+      setStagedSettings(savedSettings);
+
+      toast({
+        title: "Success",
+        description: "Contact form settings saved successfully",
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Error updating contact form settings:", error);
       toast({
         title: "Error",
-        description: "Failed to load contact form settings",
+        description: error.message || "Failed to save contact form settings",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
   // Stage changes without saving
   const stageChanges = (updates: Partial<ContactFormSettings>) => {
@@ -135,49 +189,7 @@ export function useContactFormSettings() {
   // Save all staged changes
   const saveChanges = async () => {
     if (!stagedSettings || !hasChanges) return;
-
-    try {
-      setSaving(true);
-
-      const response = await fetch("/api/client-care-settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category: "contactForm",
-          settings: stagedSettings,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update settings");
-      }
-
-      const data = await response.json();
-      // Ensure we have a complete settings structure from the response
-      const savedSettings: ContactFormSettings = {
-        general: {
-          isEnabled: data.data?.general?.isEnabled ?? false,
-          link: data.data?.general?.link ?? null,
-          widgetCode: data.data?.general?.widgetCode ?? null,
-        },
-      };
-      setSettings(savedSettings);
-      setStagedSettings(savedSettings);
-
-      toast({
-        title: "Success",
-        description: "Contact form settings saved successfully",
-      });
-    } catch (error) {
-      console.error("Error updating contact form settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save contact form settings",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate(stagedSettings);
   };
 
   // Discard staged changes
@@ -193,13 +205,17 @@ export function useContactFormSettings() {
   return {
     settings: stagedSettings, // Return staged settings for UI
     loading,
-    saving,
+    saving: saveMutation.isPending,
     hasChanges,
+    error,
     stageChanges,
     stageSetting,
     saveChanges,
     discardChanges,
     toggleForm,
-    refetch: fetchSettings,
+    refetch: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["client-care-settings", "contactForm"],
+      }),
   };
 }

@@ -137,6 +137,11 @@ interface ClientPortalCardProps {
   stageChanges: (updates: DeepPartial<PortalSettings>) => void;
 }
 
+const extractSubdomain = (domainUrl: string | null | undefined): string => {
+  if (!domainUrl) return "";
+  return domainUrl.replace("https://", "").replace(".clientsecure.me", "");
+};
+
 export default function ClientPortalCard({
   settings,
   loading,
@@ -147,10 +152,7 @@ export default function ClientPortalCard({
 
   useEffect(() => {
     if (settings?.general?.domainUrl) {
-      const extractedSubdomain = settings.general.domainUrl
-        .replace("https://", "")
-        .replace(".clientsecure.me", "");
-      setSubdomain(extractedSubdomain);
+      setSubdomain(extractSubdomain(settings.general.domainUrl));
     }
   }, [settings]);
 
@@ -175,10 +177,7 @@ export default function ClientPortalCard({
   const handleCancel = () => {
     setEditing(false);
     if (settings?.general?.domainUrl) {
-      const extractedSubdomain = settings.general.domainUrl
-        .replace("https://", "")
-        .replace(".clientsecure.me", "");
-      setSubdomain(extractedSubdomain);
+      setSubdomain(extractSubdomain(settings.general.domainUrl));
     }
   };
 

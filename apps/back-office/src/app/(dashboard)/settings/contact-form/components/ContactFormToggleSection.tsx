@@ -12,9 +12,12 @@ import { useToast } from "@mcw/ui";
 
 export default function ContactFormToggleSection() {
   const [monarchEnabled, setMonarchEnabled] = useState(false);
-  const { settings } = useContactFormSettings();
+  const { settings, loading, error } = useContactFormSettings();
   const { toast } = useToast();
   const contactFormLink = settings?.general?.link || "";
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error loading settings</div>;
 
   return (
     <section className="rounded-lg p-0 mt-0">

@@ -90,22 +90,16 @@ export type DeepPartial<T> = T extends object
   : T;
 
 // Update request types
-export interface UpdateClientCareSettingsRequest {
-  category:
-    | "portal"
-    | "widget"
-    | "calendar"
-    | "contactForm"
-    | "demographicsForm"
-    | "documentFormat";
-  settings:
-    | Partial<PortalSettings>
-    | Partial<WidgetSettings>
-    | Partial<CalendarSettings>
-    | Partial<ContactFormSettings>
-    | Partial<DemographicsFormSettings>
-    | Partial<DocumentFormatSettings>;
-}
+export type UpdateClientCareSettingsRequest =
+  | { category: "portal"; settings: Partial<PortalSettings> }
+  | { category: "widget"; settings: Partial<WidgetSettings> }
+  | { category: "calendar"; settings: Partial<CalendarSettings> }
+  | { category: "contactForm"; settings: Partial<ContactFormSettings> }
+  | {
+      category: "demographicsForm";
+      settings: Partial<DemographicsFormSettings>;
+    }
+  | { category: "documentFormat"; settings: Partial<DocumentFormatSettings> };
 
 // Individual client portal permissions (existing functionality)
 export interface ClientPortalPermission {

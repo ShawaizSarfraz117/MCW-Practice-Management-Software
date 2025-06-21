@@ -1,48 +1,108 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@mcw/ui";
 import type { CalendarSettings } from "@mcw/types";
 
+const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
+  display: {
+    startTime: "7:00 AM",
+    endTime: "11:00 PM",
+    viewMode: "week",
+    showWeekends: true,
+    cancellationNoticeHours: 24,
+  },
+};
+
+const createCompleteSettings = (
+  data: Partial<CalendarSettings> | null | undefined,
+): CalendarSettings => ({
+  display: {
+    startTime:
+      data?.display?.startTime || DEFAULT_CALENDAR_SETTINGS.display.startTime,
+    endTime:
+      data?.display?.endTime || DEFAULT_CALENDAR_SETTINGS.display.endTime,
+    viewMode:
+      data?.display?.viewMode || DEFAULT_CALENDAR_SETTINGS.display.viewMode,
+    showWeekends:
+      data?.display?.showWeekends ??
+      DEFAULT_CALENDAR_SETTINGS.display.showWeekends,
+    cancellationNoticeHours:
+      data?.display?.cancellationNoticeHours ||
+      DEFAULT_CALENDAR_SETTINGS.display.cancellationNoticeHours,
+  },
+});
+
 export function useCalendarSettings() {
-  const [settings, setSettings] = useState<CalendarSettings | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // State for staging changes
   const [stagedSettings, setStagedSettings] = useState<CalendarSettings | null>(
     null,
   );
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const { toast } = useToast();
 
+  // Fetch settings using React Query
+  const {
+    data: settings,
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey: ["client-care-settings", "calendar"],
+    queryFn: async (): Promise<CalendarSettings> => {
+      const response = await fetch(
+        "/api/client-care-settings?category=calendar",
+      );
+
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 500) {
+          // Return default settings for 404/500 errors
+          return DEFAULT_CALENDAR_SETTINGS;
+        }
+        throw new Error("Failed to fetch settings");
+      }
+
+      const data = await response.json();
+      return createCompleteSettings(data.data);
+    },
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    onError: (error) => {
+      console.error("Error fetching calendar settings:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load calendar settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Initialize staged settings when settings are loaded
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (settings && !stagedSettings) {
+      setStagedSettings(settings);
+    }
+  }, [settings, stagedSettings]);
 
   // Track changes whenever stagedSettings differs from settings
   useEffect(() => {
     if (settings && stagedSettings) {
-      // Use a deep comparison function to detect changes
       const detectChanges = (original: unknown, staged: unknown): boolean => {
-        // If types are different, there's a change
         if (typeof original !== typeof staged) return true;
 
-        // If both are null or undefined
         if (original === null && staged === null) return false;
         if (original === undefined && staged === undefined) return false;
 
-        // If one is null/undefined and the other isn't
         if (original === null || staged === null) return true;
         if (original === undefined || staged === undefined) return true;
 
-        // For objects, recursively check each property
         if (typeof original === "object" && typeof staged === "object") {
           const originalObj = original as Record<string, unknown>;
           const stagedObj = staged as Record<string, unknown>;
           const originalKeys = Object.keys(originalObj);
           const stagedKeys = Object.keys(stagedObj);
 
-          // If different number of keys, there's a change
           if (originalKeys.length !== stagedKeys.length) return true;
 
-          // Check each key
           for (const key of originalKeys) {
             if (detectChanges(originalObj[key], stagedObj[key])) return true;
           }
@@ -50,7 +110,6 @@ export function useCalendarSettings() {
           return false;
         }
 
-        // For primitives, direct comparison
         return original !== staged;
       };
 
@@ -61,42 +120,49 @@ export function useCalendarSettings() {
     }
   }, [settings, stagedSettings]);
 
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        "/api/client-care-settings?category=calendar",
-      );
+  // Save mutation
+  const saveMutation = useMutation({
+    mutationFn: async (settingsToSave: CalendarSettings) => {
+      const response = await fetch("/api/client-care-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: "calendar",
+          settings: settingsToSave,
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch settings");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update settings");
       }
 
-      const data = await response.json();
-      // Ensure we have a complete settings structure
-      const completeSettings = {
-        display: {
-          startTime: data.data?.display?.startTime || "7:00 AM",
-          endTime: data.data?.display?.endTime || "11:00 PM",
-          viewMode: data.data?.display?.viewMode || "week",
-          showWeekends: data.data?.display?.showWeekends ?? true,
-          cancellationNoticeHours:
-            data.data?.display?.cancellationNoticeHours || 24,
-        },
-      };
-      setSettings(completeSettings);
-      setStagedSettings(completeSettings); // Initialize staged settings
-    } catch (error) {
-      console.error("Error fetching calendar settings:", error);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Update cached data
+      queryClient.invalidateQueries({
+        queryKey: ["client-care-settings", "calendar"],
+      });
+
+      // Update local state with saved settings
+      const savedSettings = createCompleteSettings(data.data);
+      setStagedSettings(savedSettings);
+
+      toast({
+        title: "Success",
+        description: "Calendar settings saved successfully",
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Error updating calendar settings:", error);
       toast({
         title: "Error",
-        description: "Failed to load calendar settings",
+        description: error.message || "Failed to save calendar settings",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
   // Stage changes without saving
   const stageChanges = (updates: Partial<CalendarSettings>) => {
@@ -141,63 +207,9 @@ export function useCalendarSettings() {
   const saveChanges = async () => {
     if (!stagedSettings || !hasChanges) return;
 
-    try {
-      setSaving(true);
-
-      // Ensure we have complete settings structure before saving
-      const completeSettings = {
-        display: {
-          startTime: stagedSettings?.display?.startTime || "7:00 AM",
-          endTime: stagedSettings?.display?.endTime || "11:00 PM",
-          viewMode: stagedSettings?.display?.viewMode || "week",
-          showWeekends: stagedSettings?.display?.showWeekends ?? true,
-          cancellationNoticeHours:
-            stagedSettings?.display?.cancellationNoticeHours || 24,
-        },
-      };
-
-      const response = await fetch("/api/client-care-settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category: "calendar",
-          settings: completeSettings,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update settings");
-      }
-
-      const data = await response.json();
-      // Ensure we have a complete settings structure from the response
-      const savedSettings = {
-        display: {
-          startTime: data.data?.display?.startTime || "7:00 AM",
-          endTime: data.data?.display?.endTime || "11:00 PM",
-          viewMode: data.data?.display?.viewMode || "week",
-          showWeekends: data.data?.display?.showWeekends ?? true,
-          cancellationNoticeHours:
-            data.data?.display?.cancellationNoticeHours || 24,
-        },
-      };
-      setSettings(savedSettings);
-      setStagedSettings(savedSettings); // Reset staged to match saved
-
-      toast({
-        title: "Success",
-        description: "Calendar settings saved successfully",
-      });
-    } catch (error) {
-      console.error("Error updating calendar settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save calendar settings",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
+    // Ensure complete settings before saving
+    const completeSettings = createCompleteSettings(stagedSettings);
+    saveMutation.mutate(completeSettings);
   };
 
   // Discard staged changes
@@ -208,12 +220,16 @@ export function useCalendarSettings() {
   return {
     settings: stagedSettings, // Return staged settings for UI
     loading,
-    saving,
+    saving: saveMutation.isPending,
     hasChanges,
+    error,
     stageChanges,
     stageSetting,
     saveChanges,
     discardChanges,
-    refetch: fetchSettings,
+    refetch: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["client-care-settings", "calendar"],
+      }),
   };
 }

@@ -1,10 +1,11 @@
 "use client";
 import { Switch, Card, CardContent, CardHeader, CardTitle } from "@mcw/ui";
-import ManageAvailabilityModal from "./ManageAvailabilityModal";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { PortalSettings, DeepPartial } from "@mcw/types";
 
-function AvailabilityWarning({ onManageClick }: { onManageClick: () => void }) {
+function AvailabilityWarning() {
+  const router = useRouter();
+
   return (
     <div className="flex items-center bg-[#FFF8E1] border border-[#FFE58F] rounded-md px-4 py-3 mt-4 mb-6">
       <svg
@@ -25,9 +26,8 @@ function AvailabilityWarning({ onManageClick }: { onManageClick: () => void }) {
         No availability set up
       </span>
       <a
-        className="text-[#2563EB] hover:underline"
-        href="#"
-        onClick={onManageClick}
+        className="text-[#2563EB] hover:underline cursor-pointer"
+        onClick={() => router.push("/scheduled")}
       >
         Manage availability
       </a>
@@ -293,8 +293,6 @@ export default function AppointmentRequestsCard({
   loading,
   stageChanges,
 }: AppointmentRequestsCardProps) {
-  const [showModal, setShowModal] = useState(false);
-
   const handleAppointmentRequestsToggle = (checked: boolean) => {
     stageChanges({
       appointments: {
@@ -384,11 +382,7 @@ export default function AppointmentRequestsCard({
       </CardHeader>
       {settings?.appointments?.isAppointmentRequestsEnabled && (
         <CardContent className="pt-0">
-          <AvailabilityWarning onManageClick={() => setShowModal(true)} />
-          <ManageAvailabilityModal
-            open={showModal}
-            onClose={() => setShowModal(false)}
-          />
+          <AvailabilityWarning />
           <NewClientRequestSettings
             settings={settings || {}}
             onAllowNewClientsChange={handleAllowNewClientsChange}
