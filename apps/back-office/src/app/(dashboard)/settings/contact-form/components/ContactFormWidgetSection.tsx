@@ -1,35 +1,26 @@
 "use client";
 
 import { Button } from "@mcw/ui";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function ContactFormWidgetSection() {
   const [copied, setCopied] = useState(false);
-  const [widgetCode, setWidgetCode] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchWidgetCode();
-  }, []);
-
-  const fetchWidgetCode = async () => {
-    try {
-      setLoading(true);
+  const { data: widgetData, isLoading: loading } = useQuery({
+    queryKey: ["client-care-settings", "contactForm"],
+    queryFn: async () => {
       const response = await fetch(
         "/api/client-care-settings?category=contactForm",
       );
-
-      if (response.ok) {
-        const data = await response.json();
-        // The widget code is stored in the general.widgetCode field
-        setWidgetCode(data.data?.general?.widgetCode || "");
+      if (!response.ok) {
+        throw new Error("Failed to fetch widget code");
       }
-    } catch (error) {
-      console.error("Error fetching widget code:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.json();
+    },
+  });
+
+  const widgetCode = widgetData?.data?.general?.widgetCode || "";
 
   const handleCopy = () => {
     if (widgetCode) {
