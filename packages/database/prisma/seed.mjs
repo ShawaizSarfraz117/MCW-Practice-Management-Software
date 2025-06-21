@@ -452,7 +452,153 @@ async function main() {
 
   // Seed tags
   const { tags: createdTags } = await seedTags(prisma);
+  
+  // Seed practice settings for widget codes
+  console.log('Seeding practice settings for widget codes...');
+  
+  // Default appointment request widget code
+  const appointmentWidgetCode = `<!-- Start MCW Appointment-Request Widget Embed Code -->
+<style>
+  .mcw-widget-button-wrapper { text-align: center; }
+  .mcw-widget-button {
+    display: inline-block;
+    padding: 12px 24px;
+    color: #fff !important;
+    background: #de6a26;
+    border: 0;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .mcw-widget-button:hover { background: #f15913; }
+  .mcw-widget-button:active {
+    color: rgba(255, 255, 255, .75) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  }
+</style>
+<div class='mcw-widget-button-wrapper'>
+  <a href='https://your-practice.clientsecure.me' 
+     class='mcw-widget-button'>
+    Request Appointment
+  </a>
+</div>
+<script src='https://widget.mcw-platform.com/embed.js'></script>
+<!-- End MCW Appointment-Request Widget Embed Code -->`;
 
+  // Default contact form widget code
+  const contactFormWidgetCode = `<!-- Start MCW Contact Form Widget Embed Code -->
+<style>
+  .mcw-contact-button-wrapper { text-align: center; }
+  .mcw-contact-button {
+    display: inline-block;
+    padding: 6px 24px 7px 24px;
+    margin: 0 auto;
+    background: #4f46e5;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .mcw-contact-button:hover { background: #3730a3; }
+</style>
+<div class="mcw-contact-button-wrapper">
+  <a class="mcw-contact-button" 
+     href="https://your-practice.clientsecure.me/contact-widget" 
+     target="_blank">
+    Contact Us
+  </a>
+</div>
+<!-- End MCW Contact Form Widget Embed Code -->`;
+
+  // Store widget settings as individual key-value pairs (practice-wide, not per-clinician)
+  const widgetSettingsToStore = [
+    { key: 'appointment_request_widget_code', value: appointmentWidgetCode },
+  ];
+
+  for (const setting of widgetSettingsToStore) {
+    const existing = await prisma.practiceSettings.findFirst({
+      where: { key: setting.key }
+    });
+    
+    if (existing) {
+      await prisma.practiceSettings.update({
+        where: { id: existing.id },
+        data: { value: setting.value }
+      });
+    } else {
+      await prisma.practiceSettings.create({
+        data: {
+          id: uuidv4(),
+          key: setting.key,
+          value: setting.value
+        }
+      });
+    }
+  }
+
+  // Store contact form settings as individual key-value pairs (practice-wide, not per-clinician)
+  const contactFormSettingsToStore = [
+    { key: 'contact_form_is_enabled', value: 'true' },
+    { key: 'contact_form_link', value: 'https://your-practice.clientsecure.me/contact' },
+    { key: 'contact_form_widget_code', value: contactFormWidgetCode },
+  ];
+
+  for (const setting of contactFormSettingsToStore) {
+    const existing = await prisma.practiceSettings.findFirst({
+      where: { key: setting.key }
+    });
+    
+    if (existing) {
+      await prisma.practiceSettings.update({
+        where: { id: existing.id },
+        data: { value: setting.value }
+      });
+    } else {
+      await prisma.practiceSettings.create({
+        data: {
+          id: uuidv4(),
+          key: setting.key,
+          value: setting.value
+        }
+      });
+    }
+  }
+
+  // Store calendar settings as individual key-value pairs (practice-wide)
+  const calendarSettingsToStore = [
+    { key: 'calendar_start_time', value: '7:00 AM' },
+    { key: 'calendar_end_time', value: '11:00 PM' },
+    { key: 'calendar_view_mode', value: 'week' },
+    { key: 'calendar_show_weekends', value: 'true' },
+    { key: 'calendar_cancellation_notice_hours', value: '24' },
+  ];
+
+  for (const setting of calendarSettingsToStore) {
+    const existing = await prisma.practiceSettings.findFirst({
+      where: { key: setting.key }
+    });
+    
+    if (existing) {
+      await prisma.practiceSettings.update({
+        where: { id: existing.id },
+        data: { value: setting.value }
+      });
+    } else {
+      await prisma.practiceSettings.create({
+        data: {
+          id: uuidv4(),
+          key: setting.key,
+          value: setting.value
+        }
+      });
+    }
+  }
+
+  console.log('Practice settings for widget codes and calendar seeded successfully');
+  
   // Create sample appointments with tags
   console.log("Creating sample appointments with tags...");
 
@@ -580,3 +726,5 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+
