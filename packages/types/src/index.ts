@@ -45,3 +45,6 @@ export * from "./clientFiles";
 
 // Re-export client overview types
 export * from "./client-overview";
+
+// Re-export client care settings types
+export * from "./client-care-settings";

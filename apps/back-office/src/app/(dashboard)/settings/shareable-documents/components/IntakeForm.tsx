@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShareableTemplate } from "../hooks/useShareableTemplates";
 import { SurveyPreview } from "@mcw/ui";
+import { useDemographicsFormSettings } from "../hooks/useDemographicsFormSettings";
 
 // Types
 interface BaseForm {
@@ -32,6 +33,12 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
   const router = useRouter();
   const [viewingIntake, setViewingIntake] = useState<BaseForm | null>(null);
   const [viewingMeasure, setViewingMeasure] = useState<BaseForm | null>(null);
+
+  const {
+    settings: demographicsSettings,
+    updateSettings: updateDemographicsSettings,
+    isLoading: isDemographicsLoading,
+  } = useDemographicsFormSettings();
 
   return (
     <div className="space-y-8">
@@ -199,6 +206,23 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                       <input
                         className="h-4 w-4 rounded border-gray-300"
                         type="checkbox"
+                        checked={
+                          demographicsSettings?.fields?.nameTheyGoBy ?? false
+                        }
+                        disabled={isDemographicsLoading}
+                        onChange={(e) =>
+                          updateDemographicsSettings({
+                            fields: {
+                              nameTheyGoBy: e.target.checked,
+                              insurance:
+                                demographicsSettings?.fields?.insurance ??
+                                false,
+                              genderIdentity:
+                                demographicsSettings?.fields?.genderIdentity ??
+                                false,
+                            },
+                          })
+                        }
                       />
                       <span className="text-sm text-gray-600">
                         Name they go by
@@ -208,6 +232,23 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                       <input
                         className="h-4 w-4 rounded border-gray-300"
                         type="checkbox"
+                        checked={
+                          demographicsSettings?.fields?.insurance ?? false
+                        }
+                        disabled={isDemographicsLoading}
+                        onChange={(e) =>
+                          updateDemographicsSettings({
+                            fields: {
+                              nameTheyGoBy:
+                                demographicsSettings?.fields?.nameTheyGoBy ??
+                                false,
+                              insurance: e.target.checked,
+                              genderIdentity:
+                                demographicsSettings?.fields?.genderIdentity ??
+                                false,
+                            },
+                          })
+                        }
                       />
                       <span className="text-sm text-gray-600">Insurance</span>
                     </label>
@@ -215,6 +256,23 @@ export function IntakeForm({ intakeForms, scoredMeasures }: IntakeFormProps) {
                       <input
                         className="h-4 w-4 rounded border-gray-300"
                         type="checkbox"
+                        checked={
+                          demographicsSettings?.fields?.genderIdentity ?? false
+                        }
+                        disabled={isDemographicsLoading}
+                        onChange={(e) =>
+                          updateDemographicsSettings({
+                            fields: {
+                              nameTheyGoBy:
+                                demographicsSettings?.fields?.nameTheyGoBy ??
+                                false,
+                              insurance:
+                                demographicsSettings?.fields?.insurance ??
+                                false,
+                              genderIdentity: e.target.checked,
+                            },
+                          })
+                        }
                       />
                       <span className="text-sm text-gray-600">
                         Gender identity
